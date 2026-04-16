@@ -8,8 +8,9 @@ import 'package:vybe/design_system/colors.dart';
 /// 실제 텍스트 입력 대신 탭 시 [onTap] 콜백을 통해
 /// [CarrierSheet] 바텀시트를 오픈한다.
 ///
-/// - 선택 전: hint 텍스트 (gray600) + 하단 화살표 아이콘
-/// - 선택 후: 선택된 통신사 이름 (gray200) + 하단 화살표 아이콘
+/// - 선택 전 (active): hint 텍스트 (gray600) + 보라색 border
+/// - 선택 후 (active): 선택된 통신사 이름 (gray200) + 보라색 border
+/// - 비활성 (다른 단계 편집 중): CompletedField로 교체됨 (이 위젯 사용 안 함)
 class CarrierDropdownField extends StatelessWidget {
   /// 현재 선택된 통신사 이름. null이면 hint 표시.
   final String? value;
@@ -17,10 +18,15 @@ class CarrierDropdownField extends StatelessWidget {
   /// 필드 탭 시 호출 (통신사 바텀시트 오픈)
   final VoidCallback onTap;
 
+  /// 통신사 단계가 현재 활성 단계인지 여부.
+  /// VybeTextField의 _isFocused 역할 — true이면 보라색 border, false이면 회색
+  final bool isActive;
+
   const CarrierDropdownField({
     super.key,
     required this.value,
     required this.onTap,
+    this.isActive = false,
   });
 
   /// 상태에 따른 텍스트 스타일 반환
@@ -39,12 +45,18 @@ class CarrierDropdownField extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool hasValue = value != null;
 
+    // VybeTextField와 동일한 규칙:
+    // active(포커스 중) 또는 값이 있으면 보라색, 아니면 회색
+    final borderColor = (isActive || hasValue)
+        ? VybeColors.mainPurple500
+        : VybeColors.gray700;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           border: Border(
-            bottom: BorderSide(color: VybeColors.gray700, width: 1),
+            bottom: BorderSide(color: borderColor, width: 1),
           ),
         ),
         padding: EdgeInsets.symmetric(vertical: 4.h),

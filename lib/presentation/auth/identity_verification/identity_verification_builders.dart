@@ -98,6 +98,7 @@ mixin _IdentityVerificationBuildersMixin on State<IdentityVerificationScreen> {
         _Step.carrier => CarrierDropdownField(
             value: _carrier,
             onTap: _showCarrierSheet,
+            isActive: true, // _buildActiveField에서만 호출 → 항상 보라색 border
           ),
       };
 
