@@ -1,3 +1,10 @@
+// TODO: login_method_bottom_sheet.dart
+// "다른 방법으로 로그인" 탭 시 표시되는 바텀시트
+// - 본인 인증 필요 안내 메시지 표시
+// - 본인인증 로그인 버튼 → IdentityVerificationScreen으로 진입
+//
+// Figma node: 116-11750
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';

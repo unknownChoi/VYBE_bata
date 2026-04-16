@@ -1,9 +1,18 @@
+// TODO: identity_verification_screen.dart
+// 본인 인증 화면 진입점 — StatefulWidget 선언 및 State 필드 관리
+// - 단계별 입력 (이름 → 생년월일 → 전화번호 → 통신사)
+// - 계산 로직은 identity_verification_logic.dart (LogicMixin)
+// - 이벤트 핸들러는 identity_verification_handler.dart (HandlerMixin)
+// - UI 빌더는 identity_verification_builders.dart (BuildersMixin)
+//
+// Figma node: (identity verification screen)
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
-import 'package:vybe/presentation/auth/certification_number_screen.dart';
+import 'package:vybe/presentation/auth/certification_number/certification_number_screen.dart';
 import 'package:vybe/presentation/auth/widgets/birth_input.dart';
 import 'package:vybe/presentation/auth/widgets/carrier_dropdown_field.dart';
 import 'package:vybe/presentation/auth/widgets/carrier_sheet.dart';
@@ -42,31 +51,42 @@ class IdentityVerificationScreen extends StatefulWidget {
       _IdentityVerificationScreenState();
 }
 
-class _IdentityVerificationScreenState
-    extends State<IdentityVerificationScreen>
-    with _IdentityVerificationLogicMixin,
-         _IdentityVerificationHandlerMixin,
-         _IdentityVerificationBuildersMixin {
-
+class _IdentityVerificationScreenState extends State<IdentityVerificationScreen>
+    with
+        _IdentityVerificationLogicMixin,
+        _IdentityVerificationHandlerMixin,
+        _IdentityVerificationBuildersMixin {
   // ── 단계 추적 ──
-  @override _Step _maxStep = _Step.name;
-  @override _Step _activeStep = _Step.name;
+  @override
+  _Step _maxStep = _Step.name;
+  @override
+  _Step _activeStep = _Step.name;
 
   // ── 각 필드 컨트롤러 ──
-  @override final _nameCtrl = TextEditingController();
-  @override final _birthFrontCtrl = TextEditingController(); // YYMMDD (6자리)
-  @override final _birthBackCtrl = TextEditingController();  // 성별 코드 (1자리)
-  @override final _phoneCtrl = TextEditingController();
-  @override String? _carrier;
+  @override
+  final _nameCtrl = TextEditingController();
+  @override
+  final _birthFrontCtrl = TextEditingController(); // YYMMDD (6자리)
+  @override
+  final _birthBackCtrl = TextEditingController(); // 성별 코드 (1자리)
+  @override
+  final _phoneCtrl = TextEditingController();
+  @override
+  String? _carrier;
 
   // ── 각 필드 포커스 노드 ──
-  @override final _nameFocus = FocusNode();
-  @override final _birthFrontFocus = FocusNode();
-  @override final _birthBackFocus = FocusNode();
-  @override final _phoneFocus = FocusNode();
+  @override
+  final _nameFocus = FocusNode();
+  @override
+  final _birthFrontFocus = FocusNode();
+  @override
+  final _birthBackFocus = FocusNode();
+  @override
+  final _phoneFocus = FocusNode();
 
   // 앞 6자리 완료 감지를 위한 이전값 추적
-  @override String _prevBirthFront = '';
+  @override
+  String _prevBirthFront = '';
 
   // ────────────────────────────────────────────
   // Lifecycle

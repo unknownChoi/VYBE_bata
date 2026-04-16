@@ -1,11 +1,20 @@
+// TODO: welcome_screen.dart
+// 앱 진입 후 최초 표시되는 웰컴(로그인) 화면
+// - VYBE 로고 + 태그라인 ("바이브 탈 준비 됐어? 우린 끝냈어!")
+// - 카카오 / 네이버 / Apple 소셜 로그인 버튼
+// - "다른 방법으로 로그인" 탭 시 LoginMethodBottomSheet 표시
+// - _LoginButton: 소셜 로그인 버튼 공통 레이아웃 위젯 (이 파일 전용)
+//
+// Figma node: (welcome screen)
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
-import 'package:vybe/presentation/auth/identity_verification_screen.dart';
-import 'package:vybe/presentation/auth/login_method_bottom_sheet.dart';
+import 'package:vybe/presentation/auth/identity_verification/identity_verification_screen.dart';
+import 'package:vybe/presentation/auth/welcome/login_method_bottom_sheet.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});

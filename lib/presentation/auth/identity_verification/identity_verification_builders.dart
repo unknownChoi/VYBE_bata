@@ -1,3 +1,11 @@
+// TODO: identity_verification_builders.dart
+// 본인 인증 화면 UI 빌더 헬퍼
+// - 단계별 페이지 타이틀 (_buildTitle)
+// - 활성/완료 필드 전환 빌더 (_buildFieldForStep)
+// - 편집 가능한 활성 입력 위젯 (_buildActiveField)
+// - 탭 가능한 read-only 완료 위젯 (_buildCompletedField)
+// - 맨 위 입력창 아래 완료 필드 목록 (_buildBelowFields)
+
 part of 'identity_verification_screen.dart';
 
 /// UI 빌더 헬퍼 — buildTitle, buildFieldForStep,

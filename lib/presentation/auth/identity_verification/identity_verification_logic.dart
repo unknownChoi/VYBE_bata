@@ -1,3 +1,8 @@
+// TODO: identity_verification_logic.dart
+// 본인 인증 화면 순수 계산 로직 (Computed Properties)
+// - 확인 버튼 활성화 여부 (_canProceed)
+// - 만 19세 미만 여부 (_isMinor)
+
 part of 'identity_verification_screen.dart';
 
 /// 순수 계산 로직 — canProceed, isMinor

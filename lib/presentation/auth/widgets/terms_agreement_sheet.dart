@@ -3,7 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
-import 'package:vybe/presentation/auth/terms_detail_screen.dart';
+import 'package:vybe/presentation/auth/terms/terms_detail_screen.dart';
 import 'package:vybe/presentation/common/widgets/vybe_button.dart';
 
 class _TermsItem {

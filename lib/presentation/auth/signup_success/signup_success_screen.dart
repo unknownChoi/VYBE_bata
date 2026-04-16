@@ -1,3 +1,13 @@
+// TODO: signup_success_screen.dart
+// 회원가입 완료 화면 (SignupSuccessScreen)
+// - 배경 동영상 무한 반복 재생 (assets/videos/signup_succes.mp4)
+// - VYBE 로고 + "와 함께" 텍스트
+// - 라임→핑크→퍼플 그라데이션 타이틀 텍스트
+// - 검정→투명 오버레이 그라데이션 (영상과 자연스러운 전환)
+// - 바이브 시작하기 버튼 (special variant, 그라데이션 border)
+//
+// Figma node: 219-2841
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -108,17 +118,22 @@ class _SignupSuccessScreenState extends State<SignupSuccessScreen> {
           Positioned(
             left: 0,
             right: 0,
-            top: 230.h,
-            height: 220.h,
+            top: 200.h,
+            height: 420.h,
             child: Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    VybeColors.background, // 완전 불투명 (어두운 배경과 동일)
-                    Colors.transparent,    // 완전 투명 (비디오 그대로 노출)
+                    VybeColors.background,                    // 완전 불투명
+                    VybeColors.background.withValues(alpha: 0.95),
+                    VybeColors.background.withValues(alpha: 0.8),
+                    VybeColors.background.withValues(alpha: 0.5),
+                    VybeColors.background.withValues(alpha: 0.15),
+                    Colors.transparent,                       // 완전 투명
                   ],
+                  stops: const [0.0, 0.35, 0.55, 0.75, 0.9, 1.0],
                 ),
               ),
             ),

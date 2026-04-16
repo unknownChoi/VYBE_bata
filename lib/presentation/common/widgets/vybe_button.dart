@@ -47,18 +47,52 @@ class _VybeButtonState extends State<VybeButton> {
     return VybeColors.mainPurple500;
   }
 
-  Border? get _border {
-    if (widget.variant == VybeButtonVariant.special && !_isDisabled) {
-      final borderColor = _isPressed ? Colors.white : VybeColors.mainLime500;
-      return Border.all(color: borderColor, width: 2);
-    }
-    return null;
-  }
+  // special variant border 그라데이션 (타이틀 텍스트와 동일)
+  static const _borderGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      Color(0xFFB5FF60), // lime
+      Color(0xFFC8E77F),
+      Color(0xFFDACA9E),
+      Color(0xFFFF9EDB), // pink
+      Color(0xFFDD82E4),
+      Color(0xFFBB67ED),
+      Color(0xFF994CF5),
+      Color(0xFF7731FE), // purple
+    ],
+    stops: [0.0, 0.142, 0.285, 0.569, 0.677, 0.785, 0.892, 1.0],
+  );
 
   BorderRadius? get _borderRadius {
     if (widget.variant == VybeButtonVariant.withKeyboard) return null;
     return BorderRadius.circular(12.r);
   }
+
+  Widget get _labelText => Text(
+        widget.label,
+        style: TextStyle(
+          fontFamily: 'Pretendard',
+          fontWeight: FontWeight.w500,
+          fontSize: 18.sp,
+          height: 1,
+          letterSpacing: 18 * -0.025,
+          color: _isDisabled ? Colors.white.withValues(alpha: 0.8) : Colors.white,
+        ),
+      );
+
+  GestureDetector _wrapGesture(Widget child) => GestureDetector(
+        onTapDown: _isDisabled ? null : (_) => setState(() => _isPressed = true),
+        onTapUp: _isDisabled
+            ? null
+            : (_) {
+                setState(() => _isPressed = false);
+                widget.onTap?.call();
+              },
+        onTapCancel:
+            _isDisabled ? null : () => setState(() => _isPressed = false),
+        child: child,
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -81,38 +115,42 @@ class _VybeButtonState extends State<VybeButton> {
       );
     }
 
-    return GestureDetector(
-      onTapDown: _isDisabled ? null : (_) => setState(() => _isPressed = true),
-      onTapUp: _isDisabled
-          ? null
-          : (_) {
-              setState(() => _isPressed = false);
-              widget.onTap?.call();
-            },
-      onTapCancel: _isDisabled ? null : () => setState(() => _isPressed = false),
-      child: AnimatedContainer(
+    // special variant: 그라데이션 border를 외부 컨테이너로 구현
+    if (widget.variant == VybeButtonVariant.special) {
+      return _wrapGesture(
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 100),
+          width: double.infinity,
+          height: 56.h,
+          decoration: BoxDecoration(
+            gradient: _isDisabled ? null : _borderGradient,
+            color: _isDisabled ? VybeColors.mainPurpleDisabled : null,
+            borderRadius: _borderRadius,
+          ),
+          padding: const EdgeInsets.all(2), // border 두께
+          child: Container(
+            decoration: BoxDecoration(
+              color: _isPressed ? VybeColors.mainPurple700 : VybeColors.mainPurple500,
+              borderRadius: BorderRadius.circular(10.r),
+            ),
+            alignment: Alignment.center,
+            child: _labelText,
+          ),
+        ),
+      );
+    }
+
+    return _wrapGesture(
+      AnimatedContainer(
         duration: const Duration(milliseconds: 100),
         width: double.infinity,
         height: 56.h,
         decoration: BoxDecoration(
           color: _backgroundColor,
           borderRadius: _borderRadius,
-          border: _border,
         ),
         alignment: Alignment.center,
-        child: Text(
-          widget.label,
-          style: TextStyle(
-            fontFamily: 'Pretendard',
-            fontWeight: FontWeight.w500,
-            fontSize: 18.sp,
-            height: 1,
-            letterSpacing: 18 * -0.025,
-            color: _isDisabled
-                ? Colors.white.withValues(alpha: 0.8)
-                : Colors.white,
-          ),
-        ),
+        child: _labelText,
       ),
     );
   }
