@@ -65,12 +65,13 @@ View (Widget) → ViewModel (Notifier) → Repository → DataSource (Firebase)
 | 역할 | 패키지 |
 |------|--------|
 | 상태관리 | `flutter_riverpod` |
-| 백엔드 | Firebase (Firestore, Auth, Storage) |
+| 백엔드 | Firebase (Firestore, Auth, Storage, Functions) |
 | 지도 | `google_maps_flutter` |
 | 라우팅 | `go_router` |
 | 코드 생성 | `riverpod_generator`, `freezed`, `json_serializable` |
 | 아이콘 | `cupertino_icons` |
 | 반응형 | `flutter_screenutil` |
+| 네이버 로그인 | `flutter_naver_login` |
 
 ---
 
@@ -95,6 +96,10 @@ flutter pub run build_runner watch --delete-conflicting-outputs
 # 빌드
 flutter build apk      # Android
 flutter build ios      # iOS
+
+# Cloud Functions 배포
+firebase deploy --only functions
+firebase deploy --only functions:naverLogin  # 특정 함수만
 ```
 
 ---
@@ -181,6 +186,278 @@ ElevatedButton(onPressed: () {}, child: Text('로그인'))
 - 새 화면 구현 전 반드시 Figma에서 해당 화면 디자인을 먼저 확인할 것
 - Figma의 레이어 이름을 위젯 변수명/파일명 참고용으로 활용할 것
 - 디자인과 다르게 구현이 필요한 경우 반드시 사유를 주석으로 남길 것
+- **UI가 이미 구현된 화면 작업 시 Figma MCP 확인 불필요, 로직 레이어만 작성할 것**
+
+---
+
+## 현재 구현 상태 (2026.04.18 기준)
+
+### 완료 ✅
+- 디자인 시스템 (colors, typography, spacing)
+- 앱 테마 설정
+- Firebase 초기화 (firebase_options.dart)
+- 인증 UI 화면 전체 (welcome, OTP, 본인인증, 약관, 가입완료)
+- 공통 위젯 (VybeButton, VybeTextField 등)
+
+### 미구현 ✗
+- Flutter 데이터 레이어 전체 (models, datasources, repositories, viewmodels)
+- Cloud Functions 전체 7개 (naverLogin, onUserCreated, verifyIdentity, deleteUser, onFavoriteCreated, onFavoriteDeleted)
+- Firestore / Storage Security Rules 배포
+- 인증 플로우 실제 연결 (SDK → Functions → Firebase)
+- 홈 / 지도 / 클럽 상세 / 검색 / 찜 / 프로필 화면
+
+---
+
+## 작업 순서 (로드맵)
+
+```
+1. Cloud Functions 구현 및 배포
+   - onUserCreated (Auth 트리거) — 신규 유저 Firestore 문서 자동 생성
+   - verifyIdentity (본인인증)
+   - onFavoriteCreated / onFavoriteDeleted (찜 카운트)
+   - deleteUser (회원탈퇴)
+        ↓
+2. Firestore / Storage Security Rules 배포
+        ↓
+3. Flutter 인증 플로우 완성
+   - 본인인증 완료 → Firestore users/{uid} 생성
+   - 로그인 상태 유지 (go_router redirect)
+        ↓
+4. Flutter 데이터 레이어 구현
+   - Freezed 모델 (UserModel, ClubModel 등)
+   - DataSources / Repositories / ViewModels
+        ↓
+5. 홈 / 지도 화면
+        ↓
+6. 클럽 상세 화면 (정보, 메뉴, 리뷰, 찜)
+        ↓
+7. 검색 / 찜 목록 / 프로필 화면
+```
+
+---
+
+## Firebase 설계
+
+### 베타 버전 범위
+
+**포함 기능:**
+- 회원가입 / 로그인 (네이버, Apple + 본인인증)
+- 홈 / 검색 / 내 주변 (지도 기반 탐색)
+- 업체 상세 (정보, 메뉴, 갤러리, 인앱 리뷰)
+- 찜 목록
+- 마이페이지 (프로필, 리뷰 내역)
+
+**제외 기능:**
+- 웨이팅 / 테이블 예약
+- 분실물 찾기
+- 결제 내역
+- 블로그 리뷰
+- 카카오 로그인 (추후 추가)
+
+---
+
+### 인증 플로우
+
+#### 로그인 방식
+| 방식 | 처리 방법 | Firebase UID 형식 |
+|------|-----------|-------------------|
+| 네이버 | Cloud Functions (naverLogin) → Custom Token | `naver:{naverId}` |
+| Apple | Firebase Auth 직접 처리 | Firebase 자동 생성 |
+
+#### 전체 흐름
+```
+1. 소셜 로그인 SDK → accessToken / identityToken 발급
+2. 네이버: Cloud Functions(naverLogin) → Custom Token 발급
+   Apple: Firebase Auth 직접 처리
+3. FirebaseAuth.signInWithCustomToken() → Firebase UID 발급
+4. Firestore users/{uid} 존재 여부 확인
+   - 신규 유저 → 본인인증(verifyIdentity) → 프로필 입력 → users/{uid} 문서 생성 → 홈
+   - 기존 유저 → 홈 화면 이동
+```
+
+#### 핵심 규칙
+- accessToken은 매번 달라지지만 네이버ID는 불변 → 항상 같은 Firebase UID 생성
+- 본인인증은 로그인 방식이 아닌 신원 확인 수단
+- `phone` 필드로 중복 가입 방지 (같은 전화번호 재가입 불가)
+- `isVerified: false` 로 초기 생성 → 본인인증 완료 시 `true` 로 업데이트
+
+#### Flutter 네이버 로그인 코드 패턴
+```dart
+// 1. 네이버 로그인 → accessToken
+final NaverLoginResult result = await FlutterNaverLogin.logIn();
+final String accessToken = result.accessToken.token;
+
+// 2. Cloud Functions 호출 → Custom Token
+final callable = FirebaseFunctions.instance.httpsCallable('naverLogin');
+final response = await callable.call({'accessToken': accessToken});
+final String customToken = response.data['customToken'];
+final bool isNewUser = response.data['isNewUser'];
+
+// 3. Firebase 로그인
+await FirebaseAuth.instance.signInWithCustomToken(customToken);
+
+// 4. 신규/기존 분기
+if (isNewUser) { /* 본인인증 화면 */ } else { /* 홈 화면 */ }
+```
+
+---
+
+### Firestore 컬렉션 구조
+
+Firebase 관련 코드는 반드시 `data/datasources/` 에만 작성할 것.
+
+#### users/{uid}
+```
+uid             : string    // Firebase Auth UID (PK)
+name            : string    // 사용자 실명
+phone           : string    // 본인인증 완료된 전화번호 (중복 가입 방지 기준)
+birthDate       : string    // 생년월일 YYYYMMDD
+profileImageUrl : string    // Storage 프로필 이미지 URL
+provider        : string    // "naver" | "apple"
+isVerified      : boolean   // 본인인증 완료 여부 (초기값: false)
+createdAt       : timestamp
+updatedAt       : timestamp
+```
+
+#### clubs/{clubId}
+```
+clubId          : string    // Firestore 자동 생성 (PK)
+name            : string    // 클럽 이름
+description     : string    // 클럽 소개글
+address         : string    // 주소
+phone           : string    // 연락처
+instagramUrl    : string    // 인스타그램 URL
+location        : object    // { lat: double, lng: double }
+geohash         : string    // 내 주변 GeoQuery용 (geofire-common 활용)
+imageUrls       : array     // 상세 이미지 URL 목록
+thumbnailUrl    : string    // 리스트 대표 이미지 URL
+tags            : array     // 태그 목록
+favoriteCount   : number    // 찜 수 (Cloud Functions 자동 업데이트, 직접 수정 금지)
+isActive        : boolean   // false면 앱에 노출 안 됨
+createdAt       : timestamp
+updatedAt       : timestamp
+```
+
+#### clubs/{clubId}/info/{clubId}
+```
+operatingHours  : string    // 영업시간
+parking         : string    // 주차 안내
+dressCode       : string    // 드레스코드
+ageLimit        : string    // 나이 제한
+sns             : array     // 추가 SNS 링크
+updatedAt       : timestamp
+```
+
+#### clubs/{clubId}/menus/{menuId}
+```
+menuId          : string    // PK
+clubId          : string    // FK → clubs
+name            : string    // 메뉴명
+description     : string    // 설명
+price           : number    // 가격 (원)
+imageUrl        : string    // 메뉴 이미지 URL
+category        : string    // 카테고리 (주류, 음식 등)
+isAvailable     : boolean   // 판매 여부
+createdAt       : timestamp
+```
+
+#### clubs/{clubId}/reviews/{reviewId}
+```
+reviewId        : string    // PK
+clubId          : string    // FK → clubs
+userId          : string    // FK → users
+rating          : number    // 별점 1~5
+content         : string    // 리뷰 텍스트
+imageUrls       : array     // 첨부 이미지 URL 목록
+createdAt       : timestamp
+updatedAt       : timestamp
+```
+
+#### favorites/{favoriteId}
+```
+favoriteId      : string    // PK
+userId          : string    // FK → users
+clubId          : string    // FK → clubs (favoriteCount 자동 연동)
+createdAt       : timestamp
+```
+
+#### users/{uid}/searchHistory/{historyId}
+```
+historyId       : string    // PK
+userId          : string    // FK → users
+keyword         : string    // 검색어
+createdAt       : timestamp
+```
+
+---
+
+### Cloud Functions 목록
+
+총 7개 함수. Firebase 관련 서버 로직은 모두 Cloud Functions으로 처리.
+
+#### HTTP 요청 함수 (앱에서 직접 호출)
+
+| 함수명 | 입력 | 출력 | 역할 |
+|--------|------|------|------|
+| `naverLogin` | `{ accessToken }` | `{ customToken, isNewUser }` | 네이버 accessToken → Firebase Custom Token 발급 |
+| `verifyIdentity` | `{ impUid }` | `{ verified }` | 본인인증 결과 검증 → phone/birthDate Firestore 저장 |
+| `deleteUser` | Auth 헤더 | `{ success }` | 회원탈퇴 (Auth + Firestore + Storage 일괄 삭제) |
+
+#### 자동 트리거 함수
+
+| 함수명 | 트리거 | 역할 |
+|--------|--------|------|
+| `onUserCreated` | Firebase Auth 신규 유저 생성 시 | users/{uid} 문서 자동 생성 (provider, isVerified: false, createdAt 세팅) |
+| `onFavoriteCreated` | favorites/{favoriteId} 생성 시 | clubs.favoriteCount += 1 (FieldValue.increment 사용) |
+| `onFavoriteDeleted` | favorites/{favoriteId} 삭제 시 | clubs.favoriteCount -= 1 (0 미만 방지 처리 필요) |
+
+#### 구현 시 주의사항
+- `favoriteCount` 는 반드시 `FieldValue.increment()` 사용 (동시 요청 정합성 보장)
+- `deleteUser` 는 Admin SDK로만 처리 (클라이언트에서 직접 삭제 불가)
+- 네이버 UID 형식: `naver:{naverId}`
+- `onUserCreated` 는 문서가 이미 존재하면 덮어쓰지 말 것 (중복 실행 방어)
+
+---
+
+### Security Rules
+
+#### Firestore Rules 요약
+| 컬렉션 | 읽기 | 쓰기 |
+|--------|------|------|
+| `users/{uid}` | 본인만 | 본인만 (uid / provider / createdAt 수정 불가) |
+| `clubs/{clubId}` | 누구나 (isActive=true만) | 어드민만 |
+| `clubs/.../info`, `menus` | 누구나 | 어드민만 |
+| `clubs/.../reviews` | 누구나 | 생성: 로그인 유저 / 수정·삭제: 본인 또는 어드민 |
+| `favorites` | 본인만 | 생성·삭제: 본인만 |
+| `users/.../searchHistory` | 본인만 | 본인만 |
+
+#### Storage Rules 요약
+| 경로 | 읽기 | 쓰기 |
+|------|------|------|
+| `clubs/**` | 누구나 | 어드민만, 10MB 이하, 이미지만 |
+| `reviews/**` | 누구나 | 로그인 유저, 10MB 이하, 이미지만 |
+| `users/{uid}/**` | 누구나 | 본인만, 5MB 이하, 이미지만 |
+
+#### 어드민 권한 설정
+```typescript
+// Admin SDK로 Custom Claim 부여
+admin.auth().setCustomUserClaims(uid, { admin: true })
+
+// Rules에서 확인
+request.auth.token.admin == true
+```
+
+---
+
+### Firebase Storage 경로 구조
+
+```
+clubs/{clubId}/thumbnail.jpg           // 클럽 대표 이미지 (1장)
+clubs/{clubId}/gallery/{filename}      // 갤러리 이미지 (여러 장)
+clubs/{clubId}/menus/{menuId}.jpg      // 메뉴 이미지
+reviews/{clubId}/{reviewId}/{filename} // 리뷰 첨부 이미지
+users/{uid}/profile.jpg                // 프로필 이미지 (덮어쓰기)
+```
 
 ---
 
@@ -193,3 +470,8 @@ ElevatedButton(onPressed: () {}, child: Text('로그인'))
 - `build_runner` 코드 생성이 필요한 파일 수정 시 반드시 안내할 것
 - UI 구현 시 **Figma MCP를 통해 디자인을 먼저 확인**한 후 코드 작성할 것
 - 모든 UI 수치는 반드시 **`flutter_screenutil`** 단위(`.w`, `.h`, `.sp`, `.r`)로 작성할 것
+- 인증 관련 코드는 반드시 위의 **인증 플로우** 섹션을 먼저 참고할 것
+- Firestore 문서 생성/수정 시 반드시 위의 **컬렉션 구조**를 따를 것
+- `favoriteCount` 는 직접 수정 금지 — Cloud Functions 트리거로만 업데이트됨
+- `phone` 필드는 중복 가입 방지 기준 — 회원가입 시 반드시 중복 체크할 것
+- UI가 이미 구현된 화면 작업 시 Figma MCP 확인 불필요, 로직 레이어만 작성할 것

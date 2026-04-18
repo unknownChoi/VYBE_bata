@@ -41,48 +41,49 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDBP5pnky1VXbHmSDR-0chPSZIdVzU3Djs',
-    appId: '1:84746666973:web:9b573b51ff668a1f0b6c34',
-    messagingSenderId: '84746666973',
-    projectId: 'vybe-bata',
-    authDomain: 'vybe-bata.firebaseapp.com',
-    storageBucket: 'vybe-bata.firebasestorage.app',
-    measurementId: 'G-8ML6FVEY7L',
+    apiKey: 'AIzaSyBvTMA4iLLLpuK6Oedg4xIWqatEvFTKE_4',
+    appId: '1:404505336223:web:c68412e52807c926b545aa',
+    messagingSenderId: '404505336223',
+    projectId: 'vybe-bata-c07aa',
+    authDomain: 'vybe-bata-c07aa.firebaseapp.com',
+    storageBucket: 'vybe-bata-c07aa.firebasestorage.app',
+    measurementId: 'G-VMR31G0BSY',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyAsbH9YtjJc5sehy0S3Yj_zxfwDZoZtriU',
-    appId: '1:84746666973:android:8fb5a4e7c37ec19c0b6c34',
-    messagingSenderId: '84746666973',
-    projectId: 'vybe-bata',
-    storageBucket: 'vybe-bata.firebasestorage.app',
+    apiKey: 'AIzaSyBmyU3TuQwx8fSqzJy5KlgBG4M6NQI-JOc',
+    appId: '1:404505336223:android:1cd58df25533020cb545aa',
+    messagingSenderId: '404505336223',
+    projectId: 'vybe-bata-c07aa',
+    storageBucket: 'vybe-bata-c07aa.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDWMQAmFmyl3oofc3jElmjBp1_t3HDXed4',
-    appId: '1:84746666973:ios:85e36ef7c28fac8f0b6c34',
-    messagingSenderId: '84746666973',
-    projectId: 'vybe-bata',
-    storageBucket: 'vybe-bata.firebasestorage.app',
+    apiKey: 'AIzaSyBf-GS6Msp01ps7-Jvaua216DutifNqMiQ',
+    appId: '1:404505336223:ios:98089f31b00f8558b545aa',
+    messagingSenderId: '404505336223',
+    projectId: 'vybe-bata-c07aa',
+    storageBucket: 'vybe-bata-c07aa.firebasestorage.app',
     iosBundleId: 'com.example.vybe',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyDWMQAmFmyl3oofc3jElmjBp1_t3HDXed4',
-    appId: '1:84746666973:ios:85e36ef7c28fac8f0b6c34',
-    messagingSenderId: '84746666973',
-    projectId: 'vybe-bata',
-    storageBucket: 'vybe-bata.firebasestorage.app',
+    apiKey: 'AIzaSyBf-GS6Msp01ps7-Jvaua216DutifNqMiQ',
+    appId: '1:404505336223:ios:98089f31b00f8558b545aa',
+    messagingSenderId: '404505336223',
+    projectId: 'vybe-bata-c07aa',
+    storageBucket: 'vybe-bata-c07aa.firebasestorage.app',
     iosBundleId: 'com.example.vybe',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyDBP5pnky1VXbHmSDR-0chPSZIdVzU3Djs',
-    appId: '1:84746666973:web:804f1075ac245a270b6c34',
-    messagingSenderId: '84746666973',
-    projectId: 'vybe-bata',
-    authDomain: 'vybe-bata.firebaseapp.com',
-    storageBucket: 'vybe-bata.firebasestorage.app',
-    measurementId: 'G-1BQLF89TPX',
+    apiKey: 'AIzaSyBvTMA4iLLLpuK6Oedg4xIWqatEvFTKE_4',
+    appId: '1:404505336223:web:5a67b4f52624aaf7b545aa',
+    messagingSenderId: '404505336223',
+    projectId: 'vybe-bata-c07aa',
+    authDomain: 'vybe-bata-c07aa.firebaseapp.com',
+    storageBucket: 'vybe-bata-c07aa.firebasestorage.app',
+    measurementId: 'G-F6WDCGFGJ1',
   );
+
 }

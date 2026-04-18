@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "mcp__figma__get_design_context",
-      "Bash(flutter analyze:*)"
+      "Bash(flutter analyze:*)",
+      "Bash(firebase deploy *)"
     ]
-  }
+  },
+  "disabledMcpjsonServers": [
+    "firebase"
+  ]
 }

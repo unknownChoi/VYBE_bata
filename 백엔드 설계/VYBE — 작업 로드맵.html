@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VYBE — 작업 로드맵</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f0f13;
+      color: #e8e8f0;
+      padding: 48px 24px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    .header {
+      margin-bottom: 48px;
+    }
+    .header h1 {
+      font-size: 32px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.5px;
+    }
+    .header .meta {
+      margin-top: 6px;
+      font-size: 13px;
+      color: #666;
+      letter-spacing: 0.3px;
+    }
+    .header .meta span {
+      margin-right: 16px;
+    }
+
+    /* Section title */
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: #555;
+      margin-bottom: 16px;
+      margin-top: 48px;
+    }
+
+    /* Status cards */
+    .status-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .status-card {
+      background: #16161e;
+      border: 1px solid #222230;
+      border-radius: 12px;
+      padding: 20px 24px;
+    }
+
+    .status-card .card-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+    .status-card.done .card-label { color: #4ade80; }
+    .status-card.todo .card-label { color: #f87171; }
+
+    .status-card ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .status-card li {
+      font-size: 13.5px;
+      color: #bbb;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      line-height: 1.5;
+    }
+
+    .status-card li::before {
+      content: '';
+      display: block;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      margin-top: 7px;
+      flex-shrink: 0;
+    }
+    .status-card.done li::before { background: #4ade80; }
+    .status-card.todo li::before { background: #f87171; }
+
+    /* Roadmap steps */
+    .roadmap {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .step {
+      display: flex;
+      gap: 20px;
+      position: relative;
+    }
+
+    .step-left {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex-shrink: 0;
+      width: 36px;
+    }
+
+    .step-num {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 1;
+    }
+
+    .step-line {
+      width: 1px;
+      flex: 1;
+      min-height: 20px;
+      background: #222230;
+      margin: 4px 0;
+    }
+
+    .step:last-child .step-line {
+      display: none;
+    }
+
+    .step-body {
+      background: #16161e;
+      border: 1px solid #222230;
+      border-radius: 12px;
+      padding: 18px 22px;
+      margin-bottom: 12px;
+      flex: 1;
+    }
+
+    .step-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .step-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .step-tag {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.6px;
+      padding: 3px 8px;
+      border-radius: 20px;
+      text-transform: uppercase;
+    }
+
+    .tag-claude { background: #2a1f4e; color: #a78bfa; }
+    .tag-both   { background: #1f3a2a; color: #4ade80; }
+    .tag-user   { background: #3a1f1f; color: #f87171; }
+
+    .step-desc {
+      font-size: 13px;
+      color: #888;
+      line-height: 1.6;
+      margin-bottom: 10px;
+    }
+
+    .step-items {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .step-items li {
+      font-size: 12.5px;
+      color: #aaa;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      line-height: 1.5;
+    }
+
+    .step-items li .dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: #444;
+      margin-top: 7px;
+      flex-shrink: 0;
+    }
+
+    /* Colors per step */
+    .step-1 .step-num { background: #2a1f4e; color: #a78bfa; }
+    .step-2 .step-num { background: #1f2a3a; color: #60a5fa; }
+    .step-3 .step-num { background: #1f3a2a; color: #4ade80; }
+    .step-4 .step-num { background: #3a2a1f; color: #fb923c; }
+    .step-5 .step-num { background: #1f2a3a; color: #38bdf8; }
+    .step-6 .step-num { background: #2a1f3a; color: #c084fc; }
+    .step-7 .step-num { background: #3a1f2a; color: #f472b6; }
+
+    /* User tasks table */
+    .user-tasks {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+    }
+
+    .user-tasks th {
+      text-align: left;
+      padding: 10px 16px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: #555;
+      border-bottom: 1px solid #1e1e2a;
+    }
+
+    .user-tasks td {
+      padding: 13px 16px;
+      border-bottom: 1px solid #1a1a24;
+      vertical-align: top;
+    }
+
+    .user-tasks tr:last-child td {
+      border-bottom: none;
+    }
+
+    .user-tasks td:first-child {
+      color: #fff;
+      font-weight: 500;
+      white-space: nowrap;
+      width: 240px;
+    }
+
+    .user-tasks td:last-child {
+      color: #777;
+      line-height: 1.6;
+    }
+
+    .user-tasks tbody tr:hover td {
+      background: #16161e;
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 10px;
+      margin-left: 8px;
+      vertical-align: middle;
+      letter-spacing: 0.4px;
+    }
+    .badge-ext { background: #2a1f1f; color: #f87171; }
+    .badge-console { background: #1f2a3a; color: #60a5fa; }
+    .badge-run { background: #1f3a2a; color: #4ade80; }
+
+    /* Divider */
+    .divider {
+      border: none;
+      border-top: 1px solid #1a1a24;
+      margin: 48px 0;
+    }
+
+    /* Legend */
+    .legend {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #777;
+    }
+    .legend-dot {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <h1>VYBE — 작업 로드맵</h1>
+    <div class="meta">
+      <span>베타 버전 기준</span>
+      <span>v1</span>
+      <span>2026.04.18 기준</span>
+    </div>
+  </div>
+
+  <!-- 현재 상태 -->
+  <div class="section-title">현재 상태</div>
+  <div class="status-grid">
+    <div class="status-card done">
+      <div class="card-label">✓ 완료</div>
+      <ul>
+        <li>디자인 시스템 (colors, typography, spacing)</li>
+        <li>앱 테마 설정</li>
+        <li>Firebase 초기화 (firebase_options.dart)</li>
+        <li>인증 UI 화면 전체<br>(welcome, OTP, 본인인증, 약관, 가입완료)</li>
+        <li>공통 위젯 (VybeButton, VybeTextField 등)</li>
+      </ul>
+    </div>
+    <div class="status-card todo">
+      <div class="card-label">✗ 미구현</div>
+      <ul>
+        <li>Flutter 데이터 레이어 전체<br>(models, datasources, repositories, viewmodels)</li>
+        <li>Cloud Functions 코드 (7개 함수)</li>
+        <li>Firestore / Storage Security Rules</li>
+        <li>인증 플로우 실제 연결 (SDK → Functions → Firebase)</li>
+        <li>홈 / 지도 / 클럽 상세 / 검색 / 찜 / 프로필 화면</li>
+      </ul>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- 작업 순서 -->
+  <div class="section-title">작업 순서</div>
+  <div class="roadmap">
+
+    <!-- Step 1 -->
+    <div class="step step-1">
+      <div class="step-left">
+        <div class="step-num">1</div>
+        <div class="step-line"></div>
+      </div>
+      <div class="step-body">
+        <div class="step-header">
+          <span class="step-title">Cloud Functions 구현</span>
+          <span class="step-tag tag-claude">Claude 작성</span>
+        </div>
+        <p class="step-desc">인증 플로우의 핵심. 이것 없이는 카카오/네이버 로그인이 실제로 작동하지 않음.</p>
+        <ul class="step-items">
+          <li><span class="dot"></span>kakaoLogin — accessToken → 카카오ID → Custom Token</li>
+          <li><span class="dot"></span>naverLogin — accessToken → 네이버ID → Custom Token</li>
+          <li><span class="dot"></span>verifyIdentity — PASS 본인인증 연동</li>
+          <li><span class="dot"></span>deleteUser — 회원탈퇴 일괄 처리</li>
+          <li><span class="dot"></span>onUserCreated — 신규 유저 Firestore 문서 자동 생성</li>
+          <li><span class="dot"></span>onFavoriteCreated — favoriteCount +1</li>
+          <li><span class="dot"></span>onFavoriteDeleted — favoriteCount -1</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="step step-2">
+      <div class="step-left">
+        <div class="step-num">2</div>
+        <div class="step-line"></div>
+      </div>
+      <div class="step-body">
+        <div class="step-header">
+          <span class="step-title">Security Rules 작성 및 배포</span>
+          <span class="step-tag tag-both">Claude 작성 + Justin 배포</span>
+        </div>
+        <p class="step-desc">Firestore와 Storage 보안 규칙. 배포 전까지는 테스트 모드로 진행.</p>
+        <ul class="step-items">
+          <li><span class="dot"></span>Firestore — users, clubs, reviews, favorites, searchHistory</li>
+          <li><span class="dot"></span>Storage — clubs/**, reviews/**, users/**</li>
+          <li><span class="dot"></span>어드민 Custom Claim 설정 (본인 UID에 admin: true 부여)</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="step step-3">
+      <div class="step-left">
+        <div class="step-num">3</div>
+        <div class="step-line"></div>
+      </div>
+      <div class="step-body">
+        <div class="step-header">
+          <span class="step-title">Flutter 데이터 레이어 구현</span>
+          <span class="step-tag tag-claude">Claude 작성</span>
+        </div>
+        <p class="step-desc">MVVM 레이어 분리 원칙에 따라 models → datasources → repositories → viewmodels 순으로 구현.</p>
+        <ul class="step-items">
+          <li><span class="dot"></span>Freezed 모델 — UserModel, ClubModel, ClubInfoModel, MenuModel, ReviewModel, FavoriteModel</li>
+          <li><span class="dot"></span>DataSources — AuthDataSource, ClubDataSource, ReviewDataSource, FavoriteDataSource</li>
+          <li><span class="dot"></span>Repositories — 각 DataSource를 추상화</li>
+          <li><span class="dot"></span>ViewModels — Riverpod AsyncNotifier 기반</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="step step-4">
+      <div class="step-left">
+        <div class="step-num">4</div>
+        <div class="step-line"></div>
+      </div>
+      <div class="step-body">
+        <div class="step-header">
+          <span class="step-title">인증 플로우 실제 연결</span>
+          <span class="step-tag tag-both">Claude 작성 + Justin SDK 설정</span>
+        </div>
+        <p class="step-desc">기존에 만들어둔 UI와 백엔드를 실제로 연결. Justin이 카카오/네이버 앱 키를 발급해야 진행 가능.</p>
+        <ul class="step-items">
+          <li><span class="dot"></span>카카오 SDK 연동 → accessToken → kakaoLogin Cloud Function 호출</li>
+          <li><span class="dot"></span>네이버 SDK 연동 → accessToken → naverLogin Cloud Function 호출</li>
+          <li><span class="dot"></span>Apple 로그인 → Firebase Auth 직접 처리</li>
+          <li><span class="dot"></span>신규/기존 유저 분기 처리 (Firestore users/{uid} 존재 여부 확인)</li>
+          <li><span class="dot"></span>본인인증 → verifyIdentity 호출 → 프로필 입력 → 홈 이동</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Step 5 -->
+    <div class="step step-5">
+      <div class="step-left">
+        <div class="step-num">5</div>
+        <div class="step-line"></div>
+      </div>
+      <div class="step-body">
+        <div class="step-header">
+          <span class="step-title">홈 / 지도 화면</span>
+          <span class="step-tag tag-claude">Claude 작성</span>
+        </div>
+        <p class="step-desc">앱의 핵심 기능. 지도 위에 클럽 마커를 표시하고 탐색.</p>
+        <ul class="step-items">
+          <li><span class="dot"></span>google_maps_flutter 지도 렌더링</li>
+          <li><span class="dot"></span>Firestore에서 isActive == true 클럽 목록 조회</li>
+          <li><span class="dot"></span>Geohash 기반 내 주변 클럽 필터링</li>
+          <li><span class="dot"></span>클럽 카드 바텀시트 (thumbnailUrl, name, tags)</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Step 6 -->
+    <div class="step step-6">
+      <div class="step-left">
+        <div class="step-num">6</div>
+        <div class="step-line"></div>
+      </div>
+      <div class="step-body">
+        <div class="step-header">
+          <span class="step-title">클럽 상세 화면</span>
+          <span class="step-tag tag-claude">Claude 작성</span>
+        </div>
+        <p class="step-desc">클럽 정보, 영업시간, 메뉴, 리뷰를 탭으로 구성.</p>
+        <ul class="step-items">
+          <li><span class="dot"></span>기본 정보 탭 — clubs/{clubId} + clubs/{clubId}/info</li>
+          <li><span class="dot"></span>메뉴 탭 — clubs/{clubId}/menus</li>
+          <li><span class="dot"></span>리뷰 탭 — clubs/{clubId}/reviews + 리뷰 작성/수정/삭제</li>
+          <li><span class="dot"></span>찜 버튼 — favorites 컬렉션 생성/삭제</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Step 7 -->
+    <div class="step step-7">
+      <div class="step-left">
+        <div class="step-num">7</div>
+        <div class="step-line"></div>
+      </div>
+      <div class="step-body">
+        <div class="step-header">
+          <span class="step-title">검색 / 찜 / 프로필 화면</span>
+          <span class="step-tag tag-claude">Claude 작성</span>
+        </div>
+        <p class="step-desc">부가 기능 화면.</p>
+        <ul class="step-items">
+          <li><span class="dot"></span>검색 — 키워드 검색 + searchHistory 저장/삭제</li>
+          <li><span class="dot"></span>찜 목록 — favorites/{favoriteId} 조회</li>
+          <li><span class="dot"></span>프로필 — users/{uid} 조회 / 수정 / 회원탈퇴</li>
+        </ul>
+      </div>
+    </div>
+
+  </div><!-- end roadmap -->
+
+  <hr class="divider" />
+
+  <!-- Justin이 해야 할 일 -->
+  <div class="section-title">Justin이 직접 해야 할 일</div>
+  <table class="user-tasks">
+    <thead>
+      <tr>
+        <th>작업</th>
+        <th>이유</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          카카오 개발자 콘솔<br>Native App Key 발급
+          <span class="badge badge-ext">외부 계정</span>
+        </td>
+        <td>Claude가 접근할 수 없는 외부 서비스. kakaoLogin Cloud Function에 키 값이 필요.</td>
+      </tr>
+      <tr>
+        <td>
+          네이버 개발자 콘솔<br>Client ID / Secret 발급
+          <span class="badge badge-ext">외부 계정</span>
+        </td>
+        <td>Claude가 접근할 수 없는 외부 서비스. naverLogin Cloud Function에 키 값이 필요.</td>
+      </tr>
+      <tr>
+        <td>
+          Firebase Console<br>Apple 로그인 활성화
+          <span class="badge badge-console">콘솔</span>
+        </td>
+        <td>Authentication → Sign-in method → Apple 활성화. 직접 콘솔 조작 필요.</td>
+      </tr>
+      <tr>
+        <td>
+          <code>firebase deploy --only functions</code>
+          <span class="badge badge-run">터미널</span>
+        </td>
+        <td>Firebase 계정 로그인 상태에서 직접 실행해야 배포됨. Claude는 실행 불가.</td>
+      </tr>
+      <tr>
+        <td>
+          Firestore / Storage<br>Security Rules 배포
+          <span class="badge badge-console">콘솔</span>
+        </td>
+        <td>Claude가 Rules 코드를 작성하면, 콘솔에서 직접 붙여넣고 게시 버튼 클릭.</td>
+      </tr>
+      <tr>
+        <td>
+          Firestore에<br>테스트 클럽 데이터 입력
+          <span class="badge badge-console">콘솔</span>
+        </td>
+        <td>실제 클럽 정보는 직접 입력해야 함. Claude는 데이터 구조(스키마)만 안내 가능.</td>
+      </tr>
+      <tr>
+        <td>
+          어드민 UID에<br>Custom Claim 부여
+          <span class="badge badge-run">터미널</span>
+        </td>
+        <td>본인 Firebase UID에 <code>admin: true</code> Claim 설정. Admin SDK 스크립트 실행 필요.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr class="divider" />
+
+  <!-- Legend -->
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-dot" style="background:#2a1f4e; color:#a78bfa;">C</div>
+      Claude가 코드 작성
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:#1f3a2a; color:#4ade80;">B</div>
+      Claude 작성 + Justin 배포
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:#3a1f1f; color:#f87171;">J</div>
+      Justin이 직접 해야 하는 작업
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

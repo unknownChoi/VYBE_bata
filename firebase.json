@@ -1,1 +1,52 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"vybe-bata","appId":"1:84746666973:android:8fb5a4e7c37ec19c0b6c34","fileOutput":"android/app/google-services.json"}},"ios":{"default":{"projectId":"vybe-bata","appId":"1:84746666973:ios:85e36ef7c28fac8f0b6c34","uploadDebugSymbols":false,"fileOutput":"ios/Runner/GoogleService-Info.plist"}},"macos":{"default":{"projectId":"vybe-bata","appId":"1:84746666973:ios:85e36ef7c28fac8f0b6c34","uploadDebugSymbols":false,"fileOutput":"macos/Runner/GoogleService-Info.plist"}},"dart":{"lib/firebase_options.dart":{"projectId":"vybe-bata","configurations":{"android":"1:84746666973:android:8fb5a4e7c37ec19c0b6c34","ios":"1:84746666973:ios:85e36ef7c28fac8f0b6c34","macos":"1:84746666973:ios:85e36ef7c28fac8f0b6c34","web":"1:84746666973:web:9b573b51ff668a1f0b6c34","windows":"1:84746666973:web:804f1075ac245a270b6c34"}}}}}}
+{
+  "functions": {
+    "source": "functions",
+    "codebase": "default",
+    "ignore": [
+      "node_modules",
+      ".git",
+      "firebase-debug.log",
+      "firebase-debug.*.log",
+      "*.local"
+    ]
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "vybe-bata-c07aa",
+          "appId": "1:404505336223:android:1cd58df25533020cb545aa",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "vybe-bata-c07aa",
+          "appId": "1:404505336223:ios:98089f31b00f8558b545aa",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "macos": {
+        "default": {
+          "projectId": "vybe-bata-c07aa",
+          "appId": "1:404505336223:ios:98089f31b00f8558b545aa",
+          "uploadDebugSymbols": false,
+          "fileOutput": "macos/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "vybe-bata-c07aa",
+          "configurations": {
+            "android": "1:404505336223:android:1cd58df25533020cb545aa",
+            "ios": "1:404505336223:ios:98089f31b00f8558b545aa",
+            "macos": "1:404505336223:ios:98089f31b00f8558b545aa",
+            "web": "1:404505336223:web:c68412e52807c926b545aa",
+            "windows": "1:404505336223:web:5a67b4f52624aaf7b545aa"
+          }
+        }
+      }
+    }
+  }
+}
