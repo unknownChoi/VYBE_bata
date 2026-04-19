@@ -9,14 +9,17 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/auth/identity_verification/identity_verification_screen.dart';
+import 'package:vybe/presentation/auth/viewmodels/auth_viewmodel.dart';
 import 'package:vybe/presentation/auth/welcome/login_method_bottom_sheet.dart';
 
-class WelcomeScreen extends StatelessWidget {
+class WelcomeScreen extends ConsumerWidget {
   const WelcomeScreen({super.key});
 
   // Figma 에셋 URL (7일 유효 — 이후 로컬 assets/images/ 로 교체 필요)
@@ -27,8 +30,40 @@ class WelcomeScreen extends StatelessWidget {
 
   static const _vybeWhiteLogo = 'assets/icons/common/vybe_white_logo.svg';
 
+  Future<void> _onKakaoLogin(BuildContext context, WidgetRef ref) async {
+    try {
+      OAuthToken token;
+      if (await isKakaoTalkInstalled()) {
+        token = await UserApi.instance.loginWithKakaoTalk();
+      } else {
+        token = await UserApi.instance.loginWithKakaoAccount();
+      }
+
+      final isNewUser = await ref
+          .read(authViewModelProvider.notifier)
+          .kakaoLogin(token.accessToken);
+
+      if (!context.mounted) return;
+
+      if (isNewUser) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (_) => const IdentityVerificationScreen()),
+        );
+      } else {
+        // TODO: 홈 화면으로 이동
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    }
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -114,9 +149,7 @@ class WelcomeScreen extends StatelessWidget {
                   ),
                   label: '카카오 로그인',
                   labelColor: const Color(0xFF191919),
-                  onTap: () {
-                    // TODO: 카카오 로그인 연동
-                  },
+                  onTap: () => _onKakaoLogin(context, ref),
                 ),
                 SizedBox(height: 12.h),
                 _LoginButton(

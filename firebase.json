@@ -1,4 +1,11 @@
 {
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "storage": {
+    "bucket": "vybe-bata-c07aa.firebasestorage.app",
+    "rules": "storage.rules"
+  },
   "functions": {
     "source": "functions",
     "codebase": "default",

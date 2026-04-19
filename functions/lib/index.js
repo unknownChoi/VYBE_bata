@@ -1,12 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.onFavoriteDeleted = exports.onFavoriteCreated = exports.deleteUser = exports.verifyIdentity = exports.naverLogin = exports.onUserCreated = void 0;
+exports.onFavoriteDeleted = exports.onFavoriteCreated = exports.deleteUser = exports.verifyIdentity = exports.kakaoLogin = exports.naverLogin = exports.onUserCreated = void 0;
 const admin = require("firebase-admin");
 admin.initializeApp();
 var on_user_created_1 = require("./auth/on_user_created");
 Object.defineProperty(exports, "onUserCreated", { enumerable: true, get: function () { return on_user_created_1.onUserCreated; } });
 var naver_login_1 = require("./auth/naver_login");
 Object.defineProperty(exports, "naverLogin", { enumerable: true, get: function () { return naver_login_1.naverLogin; } });
+var kakao_login_1 = require("./auth/kakao_login");
+Object.defineProperty(exports, "kakaoLogin", { enumerable: true, get: function () { return kakao_login_1.kakaoLogin; } });
 var verify_identity_1 = require("./auth/verify_identity");
 Object.defineProperty(exports, "verifyIdentity", { enumerable: true, get: function () { return verify_identity_1.verifyIdentity; } });
 var delete_user_1 = require("./auth/delete_user");

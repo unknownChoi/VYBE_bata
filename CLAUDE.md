@@ -72,6 +72,8 @@ View (Widget) → ViewModel (Notifier) → Repository → DataSource (Firebase)
 | 아이콘 | `cupertino_icons` |
 | 반응형 | `flutter_screenutil` |
 | 네이버 로그인 | `flutter_naver_login` |
+| 카카오 로그인 | `kakao_flutter_sdk_user` |
+| 환경변수 관리 | `flutter_dotenv` (Flutter) / `dotenv` (Cloud Functions) |
 
 ---
 
@@ -101,6 +103,48 @@ flutter build ios      # iOS
 firebase deploy --only functions
 firebase deploy --only functions:naverLogin  # 특정 함수만
 ```
+
+---
+
+## 환경변수 / 키 관리 (dotenv)
+
+API 키는 `.env` 파일로 관리하며 절대 git에 커밋하지 않는다.
+
+### Flutter (`flutter_dotenv`)
+파일 위치: 프로젝트 루트 `.env`
+
+```
+# .env (git 제외)
+KAKAO_NATIVE_APP_KEY=your_key_here
+NAVER_CLIENT_ID=your_id_here
+NAVER_CLIENT_SECRET=your_secret_here
+```
+
+사용법:
+```dart
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+// main.dart에서 초기화
+await dotenv.load(fileName: '.env');
+
+// 어디서나 접근
+final kakaoKey = dotenv.env['KAKAO_NATIVE_APP_KEY']!;
+```
+
+### Cloud Functions (`dotenv`)
+파일 위치: `functions/.env`
+
+```
+# functions/.env (git 제외)
+KAKAO_ADMIN_KEY=your_key_here
+NAVER_CLIENT_ID=your_id_here
+NAVER_CLIENT_SECRET=your_secret_here
+```
+
+### .gitignore 규칙
+- `.env` — Flutter 키
+- `functions/.env` — Cloud Functions 키
+- `.env.example` 파일은 커밋 (실제 값 없이 키 이름만 포함)
 
 ---
 
@@ -252,17 +296,19 @@ ElevatedButton(onPressed: () {}, child: Text('로그인'))
 - 분실물 찾기
 - 결제 내역
 - 블로그 리뷰
-- 카카오 로그인 (추후 추가)
+- Apple 로그인 (이후 구현)
 
 ---
 
 ### 인증 플로우
 
 #### 로그인 방식
-| 방식 | 처리 방법 | Firebase UID 형식 |
-|------|-----------|-------------------|
-| 네이버 | Cloud Functions (naverLogin) → Custom Token | `naver:{naverId}` |
-| Apple | Firebase Auth 직접 처리 | Firebase 자동 생성 |
+| 방식 | 처리 방법 | Firebase UID 형식 | 구현 시점 |
+|------|-----------|-------------------|-----------|
+| 카카오 | Cloud Functions (kakaoLogin) → Custom Token | `kakao:{kakaoId}` | 베타 |
+| 네이버 | Cloud Functions (naverLogin) → Custom Token | `naver:{naverId}` | 베타 |
+| 본인인증 | verifyIdentity → 신규 유저 등록 | Firebase 자동 생성 | 베타 |
+| Apple | Firebase Auth 직접 처리 | Firebase 자동 생성 | 이후 구현 |
 
 #### 전체 흐름
 ```

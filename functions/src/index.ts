@@ -4,6 +4,7 @@ admin.initializeApp();
 
 export {onUserCreated} from "./auth/on_user_created";
 export {naverLogin} from "./auth/naver_login";
+export {kakaoLogin} from "./auth/kakao_login";
 export {verifyIdentity} from "./auth/verify_identity";
 export {deleteUser} from "./auth/delete_user";
 export {onFavoriteCreated} from "./favorites/on_favorite_created";

@@ -1,0 +1,44 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part 'review_model.freezed.dart';
+
+@freezed
+abstract class ReviewModel with _$ReviewModel {
+  const ReviewModel._();
+
+  const factory ReviewModel({
+    required String reviewId,
+    required String clubId,
+    required String userId,
+    required double rating,
+    required String content,
+    required List<String> imageUrls,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+  }) = _ReviewModel;
+
+  factory ReviewModel.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return ReviewModel(
+      reviewId: doc.id,
+      clubId: data['clubId'] as String? ?? '',
+      userId: data['userId'] as String? ?? '',
+      rating: (data['rating'] as num?)?.toDouble() ?? 0.0,
+      content: data['content'] as String? ?? '',
+      imageUrls: List<String>.from(data['imageUrls'] as List? ?? []),
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+    );
+  }
+
+  Map<String, dynamic> toFirestore() => {
+        'clubId': clubId,
+        'userId': userId,
+        'rating': rating,
+        'content': content,
+        'imageUrls': imageUrls,
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+}

@@ -1,0 +1,39 @@
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:vybe/data/datasources/club_data_source.dart';
+import 'package:vybe/data/models/club_info_model.dart';
+import 'package:vybe/data/models/club_model.dart';
+import 'package:vybe/data/models/menu_model.dart';
+import 'package:vybe/domain/repositories/club_repository.dart';
+
+part 'club_repository_impl.g.dart';
+
+@riverpod
+ClubRepository clubRepository(Ref ref) =>
+    ClubRepositoryImpl(ClubDataSource());
+
+class ClubRepositoryImpl implements ClubRepository {
+  final ClubDataSource _dataSource;
+
+  ClubRepositoryImpl(this._dataSource);
+
+  @override
+  Future<List<ClubModel>> getActiveClubs() => _dataSource.getActiveClubs();
+
+  @override
+  Stream<List<ClubModel>> watchActiveClubs() => _dataSource.watchActiveClubs();
+
+  @override
+  Future<ClubModel?> getClub(String clubId) => _dataSource.getClub(clubId);
+
+  @override
+  Future<ClubInfoModel?> getClubInfo(String clubId) =>
+      _dataSource.getClubInfo(clubId);
+
+  @override
+  Future<List<MenuModel>> getMenus(String clubId) =>
+      _dataSource.getMenus(clubId);
+
+  @override
+  Future<List<ClubModel>> searchClubs(String keyword) =>
+      _dataSource.searchClubs(keyword);
+}

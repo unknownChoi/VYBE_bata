@@ -325,7 +325,7 @@
     <div class="meta">
       <span>베타 버전 기준</span>
       <span>v1</span>
-      <span>2026.04.18 기준</span>
+      <span>2026.04.19 기준</span>
     </div>
   </div>
 
@@ -436,13 +436,14 @@
           <span class="step-title">인증 플로우 실제 연결</span>
           <span class="step-tag tag-both">Claude 작성 + Justin SDK 설정</span>
         </div>
-        <p class="step-desc">기존에 만들어둔 UI와 백엔드를 실제로 연결. Justin이 카카오/네이버 앱 키를 발급해야 진행 가능.</p>
+        <p class="step-desc">기존에 만들어둔 UI와 백엔드를 실제로 연결. Justin이 카카오/네이버 앱 키를 발급해야 진행 가능. Apple 로그인은 이후 구현.</p>
         <ul class="step-items">
+          <li><span class="dot"></span>.env 파일 구성 — Flutter / Cloud Functions 키 세팅 (dotenv)</li>
           <li><span class="dot"></span>카카오 SDK 연동 → accessToken → kakaoLogin Cloud Function 호출</li>
           <li><span class="dot"></span>네이버 SDK 연동 → accessToken → naverLogin Cloud Function 호출</li>
-          <li><span class="dot"></span>Apple 로그인 → Firebase Auth 직접 처리</li>
+          <li><span class="dot"></span>본인인증 로그인 → verifyIdentity 호출 → 신규 유저 등록</li>
           <li><span class="dot"></span>신규/기존 유저 분기 처리 (Firestore users/{uid} 존재 여부 확인)</li>
-          <li><span class="dot"></span>본인인증 → verifyIdentity 호출 → 프로필 입력 → 홈 이동</li>
+          <li><span class="dot"></span>Apple 로그인 — <em style="color:#555;">이후 구현 예정</em></li>
         </ul>
       </div>
     </div>
@@ -528,21 +529,21 @@
           카카오 개발자 콘솔<br>Native App Key 발급
           <span class="badge badge-ext">외부 계정</span>
         </td>
-        <td>Claude가 접근할 수 없는 외부 서비스. kakaoLogin Cloud Function에 키 값이 필요.</td>
+        <td>Claude가 접근할 수 없는 외부 서비스. <code>.env</code>의 <code>KAKAO_NATIVE_APP_KEY</code> 및 Cloud Functions <code>KAKAO_ADMIN_KEY</code>에 입력 필요.</td>
       </tr>
       <tr>
         <td>
           네이버 개발자 콘솔<br>Client ID / Secret 발급
           <span class="badge badge-ext">외부 계정</span>
         </td>
-        <td>Claude가 접근할 수 없는 외부 서비스. naverLogin Cloud Function에 키 값이 필요.</td>
+        <td>Claude가 접근할 수 없는 외부 서비스. <code>.env</code>와 <code>functions/.env</code>의 <code>NAVER_CLIENT_ID</code> / <code>NAVER_CLIENT_SECRET</code>에 입력 필요.</td>
       </tr>
       <tr>
         <td>
-          Firebase Console<br>Apple 로그인 활성화
-          <span class="badge badge-console">콘솔</span>
+          .env 파일 키 입력
+          <span class="badge badge-run">로컬</span>
         </td>
-        <td>Authentication → Sign-in method → Apple 활성화. 직접 콘솔 조작 필요.</td>
+        <td>발급받은 키를 <code>.env</code>(Flutter)와 <code>functions/.env</code>(Cloud Functions)에 직접 입력. git에 커밋하지 않도록 주의.</td>
       </tr>
       <tr>
         <td>

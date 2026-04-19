@@ -3,7 +3,8 @@
     "allow": [
       "mcp__figma__get_design_context",
       "Bash(flutter analyze:*)",
-      "Bash(firebase deploy *)"
+      "Bash(firebase deploy *)",
+      "Bash(flutter pub *)"
     ]
   },
   "disabledMcpjsonServers": [

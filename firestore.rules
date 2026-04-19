@@ -1,0 +1,73 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // users/{uid}
+    match /users/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+
+      allow write: if request.auth != null
+        && request.auth.uid == uid
+        && !request.resource.data.diff(resource.data).affectedKeys()
+            .hasAny(['uid', 'provider', 'createdAt']);
+
+      // users/{uid}/searchHistory/{historyId}
+      match /searchHistory/{historyId} {
+        allow read, create, delete: if request.auth != null
+          && request.auth.uid == uid;
+      }
+    }
+
+    // clubs/{clubId}
+    match /clubs/{clubId} {
+      allow read: if resource.data.isActive == true;
+
+      allow write: if request.auth != null
+        && request.auth.token.admin == true;
+
+      // clubs/{clubId}/info/{infoId}
+      match /info/{infoId} {
+        allow read: if true;
+        allow write: if request.auth != null
+          && request.auth.token.admin == true;
+      }
+
+      // clubs/{clubId}/menus/{menuId}
+      match /menus/{menuId} {
+        allow read: if true;
+        allow write: if request.auth != null
+          && request.auth.token.admin == true;
+      }
+
+      // clubs/{clubId}/reviews/{reviewId}
+      match /reviews/{reviewId} {
+        allow read: if true;
+
+        allow create: if request.auth != null
+          && request.resource.data.userId == request.auth.uid;
+
+        allow update: if request.auth != null
+          && resource.data.userId == request.auth.uid
+          && !request.resource.data.diff(resource.data).affectedKeys()
+              .hasAny(['userId', 'clubId', 'createdAt']);
+
+        allow delete: if request.auth != null
+          && (resource.data.userId == request.auth.uid
+            || request.auth.token.admin == true);
+      }
+    }
+
+    // favorites/{favoriteId}
+    match /favorites/{favoriteId} {
+      allow read: if request.auth != null
+        && resource.data.userId == request.auth.uid;
+
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid;
+
+      allow delete: if request.auth != null
+        && resource.data.userId == request.auth.uid;
+    }
+  }
+}

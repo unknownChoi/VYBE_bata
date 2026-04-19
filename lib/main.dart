@@ -1,16 +1,23 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 import 'package:vybe/presentation/auth/welcome/welcome_screen.dart';
 import 'core/theme/app_theme.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
-  // Flutter 엔진 바인딩 초기화 — Firebase.initializeApp() 전에 반드시 호출
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Firebase 초기화 (FlutterFire CLI가 생성한 플랫폼별 옵션 사용)
+  // 환경변수 로드
+  await dotenv.load(fileName: '.env');
+
+  // Firebase 초기화
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // 카카오 SDK 초기화
+  KakaoSdk.init(nativeAppKey: dotenv.env['KAKAO_NATIVE_APP_KEY']!);
 
   runApp(const VybeApp());
 }
@@ -28,7 +35,7 @@ class VybeApp extends StatelessWidget {
         title: 'VYBE',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.dark,
-        home: child,
+        home: child, 
       ),
       child: WelcomeScreen(),
     );
