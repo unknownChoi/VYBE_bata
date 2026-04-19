@@ -22,7 +22,9 @@ mixin _IdentityVerificationHandlerMixin on State<IdentityVerificationScreen> {
   String get _prevBirthFront;
   set _prevBirthFront(String value);
 
+  TextEditingController get _nameCtrl;
   TextEditingController get _birthFrontCtrl;
+  TextEditingController get _birthBackCtrl;
   TextEditingController get _phoneCtrl;
   FocusNode get _nameFocus;
   FocusNode get _birthFrontFocus;
@@ -106,11 +108,17 @@ mixin _IdentityVerificationHandlerMixin on State<IdentityVerificationScreen> {
       isScrollControlled: true,
       builder: (_) => TermsAgreementSheet(
         onConfirmed: () {
+          final birthFront = _birthFrontCtrl.text; // YYMMDD
+          final genderCode = _birthBackCtrl.text;  // 1~4
+          final century = (genderCode == '1' || genderCode == '2') ? '19' : '20';
+          final birthDate = '$century$birthFront'; // YYYYMMDD
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (_) => CertificationNumberScreen(
                 phoneNumber: _phoneCtrl.text,
+                name: _nameCtrl.text,
+                birthDate: birthDate,
               ),
             ),
           );

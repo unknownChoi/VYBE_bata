@@ -35,7 +35,7 @@ class VybeApp extends StatelessWidget {
         title: 'VYBE',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.dark,
-        home: child, 
+        home: child,
       ),
       child: WelcomeScreen(),
     );

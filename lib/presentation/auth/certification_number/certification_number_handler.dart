@@ -12,7 +12,7 @@ part of 'certification_number_screen.dart';
 ///
 /// 필드를 직접 소유하지 않고 abstract getter/setter 로 선언.
 /// 구체 구현은 [_CertificationNumberScreenState] 필드가 충족한다.
-mixin _CertificationNumberHandlerMixin on State<CertificationNumberScreen> {
+mixin _CertificationNumberHandlerMixin on ConsumerState<CertificationNumberScreen> {
   // ── 의존 필드 (abstract) ──
   TextEditingController get _controller;
   FocusNode get _focusNode;
@@ -91,14 +91,23 @@ mixin _CertificationNumberHandlerMixin on State<CertificationNumberScreen> {
   }
 
   /// 인증번호 확인
-  /// - 일치하면 이전 스택을 모두 제거하고 SignupSuccessScreen으로 이동
+  /// - 일치하면 finalizeLogin 후 SignupSuccessScreen으로 이동
   /// - 불일치하면 error 상태로 전환
-  void _onConfirm() {
+  Future<void> _onConfirm() async {
     if (!_canConfirm) return;
     if (_controller.text == _correctCode) {
+      final vm = ref.read(authViewModelProvider.notifier);
+      await vm.finalizeLogin();
+      if (!mounted) return;
+      await vm.saveUserProfile(
+        name: widget.name,
+        phone: widget.phoneNumber,
+        birthDate: widget.birthDate,
+      );
+      if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const SignupSuccessScreen()),
-        (route) => false, // 이전 스택(본인인증, 약관 등) 전체 제거
+        (route) => false,
       );
     } else {
       setState(() => _status = _CertStatus.error);

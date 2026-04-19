@@ -33,6 +33,26 @@ class UserDataSource {
     });
   }
 
+  /// 문서가 없으면 생성, 있으면 병합 — 본인인증 완료 시 사용
+  Future<void> setUserProfile({
+    required String uid,
+    required String name,
+    required String phone,
+    required String birthDate,
+    required String provider,
+  }) async {
+    await _firestore.collection('users').doc(uid).set({
+      'uid': uid,
+      'name': name,
+      'phone': phone,
+      'birthDate': birthDate,
+      'provider': provider,
+      'isVerified': true,
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
   Future<bool> isPhoneDuplicate(String phone) async {
     final snapshot = await _firestore
         .collection('users')

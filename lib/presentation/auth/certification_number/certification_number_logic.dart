@@ -12,7 +12,7 @@ part of 'certification_number_screen.dart';
 ///
 /// 필드를 직접 소유하지 않고 abstract getter 로 선언.
 /// 구체 구현은 [_CertificationNumberScreenState] 필드가 충족한다.
-mixin _CertificationNumberLogicMixin on State<CertificationNumberScreen> {
+mixin _CertificationNumberLogicMixin on ConsumerState<CertificationNumberScreen> {
   // ── 의존 필드 (abstract) ──
   TextEditingController get _controller;
   FocusNode get _focusNode;

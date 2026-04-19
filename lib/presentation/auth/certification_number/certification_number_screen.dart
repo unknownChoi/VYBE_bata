@@ -11,11 +11,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/auth/signup_success/signup_success_screen.dart';
+import 'package:vybe/presentation/auth/viewmodels/auth_viewmodel.dart';
 import 'package:vybe/presentation/auth/widgets/otp_cell.dart';
 
 part 'certification_number_logic.dart';
@@ -33,20 +35,24 @@ enum _CertStatus {
 /// 인증번호 입력 화면
 ///
 /// [phoneNumber]: 이전 화면(본인 인증)에서 입력한 전화번호 — 서브타이틀에 표시
-class CertificationNumberScreen extends StatefulWidget {
+class CertificationNumberScreen extends ConsumerStatefulWidget {
   final String phoneNumber;
+  final String name;
+  final String birthDate; // YYYYMMDD 형식
 
   const CertificationNumberScreen({
     super.key,
     required this.phoneNumber,
+    required this.name,
+    required this.birthDate,
   });
 
   @override
-  State<CertificationNumberScreen> createState() =>
+  ConsumerState<CertificationNumberScreen> createState() =>
       _CertificationNumberScreenState();
 }
 
-class _CertificationNumberScreenState extends State<CertificationNumberScreen>
+class _CertificationNumberScreenState extends ConsumerState<CertificationNumberScreen>
     with _CertificationNumberLogicMixin, _CertificationNumberHandlerMixin {
 
   // ── 입력 컨트롤러 / 포커스 ──

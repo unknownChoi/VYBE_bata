@@ -7,6 +7,8 @@
 //
 // Figma node: (welcome screen)
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -53,8 +55,14 @@ class WelcomeScreen extends ConsumerWidget {
         );
       } else {
         // TODO: 홈 화면으로 이동
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('이미 가입된 유저입니다.')),
+        );
       }
-    } catch (e) {
+    } catch (e, st) {
+      final log = '${DateTime.now()}\n$e\n$st\n\n';
+      File('/Users/justinchoi/Desktop/업무/소스코드/vybe_bata/kakao_error.txt')
+          .writeAsStringSync(log, mode: FileMode.append);
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString())),

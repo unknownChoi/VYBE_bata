@@ -41,9 +41,13 @@ export const kakaoLogin = functions.https.onCall(async (data) => {
 
   const uid = `kakao:${kakaoId}`;
 
-  // 신규/기존 유저 판단
-  const userSnap = await admin.firestore().collection("users").doc(uid).get();
-  const isNewUser = !userSnap.exists;
+  // 신규/기존 유저 판단 — Firebase Auth 기준
+  let isNewUser = false;
+  try {
+    await admin.auth().getUser(uid);
+  } catch {
+    isNewUser = true;
+  }
 
   // Custom Token 발급
   const customToken = await admin.auth().createCustomToken(uid, {

@@ -61,7 +61,7 @@ final class AuthViewModelProvider
         argument: null,
         retry: null,
         name: r'authViewModelProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -82,7 +82,7 @@ final class AuthViewModelProvider
   }
 }
 
-String _$authViewModelHash() => r'c68b604a0170c7118fa134ce207ae5747beb1344';
+String _$authViewModelHash() => r'd425632bd5298c4b5043ff53fc8278474bd559ac';
 
 /// 로그인 액션 ViewModel
 

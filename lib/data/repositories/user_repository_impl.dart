@@ -26,6 +26,22 @@ class UserRepositoryImpl implements UserRepository {
       _dataSource.updateUser(uid, data);
 
   @override
+  Future<void> setUserProfile({
+    required String uid,
+    required String name,
+    required String phone,
+    required String birthDate,
+    required String provider,
+  }) =>
+      _dataSource.setUserProfile(
+        uid: uid,
+        name: name,
+        phone: phone,
+        birthDate: birthDate,
+        provider: provider,
+      );
+
+  @override
   Future<bool> isPhoneDuplicate(String phone) =>
       _dataSource.isPhoneDuplicate(phone);
 

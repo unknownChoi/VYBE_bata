@@ -28,9 +28,14 @@ exports.naverLogin = functions.https.onCall(async (data) => {
         throw new functions.https.HttpsError("internal", "네이버 ID를 가져올 수 없습니다.");
     }
     const uid = `naver:${naverId}`;
-    // 신규/기존 유저 판단
-    const userSnap = await admin.firestore().collection("users").doc(uid).get();
-    const isNewUser = !userSnap.exists;
+    // 신규/기존 유저 판단 — Firebase Auth 기준
+    let isNewUser = false;
+    try {
+        await admin.auth().getUser(uid);
+    }
+    catch (_d) {
+        isNewUser = true;
+    }
     // Custom Token 발급 (provider 정보를 customClaims로 전달)
     const customToken = await admin.auth().createCustomToken(uid, {
         provider: "naver",

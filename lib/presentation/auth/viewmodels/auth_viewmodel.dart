@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:vybe/data/repositories/auth_repository_impl.dart';
+import 'package:vybe/data/repositories/user_repository_impl.dart';
 
 part 'auth_viewmodel.g.dart';
 
@@ -11,43 +12,83 @@ Stream<User?> authState(Ref ref) {
 }
 
 /// 로그인 액션 ViewModel
-@riverpod
+@Riverpod(keepAlive: true)
 class AuthViewModel extends _$AuthViewModel {
+  String? _pendingCustomToken;
+
   @override
   AsyncValue<void> build() => const AsyncData(null);
 
   Future<bool> kakaoLogin(String accessToken) async {
     state = const AsyncLoading();
-    return await AsyncValue.guard(() async {
+    try {
       final repo = ref.read(authRepositoryProvider);
       final (:customToken, :isNewUser) = await repo.kakaoLogin(accessToken);
-      await repo.signInWithCustomToken(customToken);
+      if (isNewUser) {
+        // 본인인증 완료 후 signIn — 지금은 토큰만 저장
+        _pendingCustomToken = customToken;
+      } else {
+        await repo.signInWithCustomToken(customToken);
+      }
       state = const AsyncData(null);
       return isNewUser;
-    }).then((result) {
-      if (result is AsyncError) {
-        state = AsyncError(result.error!, result.stackTrace!);
-        return false;
-      }
-      return (result as AsyncData<bool>).value;
-    });
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
   }
 
   Future<bool> naverLogin(String accessToken) async {
     state = const AsyncLoading();
-    return await AsyncValue.guard(() async {
+    try {
       final repo = ref.read(authRepositoryProvider);
       final (:customToken, :isNewUser) = await repo.naverLogin(accessToken);
-      await repo.signInWithCustomToken(customToken);
+      if (isNewUser) {
+        _pendingCustomToken = customToken;
+      } else {
+        await repo.signInWithCustomToken(customToken);
+      }
       state = const AsyncData(null);
       return isNewUser;
-    }).then((result) {
-      if (result is AsyncError) {
-        state = AsyncError(result.error!, result.stackTrace!);
-        return false;
-      }
-      return (result as AsyncData<bool>).value;
-    });
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
+  }
+
+  /// 본인인증 완료 후 Firestore에 사용자 프로필 저장
+  Future<void> saveUserProfile({
+    required String name,
+    required String phone,
+    required String birthDate,
+  }) async {
+    final uid = ref.read(authRepositoryProvider).currentUser?.uid;
+    if (uid == null) return;
+
+    final provider = uid.startsWith('kakao:') ? 'kakao' : 'naver';
+
+    await ref.read(userRepositoryProvider).setUserProfile(
+          uid: uid,
+          name: name,
+          phone: phone,
+          birthDate: birthDate,
+          provider: provider,
+        );
+  }
+
+  /// 본인인증 완료 후 실제 Firebase 로그인 처리
+  Future<void> finalizeLogin() async {
+    final token = _pendingCustomToken;
+    if (token == null) return;
+    state = const AsyncLoading();
+    try {
+      await ref.read(authRepositoryProvider).signInWithCustomToken(token);
+      _pendingCustomToken = null;
+      state = const AsyncData(null);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
   }
 
   Future<bool> verifyIdentity(String impUid) async {
