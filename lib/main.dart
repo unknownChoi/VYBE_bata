@@ -1,6 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 import 'package:vybe/presentation/auth/welcome/welcome_screen.dart';
@@ -19,7 +20,7 @@ Future<void> main() async {
   // 카카오 SDK 초기화
   KakaoSdk.init(nativeAppKey: dotenv.env['KAKAO_NATIVE_APP_KEY']!);
 
-  runApp(const VybeApp());
+  runApp(const ProviderScope(child: VybeApp()));
 }
 
 class VybeApp extends StatelessWidget {

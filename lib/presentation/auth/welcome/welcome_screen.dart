@@ -11,6 +11,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_naver_login/flutter_naver_login.dart';
+import 'package:flutter_naver_login/interface/types/naver_login_status.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -20,6 +22,7 @@ import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/auth/identity_verification/identity_verification_screen.dart';
 import 'package:vybe/presentation/auth/viewmodels/auth_viewmodel.dart';
 import 'package:vybe/presentation/auth/welcome/login_method_bottom_sheet.dart';
+import 'package:vybe/presentation/home/home_screen.dart';
 
 class WelcomeScreen extends ConsumerWidget {
   const WelcomeScreen({super.key});
@@ -54,15 +57,49 @@ class WelcomeScreen extends ConsumerWidget {
               builder: (_) => const IdentityVerificationScreen()),
         );
       } else {
-        // TODO: 홈 화면으로 이동
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('이미 가입된 유저입니다.')),
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          (route) => false,
         );
       }
     } catch (e, st) {
       final log = '${DateTime.now()}\n$e\n$st\n\n';
       File('/Users/justinchoi/Desktop/업무/소스코드/vybe_bata/kakao_error.txt')
           .writeAsStringSync(log, mode: FileMode.append);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    }
+  }
+
+  Future<void> _onNaverLogin(BuildContext context, WidgetRef ref) async {
+    try {
+      final result = await FlutterNaverLogin.logIn();
+      if (result.status != NaverLoginStatus.loggedIn) return;
+
+      final accessToken = result.accessToken?.accessToken;
+      if (accessToken == null) return;
+      final isNewUser = await ref
+          .read(authViewModelProvider.notifier)
+          .naverLogin(accessToken);
+
+      if (!context.mounted) return;
+
+      if (isNewUser) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const IdentityVerificationScreen()),
+        );
+      } else {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          (route) => false,
+        );
+      }
+    } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString())),
@@ -169,9 +206,7 @@ class WelcomeScreen extends ConsumerWidget {
                   ),
                   label: '네이버 로그인',
                   labelColor: Colors.white,
-                  onTap: () {
-                    // TODO: 네이버 로그인 연동
-                  },
+                  onTap: () => _onNaverLogin(context, ref),
                 ),
                 SizedBox(height: 12.h),
                 _LoginButton(

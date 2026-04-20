@@ -65,14 +65,11 @@ class AuthViewModel extends _$AuthViewModel {
     final uid = ref.read(authRepositoryProvider).currentUser?.uid;
     if (uid == null) return;
 
-    final provider = uid.startsWith('kakao:') ? 'kakao' : 'naver';
-
     await ref.read(userRepositoryProvider).setUserProfile(
           uid: uid,
           name: name,
           phone: phone,
           birthDate: birthDate,
-          provider: provider,
         );
   }
 

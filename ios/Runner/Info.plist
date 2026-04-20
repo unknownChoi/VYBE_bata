@@ -63,6 +63,14 @@
 		</dict>
 	</array>
 
+	<!-- 네이버 로그인 -->
+	<key>naverServiceAppUrlScheme</key>
+	<string>com.example.vybe</string>
+	<key>naverConsumerKey</key>
+	<string>XFrHkC3O1gEKdyMLI1PN</string>
+	<key>naverConsumerSecret</key>
+	<string>v9DddSQthM</string>
+
 	<!-- 카카오톡 앱 실행 허용 -->
 	<key>LSApplicationQueriesSchemes</key>
 	<array>

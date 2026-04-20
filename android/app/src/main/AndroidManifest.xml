@@ -40,6 +40,14 @@
             </intent-filter>
         </activity>
 
+        <!-- 네이버 로그인 -->
+        <meta-data
+            android:name="com.naver.nid.client_id"
+            android:value="XFrHkC3O1gEKdyMLI1PN" />
+        <meta-data
+            android:name="com.naver.nid.client_secret"
+            android:value="v9DddSQthM" />
+
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

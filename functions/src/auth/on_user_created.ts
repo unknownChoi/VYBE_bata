@@ -12,8 +12,9 @@ export const onUserCreated = functions.auth.user().onCreate(async (user) => {
     return;
   }
 
-  const provider = (user.customClaims as Record<string, string> | undefined)
-    ?.provider ?? "apple";
+  const provider = user.uid.startsWith("kakao:") ? "kakao"
+    : user.uid.startsWith("naver:") ? "naver"
+    : "apple";
 
   await userRef.set({
     uid: user.uid,

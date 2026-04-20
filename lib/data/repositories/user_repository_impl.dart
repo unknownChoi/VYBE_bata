@@ -31,14 +31,12 @@ class UserRepositoryImpl implements UserRepository {
     required String name,
     required String phone,
     required String birthDate,
-    required String provider,
   }) =>
       _dataSource.setUserProfile(
         uid: uid,
         name: name,
         phone: phone,
         birthDate: birthDate,
-        provider: provider,
       );
 
   @override

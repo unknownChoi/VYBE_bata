@@ -16,6 +16,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:video_player/video_player.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/common/widgets/vybe_button.dart';
+import 'package:vybe/presentation/home/home_screen.dart';
 
 /// 회원가입 완료 화면
 ///
@@ -197,7 +198,11 @@ class _SignupSuccessScreenState extends State<SignupSuccessScreen> {
             child: VybeButton(
               label: '바이브 시작하기',
               onTap: () {
-                // TODO: 홈(지도) 화면으로 이동
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const HomeScreen()),
+                  (route) => false,
+                );
               },
               variant: VybeButtonVariant.special,
             ),
