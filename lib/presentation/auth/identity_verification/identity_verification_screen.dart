@@ -8,11 +8,13 @@
 // Figma node: (identity verification screen)
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/auth/certification_number/certification_number_screen.dart';
+import 'package:vybe/presentation/auth/viewmodels/auth_viewmodel.dart';
 import 'package:vybe/presentation/auth/widgets/birth_input.dart';
 import 'package:vybe/presentation/auth/widgets/carrier_dropdown_field.dart';
 import 'package:vybe/presentation/auth/widgets/carrier_sheet.dart';
@@ -43,15 +45,15 @@ enum _Step { name, birth, phone, carrier }
 ///   - [_maxStep]보다 낮음: 하단 완료 필드를 탭하여 제자리에서 편집 중
 ///
 /// Figma node: (identity verification screen)
-class IdentityVerificationScreen extends StatefulWidget {
+class IdentityVerificationScreen extends ConsumerStatefulWidget {
   const IdentityVerificationScreen({super.key});
 
   @override
-  State<IdentityVerificationScreen> createState() =>
+  ConsumerState<IdentityVerificationScreen> createState() =>
       _IdentityVerificationScreenState();
 }
 
-class _IdentityVerificationScreenState extends State<IdentityVerificationScreen>
+class _IdentityVerificationScreenState extends ConsumerState<IdentityVerificationScreen>
     with
         _IdentityVerificationLogicMixin,
         _IdentityVerificationHandlerMixin,

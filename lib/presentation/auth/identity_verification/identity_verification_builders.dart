@@ -10,7 +10,7 @@ part of 'identity_verification_screen.dart';
 
 /// UI 빌더 헬퍼 — buildTitle, buildFieldForStep,
 /// buildActiveField, buildCompletedField, buildBelowFields
-mixin _IdentityVerificationBuildersMixin on State<IdentityVerificationScreen> {
+mixin _IdentityVerificationBuildersMixin on ConsumerState<IdentityVerificationScreen> {
   // ── 의존 필드 (abstract) ──
   _Step get _activeStep;
   _Step get _maxStep;
@@ -26,6 +26,8 @@ mixin _IdentityVerificationBuildersMixin on State<IdentityVerificationScreen> {
 
   // ── 의존 computed/method (abstract) ──
   bool get _isMinor;           // LogicMixin 제공
+  bool get _isForeigner;       // LogicMixin 제공
+  bool get _isInvalidBirth;    // LogicMixin 제공
   void _activateStep(_Step s); // HandlerMixin 제공
   void _showCarrierSheet();    // HandlerMixin 제공
 
@@ -40,11 +42,16 @@ mixin _IdentityVerificationBuildersMixin on State<IdentityVerificationScreen> {
         _Step.birth => VybePageTitle(
             highlightText: '생년월일',
             regularText: '을 입력해주세요.',
-            caption: _isMinor
-                ? '미성년자는 회원가입이 제한됩니다.'
-                : '이 서비스는 만 19세 이상만 이용 가능합니다.',
-            captionType:
-                _isMinor ? VybeStatusType.error : VybeStatusType.warn,
+            caption: _isForeigner
+                ? '외국인은 회원가입이 불가 합니다.'
+                : _isInvalidBirth
+                    ? '올바른 생년월일을 입력해주세요.'
+                    : _isMinor
+                        ? '미성년자는 회원가입이 제한됩니다.'
+                        : '이 서비스는 만 19세 이상만 이용 가능합니다.',
+            captionType: (_isForeigner || _isInvalidBirth || _isMinor)
+                ? VybeStatusType.error
+                : VybeStatusType.warn,
           ),
         _Step.phone => const VybePageTitle(
             highlightText: '전화번호',
@@ -85,7 +92,7 @@ mixin _IdentityVerificationBuildersMixin on State<IdentityVerificationScreen> {
             backCtrl: _birthBackCtrl,
             frontFocus: _birthFrontFocus,
             backFocus: _birthBackFocus,
-            isError: _isMinor,
+            isError: _isForeigner || _isInvalidBirth || _isMinor,
           ),
         _Step.phone => VybeTextField(
             hint: '숫자만 입력해주세요.',

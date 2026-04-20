@@ -11,7 +11,7 @@ part of 'identity_verification_screen.dart';
 
 /// 이벤트 핸들러 — onConfirm, activateStep, requestFocus,
 /// onBirthFrontChanged, showTermsSheet, showCarrierSheet
-mixin _IdentityVerificationHandlerMixin on State<IdentityVerificationScreen> {
+mixin _IdentityVerificationHandlerMixin on ConsumerState<IdentityVerificationScreen> {
   // ── 의존 필드 (abstract) ──
   _Step get _activeStep;
   set _activeStep(_Step value);
@@ -101,7 +101,20 @@ mixin _IdentityVerificationHandlerMixin on State<IdentityVerificationScreen> {
   }
 
   /// 약관 동의 바텀시트 표시
-  void _showTermsSheet() {
+  Future<void> _showTermsSheet() async {
+    final phone = _phoneCtrl.text;
+    final isDuplicate = await ref
+        .read(authViewModelProvider.notifier)
+        .checkPhoneDuplicate(phone);
+    if (!mounted) return;
+
+    if (isDuplicate) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('이미 존재하는 계정입니다.')),
+      );
+      return;
+    }
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -116,7 +129,7 @@ mixin _IdentityVerificationHandlerMixin on State<IdentityVerificationScreen> {
             context,
             MaterialPageRoute(
               builder: (_) => CertificationNumberScreen(
-                phoneNumber: _phoneCtrl.text,
+                phoneNumber: phone,
                 name: _nameCtrl.text,
                 birthDate: birthDate,
               ),
