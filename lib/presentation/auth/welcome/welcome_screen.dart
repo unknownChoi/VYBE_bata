@@ -22,7 +22,7 @@ import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/auth/identity_verification/identity_verification_screen.dart';
 import 'package:vybe/presentation/auth/viewmodels/auth_viewmodel.dart';
 import 'package:vybe/presentation/auth/welcome/login_method_bottom_sheet.dart';
-import 'package:vybe/presentation/home/home_screen.dart';
+import 'package:vybe/presentation/main_scaffold/main_scaffold.dart';
 
 class WelcomeScreen extends ConsumerWidget {
   const WelcomeScreen({super.key});
@@ -59,7 +59,7 @@ class WelcomeScreen extends ConsumerWidget {
       } else {
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          MaterialPageRoute(builder: (_) => const MainScaffold()),
           (route) => false,
         );
       }
@@ -95,7 +95,7 @@ class WelcomeScreen extends ConsumerWidget {
       } else {
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          MaterialPageRoute(builder: (_) => const MainScaffold()),
           (route) => false,
         );
       }

@@ -86,6 +86,12 @@ flutter:
 
     - assets/icons/auth/
 
+    - assets/icons/bottom_nav/
+    - assets/icons/home_screen/
+    - assets/icons/home_screen/category_grid/
+
+    - assets/images/home_screen/
+
     - assets/videos/
 
   fonts:

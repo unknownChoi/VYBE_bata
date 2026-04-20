@@ -16,7 +16,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:video_player/video_player.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/common/widgets/vybe_button.dart';
-import 'package:vybe/presentation/home/home_screen.dart';
+import 'package:vybe/presentation/main_scaffold/main_scaffold.dart';
 
 /// 회원가입 완료 화면
 ///
@@ -200,7 +200,7 @@ class _SignupSuccessScreenState extends State<SignupSuccessScreen> {
               onTap: () {
                 Navigator.pushAndRemoveUntil(
                   context,
-                  MaterialPageRoute(builder: (_) => const HomeScreen()),
+                  MaterialPageRoute(builder: (_) => const MainScaffold()),
                   (route) => false,
                 );
               },
