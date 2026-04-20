@@ -33,19 +33,22 @@ class UserDataSource {
     });
   }
 
-  /// 본인인증 완료 시 프로필 저장 — uid/provider/createdAt은 onUserCreated에서 설정되므로 제외
-  /// set(merge:true) 사용: onUserCreated 트리거보다 먼저 호출돼도 문서 생성됨
+  /// 본인인증 완료 시 전체 프로필 저장
   Future<void> setUserProfile({
     required String uid,
     required String name,
     required String phone,
     required String birthDate,
+    required String provider,
   }) async {
     await _firestore.collection('users').doc(uid).set({
+      'uid': uid,
+      'provider': provider,
       'name': name,
       'phone': phone,
       'birthDate': birthDate,
       'isVerified': true,
+      'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }

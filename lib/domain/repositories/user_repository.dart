@@ -11,6 +11,7 @@ abstract class UserRepository {
     required String name,
     required String phone,
     required String birthDate,
+    required String provider,
   });
   Future<bool> isPhoneDuplicate(String phone);
   Future<String> uploadProfileImage(String uid, File imageFile);

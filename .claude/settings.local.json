@@ -4,7 +4,8 @@
       "mcp__figma__get_design_context",
       "Bash(flutter analyze:*)",
       "Bash(firebase deploy *)",
-      "Bash(flutter pub *)"
+      "Bash(flutter pub *)",
+      "Bash(xcodebuild -workspace /Users/justinchoi/Desktop/업무/소스코드/vybe_bata/ios/Runner.xcworkspace -scheme Runner -configuration Debug -sdk iphonesimulator build)"
     ]
   },
   "disabledMcpjsonServers": [

@@ -5,24 +5,18 @@ export const onUserCreated = functions.auth.user().onCreate(async (user) => {
   const db = admin.firestore();
   const userRef = db.collection("users").doc(user.uid);
 
-  // 중복 실행 방어 — 문서가 이미 존재하면 덮어쓰지 않음
-  const snapshot = await userRef.get();
-  if (snapshot.exists) {
-    functions.logger.info(`users/${user.uid} already exists, skipping.`);
-    return;
-  }
-
   const provider = user.uid.startsWith("kakao:") ? "kakao"
     : user.uid.startsWith("naver:") ? "naver"
     : "apple";
 
+  // merge: true — setUserProfile이 먼저 실행돼 문서가 존재해도 누락 필드만 채움
+  // isVerified는 이미 true로 저장됐을 수 있으므로 포함하지 않음
   await userRef.set({
     uid: user.uid,
     provider,
-    isVerified: false,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-  });
+  }, {merge: true});
 
   functions.logger.info(`users/${user.uid} created. provider: ${provider}`);
 });

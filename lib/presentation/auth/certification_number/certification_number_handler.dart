@@ -97,6 +97,16 @@ mixin _CertificationNumberHandlerMixin on ConsumerState<CertificationNumberScree
     if (!_canConfirm) return;
     if (_controller.text == _correctCode) {
       final vm = ref.read(authViewModelProvider.notifier);
+
+      final isDuplicate = await vm.checkPhoneDuplicate(widget.phoneNumber);
+      if (!mounted) return;
+      if (isDuplicate) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('이미 존재하는 계정입니다.')),
+        );
+        return;
+      }
+
       await vm.finalizeLogin();
       if (!mounted) return;
       await vm.saveUserProfile(

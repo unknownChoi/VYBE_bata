@@ -65,13 +65,18 @@ class AuthViewModel extends _$AuthViewModel {
     final uid = ref.read(authRepositoryProvider).currentUser?.uid;
     if (uid == null) return;
 
+    final provider = uid.startsWith('kakao:') ? 'kakao' : 'naver';
     await ref.read(userRepositoryProvider).setUserProfile(
           uid: uid,
           name: name,
           phone: phone,
           birthDate: birthDate,
+          provider: provider,
         );
   }
+
+  Future<bool> checkPhoneDuplicate(String phone) =>
+      ref.read(authRepositoryProvider).checkPhoneDuplicate(phone);
 
   /// 본인인증 완료 후 실제 Firebase 로그인 처리
   Future<void> finalizeLogin() async {

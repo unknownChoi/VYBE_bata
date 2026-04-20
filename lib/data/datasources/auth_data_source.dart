@@ -44,6 +44,12 @@ class AuthDataSource {
     return doc.exists;
   }
 
+  Future<bool> checkPhoneDuplicate(String phone) async {
+    final callable = _functions.httpsCallable('checkPhoneDuplicate');
+    final result = await callable.call({'phone': phone});
+    return result.data['isDuplicate'] as bool;
+  }
+
   Future<bool> verifyIdentity(String impUid) async {
     final callable = _functions.httpsCallable('verifyIdentity');
     final result = await callable.call({'impUid': impUid});
