@@ -11,25 +11,28 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:video_player/video_player.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/common/widgets/vybe_button.dart';
+import 'package:vybe/presentation/home/viewmodels/banner_viewmodel.dart';
 import 'package:vybe/presentation/main_scaffold/main_scaffold.dart';
 
 /// 회원가입 완료 화면
 ///
 /// 배경: assets/videos/signup_succes.mp4 (무한 반복)
 /// Figma node: 219-2841
-class SignupSuccessScreen extends StatefulWidget {
+class SignupSuccessScreen extends ConsumerStatefulWidget {
   const SignupSuccessScreen({super.key});
 
   @override
-  State<SignupSuccessScreen> createState() => _SignupSuccessScreenState();
+  ConsumerState<SignupSuccessScreen> createState() =>
+      _SignupSuccessScreenState();
 }
 
-class _SignupSuccessScreenState extends State<SignupSuccessScreen> {
+class _SignupSuccessScreenState extends ConsumerState<SignupSuccessScreen> {
   // iOS / Android 에서만 video_player 지원
   static bool get _videoSupported =>
       defaultTargetPlatform == TargetPlatform.iOS ||
@@ -197,7 +200,22 @@ class _SignupSuccessScreenState extends State<SignupSuccessScreen> {
             bottom: 40.h,
             child: VybeButton(
               label: '바이브 시작하기',
-              onTap: () {
+              onTap: () async {
+                try {
+                  final banners = await ref
+                      .read(bannerListProvider.future)
+                      .timeout(const Duration(seconds: 5));
+                  if (!context.mounted) return;
+                  await Future.wait(
+                    banners.map((b) async {
+                      try {
+                        await precacheImage(NetworkImage(b.imageUrl), context)
+                            .timeout(const Duration(seconds: 5));
+                      } catch (_) {}
+                    }),
+                  );
+                } catch (_) {}
+                if (!context.mounted) return;
                 Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute(builder: (_) => const MainScaffold()),

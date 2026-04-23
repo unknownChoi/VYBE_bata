@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VYBE — Firestore 컬렉션 구조</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Pretendard:wght@400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Pretendard', -apple-system, sans-serif;
+    background: #f7f6f2;
+    color: #1a1a1a;
+    padding: 40px 24px 80px;
+    min-height: 100vh;
+  }
+
+  .page {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .header {
+    margin-bottom: 48px;
+    padding-bottom: 24px;
+    border-bottom: 1.5px solid #1a1a1a;
+  }
+
+  .header h1 {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+    margin-bottom: 6px;
+  }
+
+  .header p {
+    font-size: 13px;
+    color: #666;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .badge {
+    display: inline-block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 3px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  .badge-pk { background: #dbeafe; color: #1e40af; }
+  .badge-fk { background: #fee2e2; color: #991b1b; }
+
+  .collection {
+    margin-bottom: 32px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid #e0ddd5;
+    background: #fff;
+  }
+
+  .collection-header {
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .collection-name {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+  }
+
+  .collection-path {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    opacity: 0.75;
+    color: #fff;
+  }
+
+  .col-labels {
+    display: grid;
+    grid-template-columns: 180px 90px 60px 1fr;
+    padding: 8px 20px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #f0ede6;
+    background: #faf9f6;
+  }
+
+  .field-row {
+    display: grid;
+    grid-template-columns: 180px 90px 60px 1fr;
+    padding: 10px 20px;
+    border-bottom: 1px solid #f0ede6;
+    align-items: center;
+    transition: background 0.1s;
+  }
+  .field-row:last-child { border-bottom: none; }
+  .field-row:hover { background: #faf9f6; }
+
+  .field-name {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a1a1a;
+  }
+
+  .field-type {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: #888;
+  }
+
+  .field-key { font-size: 12px; }
+
+  .field-desc {
+    font-size: 13px;
+    color: #444;
+    line-height: 1.5;
+  }
+
+  .legend {
+    display: flex;
+    gap: 20px;
+    margin-top: 40px;
+    padding: 14px 20px;
+    background: #fff;
+    border: 1px solid #e0ddd5;
+    border-radius: 10px;
+    font-size: 12px;
+    color: #555;
+    align-items: center;
+  }
+  .legend strong { color: #1a1a1a; margin-right: 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  @media print {
+    body { background: #fff; padding: 20px; }
+    .collection { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <h1>VYBE — Firestore 컬렉션 구조</h1>
+    <p>베타 버전 기준 &nbsp;·&nbsp; v2 &nbsp;·&nbsp; 2024</p>
+  </div>
+
+  <!-- USERS -->
+  <div class="collection">
+    <div class="collection-header" style="background: #3C3489;">
+      <span class="collection-name">USERS</span>
+      <span class="collection-path">users/{uid}</span>
+    </div>
+    <div class="col-labels"><span>필드명</span><span>타입</span><span>키</span><span>설명</span></div>
+    <div class="field-row"><span class="field-name">uid</span><span class="field-type">string</span><span class="field-key"><span class="badge badge-pk">PK</span></span><span class="field-desc">Firebase Auth에서 발급된 고유 사용자 ID</span></div>
+    <div class="field-row"><span class="field-name">name</span><span class="field-type">string</span><span class="field-key"></span><span class="field-desc">사용자 실명</span></div>
+    <div class="field-row"><span class="field-name">phone</span><span class="field-type">string</span><span class="field-key"></span><span class="field-desc">전화번호 (본인인증 완료된 번호)</span></div>
+    <div class="field-row"><span class="field-name">birthDate</span><span class="field-type">string</span><span class="field-key"></span><span class="field-desc">생년월일 (YYYYMMDD 형식)</span></div>
+    <div class="field-row"><span class="field-name">profileImageUrl</span><span class="field-type">string</span><span class="field-key"></span><span class="field-desc">프로필 이미지 URL — Storage 경로: users/{uid}/profile.jpg</span></div>
+    <div class="field-row"><span class="field-name">provider</span><span class="field-type">string</span><span class="field-key"></span><span class="field-desc">로그인 제공자 (kakao / naver / apple)</span></div>
+    <div class="field-row"><span class="field-name">createdAt</span><span class="field-type">timestamp</span><span class="field-key"></span><span class="field-desc">계정 생성 시각</span></div>
+    <div class="field-row"><span class="field-name">updatedAt</span><span class="field-type">timestamp</span><span class="field-key"></span><span class="field-desc">마지막 프로필 수정 시각</span></div>
+  </div>
+
+  <!-- CLUBS -->
+  <div class="collection">
+    <div class="collection-header" style="background: #0F6E56;">
+      <span class="collection-name">CLUBS</span>
+      <span class="collection-path">clubs/{clubId}</span>
+    </div>
+    <div class="col-labels"><span>필드명</span><span>타입</span><span>키</span><span>설명</span></div>
+    <div class="field-row"><span class="field-name">clubId</span><span class="field-type">string</span><span class="field-key"><span class="badge badge-pk">PK</span></span><span class="field-desc">클럽 고유 ID (Firestore 자동 생성)</span></div>
+    <div class="field-row"><span class="field-name">name</span><span class="field-type">string</span><span class="field-key"></span><span class="field-desc">클럽 이름</span></div>
+    <div class="field-row"><span class="field-name">description</span><span class="field-type">string</span><span class="field-key"></span><span class="field-desc">클럽 소개글</span></div>
+    <div class="field-row"><span class="field-name">address</span><span class="field-type">string</span><span class="field-key"></span><span class="field-desc">클럽 주소</span></div>
+    <div class="field-row"><span class="field-name">phone</span><span class="field-type">string</span><span class="field-key"></span><span class="field-desc">클럽 연락처</span></div>
+    <div class="field-row"><span class="field-name">instagramUrl</span><span class="field-type">string</span><span class="field-key"></span><span class="field-desc">인스타그램 계정 URL</span></div>
+    <div class="field-row"><span class="field-name">location</span><span class="field-type">object</span><span class="field-key"></span><span class="field-desc">위도/경도 객체 { lat, lng }</span></div>
+    <div class="field-row"><span class="field-name">geohash</span><span class="field-type">string</span><span class="field-key"></span><span class="field-desc">내 주변 GeoQuery용 위치 해시값 (geofire-common 라이브러리 활용)</span></div>
+    <div class="field-row"><span class="field-name">imageUrls</span><span class="field-type">array</span><span class="field-key"></span><span class="field-desc">클럽 상세 이미지 URL 목록 — Storage 경로: clubs/{clubId}/images/{index}.jpg</span></div>
+    <div class="field-row"><span class="field-name">thumbnailUrl</span><span class="field-type">string</span><span class="field-key"></span><span class="field-desc">대표 이미지 URL — Storage 경로: clubs/{clubId}/thumbnail.jpg</span></div>
+    <div class="field-row"><span class="field-name">tags</span><span class="field-type">array</span><span class="field-key"></span><span class="field-desc">클럽 태그 목록 (예: 힙합, 루프탑 등)</span></div>
+    <div class="field-row"><span class="field-name">favoriteCount</span><span class="field-type">number</span><span class="field-key"></span><span class="field-desc">찜 수 — 찜 추가/취소 시 Cloud Functions가 자동으로 +1 / -1 업데이트</span></div>
+    <div class="field-row"><span class="field-name">ratingAvg</span><span class="field-type">number</span><span class="field-key"></span><span class="field-desc">클럽 평균 별점 (1.0 ~ 5.0) — 리뷰 추가/수정/삭제 시 Cloud Functions가 자동 업데이트</span></div>
+    <div class="field-row"><span class="field-name">ratingCount</span><span class="field-type">number</span><span class="field-key"></span><span class="field-desc">리뷰 총 개수 — ratingAvg 계산 기준</span></div>
+    <div class="field-row"><span class="field-name">isActive</span><span class="field-type">boolean</span><span class="field-key"></span><span class="field-desc">클럽 활성 여부 (false 시 앱에 노출 안 됨)</span></div>
+    <div class="field-row"><span class="field-name">isVybeRecommended</span><span class="field-type">boolean</span><span class="field-key"></span><span class="field-desc">VYBE 추천 클럽 여부 — true 시 클럽명 옆에 👑 VYBE 추천 클럽 배지 표시</span></div>
+    <div class="field-row"><span class="field-name">createdAt</span><span class="field-type">timestamp</span><span class="field-key"></span><span class="field-desc">클럽 등록 시각</span></div>
+    <div class="field-row"><span class="field-name">updatedAt</span><span class="field-type">timestamp</span><span class="field-key"></span><span class="field-desc">클럽 정보 마지막 수정 시각</span></div>
+  </div>
+
+  <!-- CLUBS_INFO -->
+  <div class="collection">
+    <div class="collection-header" style="background: #185FA5;">
+      <span class="collection-name">CLUBS_INFO</span>
+      <span class="collection-path">clubs/{clubId}/info/{clubId}</span>
+    </div>
+    <div class="col-labels"><span>필드명</span><span>타입</span><span>키</span><span>설명</span></div>
+    <div class="field-row"><span class="field-name">clubId</span><span class="field-type">string</span><span class="field-key"><span class="badge badge-pk">PK</span></span><span class="field-desc">상위 클럽 ID (CLUBS와 동일)</span></div>
+    <div class="field-row"><span class="field-name">operatingHours</span><span class="field-type">string</span><span class="field-key"></span><span class="field-desc">영업시간 (예: 매일 22:00 ~ 05:00)</span></div>
+    <div class="field-row"><span class="field-name">sns</span><span class="field-type">array</span><span class="field-key"></span><span class="field-desc">추가 SNS 링크 목록</span></div>
+    <div class="field-row"><span class="field-name">updatedAt</span><span class="field-type">timestamp</span><span class="field-key"></span><span class="field-desc">정보 마지막 수정 시각</span></div>
+  </div>
+
+  <!-- PHOTOS -->
+  <div class="collection">
+    <div class="collection-header" style="background: #7B3FA0;">
+      <span class="collection-name">PHOTOS</span>
+      <span class="collection-path">clubs/{clubId}/photos/{photoId}</span>
+    </div>
+    <div class="col-labels"><span>필드명</span><span>타입</span><span>키</span><span>설명</span></div>
+    <div class="field-row"><span class="field-name">photoId</span><span class="field-type">string</span><span class="field-key"><span class="badge badge-pk">PK</span></span><span class="field-desc">사진 고유 ID (Firestore 자동 생성)</span></div>
+    <div class="field-row"><span class="field-name">clubId</span><span class="field-type">string</span><span class="field-key"><span class="badge badge-fk">FK</span></span><span class="field-desc">소속 클럽 ID (CLUBS 참조)</span></div>
+    <div class="field-row"><span class="field-name">userId</span><span class="field-type">string</span><span class="field-key"><span class="badge badge-fk">FK</span></span><span class="field-desc">업로드한 유저 UID (USERS 참조)</span></div>
+    <div class="field-row"><span class="field-name">imageUrl</span><span class="field-type">string</span><span class="field-key"></span><span class="field-desc">사진 URL — Storage 경로: clubs/{clubId}/photos/{photoId}.jpg</span></div>
+    <div class="field-row"><span class="field-name">category</span><span class="field-type">string</span><span class="field-key"></span><span class="field-desc">사진 카테고리 (업체 / 음식 / 내부) — 전체 탭은 필터 없이 전체 조회</span></div>
+    <div class="field-row"><span class="field-name">createdAt</span><span class="field-type">timestamp</span><span class="field-key"></span><span class="field-desc">업로드 시각</span></div>
+  </div>
+
+  <!-- MENUS -->
+  <div class="collection">
+    <div class="collection-header" style="background: #5F5E5A;">
+      <span class="collection-name">MENUS</span>
+      <span class="collection-path">clubs/{clubId}/menus/{menuId}</span>
+    </div>
+    <div class="col-labels"><span>필드명</span><span>타입</span><span>키</span><span>설명</span></div>
+    <div class="field-row"><span class="field-name">menuId</span><span class="field-type">string</span><span class="field-key"><span class="badge badge-pk">PK</span></span><span class="field-desc">메뉴 고유 ID</span></div>
+    <div class="field-row"><span class="field-name">clubId</span><span class="field-type">string</span><span class="field-key"><span class="badge badge-fk">FK</span></span><span class="field-desc">소속 클럽 ID (CLUBS 참조)</span></div>
+    <div class="field-row"><span class="field-name">name</span><span class="field-type">string</span><span class="field-key"></span><span class="field-desc">메뉴명</span></div>
+    <div class="field-row"><span class="field-name">description</span><span class="field-type">string</span><span class="field-key"></span><span class="field-desc">메뉴 설명</span></div>
+    <div class="field-row"><span class="field-name">price</span><span class="field-type">number</span><span class="field-key"></span><span class="field-desc">메뉴 가격 (원 단위)</span></div>
+    <div class="field-row"><span class="field-name">imageUrl</span><span class="field-type">string</span><span class="field-key"></span><span class="field-desc">메뉴 이미지 URL — Storage 경로: clubs/{clubId}/menus/{menuId}.jpg</span></div>
+    <div class="field-row"><span class="field-name">category</span><span class="field-type">string</span><span class="field-key"></span><span class="field-desc">메뉴 카테고리 (예: 주류, 음식 등)</span></div>
+    <div class="field-row"><span class="field-name">isAvailable</span><span class="field-type">boolean</span><span class="field-key"></span><span class="field-desc">현재 판매 여부</span></div>
+    <div class="field-row"><span class="field-name">createdAt</span><span class="field-type">timestamp</span><span class="field-key"></span><span class="field-desc">메뉴 등록 시각</span></div>
+  </div>
+
+  <!-- REVIEWS -->
+  <div class="collection">
+    <div class="collection-header" style="background: #993C1D;">
+      <span class="collection-name">REVIEWS</span>
+      <span class="collection-path">clubs/{clubId}/reviews/{reviewId}</span>
+    </div>
+    <div class="col-labels"><span>필드명</span><span>타입</span><span>키</span><span>설명</span></div>
+    <div class="field-row"><span class="field-name">reviewId</span><span class="field-type">string</span><span class="field-key"><span class="badge badge-pk">PK</span></span><span class="field-desc">리뷰 고유 ID</span></div>
+    <div class="field-row"><span class="field-name">clubId</span><span class="field-type">string</span><span class="field-key"><span class="badge badge-fk">FK</span></span><span class="field-desc">리뷰 대상 클럽 ID (CLUBS 참조)</span></div>
+    <div class="field-row"><span class="field-name">userId</span><span class="field-type">string</span><span class="field-key"><span class="badge badge-fk">FK</span></span><span class="field-desc">작성자 UID (USERS 참조)</span></div>
+    <div class="field-row"><span class="field-name">rating</span><span class="field-type">number</span><span class="field-key"></span><span class="field-desc">별점 (1 ~ 5)</span></div>
+    <div class="field-row"><span class="field-name">content</span><span class="field-type">string</span><span class="field-key"></span><span class="field-desc">리뷰 텍스트 내용</span></div>
+    <div class="field-row"><span class="field-name">imageUrls</span><span class="field-type">array</span><span class="field-key"></span><span class="field-desc">첨부 이미지 URL 목록 — Storage 경로: clubs/{clubId}/reviews/{reviewId}/{index}.jpg</span></div>
+    <div class="field-row"><span class="field-name">createdAt</span><span class="field-type">timestamp</span><span class="field-key"></span><span class="field-desc">리뷰 작성 시각</span></div>
+    <div class="field-row"><span class="field-name">updatedAt</span><span class="field-type">timestamp</span><span class="field-key"></span><span class="field-desc">리뷰 마지막 수정 시각</span></div>
+  </div>
+
+  <!-- FAVORITES -->
+  <div class="collection">
+    <div class="collection-header" style="background: #854F0B;">
+      <span class="collection-name">FAVORITES</span>
+      <span class="collection-path">favorites/{favoriteId}</span>
+    </div>
+    <div class="col-labels"><span>필드명</span><span>타입</span><span>키</span><span>설명</span></div>
+    <div class="field-row"><span class="field-name">favoriteId</span><span class="field-type">string</span><span class="field-key"><span class="badge badge-pk">PK</span></span><span class="field-desc">찜 고유 ID</span></div>
+    <div class="field-row"><span class="field-name">userId</span><span class="field-type">string</span><span class="field-key"><span class="badge badge-fk">FK</span></span><span class="field-desc">찜한 사용자 UID (USERS 참조)</span></div>
+    <div class="field-row"><span class="field-name">clubId</span><span class="field-type">string</span><span class="field-key"><span class="badge badge-fk">FK</span></span><span class="field-desc">찜한 클럽 ID (CLUBS 참조) — clubs.favoriteCount 자동 연동</span></div>
+    <div class="field-row"><span class="field-name">createdAt</span><span class="field-type">timestamp</span><span class="field-key"></span><span class="field-desc">찜 추가 시각</span></div>
+  </div>
+
+  <!-- SEARCH_HISTORY -->
+  <div class="collection">
+    <div class="collection-header" style="background: #3B6D11;">
+      <span class="collection-name">SEARCH_HISTORY</span>
+      <span class="collection-path">users/{uid}/searchHistory/{historyId}</span>
+    </div>
+    <div class="col-labels"><span>필드명</span><span>타입</span><span>키</span><span>설명</span></div>
+    <div class="field-row"><span class="field-name">historyId</span><span class="field-type">string</span><span class="field-key"><span class="badge badge-pk">PK</span></span><span class="field-desc">검색 기록 고유 ID</span></div>
+    <div class="field-row"><span class="field-name">userId</span><span class="field-type">string</span><span class="field-key"><span class="badge badge-fk">FK</span></span><span class="field-desc">검색한 사용자 UID (USERS 참조)</span></div>
+    <div class="field-row"><span class="field-name">keyword</span><span class="field-type">string</span><span class="field-key"></span><span class="field-desc">검색어</span></div>
+    <div class="field-row"><span class="field-name">createdAt</span><span class="field-type">timestamp</span><span class="field-key"></span><span class="field-desc">검색 시각</span></div>
+  </div>
+
+  <!-- BANNERS -->
+  <div class="collection">
+    <div class="collection-header" style="background: #1A6B5A;">
+      <span class="collection-name">BANNERS</span>
+      <span class="collection-path">banners/{bannerId}</span>
+    </div>
+    <div class="col-labels"><span>필드명</span><span>타입</span><span>키</span><span>설명</span></div>
+    <div class="field-row"><span class="field-name">bannerId</span><span class="field-type">string</span><span class="field-key"><span class="badge badge-pk">PK</span></span><span class="field-desc">배너 고유 ID (Firestore 자동 생성)</span></div>
+    <div class="field-row"><span class="field-name">imageUrl</span><span class="field-type">string</span><span class="field-key"></span><span class="field-desc">배너 이미지 URL (텍스트 포함) — Storage 경로: banners/{bannerId}.jpg</span></div>
+    <div class="field-row"><span class="field-name">linkType</span><span class="field-type">string</span><span class="field-key"></span><span class="field-desc">클릭 시 이동 타입 (club / screen / url)</span></div>
+    <div class="field-row"><span class="field-name">linkValue</span><span class="field-type">string</span><span class="field-key"></span><span class="field-desc">linkType이 club이면 clubId, screen이면 스크린명, url이면 외부 링크</span></div>
+    <div class="field-row"><span class="field-name">order</span><span class="field-type">number</span><span class="field-key"></span><span class="field-desc">슬라이드 노출 순서 (오름차순 정렬)</span></div>
+    <div class="field-row"><span class="field-name">isActive</span><span class="field-type">boolean</span><span class="field-key"></span><span class="field-desc">배너 노출 여부 — 관리자가 직접 제어</span></div>
+    <div class="field-row"><span class="field-name">startAt</span><span class="field-type">timestamp</span><span class="field-key"></span><span class="field-desc">배너 노출 시작일</span></div>
+    <div class="field-row"><span class="field-name">endAt</span><span class="field-type">timestamp</span><span class="field-key"></span><span class="field-desc">배너 노출 종료일</span></div>
+    <div class="field-row"><span class="field-name">createdAt</span><span class="field-type">timestamp</span><span class="field-key"></span><span class="field-desc">배너 등록 시각</span></div>
+  </div>
+
+  <!-- 범례 -->
+  <div class="legend">
+    <strong>범례</strong>
+    <span><span class="badge badge-pk">PK</span>&nbsp; Primary Key — 문서 고유 식별자</span>
+    <span><span class="badge badge-fk">FK</span>&nbsp; Foreign Key — 다른 컬렉션 문서 참조</span>
+  </div>
+</div>
+</body>
+</html>

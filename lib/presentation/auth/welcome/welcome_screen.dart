@@ -22,6 +22,7 @@ import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/auth/identity_verification/identity_verification_screen.dart';
 import 'package:vybe/presentation/auth/viewmodels/auth_viewmodel.dart';
 import 'package:vybe/presentation/auth/welcome/login_method_bottom_sheet.dart';
+import 'package:vybe/presentation/home/viewmodels/banner_viewmodel.dart';
 import 'package:vybe/presentation/main_scaffold/main_scaffold.dart';
 
 class WelcomeScreen extends ConsumerWidget {
@@ -34,6 +35,30 @@ class WelcomeScreen extends ConsumerWidget {
   static const _appleIconPath = 'assets/icons/auth/social_login_apple_icon.svg';
 
   static const _vybeWhiteLogo = 'assets/icons/common/vybe_white_logo.svg';
+
+  Future<void> _preloadBannersAndNavigate(
+      BuildContext context, WidgetRef ref) async {
+    try {
+      final banners = await ref
+          .read(bannerListProvider.future)
+          .timeout(const Duration(seconds: 5));
+      if (!context.mounted) return;
+      await Future.wait(
+        banners.map((b) async {
+          try {
+            await precacheImage(NetworkImage(b.imageUrl), context)
+                .timeout(const Duration(seconds: 5));
+          } catch (_) {}
+        }),
+      );
+    } catch (_) {}
+    if (!context.mounted) return;
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const MainScaffold()),
+      (route) => false,
+    );
+  }
 
   Future<void> _onKakaoLogin(BuildContext context, WidgetRef ref) async {
     try {
@@ -57,11 +82,7 @@ class WelcomeScreen extends ConsumerWidget {
               builder: (_) => const IdentityVerificationScreen()),
         );
       } else {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const MainScaffold()),
-          (route) => false,
-        );
+        await _preloadBannersAndNavigate(context, ref);
       }
     } catch (e, st) {
       final log = '${DateTime.now()}\n$e\n$st\n\n';
@@ -93,11 +114,7 @@ class WelcomeScreen extends ConsumerWidget {
           MaterialPageRoute(builder: (_) => const IdentityVerificationScreen()),
         );
       } else {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const MainScaffold()),
-          (route) => false,
-        );
+        await _preloadBannersAndNavigate(context, ref);
       }
     } catch (e) {
       if (!context.mounted) return;
