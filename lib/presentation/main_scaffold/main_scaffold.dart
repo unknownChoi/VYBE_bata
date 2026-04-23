@@ -17,19 +17,24 @@ class MainScaffold extends StatefulWidget {
 
 class _MainScaffoldState extends State<MainScaffold> {
   int _currentIndex = 0;
+  late final List<Widget> _screens;
 
-  static const _screens = [
-    HomeScreen(),
-    NearbyScreen(),
-    PassWalletScreen(),
-    SearchScreen(),
-    MyPageScreen(),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _screens = [
+      HomeScreen(onSearchTap: () => setState(() => _currentIndex = 3)),
+      const NearbyScreen(),
+      const PassWalletScreen(),
+      const SearchScreen(),
+      const MyPageScreen(),
+    ];
+  }
 
   static const _navItems = [
     _NavItem(icon: 'assets/icons/bottom_nav/home_page.svg', label: '홈'),
     _NavItem(icon: 'assets/icons/bottom_nav/map_page.svg', label: '주변'),
-    _NavItem(icon: 'assets/icons/bottom_nav/bookmark.svg', label: '패스월렛'),
+    _NavItem(icon: 'assets/icons/bottom_nav/bookmark.svg', label: '찜'),
     _NavItem(icon: 'assets/icons/bottom_nav/search_page.svg', label: '검색'),
     _NavItem(icon: 'assets/icons/bottom_nav/my_page.svg', label: '내 정보'),
   ];

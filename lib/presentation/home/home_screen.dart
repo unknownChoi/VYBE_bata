@@ -92,11 +92,29 @@ const _nearbyClubs = [
 ];
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final VoidCallback? onSearchTap;
+  const HomeScreen({super.key, this.onSearchTap});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
+
+// VybeButton.special과 동일한 그라데이션
+const _borderGradient = LinearGradient(
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+  colors: [
+    Color(0xFFB5FF60),
+    Color(0xFFC8E77F),
+    Color(0xFFDACA9E),
+    Color(0xFFFF9EDB),
+    Color(0xFFDD82E4),
+    Color(0xFFBB67ED),
+    Color(0xFF994CF5),
+    Color(0xFF7731FE),
+  ],
+  stops: [0.0, 0.142, 0.285, 0.569, 0.677, 0.785, 0.892, 1.0],
+);
 
 class _HomeScreenState extends State<HomeScreen> {
   late final PageController _bannerController;
@@ -162,7 +180,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Row(
             children: [
               GestureDetector(
-                onTap: () {},
+                onTap: widget.onSearchTap,
                 child: SvgPicture.asset(
                   'assets/icons/home_screen/search.svg',
                   width: 24.r,
@@ -279,33 +297,52 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildCategoryItem(_CategoryItem item) {
     final isVybe = item.label == 'VYBE 추천';
-    return SizedBox(
-      width: 60.w,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
+
+    final iconInner = Container(
+      decoration: BoxDecoration(
+        color: VybeColors.gray900,
+        borderRadius: BorderRadius.circular(isVybe ? 11.r : 12.r),
+      ),
+      child: Center(
+        child: SvgPicture.asset(
+          item.icon,
+          width: 40.r,
+          height: 40.r,
+          colorFilter: const ColorFilter.mode(
+            Colors.white,
+            BlendMode.srcIn,
+          ),
+        ),
+      ),
+    );
+
+    final iconBox = isVybe
+        ? Container(
+            width: 60.w,
+            height: 60.h,
+            decoration: BoxDecoration(
+              gradient: _borderGradient,
+              borderRadius: BorderRadius.circular(12.r),
+            ),
+            padding: const EdgeInsets.all(1),
+            child: iconInner,
+          )
+        : Container(
             width: 60.w,
             height: 60.h,
             decoration: BoxDecoration(
               color: VybeColors.gray900,
               borderRadius: BorderRadius.circular(12.r),
-              border: isVybe
-                  ? Border.all(color: VybeColors.mainLime500, width: 1)
-                  : null,
             ),
-            child: Center(
-              child: SvgPicture.asset(
-                item.icon,
-                width: 40.r,
-                height: 40.r,
-                colorFilter: const ColorFilter.mode(
-                  Colors.white,
-                  BlendMode.srcIn,
-                ),
-              ),
-            ),
-          ),
+            child: iconInner,
+          );
+
+    return SizedBox(
+      width: 60.w,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          iconBox,
           SizedBox(height: 4.h),
           Text(
             item.label,
@@ -347,16 +384,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         .copyWith(color: VybeColors.gray400),
                   ),
                   SizedBox(width: 4.w),
-                  RotatedBox(
-                    quarterTurns: 2,
-                    child: SvgPicture.asset(
-                      'assets/icons/home_screen/add_content.svg',
-                      width: 4.w,
-                      height: 8.h,
-                      colorFilter: const ColorFilter.mode(
-                        VybeColors.gray400,
-                        BlendMode.srcIn,
-                      ),
+                  SvgPicture.asset(
+                    'assets/icons/home_screen/add_content.svg',
+                    width: 4.w,
+                    height: 8.h,
+                    colorFilter: const ColorFilter.mode(
+                      VybeColors.gray400,
+                      BlendMode.srcIn,
                     ),
                   ),
                 ],
