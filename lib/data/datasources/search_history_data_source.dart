@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:vybe/core/utils/firebase_logger.dart';
 import 'package:vybe/data/models/search_history_model.dart';
 
 class SearchHistoryDataSource {
@@ -7,6 +8,11 @@ class SearchHistoryDataSource {
   SearchHistoryDataSource() : _firestore = FirebaseFirestore.instance;
 
   Future<List<SearchHistoryModel>> getSearchHistory(String userId) async {
+    logFirebaseAccess(
+      file: 'search_history_data_source.dart',
+      service: 'Firestore(users/$userId/searchHistory)',
+      purpose: '최근 검색어 목록 표시',
+    );
     final snapshot = await _firestore
         .collection('users')
         .doc(userId)
@@ -18,6 +24,11 @@ class SearchHistoryDataSource {
   }
 
   Future<void> addSearchHistory(String userId, String keyword) async {
+    logFirebaseAccess(
+      file: 'search_history_data_source.dart',
+      service: 'Firestore(users/$userId/searchHistory)',
+      purpose: '검색어 "$keyword" 저장 (중복 제거 후 추가)',
+    );
     final existing = await _firestore
         .collection('users')
         .doc(userId)
@@ -39,6 +50,11 @@ class SearchHistoryDataSource {
   }
 
   Future<void> deleteSearchHistory(String userId, String historyId) async {
+    logFirebaseAccess(
+      file: 'search_history_data_source.dart',
+      service: 'Firestore(users/$userId/searchHistory/$historyId)',
+      purpose: '최근 검색어 개별 삭제',
+    );
     await _firestore
         .collection('users')
         .doc(userId)
@@ -48,6 +64,11 @@ class SearchHistoryDataSource {
   }
 
   Future<void> clearAllSearchHistory(String userId) async {
+    logFirebaseAccess(
+      file: 'search_history_data_source.dart',
+      service: 'Firestore(users/$userId/searchHistory)',
+      purpose: '최근 검색어 전체 삭제',
+    );
     final snapshot = await _firestore
         .collection('users')
         .doc(userId)

@@ -2,42 +2,51 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:vybe/data/models/search_history_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/data/models/search_history_model.dart';
 import 'package:vybe/presentation/search/viewmodels/search_viewmodel.dart';
+import 'package:vybe/presentation/search/widgets/hashtag_chip.dart';
+import 'package:vybe/presentation/search/widgets/keyword_chip.dart';
+import 'package:vybe/presentation/search/widgets/search_bar.dart';
+import 'package:vybe/presentation/search/widgets/search_suggestion_item.dart';
+import 'package:vybe/presentation/search/widgets/trend_row.dart';
+
+// ── 검색어 자동완성 더미 데이터 ──
+const _suggestionKeywords = [
+  '홍대',
+  '홍대 클럽 레이저',
+  '홍대 클럽',
+  '힙합',
+  '힙합클럽',
+  '헌포',
+  '건대',
+  '강남',
+  '강남 클럽',
+  '무료입장',
+  'EDM',
+  '레이저',
+  '레이저 클럽',
+  '버뮤다',
+  '인클',
+  '동성로',
+];
 
 // ── 인기 해시태그 더미 데이터 ──
 const _popularHashtags = ['힙합', '무료입장', 'EDM', '홍대'];
 
 // ── 인기 검색어 더미 데이터 ──
-enum _TrendStatus { up, down, newEntry, same }
-
-class _TrendItem {
-  final int rank;
-  final String keyword;
-  final _TrendStatus status;
-  final int? change;
-  const _TrendItem({
-    required this.rank,
-    required this.keyword,
-    required this.status,
-    this.change,
-  });
-}
-
 const _trendItems = [
-  _TrendItem(rank: 1, keyword: '홍대', status: _TrendStatus.up, change: 3),
-  _TrendItem(rank: 2, keyword: '건대', status: _TrendStatus.newEntry),
-  _TrendItem(rank: 3, keyword: '강남', status: _TrendStatus.down, change: 2),
-  _TrendItem(rank: 4, keyword: '힙합클럽', status: _TrendStatus.newEntry),
-  _TrendItem(rank: 5, keyword: '무료입장', status: _TrendStatus.newEntry),
-  _TrendItem(rank: 6, keyword: 'EDM', status: _TrendStatus.up, change: 3),
-  _TrendItem(rank: 7, keyword: '동성로 핫플', status: _TrendStatus.newEntry),
-  _TrendItem(rank: 8, keyword: '레드', status: _TrendStatus.down, change: 2),
-  _TrendItem(rank: 9, keyword: '헌포', status: _TrendStatus.same),
-  _TrendItem(rank: 10, keyword: '힙합', status: _TrendStatus.same),
+  TrendItem(rank: 1, keyword: '홍대', status: TrendStatus.up, change: 3),
+  TrendItem(rank: 2, keyword: '건대', status: TrendStatus.newEntry),
+  TrendItem(rank: 3, keyword: '강남', status: TrendStatus.down, change: 2),
+  TrendItem(rank: 4, keyword: '힙합클럽', status: TrendStatus.newEntry),
+  TrendItem(rank: 5, keyword: '무료입장', status: TrendStatus.newEntry),
+  TrendItem(rank: 6, keyword: 'EDM', status: TrendStatus.up, change: 3),
+  TrendItem(rank: 7, keyword: '동성로 핫플', status: TrendStatus.newEntry),
+  TrendItem(rank: 8, keyword: '레드', status: TrendStatus.down, change: 2),
+  TrendItem(rank: 9, keyword: '헌포', status: TrendStatus.same),
+  TrendItem(rank: 10, keyword: '힙합', status: TrendStatus.same),
 ];
 
 class SearchScreen extends ConsumerStatefulWidget {
@@ -48,72 +57,90 @@ class SearchScreen extends ConsumerStatefulWidget {
 }
 
 class _SearchScreenState extends ConsumerState<SearchScreen> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+  String _query = '';
+
   String? get _uid => FirebaseAuth.instance.currentUser?.uid;
 
   @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+    _focusNode = FocusNode();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  List<String> get _filteredSuggestions {
+    if (_query.isEmpty) return [];
+    final lower = _query.toLowerCase();
+    return _suggestionKeywords
+        .where((k) => k.toLowerCase().startsWith(lower))
+        .toList();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final uid = _uid;
+    final AsyncValue<List<SearchHistoryModel>>? historyAsync =
+        uid != null ? ref.watch(searchHistoryProvider(uid)) : null;
+
     return Scaffold(
       backgroundColor: VybeColors.background,
       body: SafeArea(
         bottom: false,
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildSearchBar(),
-              Padding(
-                padding: EdgeInsets.fromLTRB(24.w, 24.h, 24.w, 0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildRecentKeywords(),
-                    SizedBox(height: 44.h),
-                    _buildPopularHashtags(),
-                    SizedBox(height: 44.h),
-                    _buildTrendingSearches(),
-                    SizedBox(height: 32.h),
-                  ],
-                ),
-              ),
-            ],
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SearchInputBar(
+              controller: _controller,
+              focusNode: _focusNode,
+              onChanged: (value) => setState(() => _query = value),
+              onSubmitted: (_) {},
+            ),
+            Expanded(
+              child: _query.isNotEmpty
+                  ? _buildSuggestionList()
+                  : _buildDefaultContent(historyAsync),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  // ── 검색바 ──
+  Widget _buildSuggestionList() {
+    final suggestions = _filteredSuggestions;
+    if (suggestions.isEmpty) return const SizedBox.shrink();
+    return ListView.builder(
+      padding: EdgeInsets.zero,
+      itemCount: suggestions.length,
+      itemBuilder: (_, i) => SearchSuggestionItem(
+        keyword: suggestions[i],
+        query: _query,
+      ),
+    );
+  }
 
-  Widget _buildSearchBar() {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 10.h),
-      child: Container(
-        height: 44.h,
-        decoration: BoxDecoration(
-          color: VybeColors.gray800,
-          borderRadius: BorderRadius.circular(999.r),
-        ),
-        padding: EdgeInsets.symmetric(horizontal: 16.w),
-        child: Row(
+  Widget _buildDefaultContent(AsyncValue<List<SearchHistoryModel>>? historyAsync) {
+    return SingleChildScrollView(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(24.w, 24.h, 24.w, 0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: TextField(
-                style: VybeTypography.body4.copyWith(color: VybeColors.gray200),
-                decoration: InputDecoration(
-                  hintText: '클럽, 지역, 장르 검색',
-                  hintStyle: VybeTypography.body4
-                      .copyWith(color: VybeColors.gray600),
-                  border: InputBorder.none,
-                  isDense: true,
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ),
-            ),
-            SvgPicture.asset(
-              'assets/icons/search_screen/search.svg',
-              width: 18.r,
-              height: 18.r,
-            ),
+            _buildRecentKeywords(historyAsync),
+            SizedBox(height: 44.h),
+            _buildPopularHashtags(),
+            SizedBox(height: 44.h),
+            _buildTrendingSearches(),
+            SizedBox(height: 32.h),
           ],
         ),
       ),
@@ -122,13 +149,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   // ── 최근 검색어 ──
 
-  Widget _buildRecentKeywords() {
+  Widget _buildRecentKeywords(AsyncValue<List<SearchHistoryModel>>? historyAsync) {
     final uid = _uid;
 
-    // 로그인 안 된 경우 섹션 숨김
-    if (uid == null) return const SizedBox.shrink();
-
-    final historyAsync = ref.watch(searchHistoryProvider(uid));
+    if (uid == null || historyAsync == null) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -183,7 +207,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               spacing: 8.w,
               runSpacing: 8.h,
               children: list
-                  .map((item) => _KeywordChip(
+                  .map((item) => KeywordChip(
                         item: item,
                         onDelete: () => ref
                             .read(searchViewModelProvider.notifier)
@@ -211,8 +235,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         Wrap(
           spacing: 8.w,
           runSpacing: 8.h,
-          children:
-              _popularHashtags.map((tag) => _HashtagChip(label: tag)).toList(),
+          children: _popularHashtags
+              .map((tag) => HashtagChip(label: tag))
+              .toList(),
         ),
       ],
     );
@@ -237,8 +262,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             ),
             Text(
               '05.18 20:00 기준',
-              style:
-                  VybeTypography.caption.copyWith(color: VybeColors.gray200),
+              style: VybeTypography.caption
+                  .copyWith(color: VybeColors.gray200),
             ),
           ],
         ),
@@ -251,9 +276,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 children: List.generate(
                   left.length,
                   (i) => Padding(
-                    padding:
-                        EdgeInsets.only(bottom: i < left.length - 1 ? 16.h : 0),
-                    child: _TrendRow(item: left[i]),
+                    padding: EdgeInsets.only(
+                        bottom: i < left.length - 1 ? 16.h : 0),
+                    child: TrendRow(item: left[i]),
                   ),
                 ),
               ),
@@ -266,7 +291,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   (i) => Padding(
                     padding: EdgeInsets.only(
                         bottom: i < right.length - 1 ? 16.h : 0),
-                    child: _TrendRow(item: right[i]),
+                    child: TrendRow(item: right[i]),
                   ),
                 ),
               ),
@@ -275,164 +300,5 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         ),
       ],
     );
-  }
-}
-
-// ── 최근 검색어 칩 ──
-
-class _KeywordChip extends StatelessWidget {
-  final SearchHistoryModel item;
-  final VoidCallback onDelete;
-  const _KeywordChip({required this.item, required this.onDelete});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 24.h,
-      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-      decoration: BoxDecoration(
-        color: VybeColors.gray900,
-        borderRadius: BorderRadius.circular(999.r),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            item.keyword,
-            style: VybeTypography.body4.copyWith(color: VybeColors.gray400),
-          ),
-          SizedBox(width: 8.w),
-          GestureDetector(
-            onTap: onDelete,
-            child: SvgPicture.asset(
-              'assets/icons/search_screen/delete_search_history.svg',
-              width: 9.r,
-              height: 9.r,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── 해시태그 칩 ──
-
-class _HashtagChip extends StatelessWidget {
-  final String label;
-  const _HashtagChip({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 24.h,
-      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-      decoration: BoxDecoration(
-        color: VybeColors.gray900,
-        borderRadius: BorderRadius.circular(999.r),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            '# ',
-            style:
-                VybeTypography.body4.copyWith(color: VybeColors.mainLime500),
-          ),
-          Text(
-            label,
-            style: VybeTypography.body4.copyWith(color: VybeColors.gray400),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── 인기 검색어 행 ──
-
-class _TrendRow extends StatelessWidget {
-  final _TrendItem item;
-  const _TrendRow({required this.item});
-
-  @override
-  Widget build(BuildContext context) {
-    final rankColor =
-        item.rank <= 2 ? VybeColors.mainLime700 : VybeColors.gray200;
-
-    return Row(
-      children: [
-        SizedBox(
-          width: 18.w,
-          child: Text(
-            '${item.rank}',
-            style: TextStyle(
-              fontFamily: 'Pretendard',
-              fontWeight: FontWeight.w600,
-              fontSize: 16.sp,
-              height: 20 / 16,
-              letterSpacing: 16 * -0.025,
-              color: rankColor,
-            ),
-          ),
-        ),
-        SizedBox(width: 8.w),
-        Expanded(
-          child: Text(
-            item.keyword,
-            style: VybeTypography.body3.copyWith(color: VybeColors.gray200),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        _buildStatus(),
-      ],
-    );
-  }
-
-  Widget _buildStatus() {
-    final numStyle = TextStyle(
-      fontFamily: 'Pretendard',
-      fontWeight: FontWeight.w400,
-      fontSize: 12.sp,
-      height: 14 / 12,
-      letterSpacing: 12 * -0.025,
-      color: VybeColors.gray500,
-    );
-
-    switch (item.status) {
-      case _TrendStatus.up:
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SvgPicture.asset(
-              'assets/icons/search_screen/search_rank_up.svg',
-              width: 10.r,
-              height: 10.r,
-            ),
-            SizedBox(width: 4.w),
-            Text('${item.change}', style: numStyle),
-          ],
-        );
-      case _TrendStatus.down:
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SvgPicture.asset(
-              'assets/icons/search_screen/search_rank_down.svg',
-              width: 10.r,
-              height: 10.r,
-            ),
-            SizedBox(width: 4.w),
-            Text('${item.change}', style: numStyle),
-          ],
-        );
-      case _TrendStatus.newEntry:
-        return Text(
-          'N',
-          style: numStyle.copyWith(color: VybeColors.accentRed500),
-        );
-      case _TrendStatus.same:
-        return Text('—', style: numStyle);
-    }
   }
 }
