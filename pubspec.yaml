@@ -88,6 +88,7 @@ flutter:
 
     - assets/icons/bottom_nav/
     - assets/icons/home_screen/
+    - assets/icons/search_screen/
     - assets/icons/home_screen/category_grid/
 
     - assets/images/home_screen/
