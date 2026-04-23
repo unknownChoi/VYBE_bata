@@ -1,5 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:vybe/data/datasources/review_data_source.dart';
+import 'package:vybe/data/datasources/remote/firebase_review_datasource.dart';
 import 'package:vybe/data/models/review_model.dart';
 import 'package:vybe/domain/repositories/review_repository.dart';
 
@@ -7,10 +7,10 @@ part 'review_repository_impl.g.dart';
 
 @riverpod
 ReviewRepository reviewRepository(Ref ref) =>
-    ReviewRepositoryImpl(ReviewDataSource());
+    ReviewRepositoryImpl(FirebaseReviewDataSource());
 
 class ReviewRepositoryImpl implements ReviewRepository {
-  final ReviewDataSource _dataSource;
+  final FirebaseReviewDataSource _dataSource;
 
   ReviewRepositoryImpl(this._dataSource);
 

@@ -39,9 +39,23 @@ View (Widget) → ViewModel (Notifier) → Repository → DataSource (Firebase)
 ```
 ├── lib/
 │   ├── design_system/   # 색상, 타이포그래피, 간격
-│   ├── core/            # 상수, 테마, 유틸, 라우터
-│   ├── data/            # datasources, models, repositories
-│   ├── domain/          # entities, repository 인터페이스
+│   ├── core/
+│   │   ├── providers/   # 전역 Riverpod providers (auth_providers.dart 등)
+│   │   ├── theme/       # 앱 테마
+│   │   └── utils/       # 유틸리티 (firebase_logger.dart 등)
+│   ├── data/
+│   │   ├── datasources/
+│   │   │   └── remote/  # Firebase 전담 datasource (Firebase 코드는 여기에만)
+│   │   │       ├── firebase_auth_datasource.dart
+│   │   │       ├── firebase_user_datasource.dart
+│   │   │       ├── firebase_storage_datasource.dart
+│   │   │       ├── firebase_club_datasource.dart
+│   │   │       ├── firebase_search_history_datasource.dart
+│   │   │       ├── firebase_review_datasource.dart
+│   │   │       └── firebase_favorite_datasource.dart
+│   │   ├── models/      # Freezed 모델
+│   │   └── repositories/# domain 인터페이스 구현체
+│   ├── domain/          # entities, repository 인터페이스 (Firebase 의존 금지)
 │   ├── presentation/
 │   │   ├── common/widgets/  # 공통 위젯 (Vybe prefix)
 │   │   ├── clubs/
@@ -348,9 +362,59 @@ if (isNewUser) { /* 본인인증 화면 */ } else { /* 홈 화면 */ }
 
 ---
 
+### Firebase 아키텍처 규칙
+
+#### 레이어별 Firebase 허용 범위
+
+| 레이어 | Firebase import | 설명 |
+|--------|----------------|------|
+| `presentation/` | ❌ 절대 금지 | Firebase SDK 직접 접근 불가 |
+| `domain/` | ❌ 절대 금지 | 순수 Dart 인터페이스만 |
+| `data/repositories/` | ❌ 금지 | datasource 타입 참조만 허용 |
+| `data/datasources/remote/` | ✅ 허용 | Firebase 코드는 오직 여기에만 |
+
+#### 파일 구조 규칙
+- 모든 Firebase datasource 파일은 `data/datasources/remote/` 안에 위치
+- 파일명 패턴: `firebase_{domain}_datasource.dart`
+- 클래스명 패턴: `Firebase{Domain}DataSource`
+
+#### 새 Firebase 기능 추가 시 작업 순서
+```
+1. data/datasources/remote/firebase_{domain}_datasource.dart 에 메서드 추가
+2. domain/repositories/{domain}_repository.dart 에 인터페이스 추가
+3. data/repositories/{domain}_repository_impl.dart 에 구현체 추가
+4. presentation에서는 repositoryProvider 또는 viewModelProvider만 참조
+```
+
+#### 현재 로그인 uid 접근 방법
+presentation 레이어에서 현재 사용자 uid가 필요할 때는 반드시 `currentUidProvider` 사용:
+```dart
+// ✅ 올바른 방법
+import 'package:vybe/core/providers/auth_providers.dart';
+final uid = ref.watch(currentUidProvider); // String? (null = 비로그인)
+
+// ❌ 절대 금지
+import 'package:firebase_auth/firebase_auth.dart';
+FirebaseAuth.instance.currentUser?.uid
+```
+
+#### Firebase 접근 로깅 규칙
+모든 datasource 메서드에서 Firebase 호출 전 반드시 `logFirebaseAccess()` 호출:
+```dart
+import 'package:vybe/core/utils/firebase_logger.dart';
+
+logFirebaseAccess(
+  file: 'firebase_{domain}_datasource.dart',
+  service: 'Firestore(컬렉션/경로)',
+  purpose: '데이터 사용 목적 설명',
+);
+```
+
+---
+
 ### Firestore 컬렉션 구조
 
-Firebase 관련 코드는 반드시 `data/datasources/` 에만 작성할 것.
+Firebase 관련 코드는 반드시 `data/datasources/remote/` 에만 작성할 것.
 
 #### users/{uid}
 ```
@@ -511,7 +575,9 @@ users/{uid}/profile.jpg                // 프로필 이미지 (덮어쓰기)
 
 - 이 프로젝트는 **1인 개인 프로젝트**로, 단순하고 명확한 코드를 선호함
 - 새 기능 추가 시 항상 **MVVM 레이어 분리**를 유지할 것
-- Firebase 관련 코드는 반드시 `data/datasources/`에만 작성할 것
+- Firebase 관련 코드는 반드시 `data/datasources/remote/`에만 작성할 것 (presentation/domain 레이어 Firebase import 절대 금지)
+- presentation에서 현재 uid가 필요하면 반드시 `currentUidProvider` 사용 (`FirebaseAuth.instance` 직접 접근 금지)
+- 새 datasource 메서드 작성 시 반드시 `logFirebaseAccess()` 호출할 것
 - UI 코드에서 `ref.read` / `ref.watch` 외의 비즈니스 로직 금지
 - `build_runner` 코드 생성이 필요한 파일 수정 시 반드시 안내할 것
 - UI 구현 시 **Figma MCP를 통해 디자인을 먼저 확인**한 후 코드 작성할 것

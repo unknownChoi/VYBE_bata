@@ -1,12 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:vybe/core/utils/firebase_logger.dart';
 import 'package:vybe/data/models/favorite_model.dart';
 
-class FavoriteDataSource {
+class FirebaseFavoriteDataSource {
   final FirebaseFirestore _firestore;
 
-  FavoriteDataSource() : _firestore = FirebaseFirestore.instance;
+  FirebaseFavoriteDataSource() : _firestore = FirebaseFirestore.instance;
 
   Stream<List<FavoriteModel>> watchUserFavorites(String userId) {
+    logFirebaseAccess(
+      file: 'firebase_favorite_datasource.dart',
+      service: 'Firestore(favorites) [Stream, where userId=$userId]',
+      purpose: '사용자 찜 목록 실시간 구독',
+    );
     return _firestore
         .collection('favorites')
         .where('userId', isEqualTo: userId)
@@ -16,6 +22,11 @@ class FavoriteDataSource {
   }
 
   Future<bool> isFavorite(String userId, String clubId) async {
+    logFirebaseAccess(
+      file: 'firebase_favorite_datasource.dart',
+      service: 'Firestore(favorites) [where userId=$userId, clubId=$clubId]',
+      purpose: '찜 여부 확인',
+    );
     final snapshot = await _firestore
         .collection('favorites')
         .where('userId', isEqualTo: userId)
@@ -26,6 +37,11 @@ class FavoriteDataSource {
   }
 
   Future<void> addFavorite(String userId, String clubId) async {
+    logFirebaseAccess(
+      file: 'firebase_favorite_datasource.dart',
+      service: 'Firestore(favorites)',
+      purpose: '찜 추가 (userId=$userId, clubId=$clubId)',
+    );
     await _firestore.collection('favorites').add({
       'userId': userId,
       'clubId': clubId,
@@ -34,6 +50,11 @@ class FavoriteDataSource {
   }
 
   Future<void> removeFavorite(String userId, String clubId) async {
+    logFirebaseAccess(
+      file: 'firebase_favorite_datasource.dart',
+      service: 'Firestore(favorites) [where userId=$userId, clubId=$clubId]',
+      purpose: '찜 삭제',
+    );
     final snapshot = await _firestore
         .collection('favorites')
         .where('userId', isEqualTo: userId)

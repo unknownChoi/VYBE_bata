@@ -1,13 +1,12 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:vybe/data/repositories/auth_repository_impl.dart';
 import 'package:vybe/data/repositories/user_repository_impl.dart';
 
 part 'auth_viewmodel.g.dart';
 
-/// 현재 Firebase Auth 상태 스트림
+/// 로그인 상태 스트림 (null = 비로그인, non-null = uid)
 @riverpod
-Stream<User?> authState(Ref ref) {
+Stream<String?> authState(Ref ref) {
   return ref.watch(authRepositoryProvider).authStateChanges;
 }
 
@@ -25,7 +24,6 @@ class AuthViewModel extends _$AuthViewModel {
       final repo = ref.read(authRepositoryProvider);
       final (:customToken, :isNewUser) = await repo.kakaoLogin(accessToken);
       if (isNewUser) {
-        // 본인인증 완료 후 signIn — 지금은 토큰만 저장
         _pendingCustomToken = customToken;
       } else {
         await repo.signInWithCustomToken(customToken);
@@ -62,7 +60,7 @@ class AuthViewModel extends _$AuthViewModel {
     required String phone,
     required String birthDate,
   }) async {
-    final uid = ref.read(authRepositoryProvider).currentUser?.uid;
+    final uid = ref.read(authRepositoryProvider).currentUid;
     if (uid == null) return;
 
     final provider = uid.startsWith('kakao:') ? 'kakao' : 'naver';

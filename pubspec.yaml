@@ -92,6 +92,7 @@ flutter:
     - assets/icons/home_screen/category_grid/
 
     - assets/images/home_screen/
+    - assets/images/search_screen/
 
     - assets/videos/
 

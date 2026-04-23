@@ -1,5 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:vybe/data/datasources/club_data_source.dart';
+import 'package:vybe/data/datasources/remote/firebase_club_datasource.dart';
 import 'package:vybe/data/models/club_info_model.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/data/models/menu_model.dart';
@@ -9,10 +9,10 @@ part 'club_repository_impl.g.dart';
 
 @riverpod
 ClubRepository clubRepository(Ref ref) =>
-    ClubRepositoryImpl(ClubDataSource());
+    ClubRepositoryImpl(FirebaseClubDataSource());
 
 class ClubRepositoryImpl implements ClubRepository {
-  final ClubDataSource _dataSource;
+  final FirebaseClubDataSource _dataSource;
 
   ClubRepositoryImpl(this._dataSource);
 

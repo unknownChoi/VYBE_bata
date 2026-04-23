@@ -1,5 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:vybe/data/datasources/favorite_data_source.dart';
+import 'package:vybe/data/datasources/remote/firebase_favorite_datasource.dart';
 import 'package:vybe/data/models/favorite_model.dart';
 import 'package:vybe/domain/repositories/favorite_repository.dart';
 
@@ -7,10 +7,10 @@ part 'favorite_repository_impl.g.dart';
 
 @riverpod
 FavoriteRepository favoriteRepository(Ref ref) =>
-    FavoriteRepositoryImpl(FavoriteDataSource());
+    FavoriteRepositoryImpl(FirebaseFavoriteDataSource());
 
 class FavoriteRepositoryImpl implements FavoriteRepository {
-  final FavoriteDataSource _dataSource;
+  final FirebaseFavoriteDataSource _dataSource;
 
   FavoriteRepositoryImpl(this._dataSource);
 

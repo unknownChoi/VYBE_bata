@@ -1,14 +1,20 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:vybe/core/utils/firebase_logger.dart';
 import 'package:vybe/data/models/club_info_model.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/data/models/menu_model.dart';
 
-class ClubDataSource {
+class FirebaseClubDataSource {
   final FirebaseFirestore _firestore;
 
-  ClubDataSource() : _firestore = FirebaseFirestore.instance;
+  FirebaseClubDataSource() : _firestore = FirebaseFirestore.instance;
 
   Future<List<ClubModel>> getActiveClubs() async {
+    logFirebaseAccess(
+      file: 'firebase_club_datasource.dart',
+      service: 'Firestore(clubs) [where isActive=true]',
+      purpose: '활성 클럽 목록 조회',
+    );
     final snapshot = await _firestore
         .collection('clubs')
         .where('isActive', isEqualTo: true)
@@ -17,6 +23,11 @@ class ClubDataSource {
   }
 
   Stream<List<ClubModel>> watchActiveClubs() {
+    logFirebaseAccess(
+      file: 'firebase_club_datasource.dart',
+      service: 'Firestore(clubs) [Stream, where isActive=true]',
+      purpose: '활성 클럽 목록 실시간 구독',
+    );
     return _firestore
         .collection('clubs')
         .where('isActive', isEqualTo: true)
@@ -25,12 +36,22 @@ class ClubDataSource {
   }
 
   Future<ClubModel?> getClub(String clubId) async {
+    logFirebaseAccess(
+      file: 'firebase_club_datasource.dart',
+      service: 'Firestore(clubs/$clubId)',
+      purpose: '클럽 상세 정보 조회',
+    );
     final doc = await _firestore.collection('clubs').doc(clubId).get();
     if (!doc.exists) return null;
     return ClubModel.fromFirestore(doc);
   }
 
   Future<ClubInfoModel?> getClubInfo(String clubId) async {
+    logFirebaseAccess(
+      file: 'firebase_club_datasource.dart',
+      service: 'Firestore(clubs/$clubId/info/$clubId)',
+      purpose: '클럽 운영 정보 조회',
+    );
     final doc = await _firestore
         .collection('clubs')
         .doc(clubId)
@@ -42,6 +63,11 @@ class ClubDataSource {
   }
 
   Future<List<MenuModel>> getMenus(String clubId) async {
+    logFirebaseAccess(
+      file: 'firebase_club_datasource.dart',
+      service: 'Firestore(clubs/$clubId/menus) [where isAvailable=true]',
+      purpose: '클럽 메뉴 목록 조회',
+    );
     final snapshot = await _firestore
         .collection('clubs')
         .doc(clubId)
@@ -52,6 +78,11 @@ class ClubDataSource {
   }
 
   Future<List<ClubModel>> searchClubs(String keyword) async {
+    logFirebaseAccess(
+      file: 'firebase_club_datasource.dart',
+      service: 'Firestore(clubs) [where isActive=true]',
+      purpose: '클럽 검색 (keyword: $keyword)',
+    );
     final snapshot = await _firestore
         .collection('clubs')
         .where('isActive', isEqualTo: true)

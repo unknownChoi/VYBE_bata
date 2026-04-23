@@ -8,6 +8,21 @@ import 'package:vybe/presentation/nearby/nearby_screen.dart';
 import 'package:vybe/presentation/pass_wallet/pass_wallet_screen.dart';
 import 'package:vybe/presentation/search/search_screen.dart';
 
+/// 검색 탭 전용 중첩 Navigator.
+/// 검색 → 검색결과 전환이 탭 영역 안에서만 발생해 바텀 nav가 유지됨.
+class _SearchNavigator extends StatelessWidget {
+  const _SearchNavigator();
+
+  @override
+  Widget build(BuildContext context) {
+    return Navigator(
+      onGenerateRoute: (_) => MaterialPageRoute(
+        builder: (_) => const SearchScreen(),
+      ),
+    );
+  }
+}
+
 class MainScaffold extends StatefulWidget {
   const MainScaffold({super.key});
 
@@ -17,16 +32,24 @@ class MainScaffold extends StatefulWidget {
 
 class _MainScaffoldState extends State<MainScaffold> {
   int _currentIndex = 0;
+  final Set<int> _visitedTabs = {0};
   late final List<Widget> _screens;
+
+  void _goToTab(int index) {
+    setState(() {
+      _currentIndex = index;
+      _visitedTabs.add(index);
+    });
+  }
 
   @override
   void initState() {
     super.initState();
     _screens = [
-      HomeScreen(onSearchTap: () => setState(() => _currentIndex = 3)),
+      HomeScreen(onSearchTap: () => _goToTab(3)),
       const NearbyScreen(),
       const PassWalletScreen(),
-      const SearchScreen(),
+      const _SearchNavigator(),
       const MyPageScreen(),
     ];
   }
@@ -45,11 +68,14 @@ class _MainScaffoldState extends State<MainScaffold> {
       backgroundColor: VybeColors.background,
       body: IndexedStack(
         index: _currentIndex,
-        children: _screens,
+        children: List.generate(
+          _screens.length,
+          (i) => _visitedTabs.contains(i) ? _screens[i] : const SizedBox.shrink(),
+        ),
       ),
       bottomNavigationBar: _BottomNavBar(
         currentIndex: _currentIndex,
-        onTap: (i) => setState(() => _currentIndex = i),
+        onTap: _goToTab,
         items: _navItems,
       ),
     );

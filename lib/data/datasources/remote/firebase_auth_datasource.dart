@@ -2,12 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-class AuthDataSource {
+class FirebaseAuthDataSource {
   final FirebaseAuth _auth;
   final FirebaseFirestore _firestore;
   final FirebaseFunctions _functions;
 
-  AuthDataSource()
+  FirebaseAuthDataSource()
       : _auth = FirebaseAuth.instance,
         _firestore = FirebaseFirestore.instance,
         _functions = FirebaseFunctions.instance;
@@ -35,8 +35,8 @@ class AuthDataSource {
     );
   }
 
-  Future<UserCredential> signInWithCustomToken(String customToken) {
-    return _auth.signInWithCustomToken(customToken);
+  Future<void> signInWithCustomToken(String customToken) async {
+    await _auth.signInWithCustomToken(customToken);
   }
 
   Future<bool> userExists(String uid) async {

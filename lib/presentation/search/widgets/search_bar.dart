@@ -49,10 +49,17 @@ class SearchInputBar extends StatelessWidget {
                 ),
               ),
             ),
-            SvgPicture.asset(
-              'assets/icons/search_screen/search.svg',
-              width: 18.r,
-              height: 18.r,
+            GestureDetector(
+              onTap: () {
+                final query = controller?.text ?? '';
+                onSubmitted?.call(query);
+              },
+              behavior: HitTestBehavior.opaque,
+              child: SvgPicture.asset(
+                'assets/icons/search_screen/search.svg',
+                width: 18.r,
+                height: 18.r,
+              ),
             ),
           ],
         ),

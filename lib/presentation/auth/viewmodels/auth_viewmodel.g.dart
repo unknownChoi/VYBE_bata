@@ -8,17 +8,17 @@ part of 'auth_viewmodel.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// 현재 Firebase Auth 상태 스트림
+/// 로그인 상태 스트림 (null = 비로그인, non-null = uid)
 
 @ProviderFor(authState)
 final authStateProvider = AuthStateProvider._();
 
-/// 현재 Firebase Auth 상태 스트림
+/// 로그인 상태 스트림 (null = 비로그인, non-null = uid)
 
 final class AuthStateProvider
-    extends $FunctionalProvider<AsyncValue<User?>, User?, Stream<User?>>
-    with $FutureModifier<User?>, $StreamProvider<User?> {
-  /// 현재 Firebase Auth 상태 스트림
+    extends $FunctionalProvider<AsyncValue<String?>, String?, Stream<String?>>
+    with $FutureModifier<String?>, $StreamProvider<String?> {
+  /// 로그인 상태 스트림 (null = 비로그인, non-null = uid)
   AuthStateProvider._()
     : super(
         from: null,
@@ -35,16 +35,16 @@ final class AuthStateProvider
 
   @$internal
   @override
-  $StreamProviderElement<User?> $createElement($ProviderPointer pointer) =>
+  $StreamProviderElement<String?> $createElement($ProviderPointer pointer) =>
       $StreamProviderElement(pointer);
 
   @override
-  Stream<User?> create(Ref ref) {
+  Stream<String?> create(Ref ref) {
     return authState(ref);
   }
 }
 
-String _$authStateHash() => r'c88cb36d6c93a5c7df685b2918f2d0f0710965a0';
+String _$authStateHash() => r'3aa16daa73577df74caf22fdb773f48fb082345f';
 
 /// 로그인 액션 ViewModel
 
@@ -82,7 +82,7 @@ final class AuthViewModelProvider
   }
 }
 
-String _$authViewModelHash() => r'd425632bd5298c4b5043ff53fc8278474bd559ac';
+String _$authViewModelHash() => r'3a2ff6439ffabd1331932f8af1430ccb0ccbb5d5';
 
 /// 로그인 액션 ViewModel
 

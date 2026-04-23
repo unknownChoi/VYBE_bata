@@ -1,12 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:vybe/core/utils/firebase_logger.dart';
 import 'package:vybe/data/models/review_model.dart';
 
-class ReviewDataSource {
+class FirebaseReviewDataSource {
   final FirebaseFirestore _firestore;
 
-  ReviewDataSource() : _firestore = FirebaseFirestore.instance;
+  FirebaseReviewDataSource() : _firestore = FirebaseFirestore.instance;
 
   Future<List<ReviewModel>> getReviews(String clubId) async {
+    logFirebaseAccess(
+      file: 'firebase_review_datasource.dart',
+      service: 'Firestore(clubs/$clubId/reviews)',
+      purpose: '클럽 리뷰 목록 조회',
+    );
     final snapshot = await _firestore
         .collection('clubs')
         .doc(clubId)
@@ -17,6 +23,11 @@ class ReviewDataSource {
   }
 
   Stream<List<ReviewModel>> watchReviews(String clubId) {
+    logFirebaseAccess(
+      file: 'firebase_review_datasource.dart',
+      service: 'Firestore(clubs/$clubId/reviews) [Stream]',
+      purpose: '클럽 리뷰 실시간 구독',
+    );
     return _firestore
         .collection('clubs')
         .doc(clubId)
@@ -27,6 +38,11 @@ class ReviewDataSource {
   }
 
   Future<void> createReview(String clubId, ReviewModel review) async {
+    logFirebaseAccess(
+      file: 'firebase_review_datasource.dart',
+      service: 'Firestore(clubs/$clubId/reviews)',
+      purpose: '리뷰 작성',
+    );
     await _firestore
         .collection('clubs')
         .doc(clubId)
@@ -36,6 +52,11 @@ class ReviewDataSource {
 
   Future<void> updateReview(
       String clubId, String reviewId, ReviewModel review) async {
+    logFirebaseAccess(
+      file: 'firebase_review_datasource.dart',
+      service: 'Firestore(clubs/$clubId/reviews/$reviewId)',
+      purpose: '리뷰 수정',
+    );
     await _firestore
         .collection('clubs')
         .doc(clubId)
@@ -50,6 +71,11 @@ class ReviewDataSource {
   }
 
   Future<void> deleteReview(String clubId, String reviewId) async {
+    logFirebaseAccess(
+      file: 'firebase_review_datasource.dart',
+      service: 'Firestore(clubs/$clubId/reviews/$reviewId)',
+      purpose: '리뷰 삭제',
+    );
     await _firestore
         .collection('clubs')
         .doc(clubId)

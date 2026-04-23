@@ -55,4 +55,4 @@ final class SearchHistoryRepositoryProvider
 }
 
 String _$searchHistoryRepositoryHash() =>
-    r'2db9d74b82b63a05631e51fb6567fde43a45d846';
+    r'313807a9ac36a4067c24497b21c687e46492bafc';

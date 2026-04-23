@@ -1,23 +1,24 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:vybe/data/datasources/auth_data_source.dart';
+import 'package:vybe/data/datasources/remote/firebase_auth_datasource.dart';
 import 'package:vybe/domain/repositories/auth_repository.dart';
 
 part 'auth_repository_impl.g.dart';
 
 @riverpod
-AuthRepository authRepository(Ref ref) => AuthRepositoryImpl(AuthDataSource());
+AuthRepository authRepository(Ref ref) =>
+    AuthRepositoryImpl(FirebaseAuthDataSource());
 
 class AuthRepositoryImpl implements AuthRepository {
-  final AuthDataSource _dataSource;
+  final FirebaseAuthDataSource _dataSource;
 
   AuthRepositoryImpl(this._dataSource);
 
   @override
-  Stream<User?> get authStateChanges => _dataSource.authStateChanges;
+  Stream<String?> get authStateChanges =>
+      _dataSource.authStateChanges.map((user) => user?.uid);
 
   @override
-  User? get currentUser => _dataSource.currentUser;
+  String? get currentUid => _dataSource.currentUser?.uid;
 
   @override
   Future<({String customToken, bool isNewUser})> kakaoLogin(
@@ -30,7 +31,7 @@ class AuthRepositoryImpl implements AuthRepository {
       _dataSource.naverLogin(accessToken);
 
   @override
-  Future<UserCredential> signInWithCustomToken(String customToken) =>
+  Future<void> signInWithCustomToken(String customToken) =>
       _dataSource.signInWithCustomToken(customToken);
 
   @override

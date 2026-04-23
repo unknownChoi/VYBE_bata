@@ -1,10 +1,11 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vybe/core/providers/auth_providers.dart';
+import 'package:vybe/presentation/search/search_result_screen.dart';
+import 'package:vybe/data/models/search_history_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
-import 'package:vybe/data/models/search_history_model.dart';
 import 'package:vybe/presentation/search/viewmodels/search_viewmodel.dart';
 import 'package:vybe/presentation/search/widgets/hashtag_chip.dart';
 import 'package:vybe/presentation/search/widgets/keyword_chip.dart';
@@ -61,8 +62,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   late final FocusNode _focusNode;
   String _query = '';
 
-  String? get _uid => FirebaseAuth.instance.currentUser?.uid;
-
   @override
   void initState() {
     super.initState();
@@ -87,7 +86,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final uid = _uid;
+    final uid = ref.watch(currentUidProvider);
     final AsyncValue<List<SearchHistoryModel>>? historyAsync =
         uid != null ? ref.watch(searchHistoryProvider(uid)) : null;
 
@@ -102,7 +101,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               controller: _controller,
               focusNode: _focusNode,
               onChanged: (value) => setState(() => _query = value),
-              onSubmitted: (_) {},
+              onSubmitted: _navigateToResult,
             ),
             Expanded(
               child: _query.isNotEmpty
@@ -111,6 +110,15 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _navigateToResult(String query) {
+    if (query.trim().isEmpty) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SearchResultScreen(query: query),
       ),
     );
   }
@@ -124,6 +132,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       itemBuilder: (_, i) => SearchSuggestionItem(
         keyword: suggestions[i],
         query: _query,
+        onTap: () => _navigateToResult(suggestions[i]),
       ),
     );
   }
@@ -150,7 +159,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   // ── 최근 검색어 ──
 
   Widget _buildRecentKeywords(AsyncValue<List<SearchHistoryModel>>? historyAsync) {
-    final uid = _uid;
+    final uid = ref.read(currentUidProvider);
 
     if (uid == null || historyAsync == null) return const SizedBox.shrink();
 

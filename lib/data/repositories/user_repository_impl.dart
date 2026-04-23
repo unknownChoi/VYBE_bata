@@ -1,29 +1,34 @@
 import 'dart:io';
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:vybe/data/datasources/user_data_source.dart';
+import 'package:vybe/data/datasources/remote/firebase_storage_datasource.dart';
+import 'package:vybe/data/datasources/remote/firebase_user_datasource.dart';
 import 'package:vybe/data/models/user_model.dart';
 import 'package:vybe/domain/repositories/user_repository.dart';
 
 part 'user_repository_impl.g.dart';
 
 @riverpod
-UserRepository userRepository(Ref ref) => UserRepositoryImpl(UserDataSource());
+UserRepository userRepository(Ref ref) => UserRepositoryImpl(
+      FirebaseUserDataSource(),
+      FirebaseStorageDataSource(),
+    );
 
 class UserRepositoryImpl implements UserRepository {
-  final UserDataSource _dataSource;
+  final FirebaseUserDataSource _userDataSource;
+  final FirebaseStorageDataSource _storageDataSource;
 
-  UserRepositoryImpl(this._dataSource);
-
-  @override
-  Future<UserModel?> getUser(String uid) => _dataSource.getUser(uid);
+  UserRepositoryImpl(this._userDataSource, this._storageDataSource);
 
   @override
-  Stream<UserModel?> watchUser(String uid) => _dataSource.watchUser(uid);
+  Future<UserModel?> getUser(String uid) => _userDataSource.getUser(uid);
+
+  @override
+  Stream<UserModel?> watchUser(String uid) => _userDataSource.watchUser(uid);
 
   @override
   Future<void> updateUser(String uid, Map<String, dynamic> data) =>
-      _dataSource.updateUser(uid, data);
+      _userDataSource.updateUser(uid, data);
 
   @override
   Future<void> setUserProfile({
@@ -33,7 +38,7 @@ class UserRepositoryImpl implements UserRepository {
     required String birthDate,
     required String provider,
   }) =>
-      _dataSource.setUserProfile(
+      _userDataSource.setUserProfile(
         uid: uid,
         name: name,
         phone: phone,
@@ -43,9 +48,9 @@ class UserRepositoryImpl implements UserRepository {
 
   @override
   Future<bool> isPhoneDuplicate(String phone) =>
-      _dataSource.isPhoneDuplicate(phone);
+      _userDataSource.isPhoneDuplicate(phone);
 
   @override
   Future<String> uploadProfileImage(String uid, File imageFile) =>
-      _dataSource.uploadProfileImage(uid, imageFile);
+      _storageDataSource.uploadProfileImage(uid, imageFile);
 }

@@ -1,5 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:vybe/data/datasources/search_history_data_source.dart';
+import 'package:vybe/data/datasources/remote/firebase_search_history_datasource.dart';
 import 'package:vybe/data/models/search_history_model.dart';
 import 'package:vybe/domain/repositories/search_history_repository.dart';
 
@@ -7,10 +7,10 @@ part 'search_history_repository_impl.g.dart';
 
 @riverpod
 SearchHistoryRepository searchHistoryRepository(Ref ref) =>
-    SearchHistoryRepositoryImpl(SearchHistoryDataSource());
+    SearchHistoryRepositoryImpl(FirebaseSearchHistoryDataSource());
 
 class SearchHistoryRepositoryImpl implements SearchHistoryRepository {
-  final SearchHistoryDataSource _dataSource;
+  final FirebaseSearchHistoryDataSource _dataSource;
 
   SearchHistoryRepositoryImpl(this._dataSource);
 
