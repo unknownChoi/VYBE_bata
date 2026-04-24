@@ -98,27 +98,35 @@ mixin _CertificationNumberHandlerMixin on ConsumerState<CertificationNumberScree
     if (_controller.text == _correctCode) {
       final vm = ref.read(authViewModelProvider.notifier);
 
-      final isDuplicate = await vm.checkPhoneDuplicate(widget.phoneNumber);
-      if (!mounted) return;
-      if (isDuplicate) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('이미 존재하는 계정입니다.')),
-        );
-        return;
-      }
+      try {
+        final isDuplicate = await vm.checkPhoneDuplicate(widget.phoneNumber);
+        if (!mounted) return;
+        if (isDuplicate) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('이미 존재하는 계정입니다.')),
+          );
+          return;
+        }
 
-      await vm.finalizeLogin();
-      if (!mounted) return;
-      await vm.saveUserProfile(
-        name: widget.name,
-        phone: widget.phoneNumber,
-        birthDate: widget.birthDate,
-      );
-      if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const SignupSuccessScreen()),
-        (route) => false,
-      );
+        await vm.finalizeLogin();
+        if (!mounted) return;
+
+        await vm.saveUserProfile(
+          name: widget.name,
+          phone: widget.phoneNumber,
+          birthDate: widget.birthDate,
+        );
+        if (!mounted) return;
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const SignupSuccessScreen()),
+          (route) => false,
+        );
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('오류가 발생했습니다: $e')),
+        );
+      }
     } else {
       setState(() => _status = _CertStatus.error);
     }

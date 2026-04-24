@@ -97,21 +97,14 @@ class FirebaseAuthDataSource {
     await callable.call();
   }
 
-  Future<bool> appleLogin({
-    required String identityToken,
-    required String rawNonce,
-  }) async {
+  Future<String> signInAnonymously() async {
     logFirebaseAccess(
       file: 'firebase_auth_datasource.dart',
-      service: 'Auth(signInWithCredential - apple)',
-      purpose: 'Apple 자격증명으로 Firebase 로그인',
+      service: 'Auth(signInAnonymously)',
+      purpose: '본인인증 로그인 경로 — 새 Firebase 세션 생성',
     );
-    final credential = OAuthProvider('apple.com').credential(
-      idToken: identityToken,
-      rawNonce: rawNonce,
-    );
-    final userCredential = await _auth.signInWithCredential(credential);
-    return userCredential.additionalUserInfo?.isNewUser ?? false;
+    final credential = await _auth.signInAnonymously();
+    return credential.user!.uid;
   }
 
   Future<void> signOut() async {

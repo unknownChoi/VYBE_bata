@@ -7,11 +7,8 @@
 //
 // Figma node: (welcome screen)
 
-import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
 
-import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_naver_login/flutter_naver_login.dart';
@@ -20,7 +17,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
-import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/auth/identity_verification/identity_verification_screen.dart';
@@ -99,63 +95,6 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
       final log = '${DateTime.now()}\n$e\n$st\n\n';
       File('/Users/justinchoi/Desktop/업무/소스코드/vybe_bata/kakao_error.txt')
           .writeAsStringSync(log, mode: FileMode.append);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
-    } finally {
-      if (mounted) setState(() => _loadingButton = null);
-    }
-  }
-
-  String _generateNonce([int length = 32]) {
-    const charset =
-        '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
-    final random = Random.secure();
-    return List.generate(length, (_) => charset[random.nextInt(charset.length)])
-        .join();
-  }
-
-  String _sha256ofString(String input) {
-    final bytes = utf8.encode(input);
-    final digest = sha256.convert(bytes);
-    return digest.toString();
-  }
-
-  Future<void> _onAppleLogin() async {
-    if (_loadingButton != null) return;
-    setState(() => _loadingButton = 'apple');
-    try {
-      final rawNonce = _generateNonce();
-      final nonce = _sha256ofString(rawNonce);
-
-      final appleCredential = await SignInWithApple.getAppleIDCredential(
-        scopes: [
-          AppleIDAuthorizationScopes.email,
-          AppleIDAuthorizationScopes.fullName,
-        ],
-        nonce: nonce,
-      );
-
-      final identityToken = appleCredential.identityToken;
-      if (identityToken == null) return;
-
-      final isNewUser = await ref
-          .read(authViewModelProvider.notifier)
-          .appleLogin(identityToken: identityToken, rawNonce: rawNonce);
-
-      if (!mounted) return;
-
-      if (isNewUser) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (_) => const IdentityVerificationScreen()),
-        );
-      } else {
-        await _navigateHome();
-      }
-    } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString())),
@@ -313,7 +252,9 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                   labelColor: const Color(0xFF101013),
                   isLoading: _loadingButton == 'apple',
                   disabled: _loadingButton != null,
-                  onTap: _onAppleLogin,
+                  onTap: () {
+                    // TODO: Apple 로그인 연동
+                  },
                 ),
                 SizedBox(height: 24.h),
                 GestureDetector(

@@ -45,8 +45,6 @@ dependencies:
 
   # 소셜 로그인
   kakao_flutter_sdk_user: ^1.9.0
-  sign_in_with_apple: ^6.1.4
-  crypto: ^3.0.5
 
   # 환경변수
   flutter_dotenv: ^5.2.1

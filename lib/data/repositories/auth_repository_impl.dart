@@ -31,13 +31,6 @@ class AuthRepositoryImpl implements AuthRepository {
       _dataSource.naverLogin(accessToken);
 
   @override
-  Future<bool> appleLogin({
-    required String identityToken,
-    required String rawNonce,
-  }) =>
-      _dataSource.appleLogin(identityToken: identityToken, rawNonce: rawNonce);
-
-  @override
   Future<void> signInWithCustomToken(String customToken) =>
       _dataSource.signInWithCustomToken(customToken);
 
@@ -51,6 +44,9 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<bool> verifyIdentity(String impUid) =>
       _dataSource.verifyIdentity(impUid);
+
+  @override
+  Future<String> signInAnonymously() => _dataSource.signInAnonymously();
 
   @override
   Future<void> deleteUser() => _dataSource.deleteUser();

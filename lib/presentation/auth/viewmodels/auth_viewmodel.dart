@@ -54,24 +54,6 @@ class AuthViewModel extends _$AuthViewModel {
     }
   }
 
-  Future<bool> appleLogin({
-    required String identityToken,
-    required String rawNonce,
-  }) async {
-    state = const AsyncLoading();
-    try {
-      final isNewUser = await ref.read(authRepositoryProvider).appleLogin(
-            identityToken: identityToken,
-            rawNonce: rawNonce,
-          );
-      state = const AsyncData(null);
-      return isNewUser;
-    } catch (e, st) {
-      state = AsyncError(e, st);
-      rethrow;
-    }
-  }
-
   /// 본인인증 완료 후 Firestore에 사용자 프로필 저장
   Future<void> saveUserProfile({
     required String name,
@@ -101,15 +83,25 @@ class AuthViewModel extends _$AuthViewModel {
   Future<bool> checkPhoneDuplicate(String phone) =>
       ref.read(authRepositoryProvider).checkPhoneDuplicate(phone);
 
-  /// 본인인증 완료 후 실제 Firebase 로그인 처리
-  Future<void> finalizeLogin() async {
+  /// 본인인증 완료 후 실제 Firebase 로그인 처리.
+  /// - 카카오/네이버: pendingCustomToken으로 signInWithCustomToken 실행
+  /// - 본인인증 직접 경로: 기존 세션 sign out → 익명 로그인으로 새 uid 생성
+  /// 반환값: 항상 true (실패 시 throw)
+  Future<bool> finalizeLogin() async {
     final token = _pendingCustomToken;
-    if (token == null) return;
     state = const AsyncLoading();
     try {
-      await ref.read(authRepositoryProvider).signInWithCustomToken(token);
-      _pendingCustomToken = null;
+      if (token != null) {
+        await ref.read(authRepositoryProvider).signInWithCustomToken(token);
+        _pendingCustomToken = null;
+      } else {
+        // 소셜 로그인 없이 본인인증으로 직접 가입하는 경로
+        // 기존 세션이 남아있을 수 있으므로 먼저 sign out
+        await ref.read(authRepositoryProvider).signOut();
+        await ref.read(authRepositoryProvider).signInAnonymously();
+      }
       state = const AsyncData(null);
+      return true;
     } catch (e, st) {
       state = AsyncError(e, st);
       rethrow;
@@ -127,6 +119,10 @@ class AuthViewModel extends _$AuthViewModel {
       error: AsyncError.new,
     );
     return result.asData?.value ?? false;
+  }
+
+  Future<void> signInAnonymously() async {
+    await ref.read(authRepositoryProvider).signInAnonymously();
   }
 
   Future<void> signOut() async {
