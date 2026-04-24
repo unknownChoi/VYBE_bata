@@ -55,13 +55,14 @@ class FirebaseUserDataSource {
       service: 'Firestore(users/$uid)',
       purpose: '본인인증 완료 후 사용자 프로필 저장',
     );
-    // uid, provider, createdAt은 onUserCreated Cloud Function이 이미 설정한 보호 필드
-    // 보안 규칙이 해당 필드 수정을 차단하므로 제외
     await _firestore.collection('users').doc(uid).set({
+      'uid': uid,
+      'provider': provider,
       'name': name,
       'phone': phone,
       'birthDate': birthDate,
       'isVerified': true,
+      'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }

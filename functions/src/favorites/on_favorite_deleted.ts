@@ -1,20 +1,19 @@
-import * as functions from "firebase-functions";
+import { firestore, logger } from "firebase-functions/v1";
 import * as admin from "firebase-admin";
 
-export const onFavoriteDeleted = functions.firestore
+export const onFavoriteDeleted = firestore
   .document("favorites/{favoriteId}")
   .onDelete(async (snapshot) => {
     const data = snapshot.data();
     const clubId: string = data?.clubId;
 
     if (!clubId) {
-      functions.logger.error("onFavoriteDeleted: clubId missing", data);
+      logger.error("onFavoriteDeleted: clubId missing", data);
       return;
     }
 
     const clubRef = admin.firestore().collection("clubs").doc(clubId);
 
-    // 0 미만으로 내려가지 않도록 트랜잭션으로 처리
     await admin.firestore().runTransaction(async (tx) => {
       const clubSnap = await tx.get(clubRef);
       if (!clubSnap.exists) return;
@@ -25,5 +24,5 @@ export const onFavoriteDeleted = functions.firestore
       });
     });
 
-    functions.logger.info(`favoriteCount -1 for club: ${clubId}`);
+    logger.info(`favoriteCount -1 for club: ${clubId}`);
   });

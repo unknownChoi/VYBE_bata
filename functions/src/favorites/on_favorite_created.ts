@@ -1,14 +1,14 @@
-import * as functions from "firebase-functions";
+import { firestore, logger } from "firebase-functions/v1";
 import * as admin from "firebase-admin";
 
-export const onFavoriteCreated = functions.firestore
+export const onFavoriteCreated = firestore
   .document("favorites/{favoriteId}")
   .onCreate(async (snapshot) => {
     const data = snapshot.data();
     const clubId: string = data?.clubId;
 
     if (!clubId) {
-      functions.logger.error("onFavoriteCreated: clubId missing", data);
+      logger.error("onFavoriteCreated: clubId missing", data);
       return;
     }
 
@@ -16,5 +16,5 @@ export const onFavoriteCreated = functions.firestore
       favoriteCount: admin.firestore.FieldValue.increment(1),
     });
 
-    functions.logger.info(`favoriteCount +1 for club: ${clubId}`);
+    logger.info(`favoriteCount +1 for club: ${clubId}`);
   });

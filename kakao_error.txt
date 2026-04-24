@@ -24,3 +24,33 @@ PlatformException(CANCELED, User canceled login., The operation couldn’t be co
 <asynchronous suspension>
 
 
+2026-04-24 17:09:44.268686
+[firebase_functions/unknown] There is no user record corresponding to this identifier. The user may have been deleted.
+
+#0      CloudFunctionsHostApi.call (package:cloud_functions_platform_interface/src/pigeon/messages.pigeon.dart:84:7)
+<asynchronous suspension>
+#1      MethodChannelHttpsCallable.call (package:cloud_functions_platform_interface/src/method_channel/method_channel_https_callable.dart:33:24)
+<asynchronous suspension>
+#2      HttpsCallable.call (package:cloud_functions/src/https_callable.dart:49:37)
+<asynchronous suspension>
+#3      FirebaseAuthDataSource.kakaoLogin (package:vybe/data/datasources/remote/firebase_auth_datasource.dart:27:20)
+<asynchronous suspension>
+#4      AuthViewModel.kakaoLogin (package:vybe/presentation/auth/viewmodels/auth_viewmodel.dart:27:42)
+<asynchronous suspension>
+#5      _WelcomeScreenState._onKakaoLogin (package:vybe/presentation/auth/welcome/welcome_screen.dart:79:25)
+<asynchronous suspension>
+
+#0      CloudFunctionsHostApi.call (package:cloud_functions_platform_interface/src/pigeon/messages.pigeon.dart:84:7)
+<asynchronous suspension>
+#1      MethodChannelHttpsCallable.call (package:cloud_functions_platform_interface/src/method_channel/method_channel_https_callable.dart:33:24)
+<asynchronous suspension>
+#2      HttpsCallable.call (package:cloud_functions/src/https_callable.dart:49:37)
+<asynchronous suspension>
+#3      FirebaseAuthDataSource.kakaoLogin (package:vybe/data/datasources/remote/firebase_auth_datasource.dart:27:20)
+<asynchronous suspension>
+#4      AuthViewModel.kakaoLogin (package:vybe/presentation/auth/viewmodels/auth_viewmodel.dart:27:42)
+<asynchronous suspension>
+#5      _WelcomeScreenState._onKakaoLogin (package:vybe/presentation/auth/welcome/welcome_screen.dart:79:25)
+<asynchronous suspension>
+
+

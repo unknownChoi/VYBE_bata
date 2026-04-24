@@ -1,18 +1,17 @@
-import * as functions from "firebase-functions";
+import { https, logger } from "firebase-functions/v1";
 import * as admin from "firebase-admin";
 import axios from "axios";
 
-export const naverLogin = functions.https.onCall(async (data) => {
+export const naverLogin = https.onCall(async (data) => {
   const accessToken: string | undefined = data?.accessToken;
 
   if (!accessToken) {
-    throw new functions.https.HttpsError(
+    throw new https.HttpsError(
       "invalid-argument",
       "accessToken이 필요합니다."
     );
   }
 
-  // 네이버 유저 정보 조회
   let naverId: string;
   try {
     const response = await axios.get("https://openapi.naver.com/v1/nid/me", {
@@ -21,19 +20,19 @@ export const naverLogin = functions.https.onCall(async (data) => {
     naverId = response.data?.response?.id;
   } catch (e: unknown) {
     if (axios.isAxiosError(e) && e.response?.status === 401) {
-      throw new functions.https.HttpsError(
+      throw new https.HttpsError(
         "unauthenticated",
         "토큰 만료: 다시 로그인해주세요."
       );
     }
-    throw new functions.https.HttpsError(
+    throw new https.HttpsError(
       "internal",
       "네이버 API 호출에 실패했습니다."
     );
   }
 
   if (!naverId) {
-    throw new functions.https.HttpsError(
+    throw new https.HttpsError(
       "internal",
       "네이버 ID를 가져올 수 없습니다."
     );
@@ -41,7 +40,6 @@ export const naverLogin = functions.https.onCall(async (data) => {
 
   const uid = `naver:${naverId}`;
 
-  // 신규/기존 유저 판단 — Firebase Auth 기준
   let isNewUser = false;
   try {
     await admin.auth().getUser(uid);
@@ -49,12 +47,11 @@ export const naverLogin = functions.https.onCall(async (data) => {
     isNewUser = true;
   }
 
-  // Custom Token 발급 (provider 정보를 customClaims로 전달)
   const customToken = await admin.auth().createCustomToken(uid, {
     provider: "naver",
   });
 
-  functions.logger.info(`naverLogin: uid=${uid}, isNewUser=${isNewUser}`);
+  logger.info(`naverLogin: uid=${uid}, isNewUser=${isNewUser}`);
 
   return {customToken, isNewUser};
 });

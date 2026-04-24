@@ -1,11 +1,11 @@
-import * as functions from "firebase-functions";
+import { https, logger } from "firebase-functions/v1";
 import * as admin from "firebase-admin";
 
-export const phoneLogin = functions.https.onCall(async (data) => {
+export const phoneLogin = https.onCall(async (data) => {
   const phone: string | undefined = data?.phone;
 
   if (!phone) {
-    throw new functions.https.HttpsError(
+    throw new https.HttpsError(
       "invalid-argument",
       "phone이 필요합니다."
     );
@@ -24,7 +24,7 @@ export const phoneLogin = functions.https.onCall(async (data) => {
     provider: "identity",
   });
 
-  functions.logger.info(`phoneLogin: uid=${uid}, isNewUser=${isNewUser}`);
+  logger.info(`phoneLogin: uid=${uid}, isNewUser=${isNewUser}`);
 
   return {customToken, isNewUser};
 });

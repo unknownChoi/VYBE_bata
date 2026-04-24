@@ -1,11 +1,11 @@
-import * as functions from "firebase-functions";
+import { https } from "firebase-functions/v1";
 import * as admin from "firebase-admin";
 
-export const checkPhoneDuplicate = functions.https.onCall(async (data) => {
+export const checkPhoneDuplicate = https.onCall(async (data) => {
   const phone: string | undefined = data?.phone;
 
   if (!phone) {
-    throw new functions.https.HttpsError(
+    throw new https.HttpsError(
       "invalid-argument",
       "phone이 필요합니다."
     );

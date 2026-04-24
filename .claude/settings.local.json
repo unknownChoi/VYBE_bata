@@ -7,7 +7,17 @@
       "Bash(flutter pub *)",
       "Bash(xcodebuild -workspace /Users/justinchoi/Desktop/업무/소스코드/vybe_bata/ios/Runner.xcworkspace -scheme Runner -configuration Debug -sdk iphonesimulator build)",
       "mcp__plugin_firebase_firebase__storage_get_object_download_url",
-      "mcp__plugin_firebase_firebase__firestore_add_document"
+      "mcp__plugin_firebase_firebase__firestore_add_document",
+      "Bash(npm run *)",
+      "Bash(gcloud builds *)",
+      "Bash(gcloud auth list *)",
+      "Bash(firebase login:list *)",
+      "Bash(python3 -c ' *)",
+      "Bash(npm install *)",
+      "Bash(firebase functions:log)",
+      "Bash(npm --version)",
+      "Bash(firebase functions:log --limit 10)",
+      "mcp__plugin_firebase_firebase__functions_get_logs"
     ]
   },
   "disabledMcpjsonServers": [
