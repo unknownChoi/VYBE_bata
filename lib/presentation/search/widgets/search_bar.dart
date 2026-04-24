@@ -56,7 +56,7 @@ class SearchInputBar extends StatelessWidget {
               },
               behavior: HitTestBehavior.opaque,
               child: SvgPicture.asset(
-                'assets/icons/search_screen/search.svg',
+                'assets/icons/common/search.svg',
                 width: 18.r,
                 height: 18.r,
               ),

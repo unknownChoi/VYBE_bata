@@ -68,7 +68,7 @@ class _FilterChipBarState extends State<FilterChipBar> {
             ),
             SizedBox(width: 4.w),
             SvgPicture.asset(
-              'assets/icons/search_screen/add_content_arrow_down.svg',
+              'assets/icons/common/add_content_arrow_down.svg',
               width: 12.r,
               height: 12.r,
             ),
@@ -93,7 +93,7 @@ class _FilterChipBarState extends State<FilterChipBar> {
             ),
             SizedBox(width: 4.w),
             SvgPicture.asset(
-              'assets/icons/search_screen/filter.svg',
+              'assets/icons/common/filter.svg',
               width: 12.r,
               height: 12.r,
             ),

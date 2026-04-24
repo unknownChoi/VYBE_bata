@@ -21,6 +21,7 @@ mixin _IdentityVerificationHandlerMixin on ConsumerState<IdentityVerificationScr
   set _carrier(String? value);
   String get _prevBirthFront;
   set _prevBirthFront(String value);
+  set _isLoading(bool value);
 
   TextEditingController get _nameCtrl;
   TextEditingController get _birthFrontCtrl;
@@ -101,40 +102,46 @@ mixin _IdentityVerificationHandlerMixin on ConsumerState<IdentityVerificationScr
   }
 
   /// 약관 동의 바텀시트 표시
-  Future<void> _showTermsSheet() async {
+  void _showTermsSheet() {
     final phone = _phoneCtrl.text;
-    final isDuplicate = await ref
-        .read(authViewModelProvider.notifier)
-        .checkPhoneDuplicate(phone);
-    if (!mounted) return;
-
-    if (isDuplicate) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('이미 존재하는 계정입니다.')),
-      );
-      return;
-    }
 
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (_) => TermsAgreementSheet(
-        onConfirmed: () {
-          final birthFront = _birthFrontCtrl.text; // YYMMDD
-          final genderCode = _birthBackCtrl.text;  // 1~4
-          final century = (genderCode == '1' || genderCode == '2') ? '19' : '20';
-          final birthDate = '$century$birthFront'; // YYYYMMDD
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => CertificationNumberScreen(
-                phoneNumber: phone,
-                name: _nameCtrl.text,
-                birthDate: birthDate,
+        onConfirmed: () async {
+          setState(() => _isLoading = true);
+          try {
+            final isDuplicate = await ref
+                .read(authViewModelProvider.notifier)
+                .checkPhoneDuplicate(phone);
+            if (!mounted) return;
+
+            if (isDuplicate) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('이미 존재하는 계정입니다.')),
+              );
+              return;
+            }
+
+            final birthFront = _birthFrontCtrl.text; // YYMMDD
+            final genderCode = _birthBackCtrl.text;  // 1~4
+            final century = (genderCode == '1' || genderCode == '2') ? '19' : '20';
+            final birthDate = '$century$birthFront'; // YYYYMMDD
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => CertificationNumberScreen(
+                  phoneNumber: phone,
+                  name: _nameCtrl.text,
+                  birthDate: birthDate,
+                ),
               ),
-            ),
-          );
+            );
+          } finally {
+            if (mounted) setState(() => _isLoading = false);
+          }
         },
       ),
     );

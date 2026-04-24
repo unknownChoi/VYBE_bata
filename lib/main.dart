@@ -40,7 +40,7 @@ class VybeApp extends StatelessWidget {
         theme: AppTheme.dark,
         home: child,
       ),
-      child: const WelcomeScreen(),
+      child: const MainScaffold(),
     );
   }
 }

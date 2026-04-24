@@ -45,7 +45,7 @@ class ResultGnb extends StatelessWidget {
                     ),
                   ),
                   SvgPicture.asset(
-                    'assets/icons/search_screen/search.svg',
+                    'assets/icons/common/search.svg',
                     width: 18.r,
                     height: 18.r,
                   ),

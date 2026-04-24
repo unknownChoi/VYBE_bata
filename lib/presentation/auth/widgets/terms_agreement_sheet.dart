@@ -22,7 +22,7 @@ class _TermsItem {
 ///
 /// Figma node: 2151:7534 / 2151:7542 (전체 동의 완료 상태)
 class TermsAgreementSheet extends StatefulWidget {
-  final VoidCallback? onConfirmed;
+  final Future<void> Function()? onConfirmed;
 
   const TermsAgreementSheet({super.key, this.onConfirmed});
 
@@ -197,6 +197,7 @@ class _TermsAgreementSheetState extends State<TermsAgreementSheet> {
                       }
                     : null,
               ),
+
             ],
           ),
     );

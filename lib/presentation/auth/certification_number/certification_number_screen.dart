@@ -19,6 +19,7 @@ import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/auth/signup_success/signup_success_screen.dart';
 import 'package:vybe/presentation/auth/viewmodels/auth_viewmodel.dart';
 import 'package:vybe/presentation/auth/widgets/otp_cell.dart';
+import 'package:vybe/presentation/common/widgets/vybe_loading_overlay.dart';
 
 part 'certification_number_logic.dart';
 part 'certification_number_handler.dart';
@@ -70,6 +71,8 @@ class _CertificationNumberScreenState extends ConsumerState<CertificationNumberS
   Timer? _timer;
   @override
   bool _isResending = false;
+  @override
+  bool _isLoading = false;
 
   // ────────────────────────────────────────────
   // Lifecycle
@@ -102,7 +105,9 @@ class _CertificationNumberScreenState extends ConsumerState<CertificationNumberS
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return VybeLoadingOverlay(
+      isLoading: _isLoading,
+      child: Scaffold(
       backgroundColor: VybeColors.background,
       appBar: AppBar(
         backgroundColor: VybeColors.background,
@@ -248,6 +253,7 @@ class _CertificationNumberScreenState extends ConsumerState<CertificationNumberS
             ),
           ],
         ),
+      ),
       ),
     );
   }

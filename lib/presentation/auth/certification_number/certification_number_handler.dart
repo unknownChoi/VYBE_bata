@@ -24,6 +24,7 @@ mixin _CertificationNumberHandlerMixin on ConsumerState<CertificationNumberScree
   set _timer(Timer? value);
   bool get _isResending;
   set _isResending(bool value);
+  set _isLoading(bool value);
 
   // ── 의존 computed (LogicMixin 제공) ──
   bool get _canConfirm;
@@ -96,6 +97,7 @@ mixin _CertificationNumberHandlerMixin on ConsumerState<CertificationNumberScree
   Future<void> _onConfirm() async {
     if (!_canConfirm) return;
     if (_controller.text == _correctCode) {
+      setState(() => _isLoading = true);
       final vm = ref.read(authViewModelProvider.notifier);
 
       try {
@@ -133,6 +135,8 @@ mixin _CertificationNumberHandlerMixin on ConsumerState<CertificationNumberScree
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('오류가 발생했습니다: $e')),
         );
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
       }
     } else {
       setState(() => _status = _CertStatus.error);

@@ -23,6 +23,7 @@ import 'package:vybe/presentation/auth/widgets/fade_slide_in.dart';
 import 'package:vybe/presentation/auth/widgets/phone_formatter.dart';
 import 'package:vybe/presentation/auth/widgets/terms_agreement_sheet.dart';
 import 'package:vybe/presentation/common/widgets/vybe_button.dart';
+import 'package:vybe/presentation/common/widgets/vybe_loading_overlay.dart';
 import 'package:vybe/presentation/common/widgets/vybe_page_title.dart';
 import 'package:vybe/presentation/common/widgets/vybe_status_message.dart';
 import 'package:vybe/presentation/common/widgets/vybe_text_field.dart';
@@ -90,6 +91,9 @@ class _IdentityVerificationScreenState extends ConsumerState<IdentityVerificatio
   @override
   String _prevBirthFront = '';
 
+  @override
+  bool _isLoading = false;
+
   // ────────────────────────────────────────────
   // Lifecycle
   // ────────────────────────────────────────────
@@ -132,7 +136,9 @@ class _IdentityVerificationScreenState extends ConsumerState<IdentityVerificatio
     // - 숨김: default (borderRadius 있음, 좌우 패딩 포함)
     final keyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
 
-    return Scaffold(
+    return VybeLoadingOverlay(
+      isLoading: _isLoading,
+      child: Scaffold(
       backgroundColor: VybeColors.background,
       appBar: AppBar(
         backgroundColor: VybeColors.background,
@@ -240,6 +246,7 @@ class _IdentityVerificationScreenState extends ConsumerState<IdentityVerificatio
               ),
             ),
         ],
+      ),
       ),
     );
   }
