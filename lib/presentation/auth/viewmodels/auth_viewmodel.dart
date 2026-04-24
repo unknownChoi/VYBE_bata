@@ -15,6 +15,8 @@ Stream<String?> authState(Ref ref) {
 class AuthViewModel extends _$AuthViewModel {
   String? _pendingCustomToken;
 
+  bool get hasPendingToken => _pendingCustomToken != null;
+
   @override
   AsyncValue<void> build() => const AsyncData(null);
 
@@ -28,6 +30,20 @@ class AuthViewModel extends _$AuthViewModel {
       } else {
         await repo.signInWithCustomToken(customToken);
       }
+      state = const AsyncData(null);
+      return isNewUser;
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
+  }
+
+  Future<bool> phoneLogin(String phone) async {
+    state = const AsyncLoading();
+    try {
+      final repo = ref.read(authRepositoryProvider);
+      final (:customToken, :isNewUser) = await repo.phoneLogin(phone);
+      _pendingCustomToken = customToken;
       state = const AsyncData(null);
       return isNewUser;
     } catch (e, st) {
@@ -87,21 +103,14 @@ class AuthViewModel extends _$AuthViewModel {
   /// - 카카오/네이버: pendingCustomToken으로 signInWithCustomToken 실행
   /// - 본인인증 직접 경로: 기존 세션 sign out → 익명 로그인으로 새 uid 생성
   /// 반환값: 항상 true (실패 시 throw)
-  Future<bool> finalizeLogin() async {
+  Future<void> finalizeLogin() async {
     final token = _pendingCustomToken;
+    if (token == null) return;
     state = const AsyncLoading();
     try {
-      if (token != null) {
-        await ref.read(authRepositoryProvider).signInWithCustomToken(token);
-        _pendingCustomToken = null;
-      } else {
-        // 소셜 로그인 없이 본인인증으로 직접 가입하는 경로
-        // 기존 세션이 남아있을 수 있으므로 먼저 sign out
-        await ref.read(authRepositoryProvider).signOut();
-        await ref.read(authRepositoryProvider).signInAnonymously();
-      }
+      await ref.read(authRepositoryProvider).signInWithCustomToken(token);
+      _pendingCustomToken = null;
       state = const AsyncData(null);
-      return true;
     } catch (e, st) {
       state = AsyncError(e, st);
       rethrow;
@@ -119,10 +128,6 @@ class AuthViewModel extends _$AuthViewModel {
       error: AsyncError.new,
     );
     return result.asData?.value ?? false;
-  }
-
-  Future<void> signInAnonymously() async {
-    await ref.read(authRepositoryProvider).signInAnonymously();
   }
 
   Future<void> signOut() async {

@@ -108,6 +108,13 @@ mixin _CertificationNumberHandlerMixin on ConsumerState<CertificationNumberScree
           return;
         }
 
+        // 본인인증 직접 경로: pending token 없음 → phone 기반 Custom Token 발급
+        // 소셜 로그인 경로: pending token 이미 있으므로 스킵
+        if (!vm.hasPendingToken) {
+          await vm.phoneLogin(widget.phoneNumber);
+          if (!mounted) return;
+        }
+
         await vm.finalizeLogin();
         if (!mounted) return;
 

@@ -15,6 +15,7 @@ export const onUserCreated = functions.auth.user().onCreate(async (user) => {
 
   const provider = user.uid.startsWith("kakao:") ? "kakao"
     : user.uid.startsWith("naver:") ? "naver"
+    : user.uid.startsWith("phone:") ? "identity"
     : "apple";
 
   // merge: true — setUserProfile이 먼저 실행돼 문서가 존재해도 누락 필드만 채움

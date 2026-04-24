@@ -46,7 +46,8 @@ class AuthRepositoryImpl implements AuthRepository {
       _dataSource.verifyIdentity(impUid);
 
   @override
-  Future<String> signInAnonymously() => _dataSource.signInAnonymously();
+  Future<({String customToken, bool isNewUser})> phoneLogin(String phone) =>
+      _dataSource.phoneLogin(phone);
 
   @override
   Future<void> deleteUser() => _dataSource.deleteUser();

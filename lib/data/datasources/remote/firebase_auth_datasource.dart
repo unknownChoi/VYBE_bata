@@ -97,14 +97,18 @@ class FirebaseAuthDataSource {
     await callable.call();
   }
 
-  Future<String> signInAnonymously() async {
+  Future<({String customToken, bool isNewUser})> phoneLogin(String phone) async {
     logFirebaseAccess(
       file: 'firebase_auth_datasource.dart',
-      service: 'Auth(signInAnonymously)',
-      purpose: '본인인증 로그인 경로 — 새 Firebase 세션 생성',
+      service: 'Functions(phoneLogin)',
+      purpose: '전화번호 기반 Custom Token 발급',
     );
-    final credential = await _auth.signInAnonymously();
-    return credential.user!.uid;
+    final callable = _functions.httpsCallable('phoneLogin');
+    final result = await callable.call({'phone': phone});
+    return (
+      customToken: result.data['customToken'] as String,
+      isNewUser: result.data['isNewUser'] as bool,
+    );
   }
 
   Future<void> signOut() async {
