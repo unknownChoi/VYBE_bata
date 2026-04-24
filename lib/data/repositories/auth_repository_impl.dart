@@ -31,6 +31,13 @@ class AuthRepositoryImpl implements AuthRepository {
       _dataSource.naverLogin(accessToken);
 
   @override
+  Future<bool> appleLogin({
+    required String identityToken,
+    required String rawNonce,
+  }) =>
+      _dataSource.appleLogin(identityToken: identityToken, rawNonce: rawNonce);
+
+  @override
   Future<void> signInWithCustomToken(String customToken) =>
       _dataSource.signInWithCustomToken(customToken);
 

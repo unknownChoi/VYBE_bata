@@ -54,6 +54,24 @@ class AuthViewModel extends _$AuthViewModel {
     }
   }
 
+  Future<bool> appleLogin({
+    required String identityToken,
+    required String rawNonce,
+  }) async {
+    state = const AsyncLoading();
+    try {
+      final isNewUser = await ref.read(authRepositoryProvider).appleLogin(
+            identityToken: identityToken,
+            rawNonce: rawNonce,
+          );
+      state = const AsyncData(null);
+      return isNewUser;
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
+  }
+
   /// 본인인증 완료 후 Firestore에 사용자 프로필 저장
   Future<void> saveUserProfile({
     required String name,
@@ -63,7 +81,14 @@ class AuthViewModel extends _$AuthViewModel {
     final uid = ref.read(authRepositoryProvider).currentUid;
     if (uid == null) return;
 
-    final provider = uid.startsWith('kakao:') ? 'kakao' : 'naver';
+    final String provider;
+    if (uid.startsWith('kakao:')) {
+      provider = 'kakao';
+    } else if (uid.startsWith('naver:')) {
+      provider = 'naver';
+    } else {
+      provider = 'apple';
+    }
     await ref.read(userRepositoryProvider).setUserProfile(
           uid: uid,
           name: name,

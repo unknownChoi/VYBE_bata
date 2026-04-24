@@ -5,7 +5,7 @@ import 'package:vybe/domain/repositories/banner_repository.dart';
 
 part 'banner_repository_impl.g.dart';
 
-@riverpod
+@Riverpod(keepAlive: true)
 BannerRepository bannerRepository(Ref ref) =>
     _BannerRepositoryImpl(FirebaseBannerDataSource());
 

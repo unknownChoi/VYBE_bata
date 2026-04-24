@@ -5,6 +5,7 @@ abstract class AuthRepository {
 
   Future<({String customToken, bool isNewUser})> kakaoLogin(String accessToken);
   Future<({String customToken, bool isNewUser})> naverLogin(String accessToken);
+  Future<bool> appleLogin({required String identityToken, required String rawNonce});
   Future<void> signInWithCustomToken(String customToken);
   Future<bool> userExists(String uid);
   Future<bool> checkPhoneDuplicate(String phone);

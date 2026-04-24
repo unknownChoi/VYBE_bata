@@ -26,7 +26,7 @@ final class BannerRepositoryProvider
         argument: null,
         retry: null,
         name: r'bannerRepositoryProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -53,4 +53,4 @@ final class BannerRepositoryProvider
   }
 }
 
-String _$bannerRepositoryHash() => r'7b8b63e46995f89cfc2f9150c83aecac6003d824';
+String _$bannerRepositoryHash() => r'cb8b121e58ae22c10419534e57508683e0f59170';

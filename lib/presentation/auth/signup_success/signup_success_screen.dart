@@ -204,13 +204,13 @@ class _SignupSuccessScreenState extends ConsumerState<SignupSuccessScreen> {
                 try {
                   final banners = await ref
                       .read(bannerListProvider.future)
-                      .timeout(const Duration(seconds: 5));
+                      .timeout(const Duration(seconds: 6));
                   if (!context.mounted) return;
                   await Future.wait(
                     banners.map((b) async {
                       try {
                         await precacheImage(NetworkImage(b.imageUrl), context)
-                            .timeout(const Duration(seconds: 5));
+                            .timeout(const Duration(seconds: 6));
                       } catch (_) {}
                     }),
                   );
