@@ -5,17 +5,17 @@ import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/search/data/dummy_clubs.dart';
 
-class ClubListItem extends StatelessWidget {
+class ClubNearbyListItem extends StatelessWidget {
   final DummyClub club;
 
-  const ClubListItem({super.key, required this.club});
+  const ClubNearbyListItem({super.key, required this.club});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: VybeColors.gray900, width: 1),
+          bottom: BorderSide(color: VybeColors.gray800, width: 1),
         ),
       ),
       padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 24.h),
@@ -29,7 +29,7 @@ class ClubListItem extends StatelessWidget {
           _buildImage(),
           SizedBox(height: 8.h),
           _buildAddressRow(),
-          SizedBox(height: 8.h),
+          SizedBox(height: 4.h),
           _buildBusinessRow(),
         ],
       ),
@@ -107,11 +107,7 @@ class ClubListItem extends StatelessWidget {
         SizedBox(width: 8.w),
         Text(club.area, style: tagStyle),
         SizedBox(width: 4.w),
-        Container(
-          width: 1,
-          height: 12.h,
-          color: VybeColors.gray700,
-        ),
+        Container(width: 1, height: 12.h, color: VybeColors.gray700),
         SizedBox(width: 4.w),
         Text(club.genre, style: tagStyle),
       ],
@@ -161,20 +157,18 @@ class ClubListItem extends StatelessWidget {
   Widget _buildAddressRow() {
     return Row(
       children: [
-        SizedBox(
-          width: 16.r,
-          child: Center(
-            child: SvgPicture.asset(
-              'assets/icons/common/club_card/location_pin.svg',
-              width: 14.r,
-              height: 14.r,
-            ),
-          ),
+        SvgPicture.asset(
+          'assets/icons/common/club_card/location_pin.svg',
+          width: 14.r,
+          height: 14.r,
         ),
         SizedBox(width: 6.w),
-        Text(
-          club.address,
-          style: VybeTypography.caption.copyWith(color: VybeColors.gray400),
+        Expanded(
+          child: Text(
+            club.address,
+            style: VybeTypography.caption.copyWith(color: VybeColors.gray400),
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
       ],
     );
@@ -186,15 +180,10 @@ class ClubListItem extends StatelessWidget {
 
     return Row(
       children: [
-        SizedBox(
-          width: 16.r,
-          child: Center(
-            child: SvgPicture.asset(
-              'assets/icons/common/club_card/time.svg',
-              width: 13.r,
-              height: 13.r,
-            ),
-          ),
+        SvgPicture.asset(
+          'assets/icons/common/club_card/time.svg',
+          width: 14.r,
+          height: 14.r,
         ),
         SizedBox(width: 6.w),
         Text(club.isOpen ? '영업중' : '영업종료', style: infoStyle),
@@ -217,7 +206,7 @@ class ClubListItem extends StatelessWidget {
           width: 16.r,
           height: 16.r,
         ),
-        SizedBox(width: 8.w),
+        SizedBox(width: 4.w),
         Text(
           '입장료 ${_formatPrice(club.entryFeeMin)} ~ ${_formatPrice(club.entryFeeMax)}원',
           style: infoStyle,
@@ -228,7 +217,6 @@ class ClubListItem extends StatelessWidget {
 
   String _formatPrice(int price) {
     if (price == 0) return '0';
-    if (price < 1000) return price.toString();
     final thousands = price ~/ 1000;
     final remainder = price % 1000;
     return remainder == 0

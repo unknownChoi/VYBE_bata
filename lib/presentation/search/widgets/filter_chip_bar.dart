@@ -5,7 +5,9 @@ import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 
 class FilterChipBar extends StatefulWidget {
-  const FilterChipBar({super.key});
+  final bool hasBackground;
+
+  const FilterChipBar({super.key, this.hasBackground = false});
 
   @override
   State<FilterChipBar> createState() => _FilterChipBarState();
@@ -122,9 +124,13 @@ class _FilterChipBarState extends State<FilterChipBar> {
 
   Widget _chipContainer({required bool isActive, required Widget child}) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 5.h),
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
       decoration: BoxDecoration(
-        color: isActive ? VybeColors.mainPurple700 : Colors.transparent,
+        color: isActive
+            ? VybeColors.mainPurple700
+            : widget.hasBackground
+                ? VybeColors.gray900
+                : Colors.transparent,
         border:
             isActive ? null : Border.all(color: VybeColors.gray700, width: 1),
         borderRadius: BorderRadius.circular(20.r),

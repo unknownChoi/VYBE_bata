@@ -11,16 +11,18 @@ class HomeBanner extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final bannersAsync = ref.watch(bannerListProvider);
+    // TODO: 배너 Firebase 연동 임시 비활성화
+    return const SizedBox.shrink();
 
-    return bannersAsync.when(
-      loading: () => _BannerSkeleton(),
-      error: (_, __) => const SizedBox.shrink(),
-      data: (banners) {
-        if (banners.isEmpty) return const SizedBox.shrink();
-        return _BannerCarousel(banners: banners);
-      },
-    );
+    // final bannersAsync = ref.watch(bannerListProvider);
+    // return bannersAsync.when(
+    //   loading: () => _BannerSkeleton(),
+    //   error: (_, __) => const SizedBox.shrink(),
+    //   data: (banners) {
+    //     if (banners.isEmpty) return const SizedBox.shrink();
+    //     return _BannerCarousel(banners: banners);
+    //   },
+    // );
   }
 }
 

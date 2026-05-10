@@ -44,7 +44,7 @@ class SearchResultScreen extends StatelessWidget {
       child: Row(
         children: [
           SvgPicture.asset(
-            'assets/icons/search_screen/loaction_pin.svg',
+            'assets/icons/common/club_card/location_pin_sm.svg',
             width: 16.r,
             height: 16.r,
           ),

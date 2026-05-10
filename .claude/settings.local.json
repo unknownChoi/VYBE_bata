@@ -17,7 +17,13 @@
       "Bash(firebase functions:log)",
       "Bash(npm --version)",
       "Bash(firebase functions:log --limit 10)",
-      "mcp__plugin_firebase_firebase__functions_get_logs"
+      "mcp__plugin_firebase_firebase__functions_get_logs",
+      "WebFetch(domain:pub.dev)",
+      "Bash(flutter doctor *)",
+      "WebFetch(domain:github.com)",
+      "Bash(pod install *)",
+      "Bash(curl -s -o /tmp/nearby1.png \"https://www.figma.com/api/mcp/asset/15e16e02-9b30-4ff0-aaa9-0d899640942f\")",
+      "Bash(curl -s -o /tmp/nearby2.png \"https://www.figma.com/api/mcp/asset/92b08601-429d-470e-837e-79cab8d47005\")"
     ]
   },
   "disabledMcpjsonServers": [
