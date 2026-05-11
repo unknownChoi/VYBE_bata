@@ -131,8 +131,10 @@ class _FilterChipBarState extends State<FilterChipBar> {
             : widget.hasBackground
                 ? VybeColors.gray900
                 : Colors.transparent,
-        border:
-            isActive ? null : Border.all(color: VybeColors.gray700, width: 1),
+        border: Border.all(
+            color: isActive ? VybeColors.mainPurple700 : VybeColors.gray700,
+            width: 1,
+          ),
         borderRadius: BorderRadius.circular(20.r),
       ),
       child: child,

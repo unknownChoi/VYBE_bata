@@ -34,6 +34,15 @@ class ClubRepositoryImpl implements ClubRepository {
       _dataSource.getMenus(clubId);
 
   @override
+  Future<List<ClubModel>> getClubsByArea(String area) =>
+      _dataSource.getClubsByArea(area);
+
+  @override
+  Future<List<ClubModel>> getClubsNearby(
+          double lat, double lng, double radiusKm) =>
+      _dataSource.getClubsNearby(lat, lng, radiusKm);
+
+  @override
   Future<List<ClubModel>> searchClubs(String keyword) =>
       _dataSource.searchClubs(keyword);
 }

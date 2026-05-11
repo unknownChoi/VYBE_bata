@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:vybe/core/utils/firebase_logger.dart';
+import 'package:vybe/core/utils/geohash_utils.dart';
 import 'package:vybe/data/models/club_info_model.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/data/models/menu_model.dart';
@@ -75,6 +76,48 @@ class FirebaseClubDataSource {
         .where('isAvailable', isEqualTo: true)
         .get();
     return snapshot.docs.map(MenuModel.fromFirestore).toList();
+  }
+
+  Future<List<ClubModel>> getClubsByArea(String area) async {
+    logFirebaseAccess(
+      file: 'firebase_club_datasource.dart',
+      service: 'Firestore(clubs) [where isActive=true, area=$area]',
+      purpose: '지역별 클럽 목록 조회',
+    );
+    final snapshot = await _firestore
+        .collection('clubs')
+        .where('isActive', isEqualTo: true)
+        .where('area', isEqualTo: area)
+        .get();
+    return snapshot.docs.map(ClubModel.fromFirestore).toList();
+  }
+
+  Future<List<ClubModel>> getClubsNearby(
+      double lat, double lng, double radiusKm) async {
+    logFirebaseAccess(
+      file: 'firebase_club_datasource.dart',
+      service: 'Firestore(clubs) [geohash range query, radius: ${radiusKm}km]',
+      purpose: '지도 화면 내 클럽 조회',
+    );
+
+    final precision = GeohashUtils.precisionForRadius(radiusKm);
+    final prefixes = GeohashUtils.neighborPrefixes(lat, lng, precision);
+
+    final snapshots = await Future.wait(
+      prefixes.map((prefix) => _firestore
+          .collection('clubs')
+          .where('location.geohash', isGreaterThanOrEqualTo: prefix)
+          .where('location.geohash', isLessThan: '${prefix}{')
+          .get()),
+    );
+
+    final seen = <String>{};
+    return snapshots
+        .expand((s) => s.docs)
+        .where((doc) => seen.add(doc.id))
+        .map(ClubModel.fromFirestore)
+        .where((c) => c.isActive && c.lat != 0 && c.lng != 0)
+        .toList();
   }
 
   Future<List<ClubModel>> searchClubs(String keyword) async {

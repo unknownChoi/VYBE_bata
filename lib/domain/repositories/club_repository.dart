@@ -8,5 +8,7 @@ abstract class ClubRepository {
   Future<ClubModel?> getClub(String clubId);
   Future<ClubInfoModel?> getClubInfo(String clubId);
   Future<List<MenuModel>> getMenus(String clubId);
+  Future<List<ClubModel>> getClubsByArea(String area);
+  Future<List<ClubModel>> getClubsNearby(double lat, double lng, double radiusKm);
   Future<List<ClubModel>> searchClubs(String keyword);
 }

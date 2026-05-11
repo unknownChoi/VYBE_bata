@@ -38,7 +38,7 @@ abstract class ClubModel with _$ClubModel {
       instagramUrl: data['instagramUrl'] as String? ?? '',
       lat: (location['lat'] as num?)?.toDouble() ?? 0.0,
       lng: (location['lng'] as num?)?.toDouble() ?? 0.0,
-      geohash: data['geohash'] as String? ?? '',
+      geohash: location['geohash'] as String? ?? '',
       imageUrls: List<String>.from(data['imageUrls'] as List? ?? []),
       thumbnailUrl: data['thumbnailUrl'] as String? ?? '',
       tags: List<String>.from(data['tags'] as List? ?? []),
