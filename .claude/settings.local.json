@@ -27,7 +27,10 @@
       "mcp__plugin_firebase_firebase__firestore_list_documents",
       "mcp__plugin_firebase_firebase__firestore_update_document",
       "mcp__plugin_firebase_firebase__firebase_get_environment",
-      "mcp__plugin_firebase_firebase__firestore_query_collection"
+      "mcp__plugin_firebase_firebase__firestore_query_collection",
+      "Read(//Users/justinchoi/Desktop/업무/소스코드//**)",
+      "Read(//Users/justinchoi/Desktop//**)",
+      "mcp__plugin_firebase_firebase__firestore_get_document"
     ]
   },
   "disabledMcpjsonServers": [

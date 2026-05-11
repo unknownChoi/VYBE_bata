@@ -106,7 +106,6 @@ class GeohashUtils {
   }
 
   static int precisionForRadius(double radiusKm) {
-    if (radiusKm <= 0.5) return 7;
     if (radiusKm <= 1.0) return 6;
     if (radiusKm <= 5.0) return 5;
     if (radiusKm <= 40.0) return 4;
