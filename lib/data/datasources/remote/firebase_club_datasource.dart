@@ -106,6 +106,7 @@ class FirebaseClubDataSource {
     final snapshots = await Future.wait(
       prefixes.map((prefix) => _firestore
           .collection('clubs')
+          .where('isActive', isEqualTo: true)
           .where('location.geohash', isGreaterThanOrEqualTo: prefix)
           .where('location.geohash', isLessThan: '${prefix}{')
           .get()),
@@ -116,7 +117,7 @@ class FirebaseClubDataSource {
         .expand((s) => s.docs)
         .where((doc) => seen.add(doc.id))
         .map(ClubModel.fromFirestore)
-        .where((c) => c.isActive && c.lat != 0 && c.lng != 0)
+        .where((c) => c.lat != 0 && c.lng != 0)
         .toList();
   }
 
