@@ -213,11 +213,20 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen> {
       centerLat, centerLng,
       bounds.northEast.latitude, bounds.northEast.longitude,
     );
+    final searchRadius = radiusKm * 1.2;
+
+    // ignore: avoid_print
+    print('[NearbySearch] re-search '
+        'bounds SW=(${bounds.southWest.latitude}, ${bounds.southWest.longitude}) '
+        'NE=(${bounds.northEast.latitude}, ${bounds.northEast.longitude}) '
+        'center=($centerLat, $centerLng) '
+        'rawRadius=${radiusKm.toStringAsFixed(3)}km '
+        'searchRadius=${searchRadius.toStringAsFixed(3)}km (buffer 20%)');
 
     // 버퍼 20% 추가해서 화면 경계 클럽 누락 방지
     await ref
         .read(nearbyViewModelProvider.notifier)
-        .searchNearby(centerLat, centerLng, radiusKm * 1.2);
+        .searchNearby(centerLat, centerLng, searchRadius);
   }
 }
 

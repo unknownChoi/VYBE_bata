@@ -431,21 +431,30 @@ updatedAt       : timestamp
 
 #### clubs/{clubId}
 ```
-clubId          : string    // Firestore 자동 생성 (PK)
-name            : string    // 클럽 이름
-description     : string    // 클럽 소개글
-address         : string    // 주소
-phone           : string    // 연락처
-instagramUrl    : string    // 인스타그램 URL
-location        : object    // { lat: double, lng: double }
-geohash         : string    // 내 주변 GeoQuery용 (geofire-common 활용)
-imageUrls       : array     // 상세 이미지 URL 목록
-thumbnailUrl    : string    // 리스트 대표 이미지 URL
-tags            : array     // 태그 목록
-favoriteCount   : number    // 찜 수 (Cloud Functions 자동 업데이트, 직접 수정 금지)
-isActive        : boolean   // false면 앱에 노출 안 됨
-createdAt       : timestamp
-updatedAt       : timestamp
+clubId              : string    // Firestore 자동 생성 (PK)
+name                : string    // 클럽 이름
+description         : string    // 클럽 소개글
+address             : string    // 주소
+area                : string    // 지역 (예: "홍대", "강남", "이태원")
+phone               : string    // 연락처
+instagramUrl        : string    // 인스타그램 URL
+location            : object    // { lat: double, lng: double, geohash: string }
+                                //   geohash는 GeoQuery용 — location 맵 안에 포함됨 (최상위 아님)
+                                //   쿼리 시 'location.geohash' 필드 경로 사용
+genre               : string    // 주요 장르 (예: "힙합", "테크노", "팝")
+rating              : double    // 평점 (앱 내 리뷰 기반)
+closeTime           : string    // 마감 시간 (예: "03:00", "06:00")
+entryFeeMin         : number    // 입장료 최소 (원, 0이면 무료)
+entryFeeMax         : number    // 입장료 최대 (원)
+imageUrls           : array     // 상세 이미지 URL 목록
+thumbnailUrl        : string    // 리스트 대표 이미지 URL
+tags                : array     // 태그 목록
+favoriteCount       : number    // 찜 수 (Cloud Functions 자동 업데이트, 직접 수정 금지)
+isActive            : boolean   // false면 앱에 노출 안 됨
+isOpen              : boolean   // 현재 영업 중 여부
+isVybeRecommended   : boolean   // vybe 추천 여부
+createdAt           : timestamp
+updatedAt           : timestamp
 ```
 
 #### clubs/{clubId}/info/{clubId}

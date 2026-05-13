@@ -103,6 +103,12 @@ class FirebaseClubDataSource {
     final precision = GeohashUtils.precisionForRadius(radiusKm);
     final prefixes = GeohashUtils.neighborPrefixes(lat, lng, precision);
 
+    // ignore: avoid_print
+    print('[NearbySearch] query center=($lat, $lng) '
+        'radius=${radiusKm.toStringAsFixed(3)}km '
+        'precision=$precision '
+        'prefixes(${prefixes.length})=$prefixes');
+
     final snapshots = await Future.wait(
       prefixes.map((prefix) => _firestore
           .collection('clubs')
@@ -113,12 +119,18 @@ class FirebaseClubDataSource {
     );
 
     final seen = <String>{};
-    return snapshots
+    final result = snapshots
         .expand((s) => s.docs)
         .where((doc) => seen.add(doc.id))
         .map(ClubModel.fromFirestore)
         .where((c) => c.lat != 0 && c.lng != 0)
         .toList();
+
+    // ignore: avoid_print
+    print('[NearbySearch] result count=${result.length} '
+        'clubs=${result.map((c) => '${c.name}@(${c.lat},${c.lng},${c.geohash})').toList()}');
+
+    return result;
   }
 
   Future<List<ClubModel>> searchClubs(String keyword) async {
