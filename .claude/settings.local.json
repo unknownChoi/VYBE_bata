@@ -34,7 +34,10 @@
       "Bash(xargs cat -n)",
       "Bash(firebase use *)",
       "Read(//Users/justinchoi/.config/gcloud/**)",
-      "Bash(gcloud auth *)"
+      "Bash(gcloud auth *)",
+      "Bash(git config *)",
+      "Bash(gh repo *)",
+      "Bash(curl *)"
     ]
   },
   "disabledMcpjsonServers": [
