@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vybe/core/providers/auth_providers.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
 import 'package:vybe/presentation/nearby/viewmodels/nearby_viewmodel.dart';
 import 'package:vybe/presentation/nearby/widgets/club_nearby_list_item.dart';
 
@@ -14,6 +16,18 @@ class NearbyBottomSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final clubsAsync = ref.watch(nearbyViewModelProvider);
+    final uid = ref.watch(currentUidProvider);
+
+    // 찜 목록 스트림 1번만 구독 → Set<clubId>
+    final streamFavIds = uid != null
+        ? ref.watch(favoritedClubIdsProvider(uid)).asData?.value ?? {}
+        : <String>{};
+
+    // 낙관적 오버라이드 머지 (스트림 업데이트 전 즉시 반영)
+    final optimistic = ref.watch(favoriteViewModelProvider);
+    final favoritedIds = Set<String>.from(streamFavIds)
+      ..addAll(optimistic.entries.where((e) => e.value).map((e) => e.key))
+      ..removeAll(optimistic.entries.where((e) => !e.value).map((e) => e.key));
 
     return Container(
       decoration: BoxDecoration(
@@ -37,7 +51,19 @@ class NearbyBottomSheet extends ConsumerWidget {
                       controller: scrollController,
                       padding: EdgeInsets.zero,
                       itemCount: clubs.length,
-                      itemBuilder: (_, i) => ClubNearbyListItem(club: clubs[i]),
+                      itemBuilder: (_, i) => ClubNearbyListItem(
+                        club: clubs[i],
+                        isFavorited: favoritedIds.contains(clubs[i].clubId),
+                        onFavoriteTap: uid == null
+                            ? null
+                            : () => ref
+                                .read(favoriteViewModelProvider.notifier)
+                                .toggleFavorite(
+                                  uid,
+                                  clubs[i].clubId,
+                                  favoritedIds.contains(clubs[i].clubId),
+                                ),
+                      ),
                     ),
               loading: () => const Center(
                 child: CircularProgressIndicator(

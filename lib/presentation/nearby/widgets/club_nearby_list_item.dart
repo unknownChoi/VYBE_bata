@@ -7,8 +7,15 @@ import 'package:vybe/design_system/typography.dart';
 
 class ClubNearbyListItem extends StatelessWidget {
   final ClubModel club;
+  final bool isFavorited;
+  final VoidCallback? onFavoriteTap;
 
-  const ClubNearbyListItem({super.key, required this.club});
+  const ClubNearbyListItem({
+    super.key,
+    required this.club,
+    required this.isFavorited,
+    this.onFavoriteTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -137,18 +144,25 @@ class ClubNearbyListItem extends StatelessWidget {
           Positioned(
             bottom: 8.h,
             right: 8.w,
-            child: Container(
-              width: 40.r,
-              height: 40.r,
-              decoration: BoxDecoration(
-                color: const Color(0xCC191919),
-                borderRadius: BorderRadius.circular(20.r),
-              ),
-              padding: EdgeInsets.all(8.r),
-              child: SvgPicture.asset(
-                'assets/icons/common/club_card/favorite.svg',
-                width: 24.r,
-                height: 24.r,
+            child: GestureDetector(
+              onTap: onFavoriteTap,
+              child: Container(
+                width: 40.r,
+                height: 40.r,
+                decoration: BoxDecoration(
+                  color: const Color(0xCC191919),
+                  borderRadius: BorderRadius.circular(20.r),
+                ),
+                padding: EdgeInsets.all(8.r),
+                child: SvgPicture.asset(
+                  'assets/icons/common/club_card/favorite.svg',
+                  width: 24.r,
+                  height: 24.r,
+                  colorFilter: ColorFilter.mode(
+                    isFavorited ? VybeColors.mainPurple500 : Colors.white,
+                    BlendMode.srcIn,
+                  ),
+                ),
               ),
             ),
           ),

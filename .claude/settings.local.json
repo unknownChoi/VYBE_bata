@@ -31,7 +31,10 @@
       "Read(//Users/justinchoi/Desktop/업무/소스코드//**)",
       "Read(//Users/justinchoi/Desktop//**)",
       "mcp__plugin_firebase_firebase__firestore_get_document",
-      "Bash(xargs cat -n)"
+      "Bash(xargs cat -n)",
+      "Bash(firebase use *)",
+      "Read(//Users/justinchoi/.config/gcloud/**)",
+      "Bash(gcloud auth *)"
     ]
   },
   "disabledMcpjsonServers": [

@@ -8,60 +8,58 @@ part of 'favorite_viewmodel.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// 유저 찜 목록 실시간 스트림
+/// 유저 찜 clubId Set — 스트림 1번으로 전체 찜 상태 관리
 
-@ProviderFor(favoriteList)
-final favoriteListProvider = FavoriteListFamily._();
+@ProviderFor(favoritedClubIds)
+final favoritedClubIdsProvider = FavoritedClubIdsFamily._();
 
-/// 유저 찜 목록 실시간 스트림
+/// 유저 찜 clubId Set — 스트림 1번으로 전체 찜 상태 관리
 
-final class FavoriteListProvider
+final class FavoritedClubIdsProvider
     extends
         $FunctionalProvider<
-          AsyncValue<List<FavoriteModel>>,
-          List<FavoriteModel>,
-          Stream<List<FavoriteModel>>
+          AsyncValue<Set<String>>,
+          Set<String>,
+          Stream<Set<String>>
         >
-    with
-        $FutureModifier<List<FavoriteModel>>,
-        $StreamProvider<List<FavoriteModel>> {
-  /// 유저 찜 목록 실시간 스트림
-  FavoriteListProvider._({
-    required FavoriteListFamily super.from,
+    with $FutureModifier<Set<String>>, $StreamProvider<Set<String>> {
+  /// 유저 찜 clubId Set — 스트림 1번으로 전체 찜 상태 관리
+  FavoritedClubIdsProvider._({
+    required FavoritedClubIdsFamily super.from,
     required String super.argument,
   }) : super(
          retry: null,
-         name: r'favoriteListProvider',
+         name: r'favoritedClubIdsProvider',
          isAutoDispose: true,
          dependencies: null,
          $allTransitiveDependencies: null,
        );
 
   @override
-  String debugGetCreateSourceHash() => _$favoriteListHash();
+  String debugGetCreateSourceHash() => _$favoritedClubIdsHash();
 
   @override
   String toString() {
-    return r'favoriteListProvider'
+    return r'favoritedClubIdsProvider'
         ''
         '($argument)';
   }
 
   @$internal
   @override
-  $StreamProviderElement<List<FavoriteModel>> $createElement(
+  $StreamProviderElement<Set<String>> $createElement(
     $ProviderPointer pointer,
   ) => $StreamProviderElement(pointer);
 
   @override
-  Stream<List<FavoriteModel>> create(Ref ref) {
+  Stream<Set<String>> create(Ref ref) {
     final argument = this.argument as String;
-    return favoriteList(ref, argument);
+    return favoritedClubIds(ref, argument);
   }
 
   @override
   bool operator ==(Object other) {
-    return other is FavoriteListProvider && other.argument == argument;
+    return other is FavoritedClubIdsProvider && other.argument == argument;
   }
 
   @override
@@ -70,113 +68,42 @@ final class FavoriteListProvider
   }
 }
 
-String _$favoriteListHash() => r'5dd0b8e16ef436cb1be74cfaa2cac5979aaf5acc';
+String _$favoritedClubIdsHash() => r'e82f36feafad0e4ff22840ecbcd49bafa305f964';
 
-/// 유저 찜 목록 실시간 스트림
+/// 유저 찜 clubId Set — 스트림 1번으로 전체 찜 상태 관리
 
-final class FavoriteListFamily extends $Family
-    with $FunctionalFamilyOverride<Stream<List<FavoriteModel>>, String> {
-  FavoriteListFamily._()
+final class FavoritedClubIdsFamily extends $Family
+    with $FunctionalFamilyOverride<Stream<Set<String>>, String> {
+  FavoritedClubIdsFamily._()
     : super(
         retry: null,
-        name: r'favoriteListProvider',
+        name: r'favoritedClubIdsProvider',
         dependencies: null,
         $allTransitiveDependencies: null,
         isAutoDispose: true,
       );
 
-  /// 유저 찜 목록 실시간 스트림
+  /// 유저 찜 clubId Set — 스트림 1번으로 전체 찜 상태 관리
 
-  FavoriteListProvider call(String userId) =>
-      FavoriteListProvider._(argument: userId, from: this);
+  FavoritedClubIdsProvider call(String userId) =>
+      FavoritedClubIdsProvider._(argument: userId, from: this);
 
   @override
-  String toString() => r'favoriteListProvider';
+  String toString() => r'favoritedClubIdsProvider';
 }
 
-/// 특정 클럽 찜 여부
-
-@ProviderFor(isFavorite)
-final isFavoriteProvider = IsFavoriteFamily._();
-
-/// 특정 클럽 찜 여부
-
-final class IsFavoriteProvider
-    extends $FunctionalProvider<AsyncValue<bool>, bool, FutureOr<bool>>
-    with $FutureModifier<bool>, $FutureProvider<bool> {
-  /// 특정 클럽 찜 여부
-  IsFavoriteProvider._({
-    required IsFavoriteFamily super.from,
-    required (String, String) super.argument,
-  }) : super(
-         retry: null,
-         name: r'isFavoriteProvider',
-         isAutoDispose: true,
-         dependencies: null,
-         $allTransitiveDependencies: null,
-       );
-
-  @override
-  String debugGetCreateSourceHash() => _$isFavoriteHash();
-
-  @override
-  String toString() {
-    return r'isFavoriteProvider'
-        ''
-        '$argument';
-  }
-
-  @$internal
-  @override
-  $FutureProviderElement<bool> $createElement($ProviderPointer pointer) =>
-      $FutureProviderElement(pointer);
-
-  @override
-  FutureOr<bool> create(Ref ref) {
-    final argument = this.argument as (String, String);
-    return isFavorite(ref, argument.$1, argument.$2);
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return other is IsFavoriteProvider && other.argument == argument;
-  }
-
-  @override
-  int get hashCode {
-    return argument.hashCode;
-  }
-}
-
-String _$isFavoriteHash() => r'dc1ca6b45e0be05d4b44fd950777b82359058951';
-
-/// 특정 클럽 찜 여부
-
-final class IsFavoriteFamily extends $Family
-    with $FunctionalFamilyOverride<FutureOr<bool>, (String, String)> {
-  IsFavoriteFamily._()
-    : super(
-        retry: null,
-        name: r'isFavoriteProvider',
-        dependencies: null,
-        $allTransitiveDependencies: null,
-        isAutoDispose: true,
-      );
-
-  /// 특정 클럽 찜 여부
-
-  IsFavoriteProvider call(String userId, String clubId) =>
-      IsFavoriteProvider._(argument: (userId, clubId), from: this);
-
-  @override
-  String toString() => r'isFavoriteProvider';
-}
+/// 낙관적 오버라이드: clubId → true(찜) / false(찜취소)
+/// 스트림 업데이트 전까지 UI에 즉시 반영하기 위해 사용
 
 @ProviderFor(FavoriteViewModel)
 final favoriteViewModelProvider = FavoriteViewModelProvider._();
 
+/// 낙관적 오버라이드: clubId → true(찜) / false(찜취소)
+/// 스트림 업데이트 전까지 UI에 즉시 반영하기 위해 사용
 final class FavoriteViewModelProvider
-    extends $NotifierProvider<FavoriteViewModel, AsyncValue<void>> {
+    extends $NotifierProvider<FavoriteViewModel, Map<String, bool>> {
+  /// 낙관적 오버라이드: clubId → true(찜) / false(찜취소)
+  /// 스트림 업데이트 전까지 UI에 즉시 반영하기 위해 사용
   FavoriteViewModelProvider._()
     : super(
         from: null,
@@ -196,27 +123,30 @@ final class FavoriteViewModelProvider
   FavoriteViewModel create() => FavoriteViewModel();
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(AsyncValue<void> value) {
+  Override overrideWithValue(Map<String, bool> value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<AsyncValue<void>>(value),
+      providerOverride: $SyncValueProvider<Map<String, bool>>(value),
     );
   }
 }
 
-String _$favoriteViewModelHash() => r'1796d5ad8aef5f50dda0e7d278cb4d31c33a9ca6';
+String _$favoriteViewModelHash() => r'efa7167d7530ee0e4f0cafe31d481513bc6bcda9';
 
-abstract class _$FavoriteViewModel extends $Notifier<AsyncValue<void>> {
-  AsyncValue<void> build();
+/// 낙관적 오버라이드: clubId → true(찜) / false(찜취소)
+/// 스트림 업데이트 전까지 UI에 즉시 반영하기 위해 사용
+
+abstract class _$FavoriteViewModel extends $Notifier<Map<String, bool>> {
+  Map<String, bool> build();
   @$mustCallSuper
   @override
   void runBuild() {
-    final ref = this.ref as $Ref<AsyncValue<void>, AsyncValue<void>>;
+    final ref = this.ref as $Ref<Map<String, bool>, Map<String, bool>>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<AsyncValue<void>, AsyncValue<void>>,
-              AsyncValue<void>,
+              AnyNotifier<Map<String, bool>, Map<String, bool>>,
+              Map<String, bool>,
               Object?,
               Object?
             >;

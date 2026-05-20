@@ -16,7 +16,6 @@ class FirebaseFavoriteDataSource {
     return _firestore
         .collection('favorites')
         .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((s) => s.docs.map(FavoriteModel.fromFirestore).toList());
   }
@@ -53,16 +52,17 @@ class FirebaseFavoriteDataSource {
     logFirebaseAccess(
       file: 'firebase_favorite_datasource.dart',
       service: 'Firestore(favorites) [where userId=$userId, clubId=$clubId]',
-      purpose: '찜 삭제',
+      purpose: '찜 삭제 (중복 포함 전체)',
     );
     final snapshot = await _firestore
         .collection('favorites')
         .where('userId', isEqualTo: userId)
         .where('clubId', isEqualTo: clubId)
-        .limit(1)
         .get();
+    final batch = _firestore.batch();
     for (final doc in snapshot.docs) {
-      await doc.reference.delete();
+      batch.delete(doc.reference);
     }
+    await batch.commit();
   }
 }
