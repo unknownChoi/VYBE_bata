@@ -124,6 +124,8 @@ class FirebaseClubDataSource {
         .where((doc) => seen.add(doc.id))
         .map(ClubModel.fromFirestore)
         .where((c) => c.lat != 0 && c.lng != 0)
+        .where((c) =>
+            GeohashUtils.haversineKm(lat, lng, c.lat, c.lng) <= radiusKm)
         .toList();
 
     // ignore: avoid_print

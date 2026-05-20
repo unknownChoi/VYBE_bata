@@ -4,7 +4,6 @@ import 'package:vybe/data/repositories/club_repository_impl.dart';
 
 part 'nearby_viewmodel.g.dart';
 
-// 홍대입구역 기준 초기 로드
 const _kInitialLat = 37.5572;
 const _kInitialLng = 126.9239;
 const _kInitialRadius = 2.0;

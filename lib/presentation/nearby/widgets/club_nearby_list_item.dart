@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
-import 'package:vybe/presentation/search/data/dummy_clubs.dart';
 
 class ClubNearbyListItem extends StatelessWidget {
-  final DummyClub club;
+  final ClubModel club;
 
   const ClubNearbyListItem({super.key, required this.club});
 
@@ -125,10 +125,13 @@ class ClubNearbyListItem extends StatelessWidget {
               width: double.infinity,
               height: 152.h,
               decoration: BoxDecoration(
+                color: VybeColors.gray800,
                 borderRadius: BorderRadius.circular(12.r),
                 border: Border.all(color: VybeColors.gray900, width: 1),
               ),
-              child: Image.asset(club.imagePath, fit: BoxFit.cover),
+              child: club.thumbnailUrl.isNotEmpty
+                  ? Image.network(club.thumbnailUrl, fit: BoxFit.cover)
+                  : null,
             ),
           ),
           Positioned(

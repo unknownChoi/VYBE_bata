@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
+import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/nearby/viewmodels/nearby_viewmodel.dart';
 import 'package:vybe/presentation/nearby/widgets/club_nearby_list_item.dart';
-import 'package:vybe/presentation/search/data/dummy_clubs.dart';
 
-class NearbyBottomSheet extends StatelessWidget {
+class NearbyBottomSheet extends ConsumerWidget {
   final ScrollController scrollController;
 
   const NearbyBottomSheet({super.key, required this.scrollController});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final clubsAsync = ref.watch(nearbyViewModelProvider);
+
     return Container(
       decoration: BoxDecoration(
         color: VybeColors.gray900,
@@ -20,11 +24,33 @@ class NearbyBottomSheet extends StatelessWidget {
         children: [
           _Handle(),
           Expanded(
-            child: ListView.builder(
-              controller: scrollController,
-              padding: EdgeInsets.zero,
-              itemCount: dummyClubs.length,
-              itemBuilder: (_, i) => ClubNearbyListItem(club: dummyClubs[i]),
+            child: clubsAsync.when(
+              data: (clubs) => clubs.isEmpty
+                  ? Center(
+                      child: Text(
+                        '주변에 클럽이 없어요',
+                        style: VybeTypography.body2
+                            .copyWith(color: VybeColors.gray500),
+                      ),
+                    )
+                  : ListView.builder(
+                      controller: scrollController,
+                      padding: EdgeInsets.zero,
+                      itemCount: clubs.length,
+                      itemBuilder: (_, i) => ClubNearbyListItem(club: clubs[i]),
+                    ),
+              loading: () => const Center(
+                child: CircularProgressIndicator(
+                  color: VybeColors.mainPurple500,
+                ),
+              ),
+              error: (e, _) => Center(
+                child: Text(
+                  '클럽 정보를 불러올 수 없어요',
+                  style: VybeTypography.body2
+                      .copyWith(color: VybeColors.gray500),
+                ),
+              ),
             ),
           ),
         ],
