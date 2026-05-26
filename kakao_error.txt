@@ -54,3 +54,16 @@ PlatformException(CANCELED, User canceled login., The operation couldn’t be co
 <asynchronous suspension>
 
 
+2026-05-26 16:34:34.848804
+PlatformException(CANCELED, User canceled login., The operation couldn’t be completed. (com.apple.AuthenticationServices.WebAuthenticationSession error 1.), null)
+#0      StandardMethodCodec.decodeEnvelope (package:flutter/src/services/message_codecs.dart:653:7)
+#1      MethodChannel._invokeMethod (package:flutter/src/services/platform_channel.dart:366:18)
+<asynchronous suspension>
+#2      AuthCodeClient.authorize (package:kakao_flutter_sdk_auth/src/auth_code.dart:86:26)
+<asynchronous suspension>
+#3      UserApi.loginWithKakaoAccount (package:kakao_flutter_sdk_user/src/user_api.dart:104:22)
+<asynchronous suspension>
+#4      _WelcomeScreenState._onKakaoLogin (package:vybe/presentation/auth/welcome/welcome_screen.dart:66:17)
+<asynchronous suspension>
+
+

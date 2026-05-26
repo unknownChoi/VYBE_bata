@@ -29,7 +29,7 @@ class SearchViewModel extends _$SearchViewModel {
         await ref
             .read(searchHistoryRepositoryProvider)
             .addSearchHistory(userId, keyword);
-        ref.invalidate(searchHistoryProvider(userId));
+        if (ref.mounted) ref.invalidate(searchHistoryProvider(userId));
       }
       return results;
     });
@@ -39,6 +39,7 @@ class SearchViewModel extends _$SearchViewModel {
     await ref
         .read(searchHistoryRepositoryProvider)
         .deleteSearchHistory(userId, historyId);
+    if (!ref.mounted) return;
     ref.invalidate(searchHistoryProvider(userId));
   }
 
@@ -46,6 +47,7 @@ class SearchViewModel extends _$SearchViewModel {
     await ref
         .read(searchHistoryRepositoryProvider)
         .clearAllSearchHistory(userId);
+    if (!ref.mounted) return;
     ref.invalidate(searchHistoryProvider(userId));
   }
 

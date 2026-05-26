@@ -5,9 +5,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 import 'package:flutter_naver_map/flutter_naver_map.dart';
+import 'package:vybe/presentation/auth/welcome/welcome_screen.dart';
 // import 'package:vybe/presentation/auth/signup_success/signup_success_screen.dart';
 // import 'package:vybe/presentation/auth/welcome/welcome_screen.dart';
-import 'package:vybe/presentation/main_scaffold/main_scaffold.dart';
+// import 'package:vybe/presentation/main_scaffold/main_scaffold.dart';
+import 'package:vybe/presentation/clubs/club_detail_screen.dart';
 import 'core/theme/app_theme.dart';
 import 'firebase_options.dart';
 
@@ -47,7 +49,7 @@ class VybeApp extends StatelessWidget {
         theme: AppTheme.dark,
         home: child,
       ),
-      child: const MainScaffold(),
+      child: const ClubDetailScreen(),
     );
   }
 }
