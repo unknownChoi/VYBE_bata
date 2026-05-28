@@ -5,6 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/clubs/club_detail_screen.dart';
 import 'package:vybe/presentation/home/viewmodels/home_nearby_viewmodel.dart';
 
 class HomeNearbyClubs extends ConsumerWidget {
@@ -93,7 +94,11 @@ class _ClubCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return GestureDetector(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const ClubDetailScreen()),
+      ),
+      child: SizedBox(
       width: 112.w,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -167,6 +172,7 @@ class _ClubCard extends StatelessWidget {
             ],
           ),
         ],
+      ),
       ),
     );
   }

@@ -10,6 +10,8 @@ import 'package:vybe/presentation/auth/welcome/welcome_screen.dart';
 // import 'package:vybe/presentation/auth/welcome/welcome_screen.dart';
 // import 'package:vybe/presentation/main_scaffold/main_scaffold.dart';
 import 'package:vybe/presentation/clubs/club_detail_screen.dart';
+import 'package:vybe/presentation/home/home_screen.dart';
+import 'package:vybe/presentation/main_scaffold/main_scaffold.dart';
 import 'core/theme/app_theme.dart';
 import 'firebase_options.dart';
 
@@ -49,7 +51,7 @@ class VybeApp extends StatelessWidget {
         theme: AppTheme.dark,
         home: child,
       ),
-      child: const ClubDetailScreen(),
+      child: const MainScaffold(),
     );
   }
 }

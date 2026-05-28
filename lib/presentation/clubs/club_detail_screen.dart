@@ -41,17 +41,38 @@ class _ClubDetailScreenState extends ConsumerState<ClubDetailScreen>
     return Scaffold(
       backgroundColor: VybeColors.background,
       body: NestedScrollView(
+        physics: const ClampingScrollPhysics(),
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
           SliverToBoxAdapter(
             child: _Hero(onBack: () => Navigator.of(context).maybePop()),
           ),
           const SliverToBoxAdapter(child: _TitleBlock()),
           const SliverToBoxAdapter(child: _SectionDivider()),
-          SliverPersistentHeader(
-            pinned: true,
-            delegate: _TabBarDelegate(
-              tabController: _tabController,
-              tabs: _tabs,
+          SliverToBoxAdapter(
+            child: Container(
+              color: VybeColors.background,
+              child: TabBar(
+                controller: _tabController,
+                padding: EdgeInsets.zero,
+                labelPadding: EdgeInsets.zero,
+                indicatorColor: VybeColors.mainPurple500,
+                indicatorWeight: 2,
+                dividerColor: VybeColors.gray900,
+                dividerHeight: 1,
+                labelStyle: TextStyle(
+                  fontFamily: 'Pretendard',
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w700,
+                ),
+                unselectedLabelStyle: TextStyle(
+                  fontFamily: 'Pretendard',
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w500,
+                ),
+                labelColor: Colors.white,
+                unselectedLabelColor: VybeColors.gray500,
+                tabs: _tabs.map((t) => Tab(text: t, height: 44.h)).toList(),
+              ),
             ),
           ),
         ],
@@ -176,8 +197,7 @@ class _HeroState extends State<_Hero> {
             child: SafeArea(
               bottom: false,
               child: Padding(
-                padding:
-                    EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -199,8 +219,7 @@ class _HeroState extends State<_Hero> {
             right: 16.w,
             bottom: 40.h,
             child: Container(
-              padding:
-                  EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
               decoration: BoxDecoration(
                 color: Colors.black.withValues(alpha: 0.55),
                 borderRadius: BorderRadius.circular(999.r),
@@ -404,10 +423,7 @@ class _TitleBlock extends StatelessWidget {
             runSpacing: 6.h,
             children: ['#힙합', '#대중적', '#무료입장', '#홍대'].map((tag) {
               return Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: 10.w,
-                  vertical: 5.h,
-                ),
+                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
                 decoration: BoxDecoration(
                   color: const Color(0x247731FE),
                   borderRadius: BorderRadius.circular(99.r),
@@ -451,57 +467,6 @@ class _SectionDivider extends StatelessWidget {
 
 // ============ TAB BAR DELEGATE ============
 
-class _TabBarDelegate extends SliverPersistentHeaderDelegate {
-  final TabController tabController;
-  final List<String> tabs;
-
-  const _TabBarDelegate({required this.tabController, required this.tabs});
-
-  @override
-  double get minExtent => 44.h;
-
-  @override
-  double get maxExtent => 44.h;
-
-  @override
-  Widget build(
-    BuildContext context,
-    double shrinkOffset,
-    bool overlapsContent,
-  ) {
-    return Container(
-      color: VybeColors.background,
-      child: TabBar(
-        controller: tabController,
-        padding: EdgeInsets.zero,
-        labelPadding: EdgeInsets.zero,
-        indicatorColor: VybeColors.mainPurple500,
-        indicatorWeight: 2,
-        dividerColor: VybeColors.gray900,
-        dividerHeight: 1,
-        labelStyle: TextStyle(
-          fontFamily: 'Pretendard',
-          fontSize: 14.sp,
-          fontWeight: FontWeight.w700,
-        ),
-        unselectedLabelStyle: TextStyle(
-          fontFamily: 'Pretendard',
-          fontSize: 14.sp,
-          fontWeight: FontWeight.w500,
-        ),
-        labelColor: Colors.white,
-        unselectedLabelColor: VybeColors.gray500,
-        tabs: tabs.map((t) => Tab(text: t, height: 44.h)).toList(),
-      ),
-    );
-  }
-
-  @override
-  bool shouldRebuild(_TabBarDelegate oldDelegate) =>
-      oldDelegate.tabController != tabController ||
-      oldDelegate.tabs != tabs;
-}
-
 // ============ BOTTOM NAV ============
 
 class _BottomNav extends StatefulWidget {
@@ -523,9 +488,10 @@ class _BottomNavState extends State<_BottomNav>
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
-    _bob = Tween<double>(begin: 0, end: -3).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _bob = Tween<double>(
+      begin: 0,
+      end: -3,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -542,7 +508,7 @@ class _BottomNavState extends State<_BottomNav>
         border: Border(top: BorderSide(color: Color(0xFF1F1F23))),
       ),
       child: SafeArea(
-        top: false,
+        top: true,
         child: Padding(
           padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 8.h),
           child: Column(

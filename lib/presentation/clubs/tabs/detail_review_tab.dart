@@ -95,6 +95,7 @@ class _DetailReviewTabState extends State<DetailReviewTab> {
   @override
   Widget build(BuildContext context) {
     return ListView(
+      physics: const ClampingScrollPhysics(),
       padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 32.h),
       children: [
         // segmented toggle

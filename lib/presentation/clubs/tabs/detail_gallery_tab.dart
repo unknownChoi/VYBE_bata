@@ -34,6 +34,7 @@ class _DetailGalleryTabState extends State<DetailGalleryTab> {
   @override
   Widget build(BuildContext context) {
     return CustomScrollView(
+      physics: const ClampingScrollPhysics(),
       slivers: [
         SliverToBoxAdapter(
           child: Container(

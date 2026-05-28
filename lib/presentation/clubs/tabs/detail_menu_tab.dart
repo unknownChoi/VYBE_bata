@@ -74,6 +74,7 @@ class _DetailMenuTabState extends State<DetailMenuTab> {
   @override
   Widget build(BuildContext context) {
     return ListView(
+      physics: const ClampingScrollPhysics(),
       padding: EdgeInsets.zero,
       children: [
         _buildImageSection(),

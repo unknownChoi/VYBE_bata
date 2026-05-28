@@ -33,6 +33,7 @@ class _DetailInfoTabState extends State<DetailInfoTab> {
   @override
   Widget build(BuildContext context) {
     return ListView(
+      physics: const ClampingScrollPhysics(),
       padding: EdgeInsets.zero,
       children: [
         _buildLocationSection(),

@@ -28,6 +28,7 @@ class _DetailHomeTabState extends State<DetailHomeTab> {
   @override
   Widget build(BuildContext context) {
     return ListView(
+      physics: const ClampingScrollPhysics(),
       padding: EdgeInsets.zero,
       children: [
         _buildInfoSection(),
