@@ -118,7 +118,7 @@ final class SearchViewModelProvider
   }
 }
 
-String _$searchViewModelHash() => r'be0a8ffdadf34dddf3edd4db0b164df628fd5735';
+String _$searchViewModelHash() => r'7769da4444db8923ba07d5e1adf15e7cc556b70e';
 
 abstract class _$SearchViewModel
     extends $Notifier<AsyncValue<List<ClubModel>>> {

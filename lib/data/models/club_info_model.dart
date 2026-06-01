@@ -8,23 +8,22 @@ abstract class ClubInfoModel with _$ClubInfoModel {
   const ClubInfoModel._();
 
   const factory ClubInfoModel({
-    required String operatingHours,
-    required String parking,
-    required String dressCode,
-    required String ageLimit,
-    required List<String> sns,
+    @Default([]) List<Map<String, dynamic>> nearbySubways,
+    @Default('') String openChatUrl,
+    @Default([]) List<String> cautions,
     required DateTime updatedAt,
   }) = _ClubInfoModel;
 
   factory ClubInfoModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     return ClubInfoModel(
-      operatingHours: data['operatingHours'] as String? ?? '',
-      parking: data['parking'] as String? ?? '',
-      dressCode: data['dressCode'] as String? ?? '',
-      ageLimit: data['ageLimit'] as String? ?? '',
-      sns: List<String>.from(data['sns'] as List? ?? []),
-      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      nearbySubways: (data['nearbySubways'] as List? ?? [])
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList(),
+      openChatUrl: data['openChatUrl'] as String? ?? '',
+      cautions: List<String>.from(data['cautions'] as List? ?? []),
+      updatedAt:
+          (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
 }

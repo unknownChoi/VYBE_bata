@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vybe/data/models/menu_model.dart';
 import 'package:vybe/design_system/colors.dart';
+import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
 
-class DetailMenuTab extends StatefulWidget {
-  const DetailMenuTab({super.key});
+class DetailMenuTab extends ConsumerStatefulWidget {
+  final String clubId;
+  const DetailMenuTab({super.key, required this.clubId});
 
   @override
-  State<DetailMenuTab> createState() => _DetailMenuTabState();
+  ConsumerState<DetailMenuTab> createState() => _DetailMenuTabState();
 }
 
-class _DetailMenuTabState extends State<DetailMenuTab> {
+class _DetailMenuTabState extends ConsumerState<DetailMenuTab> {
   int _selectedCategoryIndex = 0;
 
-  static const _categories = [
+  static const _categoryOrder = [
     '대표메뉴',
     'SET',
     'HARD',
@@ -21,76 +25,58 @@ class _DetailMenuTabState extends State<DetailMenuTab> {
     'COCKTAIL',
   ];
 
-  static const _menuGroups = [
-    _MenuGroup(
-      title: '대표 메뉴',
-      items: [
-        _MenuItem(badge: '대표', name: 'LEMON DROP', desc: '레몬 보드카 베이스 · 새콤달콤', price: '15,000원', image: 'assets/club_detail/images/menu_image.png'),
-        _MenuItem(badge: '대표', name: 'PURPLE HAZE', desc: '블루베리 진 토닉', price: '16,000원', image: 'assets/club_detail/images/menu_image.png'),
-      ],
-    ),
-    _MenuGroup(
-      title: 'SET',
-      items: [
-        _MenuItem(badge: '대표', name: 'HARD SET A', desc: 'CHOICE A · OPERA BRUIT', price: '220,000원'),
-        _MenuItem(name: 'HARD SET A·B', desc: 'CHOICE A·B · OPERA BRUIT', price: '420,000원'),
-        _MenuItem(name: 'HARD SET B', desc: 'CHOICE B · HENKELL', price: '320,000원'),
-      ],
-    ),
-    _MenuGroup(
-      title: 'HARD',
-      items: [
-        _MenuItem(name: 'JACK DANIEL\'S', desc: '버번 위스키 · 750ml', price: '180,000원', image: 'assets/club_detail/images/menu_image.png'),
-        _MenuItem(name: 'CHIVAS REGAL 12', desc: '스카치 위스키 · 750ml', price: '220,000원'),
-        _MenuItem(name: 'GREY GOOSE', desc: '프렌치 보드카 · 750ml', price: '260,000원'),
-      ],
-    ),
-    _MenuGroup(
-      title: 'CHAMPAGNE',
-      items: [
-        _MenuItem(name: 'MOËT & CHANDON', desc: '브뤼 · 750ml', price: '280,000원'),
-        _MenuItem(name: 'VEUVE CLICQUOT', desc: '옐로우 라벨 · 750ml', price: '320,000원'),
-        _MenuItem(name: 'DOM PÉRIGNON', desc: '빈티지 · 750ml', price: '780,000원'),
-      ],
-    ),
-    _MenuGroup(
-      title: 'BEER',
-      items: [
-        _MenuItem(name: 'HEINEKEN', desc: '하이네켄 · 330ml', price: '12,000원'),
-        _MenuItem(name: 'CORONA', desc: '코로나 엑스트라 · 355ml', price: '14,000원'),
-        _MenuItem(name: 'STELLA', desc: '스텔라 아르투아 · 330ml', price: '13,000원'),
-      ],
-    ),
-    _MenuGroup(
-      title: 'COCKTAIL',
-      items: [
-        _MenuItem(name: 'NEGRONI', desc: '진 · 캄파리 · 베르무트', price: '14,000원', image: 'assets/club_detail/images/menu_image.png'),
-        _MenuItem(name: 'OLD FASHIONED', desc: '버번 · 비터스 · 슈가', price: '15,000원'),
-        _MenuItem(name: 'ESPRESSO MARTINI', desc: '보드카 · 에스프레소 · 칼루아', price: '16,000원'),
-      ],
-    ),
-  ];
 
   @override
   Widget build(BuildContext context) {
+    final clubAsync = ref.watch(clubDetailProvider(widget.clubId));
+    final menusAsync = ref.watch(clubMenusProvider(widget.clubId));
+
+    if (menusAsync.isLoading || clubAsync.isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: VybeColors.mainPurple500),
+      );
+    }
+    if (menusAsync.hasError) {
+      return Center(
+        child: Text(
+          '메뉴를 불러올 수 없어요',
+          style: TextStyle(
+            fontFamily: 'Pretendard',
+            fontSize: 14.sp,
+            color: VybeColors.gray500,
+          ),
+        ),
+      );
+    }
+
+    final menus = menusAsync.value ?? [];
+    final boardImages = clubAsync.value?.menuBoardUrls ?? [];
+    final groups = _buildGroups(menus);
+    final categories = _categoryOrder.where(groups.containsKey).toList();
+
     return ListView(
       physics: const ClampingScrollPhysics(),
       padding: EdgeInsets.zero,
       children: [
-        _buildImageSection(),
-        // divider
-        Container(
-          height: 2,
-          color: VybeColors.gray900,
-        ),
-        _buildCategoryChips(),
-        _buildMenuSections(),
+        if (boardImages.isNotEmpty) _buildImageSection(boardImages),
+        Container(height: 2, color: VybeColors.gray900),
+        _buildCategoryChips(categories),
+        _buildMenuSections(groups, categories),
         SizedBox(height: 32.h),
       ],
     );
   }
 
-  Widget _buildImageSection() {
+  Map<String, List<MenuModel>> _buildGroups(List<MenuModel> menus) {
+    final groups = <String, List<MenuModel>>{};
+    for (final cat in _categoryOrder) {
+      final items = menus.where((m) => m.category == cat).toList();
+      if (items.isNotEmpty) groups[cat] = items;
+    }
+    return groups;
+  }
+
+  Widget _buildImageSection(List<String> boardImages) {
     return Padding(
       padding: EdgeInsets.only(top: 24.h, bottom: 28.h),
       child: Column(
@@ -113,21 +99,21 @@ class _DetailMenuTabState extends State<DetailMenuTab> {
             scrollDirection: Axis.horizontal,
             padding: EdgeInsets.symmetric(horizontal: 20.w),
             child: Row(
-              children: [
-                'assets/club_detail/images/menu_board_1.png',
-                'assets/club_detail/images/menu_board_2.png',
-                'assets/club_detail/images/menu_board_3.png',
-                'assets/club_detail/images/menu_image.png',
-              ].map((img) {
+              children: boardImages.map((url) {
                 return Padding(
                   padding: EdgeInsets.only(right: 8.w),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8.r),
-                    child: Image.asset(
-                      img,
+                    child: Image.network(
+                      url,
                       width: 121.r,
                       height: 121.r,
                       fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        width: 121.r,
+                        height: 121.r,
+                        color: VybeColors.gray800,
+                      ),
                     ),
                   ),
                 );
@@ -139,7 +125,7 @@ class _DetailMenuTabState extends State<DetailMenuTab> {
     );
   }
 
-  Widget _buildCategoryChips() {
+  Widget _buildCategoryChips(List<String> categories) {
     return Container(
       padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 12.h),
       decoration: BoxDecoration(
@@ -148,13 +134,12 @@ class _DetailMenuTabState extends State<DetailMenuTab> {
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
-          children: List.generate(_categories.length, (i) {
+          children: List.generate(categories.length, (i) {
             final selected = i == _selectedCategoryIndex;
             return Padding(
               padding: EdgeInsets.only(right: 8.w),
               child: GestureDetector(
-                onTap: () =>
-                    setState(() => _selectedCategoryIndex = i),
+                onTap: () => setState(() => _selectedCategoryIndex = i),
                 child: Container(
                   padding: EdgeInsets.symmetric(
                     horizontal: 14.w,
@@ -167,16 +152,13 @@ class _DetailMenuTabState extends State<DetailMenuTab> {
                     borderRadius: BorderRadius.circular(999.r),
                   ),
                   child: Text(
-                    _categories[i],
+                    categories[i],
                     style: TextStyle(
                       fontFamily: 'Pretendard',
                       fontSize: 13.sp,
-                      fontWeight: selected
-                          ? FontWeight.w600
-                          : FontWeight.w500,
-                      color: selected
-                          ? Colors.white
-                          : VybeColors.gray400,
+                      fontWeight:
+                          selected ? FontWeight.w600 : FontWeight.w500,
+                      color: selected ? Colors.white : VybeColors.gray400,
                     ),
                   ),
                 ),
@@ -188,20 +170,23 @@ class _DetailMenuTabState extends State<DetailMenuTab> {
     );
   }
 
-  Widget _buildMenuSections() {
+  Widget _buildMenuSections(
+    Map<String, List<MenuModel>> groups,
+    List<String> categories,
+  ) {
     return Padding(
       padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 24.h),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ..._menuGroups.map((group) {
+          ...categories.map((cat) {
             return Padding(
               padding: EdgeInsets.only(top: 16.h),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    group.title,
+                    cat,
                     style: TextStyle(
                       fontFamily: 'Pretendard',
                       fontSize: 18.sp,
@@ -210,7 +195,7 @@ class _DetailMenuTabState extends State<DetailMenuTab> {
                     ),
                   ),
                   SizedBox(height: 4.h),
-                  ...group.items.map((item) => _MenuItemWidget(item: item)),
+                  ...groups[cat]!.map((item) => _MenuItemWidget(item: item)),
                   Container(height: 1, color: VybeColors.gray800),
                 ],
               ),
@@ -233,7 +218,7 @@ class _DetailMenuTabState extends State<DetailMenuTab> {
 }
 
 class _MenuItemWidget extends StatelessWidget {
-  final _MenuItem item;
+  final MenuModel item;
   const _MenuItemWidget({required this.item});
 
   @override
@@ -252,7 +237,7 @@ class _MenuItemWidget extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    if (item.badge != null) ...[
+                    if (item.isFeatured) ...[
                       Container(
                         padding: EdgeInsets.symmetric(
                           horizontal: 7.w,
@@ -263,7 +248,7 @@ class _MenuItemWidget extends StatelessWidget {
                           borderRadius: BorderRadius.circular(999.r),
                         ),
                         child: Text(
-                          item.badge!,
+                          '대표',
                           style: TextStyle(
                             fontFamily: 'Pretendard',
                             fontSize: 10.sp,
@@ -284,10 +269,10 @@ class _MenuItemWidget extends StatelessWidget {
                     ),
                   ],
                 ),
-                if (item.desc != null) ...[
+                if (item.description.isNotEmpty) ...[
                   SizedBox(height: 6.h),
                   Text(
-                    item.desc!,
+                    item.description,
                     style: TextStyle(
                       fontFamily: 'Pretendard',
                       fontSize: 12.sp,
@@ -297,7 +282,7 @@ class _MenuItemWidget extends StatelessWidget {
                 ],
                 SizedBox(height: 10.h),
                 Text(
-                  item.price,
+                  '${_formatPrice(item.price)}원',
                   style: TextStyle(
                     fontFamily: 'Pretendard',
                     fontSize: 16.sp,
@@ -308,15 +293,17 @@ class _MenuItemWidget extends StatelessWidget {
               ],
             ),
           ),
-          if (item.image != null) ...[
+          if (item.imageUrl.isNotEmpty) ...[
             SizedBox(width: 16.w),
             ClipRRect(
               borderRadius: BorderRadius.circular(6.r),
-              child: Image.asset(
-                item.image!,
+              child: Image.network(
+                item.imageUrl,
                 width: 100.r,
                 height: 100.r,
                 fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) =>
+                    SizedBox(width: 100.r, height: 100.r),
               ),
             ),
           ],
@@ -324,19 +311,11 @@ class _MenuItemWidget extends StatelessWidget {
       ),
     );
   }
-}
 
-class _MenuGroup {
-  final String title;
-  final List<_MenuItem> items;
-  const _MenuGroup({required this.title, required this.items});
-}
-
-class _MenuItem {
-  final String? badge;
-  final String name;
-  final String? desc;
-  final String price;
-  final String? image;
-  const _MenuItem({this.badge, required this.name, this.desc, required this.price, this.image});
+  String _formatPrice(int price) {
+    return price.toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (m) => '${m[1]},',
+    );
+  }
 }

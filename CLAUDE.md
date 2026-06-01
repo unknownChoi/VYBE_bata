@@ -443,15 +443,20 @@ location            : object    // { lat: double, lng: double, geohash: string }
                                 //   쿼리 시 'location.geohash' 필드 경로 사용
 genre               : string    // 주요 장르 (예: "힙합", "테크노", "팝")
 rating              : double    // 평점 (앱 내 리뷰 기반)
-closeTime           : string    // 마감 시간 (예: "03:00", "06:00")
+operatingHours      : object    // 요일별 영업시간
+                                //   { mon, tue, wed, thu, fri, sat, sun }
+                                //   각 요일: { isOpen: boolean, open: string?, close: string? }
+                                //   예: { isOpen: true, open: "22:00", close: "06:00" }
+                                //   휴무일: { isOpen: false }
 entryFeeMin         : number    // 입장료 최소 (원, 0이면 무료)
 entryFeeMax         : number    // 입장료 최대 (원)
-imageUrls           : array     // 상세 이미지 URL 목록
+heroImageUrls       : array     // 상단 슬라이더 이미지 URL 목록 (상세 페이지 히어로)
+imageUrls           : array     // 갤러리(사진탭) 이미지 URL 목록
+menuBoardUrls       : array     // 메뉴판 이미지 URL 목록
 thumbnailUrl        : string    // 리스트 대표 이미지 URL
 tags                : array     // 태그 목록
 favoriteCount       : number    // 찜 수 (Cloud Functions 자동 업데이트, 직접 수정 금지)
 isActive            : boolean   // false면 앱에 노출 안 됨
-isOpen              : boolean   // 현재 영업 중 여부
 isVybeRecommended   : boolean   // vybe 추천 여부
 createdAt           : timestamp
 updatedAt           : timestamp
@@ -459,11 +464,9 @@ updatedAt           : timestamp
 
 #### clubs/{clubId}/info/{clubId}
 ```
-operatingHours  : string    // 영업시간
-parking         : string    // 주차 안내
-dressCode       : string    // 드레스코드
-ageLimit        : string    // 나이 제한
-sns             : array     // 추가 SNS 링크
+nearbySubways   : array     // 주변 지하철역 목록 [{ stationName: string, distanceM: number }]
+openChatUrl     : string    // 카카오 오픈채팅방 URL
+cautions        : array     // 유의사항 목록 (string[])
 updatedAt       : timestamp
 ```
 
@@ -477,6 +480,7 @@ price           : number    // 가격 (원)
 imageUrl        : string    // 메뉴 이미지 URL
 category        : string    // 카테고리 (주류, 음식 등)
 isAvailable     : boolean   // 판매 여부
+isFeatured      : boolean   // 대표 메뉴 여부
 createdAt       : timestamp
 ```
 
@@ -485,6 +489,7 @@ createdAt       : timestamp
 reviewId        : string    // PK
 clubId          : string    // FK → clubs
 userId          : string    // FK → users
+userName        : string    // 표시 이름 (임시 — 추후 users/{uid} 조회로 대체)
 rating          : number    // 별점 1~5
 content         : string    // 리뷰 텍스트
 imageUrls       : array     // 첨부 이미지 URL 목록

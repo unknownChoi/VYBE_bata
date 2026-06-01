@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$MenuModel {
 
- String get menuId; String get clubId; String get name; String get description; int get price; String get imageUrl; String get category; bool get isAvailable; DateTime get createdAt;
+ String get menuId; String get clubId; String get name; String get description; int get price; String get imageUrl; String get category; bool get isAvailable; bool get isFeatured; DateTime get createdAt;
 /// Create a copy of MenuModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $MenuModelCopyWith<MenuModel> get copyWith => _$MenuModelCopyWithImpl<MenuModel>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MenuModel&&(identical(other.menuId, menuId) || other.menuId == menuId)&&(identical(other.clubId, clubId) || other.clubId == clubId)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.price, price) || other.price == price)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.category, category) || other.category == category)&&(identical(other.isAvailable, isAvailable) || other.isAvailable == isAvailable)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MenuModel&&(identical(other.menuId, menuId) || other.menuId == menuId)&&(identical(other.clubId, clubId) || other.clubId == clubId)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.price, price) || other.price == price)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.category, category) || other.category == category)&&(identical(other.isAvailable, isAvailable) || other.isAvailable == isAvailable)&&(identical(other.isFeatured, isFeatured) || other.isFeatured == isFeatured)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,menuId,clubId,name,description,price,imageUrl,category,isAvailable,createdAt);
+int get hashCode => Object.hash(runtimeType,menuId,clubId,name,description,price,imageUrl,category,isAvailable,isFeatured,createdAt);
 
 @override
 String toString() {
-  return 'MenuModel(menuId: $menuId, clubId: $clubId, name: $name, description: $description, price: $price, imageUrl: $imageUrl, category: $category, isAvailable: $isAvailable, createdAt: $createdAt)';
+  return 'MenuModel(menuId: $menuId, clubId: $clubId, name: $name, description: $description, price: $price, imageUrl: $imageUrl, category: $category, isAvailable: $isAvailable, isFeatured: $isFeatured, createdAt: $createdAt)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $MenuModelCopyWith<$Res>  {
   factory $MenuModelCopyWith(MenuModel value, $Res Function(MenuModel) _then) = _$MenuModelCopyWithImpl;
 @useResult
 $Res call({
- String menuId, String clubId, String name, String description, int price, String imageUrl, String category, bool isAvailable, DateTime createdAt
+ String menuId, String clubId, String name, String description, int price, String imageUrl, String category, bool isAvailable, bool isFeatured, DateTime createdAt
 });
 
 
@@ -62,7 +62,7 @@ class _$MenuModelCopyWithImpl<$Res>
 
 /// Create a copy of MenuModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? menuId = null,Object? clubId = null,Object? name = null,Object? description = null,Object? price = null,Object? imageUrl = null,Object? category = null,Object? isAvailable = null,Object? createdAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? menuId = null,Object? clubId = null,Object? name = null,Object? description = null,Object? price = null,Object? imageUrl = null,Object? category = null,Object? isAvailable = null,Object? isFeatured = null,Object? createdAt = null,}) {
   return _then(_self.copyWith(
 menuId: null == menuId ? _self.menuId : menuId // ignore: cast_nullable_to_non_nullable
 as String,clubId: null == clubId ? _self.clubId : clubId // ignore: cast_nullable_to_non_nullable
@@ -72,6 +72,7 @@ as String,price: null == price ? _self.price : price // ignore: cast_nullable_to
 as int,imageUrl: null == imageUrl ? _self.imageUrl : imageUrl // ignore: cast_nullable_to_non_nullable
 as String,category: null == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
 as String,isAvailable: null == isAvailable ? _self.isAvailable : isAvailable // ignore: cast_nullable_to_non_nullable
+as bool,isFeatured: null == isFeatured ? _self.isFeatured : isFeatured // ignore: cast_nullable_to_non_nullable
 as bool,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,
   ));
@@ -158,10 +159,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String menuId,  String clubId,  String name,  String description,  int price,  String imageUrl,  String category,  bool isAvailable,  DateTime createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String menuId,  String clubId,  String name,  String description,  int price,  String imageUrl,  String category,  bool isAvailable,  bool isFeatured,  DateTime createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MenuModel() when $default != null:
-return $default(_that.menuId,_that.clubId,_that.name,_that.description,_that.price,_that.imageUrl,_that.category,_that.isAvailable,_that.createdAt);case _:
+return $default(_that.menuId,_that.clubId,_that.name,_that.description,_that.price,_that.imageUrl,_that.category,_that.isAvailable,_that.isFeatured,_that.createdAt);case _:
   return orElse();
 
 }
@@ -179,10 +180,10 @@ return $default(_that.menuId,_that.clubId,_that.name,_that.description,_that.pri
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String menuId,  String clubId,  String name,  String description,  int price,  String imageUrl,  String category,  bool isAvailable,  DateTime createdAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String menuId,  String clubId,  String name,  String description,  int price,  String imageUrl,  String category,  bool isAvailable,  bool isFeatured,  DateTime createdAt)  $default,) {final _that = this;
 switch (_that) {
 case _MenuModel():
-return $default(_that.menuId,_that.clubId,_that.name,_that.description,_that.price,_that.imageUrl,_that.category,_that.isAvailable,_that.createdAt);case _:
+return $default(_that.menuId,_that.clubId,_that.name,_that.description,_that.price,_that.imageUrl,_that.category,_that.isAvailable,_that.isFeatured,_that.createdAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -199,10 +200,10 @@ return $default(_that.menuId,_that.clubId,_that.name,_that.description,_that.pri
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String menuId,  String clubId,  String name,  String description,  int price,  String imageUrl,  String category,  bool isAvailable,  DateTime createdAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String menuId,  String clubId,  String name,  String description,  int price,  String imageUrl,  String category,  bool isAvailable,  bool isFeatured,  DateTime createdAt)?  $default,) {final _that = this;
 switch (_that) {
 case _MenuModel() when $default != null:
-return $default(_that.menuId,_that.clubId,_that.name,_that.description,_that.price,_that.imageUrl,_that.category,_that.isAvailable,_that.createdAt);case _:
+return $default(_that.menuId,_that.clubId,_that.name,_that.description,_that.price,_that.imageUrl,_that.category,_that.isAvailable,_that.isFeatured,_that.createdAt);case _:
   return null;
 
 }
@@ -214,7 +215,7 @@ return $default(_that.menuId,_that.clubId,_that.name,_that.description,_that.pri
 
 
 class _MenuModel extends MenuModel {
-  const _MenuModel({required this.menuId, required this.clubId, required this.name, required this.description, required this.price, required this.imageUrl, required this.category, required this.isAvailable, required this.createdAt}): super._();
+  const _MenuModel({required this.menuId, required this.clubId, required this.name, required this.description, required this.price, required this.imageUrl, required this.category, required this.isAvailable, this.isFeatured = false, required this.createdAt}): super._();
   
 
 @override final  String menuId;
@@ -225,6 +226,7 @@ class _MenuModel extends MenuModel {
 @override final  String imageUrl;
 @override final  String category;
 @override final  bool isAvailable;
+@override@JsonKey() final  bool isFeatured;
 @override final  DateTime createdAt;
 
 /// Create a copy of MenuModel
@@ -237,16 +239,16 @@ _$MenuModelCopyWith<_MenuModel> get copyWith => __$MenuModelCopyWithImpl<_MenuMo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MenuModel&&(identical(other.menuId, menuId) || other.menuId == menuId)&&(identical(other.clubId, clubId) || other.clubId == clubId)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.price, price) || other.price == price)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.category, category) || other.category == category)&&(identical(other.isAvailable, isAvailable) || other.isAvailable == isAvailable)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MenuModel&&(identical(other.menuId, menuId) || other.menuId == menuId)&&(identical(other.clubId, clubId) || other.clubId == clubId)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.price, price) || other.price == price)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.category, category) || other.category == category)&&(identical(other.isAvailable, isAvailable) || other.isAvailable == isAvailable)&&(identical(other.isFeatured, isFeatured) || other.isFeatured == isFeatured)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,menuId,clubId,name,description,price,imageUrl,category,isAvailable,createdAt);
+int get hashCode => Object.hash(runtimeType,menuId,clubId,name,description,price,imageUrl,category,isAvailable,isFeatured,createdAt);
 
 @override
 String toString() {
-  return 'MenuModel(menuId: $menuId, clubId: $clubId, name: $name, description: $description, price: $price, imageUrl: $imageUrl, category: $category, isAvailable: $isAvailable, createdAt: $createdAt)';
+  return 'MenuModel(menuId: $menuId, clubId: $clubId, name: $name, description: $description, price: $price, imageUrl: $imageUrl, category: $category, isAvailable: $isAvailable, isFeatured: $isFeatured, createdAt: $createdAt)';
 }
 
 
@@ -257,7 +259,7 @@ abstract mixin class _$MenuModelCopyWith<$Res> implements $MenuModelCopyWith<$Re
   factory _$MenuModelCopyWith(_MenuModel value, $Res Function(_MenuModel) _then) = __$MenuModelCopyWithImpl;
 @override @useResult
 $Res call({
- String menuId, String clubId, String name, String description, int price, String imageUrl, String category, bool isAvailable, DateTime createdAt
+ String menuId, String clubId, String name, String description, int price, String imageUrl, String category, bool isAvailable, bool isFeatured, DateTime createdAt
 });
 
 
@@ -274,7 +276,7 @@ class __$MenuModelCopyWithImpl<$Res>
 
 /// Create a copy of MenuModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? menuId = null,Object? clubId = null,Object? name = null,Object? description = null,Object? price = null,Object? imageUrl = null,Object? category = null,Object? isAvailable = null,Object? createdAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? menuId = null,Object? clubId = null,Object? name = null,Object? description = null,Object? price = null,Object? imageUrl = null,Object? category = null,Object? isAvailable = null,Object? isFeatured = null,Object? createdAt = null,}) {
   return _then(_MenuModel(
 menuId: null == menuId ? _self.menuId : menuId // ignore: cast_nullable_to_non_nullable
 as String,clubId: null == clubId ? _self.clubId : clubId // ignore: cast_nullable_to_non_nullable
@@ -284,6 +286,7 @@ as String,price: null == price ? _self.price : price // ignore: cast_nullable_to
 as int,imageUrl: null == imageUrl ? _self.imageUrl : imageUrl // ignore: cast_nullable_to_non_nullable
 as String,category: null == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
 as String,isAvailable: null == isAvailable ? _self.isAvailable : isAvailable // ignore: cast_nullable_to_non_nullable
+as bool,isFeatured: null == isFeatured ? _self.isFeatured : isFeatured // ignore: cast_nullable_to_non_nullable
 as bool,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,
   ));

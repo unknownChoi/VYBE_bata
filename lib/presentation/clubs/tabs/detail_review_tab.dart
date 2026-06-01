@@ -1,60 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vybe/data/models/review_model.dart';
 import 'package:vybe/design_system/colors.dart';
+import 'package:vybe/presentation/clubs/viewmodels/review_viewmodel.dart';
 
-class DetailReviewTab extends StatefulWidget {
-  const DetailReviewTab({super.key});
+class DetailReviewTab extends ConsumerStatefulWidget {
+  final String clubId;
+  const DetailReviewTab({super.key, required this.clubId});
 
   @override
-  State<DetailReviewTab> createState() => _DetailReviewTabState();
+  ConsumerState<DetailReviewTab> createState() => _DetailReviewTabState();
 }
 
-class _DetailReviewTabState extends State<DetailReviewTab> {
+class _DetailReviewTabState extends ConsumerState<DetailReviewTab> {
   int _toggleIndex = 0;
   int _sortIndex = 0;
 
-  static const List<_ReviewData> _reviews = [
-    _ReviewData(
-      name: '익명의 사자',
-      rating: 5.0,
-      date: '2025.06.08',
-      text: '외관이 깔끔해서 들어가보니 내부도 너무 깨끗하고 음악도 너무 좋네요. 술 종류도 다양해서 잘 놀다왔어요. 재방문 의사 100%고 친구들한테도 추천하고 싶은 곳이에요.',
-      image: 'assets/club_detail/images/home_tab_image_1.jpg',
-      photoCount: 5,
-      avatarColor: Color(0xFF6622CC),
-    ),
-    _ReviewData(
-      name: '이시안',
-      rating: 5.0,
-      date: '2025.06.08',
-      text: '음악이 너무 제스타일이었어요~',
-      image: 'assets/club_detail/images/home_tab_image_2.png',
-      photoCount: 1,
-      avatarColor: Color(0xFF3A86FF),
-    ),
-    _ReviewData(
-      name: '익명의 토끼',
-      rating: 4.5,
-      date: '2025.06.05',
-      text: '외관이 깔끔해서 들어가보니 내부도 너무 깨끗하고 음악도 너무 좋네요',
-      avatarColor: Color(0xFF8338EC),
-    ),
-    _ReviewData(
-      name: '송강',
-      rating: 5.0,
-      date: '2025.06.03',
-      text: '외관이 깔끔해서 들어가보니 내부도 너무 깨끗하고 음악도 너무 좋네요. 술 종류도 다양해서 잘 놀다왔어요. 재방문 의사 100%입니다.',
-      avatarColor: Color(0xFFFB5607),
-    ),
-    _ReviewData(
-      name: '익명의 라쿤',
-      rating: 4.5,
-      date: '2025.05.28',
-      text: '입장료가 무료여서 부담없이 갈 수 있었고, 분위기도 좋고 음악도 좋았어요. 다만 주말엔 좀 붐벼서 자리잡기 어려웠어요.',
-      image: 'assets/club_detail/images/home_tab_image_3.png',
-      photoCount: 2,
-      avatarColor: Color(0xFF94CF51),
-    ),
+  static const _avatarColors = [
+    Color(0xFF6622CC),
+    Color(0xFF3A86FF),
+    Color(0xFF8338EC),
+    Color(0xFFFB5607),
+    Color(0xFF94CF51),
+    Color(0xFFFF006E),
+    Color(0xFFFFBE0B),
   ];
 
   static const List<_BlogData> _blogs = [
@@ -63,7 +33,8 @@ class _DetailReviewTabState extends State<DetailReviewTab> {
       subtitle: 'NAVER 블로그',
       date: '2025.06.10',
       title: '홍대에서 입문자가 가기 좋은 클럽 TOP 5',
-      preview: '어썸 레드는 입장료가 무료라서 처음 클럽에 가는 사람도 부담 없이 즐길 수 있는 곳이다...',
+      preview:
+          '어썸 레드는 입장료가 무료라서 처음 클럽에 가는 사람도 부담 없이 즐길 수 있는 곳이다...',
       cover: 'assets/club_detail/images/home_tab_image_1.jpg',
     ),
     _BlogData(
@@ -94,6 +65,8 @@ class _DetailReviewTabState extends State<DetailReviewTab> {
 
   @override
   Widget build(BuildContext context) {
+    final reviewsAsync = ref.watch(reviewListProvider(widget.clubId));
+
     return ListView(
       physics: const ClampingScrollPhysics(),
       padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 32.h),
@@ -115,41 +88,77 @@ class _DetailReviewTabState extends State<DetailReviewTab> {
         ),
         SizedBox(height: 20.h),
 
-        if (_toggleIndex == 0) ...[
-          // Rating summary card
-          const _RatingSummary(),
-          SizedBox(height: 20.h),
-          // count + sort chips
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '리뷰 ${_reviews.length}',
+        if (_toggleIndex == 0)
+          reviewsAsync.when(
+            loading: () => const Center(
+              child: CircularProgressIndicator(color: VybeColors.mainPurple500),
+            ),
+            error: (_, __) => Center(
+              child: Text(
+                '리뷰를 불러올 수 없어요',
                 style: TextStyle(
                   fontFamily: 'Pretendard',
                   fontSize: 14.sp,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
+                  color: VybeColors.gray500,
                 ),
               ),
-              Row(
+            ),
+            data: (reviews) {
+              final sorted = _sortedReviews(reviews);
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _sortChip('최신순', 0),
-                  _sortChip('평점순', 1),
-                  _sortChip('사진', 2),
+                  _RatingSummary(reviews: reviews),
+                  SizedBox(height: 20.h),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '리뷰 ${reviews.length}',
+                        style: TextStyle(
+                          fontFamily: 'Pretendard',
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          _sortChip('최신순', 0),
+                          _sortChip('평점순', 1),
+                          _sortChip('사진', 2),
+                        ],
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 4.h),
+                  ...sorted.asMap().entries.map(
+                        (e) => _ReviewCard(
+                          review: e.value,
+                          avatarColor:
+                              _avatarColors[e.key % _avatarColors.length],
+                        ),
+                      ),
                 ],
-              ),
-            ],
+              );
+            },
           ),
-          SizedBox(height: 4.h),
-          ..._reviews.map((r) => _ReviewCard(review: r)),
-        ],
 
-        if (_toggleIndex == 1) ...[
-          ..._blogs.map((b) => _BlogCard(blog: b)),
-        ],
+        if (_toggleIndex == 1) ..._blogs.map((b) => _BlogCard(blog: b)),
       ],
     );
+  }
+
+  List<ReviewModel> _sortedReviews(List<ReviewModel> reviews) {
+    final list = List<ReviewModel>.from(reviews);
+    if (_sortIndex == 0) {
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    } else if (_sortIndex == 1) {
+      list.sort((a, b) => b.rating.compareTo(a.rating));
+    } else {
+      list.sort((a, b) => b.imageUrls.length.compareTo(a.imageUrls.length));
+    }
+    return list;
   }
 
   Widget _toggleBtn(String label, int index) {
@@ -204,19 +213,22 @@ class _DetailReviewTabState extends State<DetailReviewTab> {
 // ── RATING SUMMARY ──
 
 class _RatingSummary extends StatelessWidget {
-  const _RatingSummary();
-
-  static const _dist = [
-    (star: 5, count: 9),
-    (star: 4, count: 3),
-    (star: 3, count: 1),
-    (star: 2, count: 0),
-    (star: 1, count: 0),
-  ];
+  final List<ReviewModel> reviews;
+  const _RatingSummary({required this.reviews});
 
   @override
   Widget build(BuildContext context) {
-    const total = 13;
+    if (reviews.isEmpty) return const SizedBox.shrink();
+
+    final total = reviews.length;
+    final avg = reviews.map((r) => r.rating).reduce((a, b) => a + b) / total;
+
+    final dist = [5, 4, 3, 2, 1].map((star) {
+      final count =
+          reviews.where((r) => r.rating.round() == star).length;
+      return (star: star, count: count);
+    }).toList();
+
     return Container(
       padding: EdgeInsets.all(16.r),
       decoration: BoxDecoration(
@@ -233,7 +245,7 @@ class _RatingSummary extends StatelessWidget {
                 textBaseline: TextBaseline.alphabetic,
                 children: [
                   Text(
-                    '4.76',
+                    avg.toStringAsFixed(2),
                     style: TextStyle(
                       fontFamily: 'Pretendard',
                       fontSize: 28.sp,
@@ -257,9 +269,7 @@ class _RatingSummary extends StatelessWidget {
                   return Icon(
                     Icons.star_rounded,
                     size: 12.r,
-                    color: i < 5
-                        ? VybeColors.mainLime500
-                        : VybeColors.gray700,
+                    color: VybeColors.mainLime500,
                   );
                 }),
               ),
@@ -277,8 +287,8 @@ class _RatingSummary extends StatelessWidget {
           SizedBox(width: 18.w),
           Expanded(
             child: Column(
-              children: _dist.map((d) {
-                final pct = d.count / total;
+              children: dist.map((d) {
+                final pct = total > 0 ? d.count / total : 0.0;
                 return Padding(
                   padding: EdgeInsets.only(bottom: 4.h),
                   child: Row(
@@ -336,8 +346,9 @@ class _RatingSummary extends StatelessWidget {
 // ── REVIEW CARD ──
 
 class _ReviewCard extends StatefulWidget {
-  final _ReviewData review;
-  const _ReviewCard({required this.review});
+  final ReviewModel review;
+  final Color avatarColor;
+  const _ReviewCard({required this.review, required this.avatarColor});
 
   @override
   State<_ReviewCard> createState() => _ReviewCardState();
@@ -349,10 +360,16 @@ class _ReviewCardState extends State<_ReviewCard> {
   @override
   Widget build(BuildContext context) {
     final r = widget.review;
-    final isLong = r.text.length > 60;
+    final isLong = r.content.length > 60;
     final showExpand = isLong && !_expanded;
     final displayText =
-        showExpand ? '${r.text.substring(0, 60)}...' : r.text;
+        showExpand ? '${r.content.substring(0, 60)}...' : r.content;
+    final dateStr =
+        '${r.createdAt.year}.${r.createdAt.month.toString().padLeft(2, '0')}.${r.createdAt.day.toString().padLeft(2, '0')}';
+    final initial =
+        r.userName.isNotEmpty ? r.userName.substring(0, 1) : '?';
+    final firstImage =
+        r.imageUrls.isNotEmpty ? r.imageUrls.first : null;
 
     return Container(
       padding: EdgeInsets.symmetric(vertical: 16.h),
@@ -362,23 +379,21 @@ class _ReviewCardState extends State<_ReviewCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
                 children: [
-                  // avatar
                   Container(
                     width: 32.r,
                     height: 32.r,
                     decoration: BoxDecoration(
-                      color: r.avatarColor,
+                      color: widget.avatarColor,
                       shape: BoxShape.circle,
                     ),
                     alignment: Alignment.center,
                     child: Text(
-                      r.name.substring(0, 1),
+                      initial,
                       style: TextStyle(
                         fontFamily: 'Pretendard',
                         fontSize: 14.sp,
@@ -392,7 +407,7 @@ class _ReviewCardState extends State<_ReviewCard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        r.name,
+                        r.userName.isNotEmpty ? r.userName : '익명',
                         style: TextStyle(
                           fontFamily: 'Pretendard',
                           fontSize: 14.sp,
@@ -403,11 +418,9 @@ class _ReviewCardState extends State<_ReviewCard> {
                       SizedBox(height: 2.h),
                       Row(
                         children: [
-                          Icon(
-                            Icons.star_rounded,
-                            size: 12.r,
-                            color: VybeColors.mainLime500,
-                          ),
+                          Icon(Icons.star_rounded,
+                              size: 12.r,
+                              color: VybeColors.mainLime500),
                           SizedBox(width: 4.w),
                           Text(
                             r.rating.toStringAsFixed(1),
@@ -425,7 +438,7 @@ class _ReviewCardState extends State<_ReviewCard> {
                 ],
               ),
               Text(
-                r.date,
+                dateStr,
                 style: TextStyle(
                   fontFamily: 'Pretendard',
                   fontSize: 12.sp,
@@ -435,7 +448,6 @@ class _ReviewCardState extends State<_ReviewCard> {
             ],
           ),
           SizedBox(height: 10.h),
-          // body
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -466,11 +478,8 @@ class _ReviewCardState extends State<_ReviewCard> {
                                 color: VybeColors.gray500,
                               ),
                             ),
-                            Icon(
-                              Icons.keyboard_arrow_down_rounded,
-                              size: 10.r,
-                              color: VybeColors.gray500,
-                            ),
+                            Icon(Icons.keyboard_arrow_down_rounded,
+                                size: 10.r, color: VybeColors.gray500),
                           ],
                         ),
                       ),
@@ -478,7 +487,7 @@ class _ReviewCardState extends State<_ReviewCard> {
                   ],
                 ),
               ),
-              if (r.image != null) ...[
+              if (firstImage != null) ...[
                 SizedBox(width: 14.w),
                 SizedBox(
                   width: 90.r,
@@ -487,14 +496,19 @@ class _ReviewCardState extends State<_ReviewCard> {
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(6.r),
-                        child: Image.asset(
-                          r.image!,
+                        child: Image.network(
+                          firstImage,
                           width: 90.r,
                           height: 90.r,
                           fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                            width: 90.r,
+                            height: 90.r,
+                            color: VybeColors.gray800,
+                          ),
                         ),
                       ),
-                      if (r.photoCount != null && r.photoCount! > 1)
+                      if (r.imageUrls.length > 1)
                         Positioned(
                           right: 6.w,
                           bottom: 6.h,
@@ -508,7 +522,7 @@ class _ReviewCardState extends State<_ReviewCard> {
                               borderRadius: BorderRadius.circular(999.r),
                             ),
                             child: Text(
-                              '+${r.photoCount! - 1}',
+                              '+${r.imageUrls.length - 1}',
                               style: TextStyle(
                                 fontFamily: 'Pretendard',
                                 fontSize: 12.sp,
@@ -634,28 +648,6 @@ class _BlogCard extends StatelessWidget {
       ),
     );
   }
-}
-
-// ── DATA MODELS ──
-
-class _ReviewData {
-  final String name;
-  final double rating;
-  final String date;
-  final String text;
-  final String? image;
-  final int? photoCount;
-  final Color avatarColor;
-
-  const _ReviewData({
-    required this.name,
-    required this.rating,
-    required this.date,
-    required this.text,
-    this.image,
-    this.photoCount,
-    required this.avatarColor,
-  });
 }
 
 class _BlogData {

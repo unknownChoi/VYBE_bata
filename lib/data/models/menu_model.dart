@@ -16,6 +16,7 @@ abstract class MenuModel with _$MenuModel {
     required String imageUrl,
     required String category,
     required bool isAvailable,
+    @Default(false) bool isFeatured,
     required DateTime createdAt,
   }) = _MenuModel;
 
@@ -30,6 +31,7 @@ abstract class MenuModel with _$MenuModel {
       imageUrl: data['imageUrl'] as String? ?? '',
       category: data['category'] as String? ?? '',
       isAvailable: data['isAvailable'] as bool? ?? true,
+      isFeatured: data['isFeatured'] as bool? ?? false,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }

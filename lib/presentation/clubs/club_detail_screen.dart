@@ -9,9 +9,11 @@ import 'package:vybe/presentation/clubs/tabs/detail_home_tab.dart';
 import 'package:vybe/presentation/clubs/tabs/detail_info_tab.dart';
 import 'package:vybe/presentation/clubs/tabs/detail_menu_tab.dart';
 import 'package:vybe/presentation/clubs/tabs/detail_review_tab.dart';
+import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
 
 class ClubDetailScreen extends ConsumerStatefulWidget {
-  const ClubDetailScreen({super.key});
+  final String clubId;
+  const ClubDetailScreen({super.key, required this.clubId});
 
   @override
   ConsumerState<ClubDetailScreen> createState() => _ClubDetailScreenState();
@@ -38,13 +40,19 @@ class _ClubDetailScreenState extends ConsumerState<ClubDetailScreen>
 
   @override
   Widget build(BuildContext context) {
+    final clubAsync = ref.watch(clubDetailProvider(widget.clubId));
+    final imageUrls = clubAsync.value?.heroImageUrls ?? [];
+
     return Scaffold(
       backgroundColor: VybeColors.background,
       body: NestedScrollView(
         physics: const ClampingScrollPhysics(),
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
           SliverToBoxAdapter(
-            child: _Hero(onBack: () => Navigator.of(context).maybePop()),
+            child: _Hero(
+              onBack: () => Navigator.of(context).maybePop(),
+              imageUrls: imageUrls,
+            ),
           ),
           const SliverToBoxAdapter(child: _TitleBlock()),
           const SliverToBoxAdapter(child: _SectionDivider()),
@@ -78,12 +86,12 @@ class _ClubDetailScreenState extends ConsumerState<ClubDetailScreen>
         ],
         body: TabBarView(
           controller: _tabController,
-          children: const [
-            DetailHomeTab(),
-            DetailMenuTab(),
-            DetailGalleryTab(),
-            DetailReviewTab(),
-            DetailInfoTab(),
+          children: [
+            const DetailHomeTab(),
+            DetailMenuTab(clubId: widget.clubId),
+            DetailGalleryTab(clubId: widget.clubId),
+            DetailReviewTab(clubId: widget.clubId),
+            const DetailInfoTab(),
           ],
         ),
       ),
@@ -96,7 +104,8 @@ class _ClubDetailScreenState extends ConsumerState<ClubDetailScreen>
 
 class _Hero extends StatefulWidget {
   final VoidCallback onBack;
-  const _Hero({required this.onBack});
+  final List<String> imageUrls;
+  const _Hero({required this.onBack, required this.imageUrls});
 
   @override
   State<_Hero> createState() => _HeroState();
@@ -107,20 +116,12 @@ class _HeroState extends State<_Hero> {
   final _pageController = PageController();
   Timer? _timer;
 
-  static const _heroImages = [
-    'assets/club_detail/images/home_tab_image_1.jpg',
-    'assets/club_detail/images/home_tab_image_2.png',
-    'assets/club_detail/images/image_tab_image_1.png',
-    'assets/club_detail/images/image_tab_image_2.png',
-    'assets/club_detail/images/home_tab_image_3.png',
-  ];
-
   @override
   void initState() {
     super.initState();
     _timer = Timer.periodic(const Duration(seconds: 3), (_) {
-      if (!mounted) return;
-      final next = (_currentIndex + 1) % _heroImages.length;
+      if (!mounted || widget.imageUrls.isEmpty) return;
+      final next = (_currentIndex + 1) % widget.imageUrls.length;
       _pageController.animateToPage(
         next,
         duration: const Duration(milliseconds: 400),
@@ -138,7 +139,9 @@ class _HeroState extends State<_Hero> {
 
   @override
   Widget build(BuildContext context) {
-    final total = _heroImages.length;
+    final images = widget.imageUrls;
+    final total = images.length;
+    if (total == 0) return SizedBox(height: 270.h);
     return SizedBox(
       height: 270.h,
       child: Stack(
@@ -147,11 +150,15 @@ class _HeroState extends State<_Hero> {
             controller: _pageController,
             onPageChanged: (i) => setState(() => _currentIndex = i),
             itemCount: total,
-            itemBuilder: (_, i) => Image.asset(
-              _heroImages[i],
+            itemBuilder: (_, i) => Image.network(
+              images[i],
               fit: BoxFit.cover,
               width: double.infinity,
               height: 270.h,
+              errorBuilder: (_, __, ___) => Container(
+                color: VybeColors.gray900,
+                height: 270.h,
+              ),
             ),
           ),
           // top scrim

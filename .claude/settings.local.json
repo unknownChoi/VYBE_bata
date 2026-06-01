@@ -37,7 +37,9 @@
       "Bash(gcloud auth *)",
       "Bash(git config *)",
       "Bash(gh repo *)",
-      "Bash(curl *)"
+      "Bash(curl *)",
+      "Bash(gsutil cp *)",
+      "Bash(node *)"
     ]
   },
   "disabledMcpjsonServers": [

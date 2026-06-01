@@ -96,7 +96,9 @@ class _ClubCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const ClubDetailScreen()),
+        MaterialPageRoute(
+          builder: (_) => ClubDetailScreen(clubId: club.clubId),
+        ),
       ),
       child: SizedBox(
       width: 112.w,

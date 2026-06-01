@@ -203,8 +203,8 @@ class ClubNearbyListItem extends StatelessWidget {
           height: 14.r,
         ),
         SizedBox(width: 6.w),
-        Text(club.isOpen ? '영업중' : '영업종료', style: infoStyle),
-        if (club.isOpen) ...[
+        Text(_isOpenNow(club) ? '영업중' : '영업종료', style: infoStyle),
+        if (_isOpenNow(club)) ...[
           SizedBox(width: 4.w),
           Container(
             width: 2.r,
@@ -215,7 +215,15 @@ class ClubNearbyListItem extends StatelessWidget {
             ),
           ),
           SizedBox(width: 4.w),
-          Text('${club.closeTime}에 영업 종료', style: infoStyle),
+          Text(
+            () {
+              final h = club.operatingHours.today;
+              return h.isOpen && h.close != null
+                  ? '${h.close}에 영업 종료'
+                  : '오늘 휴무';
+            }(),
+            style: infoStyle,
+          ),
         ],
         SizedBox(width: 24.w),
         SvgPicture.asset(
@@ -230,6 +238,21 @@ class ClubNearbyListItem extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  bool _isOpenNow(ClubModel club) {
+    final h = club.operatingHours.today;
+    if (!h.isOpen || h.open == null || h.close == null) return false;
+    final now = DateTime.now();
+    final cur = now.hour * 60 + now.minute;
+    final open = _toMin(h.open!);
+    final close = _toMin(h.close!);
+    return close < open ? cur >= open || cur < close : cur >= open && cur < close;
+  }
+
+  int _toMin(String t) {
+    final p = t.split(':');
+    return int.parse(p[0]) * 60 + int.parse(p[1]);
   }
 
   String _formatPrice(int price) {
