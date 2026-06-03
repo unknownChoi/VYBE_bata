@@ -37,6 +37,7 @@ class FirebaseClubDataSource {
   }
 
   Future<ClubModel?> getClub(String clubId) async {
+    await Future.delayed(const Duration(seconds: 5)); // TODO: remove after skeleton test
     logFirebaseAccess(
       file: 'firebase_club_datasource.dart',
       service: 'Firestore(clubs/$clubId)',
@@ -64,6 +65,7 @@ class FirebaseClubDataSource {
   }
 
   Future<List<MenuModel>> getMenus(String clubId) async {
+    await Future.delayed(const Duration(seconds: 5)); // TODO: remove after skeleton test
     logFirebaseAccess(
       file: 'firebase_club_datasource.dart',
       service: 'Firestore(clubs/$clubId/menus) [where isAvailable=true]',

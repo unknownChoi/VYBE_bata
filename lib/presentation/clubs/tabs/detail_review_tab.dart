@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/data/models/review_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/viewmodels/review_viewmodel.dart';
+import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 
 class DetailReviewTab extends ConsumerStatefulWidget {
   final String clubId;
@@ -90,9 +91,7 @@ class _DetailReviewTabState extends ConsumerState<DetailReviewTab> {
 
         if (_toggleIndex == 0)
           reviewsAsync.when(
-            loading: () => const Center(
-              child: CircularProgressIndicator(color: VybeColors.mainPurple500),
-            ),
+            loading: () => const ReviewsTabSkeleton(),
             error: (_, __) => Center(
               child: Text(
                 '리뷰를 불러올 수 없어요',

@@ -1,0 +1,628 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vybe/design_system/colors.dart';
+
+// ── Base shimmer block ──────────────────────────────────────────
+
+class VybeSkel extends StatefulWidget {
+  final double? width;
+  final double? height;
+  final double radius;
+
+  const VybeSkel({
+    super.key,
+    this.width,
+    this.height,
+    this.radius = 6,
+  });
+
+  @override
+  State<VybeSkel> createState() => _VybeSkelState();
+}
+
+class _VybeSkelState extends State<VybeSkel>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    )..repeat();
+    _anim = Tween<double>(begin: -1.5, end: 1.5).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _anim,
+      builder: (_, __) => Container(
+        width: widget.width,
+        height: widget.height,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(widget.radius.r),
+          gradient: LinearGradient(
+            begin: Alignment(_anim.value - 1, 0),
+            end: Alignment(_anim.value + 1, 0),
+            colors: const [
+              VybeColors.gray900,
+              VybeColors.gray700,
+              VybeColors.gray900,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Hero skeleton ───────────────────────────────────────────────
+
+class HeroSkeleton extends StatelessWidget {
+  const HeroSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return VybeSkel(width: double.infinity, height: 270.h, radius: 0);
+  }
+}
+
+// ── Title block skeleton ────────────────────────────────────────
+
+class TitleSkeleton extends StatelessWidget {
+  const TitleSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 24.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // area | genre
+          VybeSkel(width: 120.w, height: 14.h),
+          SizedBox(height: 8.h),
+          // club name + phone button
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              VybeSkel(width: 160.w, height: 30.h, radius: 8),
+              VybeSkel(width: 68.w, height: 32.h, radius: 99),
+            ],
+          ),
+          SizedBox(height: 14.h),
+          // rating row
+          VybeSkel(width: 130.w, height: 18.h),
+          SizedBox(height: 10.h),
+          // description
+          VybeSkel(width: double.infinity, height: 20.h),
+          SizedBox(height: 14.h),
+          // tags
+          Row(
+            children: [56, 70, 80, 50].map((w) {
+              return Padding(
+                padding: EdgeInsets.only(right: 6.w),
+                child: VybeSkel(width: w.w, height: 24.h, radius: 99),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Home tab skeletons ──────────────────────────────────────────
+
+class InfoSkeleton extends StatelessWidget {
+  const InfoSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
+      child: Column(
+        children: List.generate(4, (i) {
+          return Padding(
+            padding: EdgeInsets.only(bottom: i < 3 ? 18.h : 0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                VybeSkel(width: 17.r, height: 17.r, radius: 4),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      VybeSkel(
+                        width: double.infinity,
+                        height: 14.h,
+                      ),
+                      if (i == 0) ...[
+                        SizedBox(height: 6.h),
+                        VybeSkel(width: 120.w, height: 12.h),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+      ),
+    );
+  }
+}
+
+class MenuSkeleton extends StatelessWidget {
+  const MenuSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              VybeSkel(width: 64.w, height: 20.h),
+              VybeSkel(width: 56.w, height: 14.h),
+            ],
+          ),
+          SizedBox(height: 14.h),
+          ...List.generate(3, (i) {
+            return Container(
+              padding: EdgeInsets.symmetric(vertical: 14.h),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: VybeColors.gray900),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        VybeSkel(width: 100.w, height: 14.h),
+                        SizedBox(height: 8.h),
+                        VybeSkel(width: 160.w, height: 12.h),
+                        SizedBox(height: 8.h),
+                        VybeSkel(width: 70.w, height: 16.h),
+                      ],
+                    ),
+                  ),
+                  SizedBox(width: 14.w),
+                  VybeSkel(width: 88.r, height: 88.r, radius: 10),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+}
+
+class PhotosSkeleton extends StatelessWidget {
+  const PhotosSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              VybeSkel(width: 64.w, height: 20.h),
+              VybeSkel(width: 56.w, height: 14.h),
+            ],
+          ),
+          SizedBox(height: 14.h),
+          SizedBox(
+            height: 110.h,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: VybeSkel(
+                    width: double.infinity,
+                    height: double.infinity,
+                    radius: 10,
+                  ),
+                ),
+                SizedBox(width: 6.w),
+                Expanded(
+                  flex: 2,
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: VybeSkel(
+                                width: double.infinity,
+                                height: double.infinity,
+                                radius: 10,
+                              ),
+                            ),
+                            SizedBox(width: 6.w),
+                            Expanded(
+                              child: VybeSkel(
+                                width: double.infinity,
+                                height: double.infinity,
+                                radius: 10,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: 6.h),
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: VybeSkel(
+                                width: double.infinity,
+                                height: double.infinity,
+                                radius: 10,
+                              ),
+                            ),
+                            SizedBox(width: 6.w),
+                            Expanded(
+                              child: VybeSkel(
+                                width: double.infinity,
+                                height: double.infinity,
+                                radius: 10,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class NearbySkeleton extends StatelessWidget {
+  const NearbySkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(top: 24.h, bottom: 24.h, left: 20.w),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.only(right: 20.w),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                VybeSkel(width: 80.w, height: 20.h),
+                VybeSkel(width: 56.w, height: 14.h),
+              ],
+            ),
+          ),
+          SizedBox(height: 14.h),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const NeverScrollableScrollPhysics(),
+            child: Row(
+              children: List.generate(4, (i) {
+                return Padding(
+                  padding: EdgeInsets.only(right: 12.w),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      VybeSkel(width: 124.w, height: 124.h, radius: 10),
+                      SizedBox(height: 8.h),
+                      VybeSkel(width: 90.w, height: 14.h),
+                      SizedBox(height: 6.h),
+                      VybeSkel(width: 70.w, height: 12.h),
+                    ],
+                  ),
+                );
+              }),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class HomeSkeleton extends StatelessWidget {
+  const HomeSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        const InfoSkeleton(),
+        _divider(),
+        const MenuSkeleton(),
+        _divider(),
+        const PhotosSkeleton(),
+        _divider(),
+        const NearbySkeleton(),
+        SizedBox(height: 24.h),
+      ],
+    );
+  }
+
+  Widget _divider() => Container(
+        height: 8.h,
+        decoration: const BoxDecoration(
+          color: Colors.black,
+          border: Border.symmetric(
+            horizontal: BorderSide(color: Color(0xFF1F1F23)),
+          ),
+        ),
+      );
+}
+
+// ── Tab skeletons ───────────────────────────────────────────────
+
+class MenuTabSkeleton extends StatelessWidget {
+  const MenuTabSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // menu board image section
+        Padding(
+          padding: EdgeInsets.fromLTRB(20.w, 24.h, 0, 28.h),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              VybeSkel(width: 88.w, height: 20.h),
+              SizedBox(height: 16.h),
+              Row(
+                children: List.generate(3, (i) {
+                  return Padding(
+                    padding: EdgeInsets.only(right: 8.w),
+                    child: VybeSkel(width: 121.r, height: 121.r, radius: 8),
+                  );
+                }),
+              ),
+            ],
+          ),
+        ),
+        Container(height: 2, color: VybeColors.gray900),
+        // category chips
+        Padding(
+          padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 12.h),
+          child: Row(
+            children: [60, 48, 56, 80].map((w) {
+              return Padding(
+                padding: EdgeInsets.only(right: 8.w),
+                child: VybeSkel(width: w.w, height: 32.h, radius: 99),
+              );
+            }).toList(),
+          ),
+        ),
+        // menu items
+        Padding(
+          padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 24.h),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              VybeSkel(width: 80.w, height: 20.h),
+              SizedBox(height: 16.h),
+              ...List.generate(3, (i) {
+                return Container(
+                  padding: EdgeInsets.symmetric(vertical: 16.h),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      top: BorderSide(color: VybeColors.gray900),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            VybeSkel(width: 110.w, height: 16.h),
+                            SizedBox(height: 10.h),
+                            VybeSkel(width: 170.w, height: 12.h),
+                            SizedBox(height: 10.h),
+                            VybeSkel(width: 70.w, height: 16.h),
+                          ],
+                        ),
+                      ),
+                      SizedBox(width: 16.w),
+                      VybeSkel(width: 100.r, height: 100.r, radius: 6),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class PhotosTabSkeleton extends StatelessWidget {
+  const PhotosTabSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        // filter chips
+        Padding(
+          padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 12.h),
+          child: Row(
+            children: [44, 64, 56, 50].map((w) {
+              return Padding(
+                padding: EdgeInsets.only(right: 8.w),
+                child: VybeSkel(width: w.w, height: 30.h, radius: 99),
+              );
+            }).toList(),
+          ),
+        ),
+        // masonry grid
+        Padding(
+          padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              [262, 180, 220, 270],
+              [180, 220, 180, 200],
+            ].map((heights) {
+              return Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(right: 4.w),
+                  child: Column(
+                    children: heights.map((h) {
+                      return Padding(
+                        padding: EdgeInsets.only(bottom: 8.h),
+                        child: VybeSkel(
+                          width: double.infinity,
+                          height: h.h,
+                          radius: 6,
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class ReviewsTabSkeleton extends StatelessWidget {
+  const ReviewsTabSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 32.h),
+      child: Column(
+        children: [
+          // toggle
+          VybeSkel(width: double.infinity, height: 44.h, radius: 99),
+          SizedBox(height: 20.h),
+          // rating summary
+          VybeSkel(width: double.infinity, height: 92.h, radius: 12),
+          SizedBox(height: 20.h),
+          // sort row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              VybeSkel(width: 56.w, height: 16.h),
+              VybeSkel(width: 120.w, height: 20.h, radius: 99),
+            ],
+          ),
+          SizedBox(height: 4.h),
+          // review cards
+          ...List.generate(3, (i) {
+            return Container(
+              padding: EdgeInsets.symmetric(vertical: 16.h),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: VybeColors.gray900),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      VybeSkel(width: 32.r, height: 32.r, radius: 99),
+                      SizedBox(width: 10.w),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          VybeSkel(width: 70.w, height: 12.h),
+                          SizedBox(height: 4.h),
+                          VybeSkel(width: 40.w, height: 10.h),
+                        ],
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 10.h),
+                  VybeSkel(width: double.infinity, height: 14.h),
+                  SizedBox(height: 6.h),
+                  VybeSkel(width: 220.w, height: 14.h),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+}
+
+class InfoTabSkeleton extends StatelessWidget {
+  const InfoTabSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 32.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ...List.generate(4, (i) {
+            return Padding(
+              padding: EdgeInsets.only(bottom: 24.h),
+              child: Row(
+                children: [
+                  VybeSkel(width: 20.r, height: 20.r, radius: 6),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        VybeSkel(width: 150.w, height: 14.h),
+                        SizedBox(height: 8.h),
+                        VybeSkel(width: 100.w, height: 12.h),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+          VybeSkel(width: double.infinity, height: 160.h, radius: 12),
+        ],
+      ),
+    );
+  }
+}

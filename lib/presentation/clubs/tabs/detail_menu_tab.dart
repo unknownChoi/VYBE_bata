@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/data/models/menu_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
+import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 
 class DetailMenuTab extends ConsumerStatefulWidget {
   final String clubId;
@@ -32,8 +33,9 @@ class _DetailMenuTabState extends ConsumerState<DetailMenuTab> {
     final menusAsync = ref.watch(clubMenusProvider(widget.clubId));
 
     if (menusAsync.isLoading || clubAsync.isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: VybeColors.mainPurple500),
+      return const SingleChildScrollView(
+        physics: ClampingScrollPhysics(),
+        child: MenuTabSkeleton(),
       );
     }
     if (menusAsync.hasError) {

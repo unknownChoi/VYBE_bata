@@ -48,6 +48,14 @@ function Hero({ onSaved, saved }) {
   const [idx, setIdx] = useState(0);
   const total = 5;
   const trackRef = useRef(null);
+  const dragRef = useRef({ startX: 0, dragging: false });
+
+  const goTo = (i) => {
+    const el = trackRef.current;
+    if (!el) return;
+    el.scrollTo({ left: i * el.clientWidth, behavior: 'smooth' });
+    setIdx(i);
+  };
 
   const handleScroll = () => {
     if (!trackRef.current) return;
@@ -56,15 +64,38 @@ function Hero({ onSaved, saved }) {
     setIdx(i);
   };
 
+  const onPointerDown = (e) => {
+    dragRef.current = { startX: e.clientX, dragging: true };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const onPointerMove = (e) => {
+    if (!dragRef.current.dragging) return;
+    const el = trackRef.current;
+    if (!el) return;
+    const dx = dragRef.current.startX - e.clientX;
+    el.scrollLeft = idx * el.clientWidth + dx;
+  };
+
+  const onPointerUp = (e) => {
+    if (!dragRef.current.dragging) return;
+    dragRef.current.dragging = false;
+    const dx = dragRef.current.startX - e.clientX;
+    const threshold = 40;
+    if (dx > threshold) goTo(Math.min(idx + 1, total - 1));
+    else if (dx < -threshold) goTo(Math.max(idx - 1, 0));
+    else goTo(idx);
+  };
+
   // 3초마다 자동 스크롤
   useEffect(() => {
     const timer = setInterval(() => {
-      const el = trackRef.current;
-      if (!el) return;
-      const w = el.clientWidth;
-      const current = Math.round(el.scrollLeft / w);
-      const next = (current + 1) % total;
-      el.scrollTo({ left: next * w, behavior: 'smooth' });
+      setIdx(prev => {
+        const next = (prev + 1) % total;
+        const el = trackRef.current;
+        if (el) el.scrollTo({ left: next * el.clientWidth, behavior: 'smooth' });
+        return next;
+      });
     }, 3000);
     return () => clearInterval(timer);
   }, [total]);
@@ -83,7 +114,11 @@ function Hero({ onSaved, saved }) {
       <div
         ref={trackRef}
         onScroll={handleScroll}
-        style={{ display: 'flex', overflowX: 'auto', scrollSnapType: 'x mandatory', scrollbarWidth: 'none', height: "270px" }}>
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        style={{ display: 'flex', overflowX: 'auto', scrollSnapType: 'x mandatory', scrollbarWidth: 'none', height: "270px", cursor: 'grab', userSelect: 'none' }}>
         
         {slides.map((s, i) =>
         <div

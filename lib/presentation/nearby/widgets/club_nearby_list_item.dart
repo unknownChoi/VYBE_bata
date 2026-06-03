@@ -240,20 +240,8 @@ class ClubNearbyListItem extends StatelessWidget {
     );
   }
 
-  bool _isOpenNow(ClubModel club) {
-    final h = club.operatingHours.today;
-    if (!h.isOpen || h.open == null || h.close == null) return false;
-    final now = DateTime.now();
-    final cur = now.hour * 60 + now.minute;
-    final open = _toMin(h.open!);
-    final close = _toMin(h.close!);
-    return close < open ? cur >= open || cur < close : cur >= open && cur < close;
-  }
-
-  int _toMin(String t) {
-    final p = t.split(':');
-    return int.parse(p[0]) * 60 + int.parse(p[1]);
-  }
+  bool _isOpenNow(ClubModel club) =>
+      club.operatingHours.today.isCurrentlyOpen;
 
   String _formatPrice(int price) {
     if (price == 0) return '0';

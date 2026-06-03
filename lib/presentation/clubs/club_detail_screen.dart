@@ -10,6 +10,8 @@ import 'package:vybe/presentation/clubs/tabs/detail_info_tab.dart';
 import 'package:vybe/presentation/clubs/tabs/detail_menu_tab.dart';
 import 'package:vybe/presentation/clubs/tabs/detail_review_tab.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
+import 'package:vybe/presentation/clubs/viewmodels/review_viewmodel.dart';
+import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 
 class ClubDetailScreen extends ConsumerStatefulWidget {
   final String clubId;
@@ -49,12 +51,18 @@ class _ClubDetailScreenState extends ConsumerState<ClubDetailScreen>
         physics: const ClampingScrollPhysics(),
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
           SliverToBoxAdapter(
-            child: _Hero(
-              onBack: () => Navigator.of(context).maybePop(),
-              imageUrls: imageUrls,
-            ),
+            child: clubAsync.isLoading
+                ? const HeroSkeleton()
+                : _Hero(
+                    onBack: () => Navigator.of(context).maybePop(),
+                    imageUrls: imageUrls,
+                  ),
           ),
-          const SliverToBoxAdapter(child: _TitleBlock()),
+          SliverToBoxAdapter(
+            child: clubAsync.isLoading
+                ? const TitleSkeleton()
+                : _TitleBlock(clubId: widget.clubId),
+          ),
           const SliverToBoxAdapter(child: _SectionDivider()),
           SliverToBoxAdapter(
             child: Container(
@@ -87,7 +95,7 @@ class _ClubDetailScreenState extends ConsumerState<ClubDetailScreen>
         body: TabBarView(
           controller: _tabController,
           children: [
-            const DetailHomeTab(),
+            DetailHomeTab(clubId: widget.clubId),
             DetailMenuTab(clubId: widget.clubId),
             DetailGalleryTab(clubId: widget.clubId),
             DetailReviewTab(clubId: widget.clubId),
@@ -289,11 +297,23 @@ class _HeroState extends State<_Hero> {
 
 // ============ TITLE BLOCK ============
 
-class _TitleBlock extends StatelessWidget {
-  const _TitleBlock();
+class _TitleBlock extends ConsumerWidget {
+  final String clubId;
+  const _TitleBlock({required this.clubId});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final club = ref.watch(clubDetailProvider(clubId)).value;
+    final reviewCount =
+        ref.watch(reviewListProvider(clubId)).value?.length ?? 0;
+
+    final area = club?.area ?? '';
+    final genre = club?.genre ?? '';
+    final name = club?.name ?? '';
+    final rating = club?.rating ?? 0.0;
+    final description = club?.description ?? '';
+    final tags = club?.tags ?? [];
+
     return Padding(
       padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 24.h),
       child: Column(
@@ -302,7 +322,7 @@ class _TitleBlock extends StatelessWidget {
           Row(
             children: [
               Text(
-                '홍대',
+                area,
                 style: TextStyle(
                   fontFamily: 'Pretendard',
                   fontSize: 12.sp,
@@ -318,7 +338,7 @@ class _TitleBlock extends StatelessWidget {
                 ),
               ),
               Text(
-                '힙합 클럽',
+                genre,
                 style: TextStyle(
                   fontFamily: 'Pretendard',
                   fontSize: 12.sp,
@@ -333,7 +353,7 @@ class _TitleBlock extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '어썸 레드',
+                name,
                 style: TextStyle(
                   fontFamily: 'Pretendard',
                   fontSize: 24.sp,
@@ -386,7 +406,7 @@ class _TitleBlock extends StatelessWidget {
               ),
               SizedBox(width: 4.w),
               Text(
-                '4.76',
+                rating.toStringAsFixed(2),
                 style: TextStyle(
                   fontFamily: 'Pretendard',
                   fontSize: 15.sp,
@@ -405,7 +425,7 @@ class _TitleBlock extends StatelessWidget {
               ),
               SizedBox(width: 8.w),
               Text(
-                '리뷰 13',
+                '리뷰 $reviewCount',
                 style: TextStyle(
                   fontFamily: 'Pretendard',
                   fontSize: 14.sp,
@@ -416,7 +436,7 @@ class _TitleBlock extends StatelessWidget {
           ),
           SizedBox(height: 10.h),
           Text(
-            '홍대역 인근 입문자에게 좋은 힙합 클럽',
+            description,
             style: TextStyle(
               fontFamily: 'Pretendard',
               fontSize: 15.sp,
@@ -428,15 +448,16 @@ class _TitleBlock extends StatelessWidget {
           Wrap(
             spacing: 6.w,
             runSpacing: 6.h,
-            children: ['#힙합', '#대중적', '#무료입장', '#홍대'].map((tag) {
+            children: tags.map((tag) {
               return Container(
-                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
+                padding:
+                    EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
                 decoration: BoxDecoration(
                   color: const Color(0x247731FE),
                   borderRadius: BorderRadius.circular(99.r),
                 ),
                 child: Text(
-                  tag,
+                  '# $tag',
                   style: TextStyle(
                     fontFamily: 'Pretendard',
                     fontSize: 12.sp,

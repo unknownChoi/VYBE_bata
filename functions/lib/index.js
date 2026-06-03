@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.onFavoriteDeleted = exports.onFavoriteCreated = exports.deleteUser = exports.verifyIdentity = exports.kakaoLogin = exports.naverLogin = exports.phoneLogin = exports.checkPhoneDuplicate = exports.onUserCreated = void 0;
+exports.onReviewUpdated = exports.onReviewDeleted = exports.onReviewCreated = exports.onFavoriteDeleted = exports.onFavoriteCreated = exports.deleteUser = exports.verifyIdentity = exports.kakaoLogin = exports.naverLogin = exports.phoneLogin = exports.checkPhoneDuplicate = exports.onUserCreated = void 0;
 const admin = require("firebase-admin");
 admin.initializeApp();
 var on_user_created_1 = require("./auth/on_user_created");
@@ -21,4 +21,10 @@ var on_favorite_created_1 = require("./favorites/on_favorite_created");
 Object.defineProperty(exports, "onFavoriteCreated", { enumerable: true, get: function () { return on_favorite_created_1.onFavoriteCreated; } });
 var on_favorite_deleted_1 = require("./favorites/on_favorite_deleted");
 Object.defineProperty(exports, "onFavoriteDeleted", { enumerable: true, get: function () { return on_favorite_deleted_1.onFavoriteDeleted; } });
+var on_review_created_1 = require("./reviews/on_review_created");
+Object.defineProperty(exports, "onReviewCreated", { enumerable: true, get: function () { return on_review_created_1.onReviewCreated; } });
+var on_review_deleted_1 = require("./reviews/on_review_deleted");
+Object.defineProperty(exports, "onReviewDeleted", { enumerable: true, get: function () { return on_review_deleted_1.onReviewDeleted; } });
+var on_review_updated_1 = require("./reviews/on_review_updated");
+Object.defineProperty(exports, "onReviewUpdated", { enumerable: true, get: function () { return on_review_updated_1.onReviewUpdated; } });
 //# sourceMappingURL=index.js.map

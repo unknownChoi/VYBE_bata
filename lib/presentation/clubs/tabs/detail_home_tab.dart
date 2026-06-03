@@ -1,39 +1,43 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:vybe/data/models/menu_model.dart';
+import 'package:vybe/data/models/operating_hours.dart';
 import 'package:vybe/design_system/colors.dart';
+import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
 import 'package:vybe/presentation/clubs/widgets/subway_line_badge.dart';
+import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 
-class DetailHomeTab extends StatefulWidget {
-  const DetailHomeTab({super.key});
+class DetailHomeTab extends ConsumerStatefulWidget {
+  final String clubId;
+  const DetailHomeTab({super.key, required this.clubId});
 
   @override
-  State<DetailHomeTab> createState() => _DetailHomeTabState();
+  ConsumerState<DetailHomeTab> createState() => _DetailHomeTabState();
 }
 
-class _DetailHomeTabState extends State<DetailHomeTab> {
+class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
   bool _addrExpanded = false;
   bool _hoursExpanded = false;
 
-  static const List<List<String>> _hours = [
-    ['월', '11:00 - 02:00'],
-    ['화', '11:00 - 02:00'],
-    ['수', '11:00 - 02:00'],
-    ['목', '11:00 - 02:00'],
-    ['금', '11:00 - 02:00'],
-    ['토', '11:00 - 02:00'],
-    ['일', '정기휴무'],
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final clubAsync = ref.watch(clubDetailProvider(widget.clubId));
+    final clubInfoAsync = ref.watch(clubInfoProvider(widget.clubId));
+    final menusAsync = ref.watch(clubMenusProvider(widget.clubId));
+
     return ListView(
       physics: const ClampingScrollPhysics(),
       padding: EdgeInsets.zero,
       children: [
-        _buildInfoSection(),
+        clubAsync.isLoading
+            ? const InfoSkeleton()
+            : _buildInfoSection(clubAsync.value, clubInfoAsync.value),
         _sectionDivider(),
-        _buildMenuPreviewSection(),
+        menusAsync.isLoading
+            ? const MenuSkeleton()
+            : _buildMenuPreviewSection(menusAsync.value ?? []),
         _sectionDivider(),
         _buildPhotoPreviewSection(),
         _sectionDivider(),
@@ -57,8 +61,28 @@ class _DetailHomeTabState extends State<DetailHomeTab> {
 
   // ── INFO SECTION ──
 
-  Widget _buildInfoSection() {
-    final today = DateTime.now().weekday - 1; // 0=월 ~ 6=일
+  Widget _buildInfoSection(club, clubInfo) {
+    final address = club?.address ?? '';
+    final hours = club?.operatingHours ?? const OperatingHours();
+    final todayHours = hours.today;
+    final isOpen = todayHours.isCurrentlyOpen;
+    final entryFeeMin = club?.entryFeeMin ?? 0;
+    final entryFeeMax = club?.entryFeeMax ?? 0;
+    final instagramUrl = club?.instagramUrl ?? '';
+    final instagramHandle = _extractInstagramHandle(instagramUrl);
+    final nearbySubways = (clubInfo?.nearbySubways ?? []);
+
+    final weekdays = [
+      ('월', hours.mon),
+      ('화', hours.tue),
+      ('수', hours.wed),
+      ('목', hours.thu),
+      ('금', hours.fri),
+      ('토', hours.sat),
+      ('일', hours.sun),
+    ];
+    final todayIndex = DateTime.now().weekday - 1; // 0=월~6=일
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
       child: Column(
@@ -83,13 +107,15 @@ class _DetailHomeTabState extends State<DetailHomeTab> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        '서울 마포구 잔다리로 12 지하 1층',
-                        style: TextStyle(
-                          fontFamily: 'Pretendard',
-                          fontSize: 14.sp,
-                          color: VybeColors.gray200,
-                          height: 1.5,
+                      Expanded(
+                        child: Text(
+                          address,
+                          style: TextStyle(
+                            fontFamily: 'Pretendard',
+                            fontSize: 14.sp,
+                            color: VybeColors.gray200,
+                            height: 1.5,
+                          ),
                         ),
                       ),
                       AnimatedRotation(
@@ -107,19 +133,32 @@ class _DetailHomeTabState extends State<DetailHomeTab> {
                     firstChild: const SizedBox.shrink(),
                     secondChild: Padding(
                       padding: EdgeInsets.only(top: 10.h),
-                      child: Row(
-                        children: [
-                          const SubwayLineBadge(line: 9),
-                          SizedBox(width: 6.w),
-                          Text(
-                            '상수역 1번 출구에서 422m',
-                            style: TextStyle(
-                              fontFamily: 'Pretendard',
-                              fontSize: 13.sp,
-                              color: VybeColors.gray300,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: nearbySubways.map<Widget>((s) {
+                          final name = s['stationName'] as String? ?? '';
+                          final dist = s['distanceM'] as int? ?? 0;
+                          final line = s['line'] as int? ?? 0;
+                          return Padding(
+                            padding: EdgeInsets.only(bottom: 4.h),
+                            child: Row(
+                              children: [
+                                if (line > 0) ...[
+                                  SubwayLineBadge(line: line),
+                                  SizedBox(width: 6.w),
+                                ],
+                                Text(
+                                  '$name에서 ${dist}m',
+                                  style: TextStyle(
+                                    fontFamily: 'Pretendard',
+                                    fontSize: 13.sp,
+                                    color: VybeColors.gray300,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                        ],
+                          );
+                        }).toList(),
                       ),
                     ),
                     crossFadeState: _addrExpanded
@@ -155,34 +194,38 @@ class _DetailHomeTabState extends State<DetailHomeTab> {
                       Row(
                         children: [
                           Text(
-                            '영업중',
+                            isOpen ? '영업중' : '영업종료',
                             style: TextStyle(
                               fontFamily: 'Pretendard',
                               fontSize: 14.sp,
                               fontWeight: FontWeight.w600,
-                              color: VybeColors.mainLime500,
+                              color: isOpen
+                                  ? VybeColors.mainLime500
+                                  : VybeColors.gray500,
                             ),
                           ),
-                          Padding(
-                            padding:
-                                EdgeInsets.symmetric(horizontal: 6.w),
-                            child: Container(
-                              width: 2.r,
-                              height: 2.r,
-                              decoration: const BoxDecoration(
-                                color: VybeColors.gray700,
-                                shape: BoxShape.circle,
+                          if (isOpen && todayHours.close != null) ...[
+                            Padding(
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 6.w),
+                              child: Container(
+                                width: 2.r,
+                                height: 2.r,
+                                decoration: const BoxDecoration(
+                                  color: VybeColors.gray700,
+                                  shape: BoxShape.circle,
+                                ),
                               ),
                             ),
-                          ),
-                          Text(
-                            '02:00에 영업 종료',
-                            style: TextStyle(
-                              fontFamily: 'Pretendard',
-                              fontSize: 14.sp,
-                              color: VybeColors.gray400,
+                            Text(
+                              '${todayHours.close}에 영업 종료',
+                              style: TextStyle(
+                                fontFamily: 'Pretendard',
+                                fontSize: 14.sp,
+                                color: VybeColors.gray400,
+                              ),
                             ),
-                          ),
+                          ],
                         ],
                       ),
                       AnimatedRotation(
@@ -198,8 +241,14 @@ class _DetailHomeTabState extends State<DetailHomeTab> {
                   ),
                   if (_hoursExpanded) ...[
                     SizedBox(height: 10.h),
-                    ...List.generate(_hours.length, (i) {
-                      final isToday = i == today;
+                    ...weekdays.asMap().entries.map((e) {
+                      final i = e.key;
+                      final label = e.value.$1;
+                      final day = e.value.$2;
+                      final isToday = i == todayIndex;
+                      final timeStr = day.isOpen
+                          ? '${day.open} - ${day.close}'
+                          : '정기휴무';
                       return Padding(
                         padding: EdgeInsets.only(bottom: 6.h),
                         child: Row(
@@ -207,7 +256,7 @@ class _DetailHomeTabState extends State<DetailHomeTab> {
                             SizedBox(
                               width: 18.w,
                               child: Text(
-                                _hours[i][0],
+                                label,
                                 style: TextStyle(
                                   fontFamily: 'Pretendard',
                                   fontSize: 13.sp,
@@ -222,7 +271,7 @@ class _DetailHomeTabState extends State<DetailHomeTab> {
                             ),
                             SizedBox(width: 10.w),
                             Text(
-                              _hours[i][1],
+                              timeStr,
                               style: TextStyle(
                                 fontFamily: 'Pretendard',
                                 fontSize: 13.sp,
@@ -288,7 +337,7 @@ class _DetailHomeTabState extends State<DetailHomeTab> {
                 children: [
                   const TextSpan(text: '입장료 '),
                   TextSpan(
-                    text: '0 ~ 10,000원',
+                    text: _formatEntryFee(entryFeeMin, entryFeeMax),
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w600,
@@ -311,7 +360,7 @@ class _DetailHomeTabState extends State<DetailHomeTab> {
               ),
             ),
             child: Text(
-              '@awesomered_omg',
+              instagramHandle,
               style: TextStyle(
                 fontFamily: 'Pretendard',
                 fontSize: 14.sp,
@@ -322,6 +371,27 @@ class _DetailHomeTabState extends State<DetailHomeTab> {
         ],
       ),
     );
+  }
+
+  String _formatEntryFee(int min, int max) {
+    if (min == 0 && max == 0) return '무료';
+    final minStr = _formatWon(min);
+    final maxStr = _formatWon(max);
+    return min == 0 ? '0 ~ $maxStr원' : '$minStr ~ $maxStr원';
+  }
+
+  String _formatWon(int amount) {
+    return amount.toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (m) => '${m[1]},',
+    );
+  }
+
+  String _extractInstagramHandle(String url) {
+    if (url.isEmpty) return '';
+    final uri = Uri.tryParse(url);
+    final seg = uri?.pathSegments.where((s) => s.isNotEmpty).lastOrNull;
+    return seg != null ? '@$seg' : url;
   }
 
   Widget _infoRow({required Widget icon, required Widget child}) {
@@ -343,7 +413,10 @@ class _DetailHomeTabState extends State<DetailHomeTab> {
 
   // ── MENU PREVIEW ──
 
-  Widget _buildMenuPreviewSection() {
+  Widget _buildMenuPreviewSection(List<MenuModel> menus) {
+    final featured = menus.where((m) => m.isFeatured).take(3).toList();
+    if (featured.isEmpty) return const SizedBox.shrink();
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
       child: Column(
@@ -351,20 +424,7 @@ class _DetailHomeTabState extends State<DetailHomeTab> {
         children: [
           _sectionHeader('메뉴'),
           SizedBox(height: 4.h),
-          _menuPreviewItem(
-            badge: '대표',
-            name: 'LEMON DROP',
-            desc: '레몬 보드카 베이스 · 새콤달콤',
-            price: '15,000원',
-            image: 'assets/club_detail/images/menu_image.png',
-          ),
-          _menuPreviewItem(
-            badge: '대표',
-            name: 'PURPLE HAZE',
-            desc: '블루베리 진 토닉',
-            price: '16,000원',
-            image: 'assets/club_detail/images/menu_image.png',
-          ),
+          ...featured.map((item) => _menuPreviewItem(item)),
           SizedBox(height: 12.h),
           Text(
             '메뉴 항목과 가격은 매장 사정에 따라 다를 수 있습니다.',
@@ -379,13 +439,7 @@ class _DetailHomeTabState extends State<DetailHomeTab> {
     );
   }
 
-  Widget _menuPreviewItem({
-    required String badge,
-    required String name,
-    required String desc,
-    required String price,
-    required String image,
-  }) {
+  Widget _menuPreviewItem(MenuModel item) {
     return Container(
       padding: EdgeInsets.symmetric(vertical: 16.h),
       decoration: BoxDecoration(
@@ -409,7 +463,7 @@ class _DetailHomeTabState extends State<DetailHomeTab> {
                         borderRadius: BorderRadius.circular(999.r),
                       ),
                       child: Text(
-                        badge,
+                        '대표',
                         style: TextStyle(
                           fontFamily: 'Pretendard',
                           fontSize: 10.sp,
@@ -420,7 +474,7 @@ class _DetailHomeTabState extends State<DetailHomeTab> {
                     ),
                     SizedBox(width: 6.w),
                     Text(
-                      name,
+                      item.name,
                       style: TextStyle(
                         fontFamily: 'Pretendard',
                         fontSize: 14.sp,
@@ -429,18 +483,20 @@ class _DetailHomeTabState extends State<DetailHomeTab> {
                     ),
                   ],
                 ),
-                SizedBox(height: 6.h),
-                Text(
-                  desc,
-                  style: TextStyle(
-                    fontFamily: 'Pretendard',
-                    fontSize: 12.sp,
-                    color: VybeColors.gray500,
+                if (item.description.isNotEmpty) ...[
+                  SizedBox(height: 6.h),
+                  Text(
+                    item.description,
+                    style: TextStyle(
+                      fontFamily: 'Pretendard',
+                      fontSize: 12.sp,
+                      color: VybeColors.gray500,
+                    ),
                   ),
-                ),
+                ],
                 SizedBox(height: 10.h),
                 Text(
-                  price,
+                  '${_formatWon(item.price)}원',
                   style: TextStyle(
                     fontFamily: 'Pretendard',
                     fontSize: 16.sp,
@@ -451,16 +507,20 @@ class _DetailHomeTabState extends State<DetailHomeTab> {
               ],
             ),
           ),
-          SizedBox(width: 16.w),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6.r),
-            child: Image.asset(
-              image,
-              width: 100.r,
-              height: 100.r,
-              fit: BoxFit.cover,
+          if (item.imageUrl.isNotEmpty) ...[
+            SizedBox(width: 16.w),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6.r),
+              child: Image.network(
+                item.imageUrl,
+                width: 100.r,
+                height: 100.r,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) =>
+                    SizedBox(width: 100.r, height: 100.r),
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );

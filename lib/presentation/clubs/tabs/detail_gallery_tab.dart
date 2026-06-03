@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
+import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 
 class DetailGalleryTab extends ConsumerStatefulWidget {
   final String clubId;
@@ -75,11 +76,7 @@ class _DetailGalleryTabState extends ConsumerState<DetailGalleryTab> {
           ),
         ),
         if (clubAsync.isLoading)
-          const SliverFillRemaining(
-            child: Center(
-              child: CircularProgressIndicator(color: VybeColors.mainPurple500),
-            ),
-          )
+          const SliverToBoxAdapter(child: PhotosTabSkeleton())
         else if (images.isEmpty)
           SliverFillRemaining(
             child: Center(

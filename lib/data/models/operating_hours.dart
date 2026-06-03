@@ -16,6 +16,20 @@ class DayHours {
     );
   }
 
+  bool get isCurrentlyOpen {
+    if (!isOpen || open == null || close == null) return false;
+    final now = DateTime.now();
+    final cur = now.hour * 60 + now.minute;
+    final o = _toMin(open!);
+    final c = _toMin(close!);
+    return c < o ? cur >= o || cur < c : cur >= o && cur < c;
+  }
+
+  int _toMin(String t) {
+    final p = t.split(':');
+    return int.parse(p[0]) * 60 + int.parse(p[1]);
+  }
+
   Map<String, dynamic> toMap() => {
         'isOpen': isOpen,
         if (open != null) 'open': open,

@@ -442,7 +442,9 @@ location            : object    // { lat: double, lng: double, geohash: string }
                                 //   geohash는 GeoQuery용 — location 맵 안에 포함됨 (최상위 아님)
                                 //   쿼리 시 'location.geohash' 필드 경로 사용
 genre               : string    // 주요 장르 (예: "힙합", "테크노", "팝")
-rating              : double    // 평점 (앱 내 리뷰 기반)
+rating              : double    // 평점 (ratingSum / reviewCount, Cloud Functions 자동 업데이트, 직접 수정 금지)
+ratingSum           : number    // 별점 합계 (Cloud Functions 자동 업데이트, 직접 수정 금지)
+reviewCount         : number    // 리뷰 수 (Cloud Functions 자동 업데이트, 직접 수정 금지)
 operatingHours      : object    // 요일별 영업시간
                                 //   { mon, tue, wed, thu, fri, sat, sun }
                                 //   각 요일: { isOpen: boolean, open: string?, close: string? }
@@ -517,7 +519,7 @@ createdAt       : timestamp
 
 ### Cloud Functions 목록
 
-총 7개 함수. Firebase 관련 서버 로직은 모두 Cloud Functions으로 처리.
+총 10개 함수. Firebase 관련 서버 로직은 모두 Cloud Functions으로 처리.
 
 #### HTTP 요청 함수 (앱에서 직접 호출)
 
@@ -534,9 +536,15 @@ createdAt       : timestamp
 | `onUserCreated` | Firebase Auth 신규 유저 생성 시 | users/{uid} 문서 자동 생성 (provider, isVerified: false, createdAt 세팅) |
 | `onFavoriteCreated` | favorites/{favoriteId} 생성 시 | clubs.favoriteCount += 1 (FieldValue.increment 사용) |
 | `onFavoriteDeleted` | favorites/{favoriteId} 삭제 시 | clubs.favoriteCount -= 1 (0 미만 방지 처리 필요) |
+| `onReviewCreated` | clubs/{clubId}/reviews/{reviewId} 생성 시 | ratingSum += rating, reviewCount += 1, rating = ratingSum / reviewCount |
+| `onReviewDeleted` | clubs/{clubId}/reviews/{reviewId} 삭제 시 | ratingSum -= rating, reviewCount -= 1, reviewCount > 0이면 rating 재계산, 0이면 rating = 0 |
+| `onReviewUpdated` | clubs/{clubId}/reviews/{reviewId} 수정 시 | ratingSum += (newRating - oldRating), rating = ratingSum / reviewCount |
 
 #### 구현 시 주의사항
-- `favoriteCount` 는 반드시 `FieldValue.increment()` 사용 (동시 요청 정합성 보장)
+- `favoriteCount`, `ratingSum`, `reviewCount`, `rating` 은 반드시 Cloud Functions으로만 업데이트 (직접 수정 금지)
+- `ratingSum` / `reviewCount` 증감은 `FieldValue.increment()` 사용 (동시 요청 정합성 보장)
+- `rating` 은 트랜잭션으로 `ratingSum / reviewCount` 계산 후 저장
+- `onReviewDeleted` 에서 `reviewCount`가 0이 되면 `rating = 0` 처리 필요
 - `deleteUser` 는 Admin SDK로만 처리 (클라이언트에서 직접 삭제 불가)
 - 네이버 UID 형식: `naver:{naverId}`
 - `onUserCreated` 는 문서가 이미 존재하면 덮어쓰지 말 것 (중복 실행 방어)
