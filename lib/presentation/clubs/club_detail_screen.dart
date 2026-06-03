@@ -10,7 +10,6 @@ import 'package:vybe/presentation/clubs/tabs/detail_info_tab.dart';
 import 'package:vybe/presentation/clubs/tabs/detail_menu_tab.dart';
 import 'package:vybe/presentation/clubs/tabs/detail_review_tab.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
-import 'package:vybe/presentation/clubs/viewmodels/review_viewmodel.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 
 class ClubDetailScreen extends ConsumerStatefulWidget {
@@ -44,6 +43,10 @@ class _ClubDetailScreenState extends ConsumerState<ClubDetailScreen>
   Widget build(BuildContext context) {
     final clubAsync = ref.watch(clubDetailProvider(widget.clubId));
     final imageUrls = clubAsync.value?.heroImageUrls ?? [];
+
+    // 탭 전환 시 재로딩 방지 — 상세 페이지 진입 시 1회만 fetch
+    ref.watch(clubInfoProvider(widget.clubId));
+    ref.watch(nearbyClubsProvider(widget.clubId));
 
     return Scaffold(
       backgroundColor: VybeColors.background,
@@ -95,16 +98,68 @@ class _ClubDetailScreenState extends ConsumerState<ClubDetailScreen>
         body: TabBarView(
           controller: _tabController,
           children: [
-            DetailHomeTab(clubId: widget.clubId),
-            DetailMenuTab(clubId: widget.clubId),
-            DetailGalleryTab(clubId: widget.clubId),
-            DetailReviewTab(clubId: widget.clubId),
-            const DetailInfoTab(),
+            DetailHomeTab(
+              clubId: widget.clubId,
+              onViewAllPhotos: () => _tabController.animateTo(2),
+            ),
+            _LazyTabBody(
+              isSelected: _tabController.index == 1,
+              builder: () => DetailMenuTab(clubId: widget.clubId),
+            ),
+            _LazyTabBody(
+              isSelected: _tabController.index == 2,
+              builder: () => DetailGalleryTab(clubId: widget.clubId),
+            ),
+            _LazyTabBody(
+              isSelected: _tabController.index == 3,
+              builder: () => DetailReviewTab(clubId: widget.clubId),
+            ),
+            _LazyTabBody(
+              isSelected: _tabController.index == 4,
+              builder: () => DetailInfoTab(clubId: widget.clubId),
+            ),
           ],
         ),
       ),
       bottomNavigationBar: const _BottomNav(),
     );
+  }
+}
+
+// ============ LAZY TAB BODY ============
+
+class _LazyTabBody extends StatefulWidget {
+  final bool isSelected;
+  final Widget Function() builder;
+  const _LazyTabBody({required this.isSelected, required this.builder});
+
+  @override
+  State<_LazyTabBody> createState() => _LazyTabBodyState();
+}
+
+class _LazyTabBodyState extends State<_LazyTabBody>
+    with AutomaticKeepAliveClientMixin {
+  Widget? _cached;
+
+  @override
+  bool get wantKeepAlive => _cached != null;
+
+  @override
+  void didUpdateWidget(_LazyTabBody old) {
+    super.didUpdateWidget(old);
+    if (widget.isSelected && _cached == null) {
+      setState(() {
+        _cached = widget.builder();
+        updateKeepAlive();
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    if (_cached == null) return const SizedBox.shrink();
+    return _cached!;
   }
 }
 
@@ -304,8 +359,7 @@ class _TitleBlock extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final club = ref.watch(clubDetailProvider(clubId)).value;
-    final reviewCount =
-        ref.watch(reviewListProvider(clubId)).value?.length ?? 0;
+    final reviewCount = club?.reviewCount ?? 0;
 
     final area = club?.area ?? '';
     final genre = club?.genre ?? '';

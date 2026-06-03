@@ -404,13 +404,16 @@ class MenuTabSkeleton extends StatelessWidget {
             children: [
               VybeSkel(width: 88.w, height: 20.h),
               SizedBox(height: 16.h),
-              Row(
-                children: List.generate(3, (i) {
-                  return Padding(
-                    padding: EdgeInsets.only(right: 8.w),
-                    child: VybeSkel(width: 121.r, height: 121.r, radius: 8),
-                  );
-                }),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: List.generate(3, (i) {
+                    return Padding(
+                      padding: EdgeInsets.only(right: 8.w),
+                      child: VybeSkel(width: 121.r, height: 121.r, radius: 8),
+                    );
+                  }),
+                ),
               ),
             ],
           ),

@@ -20,3 +20,17 @@ Future<ClubInfoModel?> clubInfo(Ref ref, String clubId) {
 Future<List<MenuModel>> clubMenus(Ref ref, String clubId) {
   return ref.watch(clubRepositoryProvider).getMenus(clubId);
 }
+
+@riverpod
+Future<List<MenuModel>> featuredMenus(Ref ref, String clubId) {
+  return ref.watch(clubRepositoryProvider).getFeaturedMenus(clubId);
+}
+
+@riverpod
+Future<List<ClubModel>> nearbyClubs(Ref ref, String clubId) async {
+  final club = await ref.watch(clubDetailProvider(clubId).future);
+  if (club == null) return [];
+  final all =
+      await ref.watch(clubRepositoryProvider).getClubsByArea(club.area);
+  return all.where((c) => c.clubId != clubId).take(5).toList();
+}

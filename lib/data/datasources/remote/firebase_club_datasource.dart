@@ -68,14 +68,30 @@ class FirebaseClubDataSource {
     await Future.delayed(const Duration(seconds: 5)); // TODO: remove after skeleton test
     logFirebaseAccess(
       file: 'firebase_club_datasource.dart',
-      service: 'Firestore(clubs/$clubId/menus) [where isAvailable=true]',
-      purpose: '클럽 메뉴 목록 조회',
+      service: 'Firestore(clubs/$clubId/menus) [isAvailable=true]',
+      purpose: '[메뉴탭] 전체 메뉴 목록 조회',
     );
     final snapshot = await _firestore
         .collection('clubs')
         .doc(clubId)
         .collection('menus')
         .where('isAvailable', isEqualTo: true)
+        .get();
+    return snapshot.docs.map(MenuModel.fromFirestore).toList();
+  }
+
+  Future<List<MenuModel>> getFeaturedMenus(String clubId) async {
+    logFirebaseAccess(
+      file: 'firebase_club_datasource.dart',
+      service: 'Firestore(clubs/$clubId/menus) [isFeatured=true, isAvailable=true]',
+      purpose: '[홈탭] 대표 메뉴 조회',
+    );
+    final snapshot = await _firestore
+        .collection('clubs')
+        .doc(clubId)
+        .collection('menus')
+        .where('isAvailable', isEqualTo: true)
+        .where('isFeatured', isEqualTo: true)
         .get();
     return snapshot.docs.map(MenuModel.fromFirestore).toList();
   }

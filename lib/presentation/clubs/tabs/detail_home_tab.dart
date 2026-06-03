@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/data/models/menu_model.dart';
 import 'package:vybe/data/models/operating_hours.dart';
 import 'package:vybe/design_system/colors.dart';
@@ -11,7 +12,8 @@ import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 
 class DetailHomeTab extends ConsumerStatefulWidget {
   final String clubId;
-  const DetailHomeTab({super.key, required this.clubId});
+  final VoidCallback? onViewAllPhotos;
+  const DetailHomeTab({super.key, required this.clubId, this.onViewAllPhotos});
 
   @override
   ConsumerState<DetailHomeTab> createState() => _DetailHomeTabState();
@@ -25,7 +27,7 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
   Widget build(BuildContext context) {
     final clubAsync = ref.watch(clubDetailProvider(widget.clubId));
     final clubInfoAsync = ref.watch(clubInfoProvider(widget.clubId));
-    final menusAsync = ref.watch(clubMenusProvider(widget.clubId));
+    final menusAsync = ref.watch(featuredMenusProvider(widget.clubId));
 
     return ListView(
       physics: const ClampingScrollPhysics(),
@@ -39,9 +41,13 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
             ? const MenuSkeleton()
             : _buildMenuPreviewSection(menusAsync.value ?? []),
         _sectionDivider(),
-        _buildPhotoPreviewSection(),
+        clubAsync.isLoading
+            ? const PhotosSkeleton()
+            : _buildPhotoPreviewSection(clubAsync.value?.imageUrls ?? []),
         _sectionDivider(),
-        _buildNearbyClubsSection(),
+        _buildNearbyClubsSection(
+          ref.watch(nearbyClubsProvider(widget.clubId)),
+        ),
         SizedBox(height: 32.h),
       ],
     );
@@ -528,13 +534,38 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
 
   // ── PHOTO PREVIEW ──
 
-  Widget _buildPhotoPreviewSection() {
+  Widget _buildPhotoPreviewSection(List<String> imageUrls) {
+    if (imageUrls.isEmpty) return const SizedBox.shrink();
+
+    final total = imageUrls.length;
+    final countLabel = total > 99 ? '99+' : '$total';
+    final remaining = total - 4;
+
+    Widget networkImage(String url, {double radius = 8, double opacity = 1.0}) {
+      Widget img = ClipRRect(
+        borderRadius: BorderRadius.circular(radius.r),
+        child: Image.network(
+          url,
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: double.infinity,
+          errorBuilder: (_, __, ___) =>
+              Container(color: VybeColors.gray800),
+        ),
+      );
+      return opacity < 1.0 ? Opacity(opacity: opacity, child: img) : img;
+    }
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionHeader('사진', count: '28'),
+          _sectionHeader(
+            '사진',
+            count: countLabel,
+            onViewAll: widget.onViewAllPhotos,
+          ),
           SizedBox(height: 14.h),
           SizedBox(
             height: 110.h,
@@ -544,13 +575,7 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
                 // big left image
                 Expanded(
                   flex: 2,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(10.r),
-                    child: Image.asset(
-                      'assets/club_detail/images/home_tab_image_1.jpg',
-                      fit: BoxFit.cover,
-                    ),
-                  ),
+                  child: networkImage(imageUrls[0], radius: 10),
                 ),
                 SizedBox(width: 6.w),
                 // right 2×2 grid
@@ -562,27 +587,15 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
                         child: Row(
                           children: [
                             Expanded(
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8.r),
-                                child: Image.asset(
-                                  'assets/club_detail/images/home_tab_image_2.png',
-                                  fit: BoxFit.cover,
-                                  width: double.infinity,
-                                  height: double.infinity,
-                                ),
-                              ),
+                              child: imageUrls.length > 1
+                                  ? networkImage(imageUrls[1])
+                                  : Container(color: VybeColors.gray800),
                             ),
                             SizedBox(width: 6.w),
                             Expanded(
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8.r),
-                                child: Image.asset(
-                                  'assets/club_detail/images/home_tab_image_3.png',
-                                  fit: BoxFit.cover,
-                                  width: double.infinity,
-                                  height: double.infinity,
-                                ),
-                              ),
+                              child: imageUrls.length > 2
+                                  ? networkImage(imageUrls[2])
+                                  : Container(color: VybeColors.gray800),
                             ),
                           ],
                         ),
@@ -591,7 +604,7 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
                       Expanded(
                         child: Row(
                           children: [
-                            // "+24" overlay cell
+                            // "+N 더보기" overlay cell
                             Expanded(
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(8.r),
@@ -617,7 +630,7 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
                                           MainAxisAlignment.center,
                                       children: [
                                         Text(
-                                          '+24',
+                                          '+$remaining',
                                           style: TextStyle(
                                             fontFamily: 'Pretendard',
                                             fontSize: 16.sp,
@@ -641,19 +654,9 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
                             ),
                             SizedBox(width: 6.w),
                             Expanded(
-                              child: Opacity(
-                                opacity: 0.7,
-                                child: ClipRRect(
-                                  borderRadius:
-                                      BorderRadius.circular(8.r),
-                                  child: Image.asset(
-                                    'assets/club_detail/images/image_tab_image_1.png',
-                                    fit: BoxFit.cover,
-                                    width: double.infinity,
-                                    height: double.infinity,
-                                  ),
-                                ),
-                              ),
+                              child: imageUrls.length > 3
+                                  ? networkImage(imageUrls[3], opacity: 0.7)
+                                  : Container(color: VybeColors.gray800),
                             ),
                           ],
                         ),
@@ -671,38 +674,12 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
 
   // ── NEARBY CLUBS ──
 
-  static const _clubs = [
-    {
-      'image': 'assets/club_detail/images/home_tab_image_1.jpg',
-      'name': '홍대 클럽 레이저',
-      'area': '홍대',
-      'genre': '힙합',
-      'rating': '4.5',
-    },
-    {
-      'image': 'assets/club_detail/images/home_tab_image_2.png',
-      'name': '버뮤다',
-      'area': '홍대',
-      'genre': '힙합',
-      'rating': '4.3',
-    },
-    {
-      'image': 'assets/club_detail/images/home_tab_image_3.png',
-      'name': '인클',
-      'area': '홍대',
-      'genre': '힙합',
-      'rating': '4.7',
-    },
-    {
-      'image': 'assets/club_detail/images/image_tab_image_1.png',
-      'name': '벨로주',
-      'area': '홍대',
-      'genre': '재즈',
-      'rating': '4.6',
-    },
-  ];
+  Widget _buildNearbyClubsSection(AsyncValue<List<ClubModel>> nearbyAsync) {
+    if (nearbyAsync.isLoading) return const NearbySkeleton();
 
-  Widget _buildNearbyClubsSection() {
+    final clubs = nearbyAsync.value ?? [];
+    if (clubs.isEmpty) return const SizedBox.shrink();
+
     return Padding(
       padding: EdgeInsets.only(top: 24.h, bottom: 24.h),
       child: Column(
@@ -717,7 +694,7 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
             scrollDirection: Axis.horizontal,
             padding: EdgeInsets.symmetric(horizontal: 20.w),
             child: Row(
-              children: _clubs.map((club) {
+              children: clubs.map((club) {
                 return Padding(
                   padding: EdgeInsets.only(right: 12.w),
                   child: SizedBox(
@@ -729,12 +706,24 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
                           children: [
                             ClipRRect(
                               borderRadius: BorderRadius.circular(10.r),
-                              child: Image.asset(
-                                club['image']!,
-                                width: 124.w,
-                                height: 124.h,
-                                fit: BoxFit.cover,
-                              ),
+                              child: club.thumbnailUrl.isNotEmpty
+                                  ? Image.network(
+                                      club.thumbnailUrl,
+                                      width: 124.w,
+                                      height: 124.h,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) =>
+                                          Container(
+                                            width: 124.w,
+                                            height: 124.h,
+                                            color: VybeColors.gray800,
+                                          ),
+                                    )
+                                  : Container(
+                                      width: 124.w,
+                                      height: 124.h,
+                                      color: VybeColors.gray800,
+                                    ),
                             ),
                             Positioned(
                               top: 6.h,
@@ -745,10 +734,8 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
                                   vertical: 2.h,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: Colors.black
-                                      .withValues(alpha: 0.6),
-                                  borderRadius:
-                                      BorderRadius.circular(4.r),
+                                  color: Colors.black.withValues(alpha: 0.6),
+                                  borderRadius: BorderRadius.circular(4.r),
                                 ),
                                 child: Row(
                                   children: [
@@ -759,7 +746,7 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
                                     ),
                                     SizedBox(width: 3.w),
                                     Text(
-                                      club['rating']!,
+                                      club.rating.toStringAsFixed(1),
                                       style: TextStyle(
                                         fontFamily: 'Pretendard',
                                         fontSize: 10.sp,
@@ -775,7 +762,7 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
                         ),
                         SizedBox(height: 8.h),
                         Text(
-                          club['name']!,
+                          club.name,
                           style: TextStyle(
                             fontFamily: 'Pretendard',
                             fontSize: 13.sp,
@@ -788,7 +775,7 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
                         Row(
                           children: [
                             Text(
-                              club['area']!,
+                              club.area,
                               style: TextStyle(
                                 fontFamily: 'Pretendard',
                                 fontSize: 11.sp,
@@ -796,8 +783,7 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
                               ),
                             ),
                             Padding(
-                              padding:
-                                  EdgeInsets.symmetric(horizontal: 4.w),
+                              padding: EdgeInsets.symmetric(horizontal: 4.w),
                               child: Container(
                                 width: 2.r,
                                 height: 2.r,
@@ -808,7 +794,7 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
                               ),
                             ),
                             Text(
-                              club['genre']!,
+                              club.genre,
                               style: TextStyle(
                                 fontFamily: 'Pretendard',
                                 fontSize: 11.sp,
@@ -831,7 +817,7 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
 
   // ── HELPERS ──
 
-  Widget _sectionHeader(String title, {String? count}) {
+  Widget _sectionHeader(String title, {String? count, VoidCallback? onViewAll}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -862,22 +848,25 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
             ],
           ],
         ),
-        Row(
-          children: [
-            Text(
-              '전체보기',
-              style: TextStyle(
-                fontFamily: 'Pretendard',
-                fontSize: 12.sp,
+        GestureDetector(
+          onTap: onViewAll,
+          child: Row(
+            children: [
+              Text(
+                '전체보기',
+                style: TextStyle(
+                  fontFamily: 'Pretendard',
+                  fontSize: 12.sp,
+                  color: VybeColors.gray500,
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                size: 14.r,
                 color: VybeColors.gray500,
               ),
-            ),
-            Icon(
-              Icons.chevron_right_rounded,
-              size: 14.r,
-              color: VybeColors.gray500,
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );

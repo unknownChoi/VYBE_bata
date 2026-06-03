@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_naver_map/flutter_naver_map.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
+import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
 import 'package:vybe/presentation/clubs/widgets/subway_line_badge.dart';
 
-class DetailInfoTab extends StatefulWidget {
-  const DetailInfoTab({super.key});
+class DetailInfoTab extends ConsumerStatefulWidget {
+  final String clubId;
+  const DetailInfoTab({super.key, required this.clubId});
 
   @override
-  State<DetailInfoTab> createState() => _DetailInfoTabState();
+  ConsumerState<DetailInfoTab> createState() => _DetailInfoTabState();
 }
 
-class _DetailInfoTabState extends State<DetailInfoTab> {
+class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
   bool _hoursExpanded = false;
   bool _noticeExpanded = true;
 
@@ -74,7 +78,7 @@ class _DetailInfoTabState extends State<DetailInfoTab> {
             ),
           ),
           SizedBox(height: 16.h),
-          const _MapCard(),
+          _NaverMapCard(clubId: widget.clubId),
           SizedBox(height: 16.h),
           // address card
           Container(
@@ -574,283 +578,70 @@ class _DetailInfoTabState extends State<DetailInfoTab> {
 
 // ── MAP CARD ──
 
-class _MapCard extends StatefulWidget {
-  const _MapCard();
+class _NaverMapCard extends ConsumerStatefulWidget {
+  final String clubId;
+  const _NaverMapCard({required this.clubId});
 
   @override
-  State<_MapCard> createState() => _MapCardState();
+  ConsumerState<_NaverMapCard> createState() => _NaverMapCardState();
 }
 
-class _MapCardState extends State<_MapCard> with SingleTickerProviderStateMixin {
-  late final AnimationController _pulseCtrl;
-  late final Animation<double> _scale;
-  late final Animation<double> _opacity;
-
-  @override
-  void initState() {
-    super.initState();
-    _pulseCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat();
-    _scale = Tween<double>(begin: 0.6, end: 2.2).animate(
-      CurvedAnimation(
-        parent: _pulseCtrl,
-        curve: const Interval(0, 0.7, curve: Curves.easeOut),
-      ),
-    );
-    _opacity = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween(begin: 0.55, end: 0.0),
-        weight: 70,
-      ),
-      TweenSequenceItem(
-        tween: ConstantTween(0.0),
-        weight: 30,
-      ),
-    ]).animate(_pulseCtrl);
-  }
-
-  @override
-  void dispose() {
-    _pulseCtrl.dispose();
-    super.dispose();
-  }
+class _NaverMapCardState extends ConsumerState<_NaverMapCard> {
+  NaverMapController? _mapController; // ignore: unused_field
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: 200.h,
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1F),
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: VybeColors.gray800),
-      ),
-      clipBehavior: Clip.hardEdge,
-      child: Stack(
-        children: [
-          // decorative map
-          Positioned.fill(
-            child: CustomPaint(painter: _MapPainter()),
-          ),
-          // subway exit badge
-          Positioned(
-            left: 80.w,
-            top: 92.h,
-            child: Row(
-              children: [
-                Container(
-                  width: 18.r,
-                  height: 18.r,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFBD941C),
-                    shape: BoxShape.circle,
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    '9',
-                    style: TextStyle(
-                      fontFamily: 'Pretendard',
-                      fontSize: 11.sp,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-                SizedBox(width: 4.w),
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 6.w,
-                    vertical: 2.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.7),
-                    borderRadius: BorderRadius.circular(4.r),
-                  ),
-                  child: Text(
-                    '상수역',
-                    style: TextStyle(
-                      fontFamily: 'Pretendard',
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
+    final club = ref.watch(clubDetailProvider(widget.clubId)).value;
+    if (club == null) {
+      return Container(
+        width: double.infinity,
+        height: 200.h,
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A1A1F),
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: VybeColors.gray800),
+        ),
+      );
+    }
+
+    final lat = club.lat;
+    final lng = club.lng;
+    final name = club.name;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12.r),
+      child: SizedBox(
+        width: double.infinity,
+        height: 200.h,
+        child: NaverMap(
+          options: NaverMapViewOptions(
+            initialCameraPosition: NCameraPosition(
+              target: NLatLng(lat, lng),
+              zoom: 16,
             ),
+            mapType: NMapType.basic,
+            activeLayerGroups: [NLayerGroup.building, NLayerGroup.transit],
+            nightModeEnable: true,
+            scrollGesturesEnable: false,
+            zoomGesturesEnable: false,
+            rotationGesturesEnable: false,
+            tiltGesturesEnable: false,
           ),
-          // pin with pulse
-          Positioned(
-            left: 0,
-            right: 0,
-            top: 0,
-            bottom: 0,
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // label
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 10.w,
-                      vertical: 4.h,
-                    ),
-                    decoration: BoxDecoration(
-                      color: VybeColors.mainPurple500,
-                      borderRadius: BorderRadius.circular(8.r),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x667731FE),
-                          blurRadius: 12,
-                          offset: Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Text(
-                      '어썸 레드',
-                      style: TextStyle(
-                        fontFamily: 'Pretendard',
-                        fontSize: 12.sp,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 4.h),
-                  // pulsing dot
-                  SizedBox(
-                    width: 36.r,
-                    height: 36.r,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        AnimatedBuilder(
-                          animation: _pulseCtrl,
-                          builder: (_, __) => Transform.scale(
-                            scale: _scale.value,
-                            child: Opacity(
-                              opacity: _opacity.value,
-                              child: Container(
-                                width: 18.r,
-                                height: 18.r,
-                                decoration: const BoxDecoration(
-                                  color: VybeColors.mainPurple500,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        Container(
-                          width: 14.r,
-                          height: 14.r,
-                          decoration: BoxDecoration(
-                            color: VybeColors.mainPurple500,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Colors.white,
-                              width: 2,
-                            ),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Colors.black38,
-                                blurRadius: 6,
-                                offset: Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          // "지도 크게 보기" button
-          Positioned(
-            right: 12.w,
-            bottom: 12.h,
-            child: Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: 12.w,
-                vertical: 6.h,
-              ),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(999.r),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.fullscreen_rounded,
-                    size: 12.r,
-                    color: Colors.white,
-                  ),
-                  SizedBox(width: 4.w),
-                  Text(
-                    '지도 크게 보기',
-                    style: TextStyle(
-                      fontFamily: 'Pretendard',
-                      fontSize: 12.sp,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+          onMapReady: (controller) async {
+            _mapController = controller;
+            final marker = NMarker(
+              id: 'club_marker',
+              position: NLatLng(lat, lng),
+            );
+            final infoWindow = NInfoWindow.onMarker(
+              id: 'club_info',
+              text: name,
+            );
+            await controller.addOverlay(marker);
+            marker.openInfoWindow(infoWindow);
+          },
+        ),
       ),
     );
   }
-}
-
-class _MapPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    // grid
-    final gridPaint = Paint()
-      ..color = const Color(0x0AFFFFFF)
-      ..strokeWidth = 1;
-    for (double x = 0; x < size.width; x += 40) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
-    }
-    for (double y = 0; y < size.height; y += 40) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
-    }
-    // main horizontal road
-    final road1 = Paint()
-      ..color = const Color(0x14FFFFFF)
-      ..strokeWidth = 18;
-    canvas.drawLine(
-        Offset(0, size.height / 2), Offset(size.width, size.height / 2), road1);
-    // main vertical road
-    final road2 = Paint()
-      ..color = const Color(0x14FFFFFF)
-      ..strokeWidth = 14;
-    canvas.drawLine(
-        Offset(size.width / 2, 0), Offset(size.width / 2, size.height), road2);
-    // secondary roads
-    final secRoad = Paint()
-      ..color = const Color(0x0DFFFFFF)
-      ..strokeWidth = 8;
-    canvas.drawLine(Offset(60, 40), Offset(size.width, 40), secRoad);
-    canvas.drawLine(
-        Offset(0, size.height * 0.8), Offset(size.width * 0.8, size.height * 0.8), secRoad);
-    // subway line 9
-    final subwayPaint = Paint()
-      ..color = const Color(0xCCBD941C)
-      ..strokeWidth = 3
-      ..style = PaintingStyle.stroke;
-    final path = Path()
-      ..moveTo(0, size.height * 0.65)
-      ..quadraticBezierTo(80, size.height * 0.65, 110, size.height / 2 + 10);
-    canvas.drawPath(path, subwayPaint);
-  }
-
-  @override
-  bool shouldRepaint(_MapPainter old) => false;
 }

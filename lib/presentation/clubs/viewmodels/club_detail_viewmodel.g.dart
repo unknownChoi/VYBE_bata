@@ -232,3 +232,153 @@ final class ClubMenusFamily extends $Family
   @override
   String toString() => r'clubMenusProvider';
 }
+
+@ProviderFor(featuredMenus)
+final featuredMenusProvider = FeaturedMenusFamily._();
+
+final class FeaturedMenusProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<MenuModel>>,
+          List<MenuModel>,
+          FutureOr<List<MenuModel>>
+        >
+    with $FutureModifier<List<MenuModel>>, $FutureProvider<List<MenuModel>> {
+  FeaturedMenusProvider._({
+    required FeaturedMenusFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'featuredMenusProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$featuredMenusHash();
+
+  @override
+  String toString() {
+    return r'featuredMenusProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<List<MenuModel>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<MenuModel>> create(Ref ref) {
+    final argument = this.argument as String;
+    return featuredMenus(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is FeaturedMenusProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$featuredMenusHash() => r'f3561a729fc1109d9f650226bb9acb2333a0f0c7';
+
+final class FeaturedMenusFamily extends $Family
+    with $FunctionalFamilyOverride<FutureOr<List<MenuModel>>, String> {
+  FeaturedMenusFamily._()
+    : super(
+        retry: null,
+        name: r'featuredMenusProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  FeaturedMenusProvider call(String clubId) =>
+      FeaturedMenusProvider._(argument: clubId, from: this);
+
+  @override
+  String toString() => r'featuredMenusProvider';
+}
+
+@ProviderFor(nearbyClubs)
+final nearbyClubsProvider = NearbyClubsFamily._();
+
+final class NearbyClubsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<ClubModel>>,
+          List<ClubModel>,
+          FutureOr<List<ClubModel>>
+        >
+    with $FutureModifier<List<ClubModel>>, $FutureProvider<List<ClubModel>> {
+  NearbyClubsProvider._({
+    required NearbyClubsFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'nearbyClubsProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$nearbyClubsHash();
+
+  @override
+  String toString() {
+    return r'nearbyClubsProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<List<ClubModel>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<ClubModel>> create(Ref ref) {
+    final argument = this.argument as String;
+    return nearbyClubs(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is NearbyClubsProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$nearbyClubsHash() => r'59cb244a44b2b7f14068d405c1ba0186c878609c';
+
+final class NearbyClubsFamily extends $Family
+    with $FunctionalFamilyOverride<FutureOr<List<ClubModel>>, String> {
+  NearbyClubsFamily._()
+    : super(
+        retry: null,
+        name: r'nearbyClubsProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  NearbyClubsProvider call(String clubId) =>
+      NearbyClubsProvider._(argument: clubId, from: this);
+
+  @override
+  String toString() => r'nearbyClubsProvider';
+}

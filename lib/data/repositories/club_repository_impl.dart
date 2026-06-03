@@ -34,6 +34,10 @@ class ClubRepositoryImpl implements ClubRepository {
       _dataSource.getMenus(clubId);
 
   @override
+  Future<List<MenuModel>> getFeaturedMenus(String clubId) =>
+      _dataSource.getFeaturedMenus(clubId);
+
+  @override
   Future<List<ClubModel>> getClubsByArea(String area) =>
       _dataSource.getClubsByArea(area);
 

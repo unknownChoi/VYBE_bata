@@ -431,10 +431,10 @@ function MenuItem({ tag, name, desc, price, color }) {
 
 }
 
-function MenuSection() {
+function MenuSection({ onViewAll }) {
   return (
     <div style={{ padding: '24px 20px' }}>
-      <SectionHeader title="메뉴" />
+      <SectionHeader title="메뉴" onViewAll={onViewAll} />
       <div style={{ marginTop: 4 }}>
         <MenuItem tag="대표" name="LEMON DROP" desc="레몬 보드카 베이스 · 새콤달콤" price="15,000원"
         color="linear-gradient(135deg, #f7d046, #e8a020)" />
@@ -1904,7 +1904,7 @@ function StubTab({ title }) {
 }
 
 // ============ SECTION HEADER ============
-function SectionHeader({ title, count }) {
+function SectionHeader({ title, count, onViewAll }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
@@ -1915,7 +1915,7 @@ function SectionHeader({ title, count }) {
         all: 'unset', cursor: 'pointer',
         display: 'flex', alignItems: 'center', gap: 2,
         fontSize: 12, color: C.text4
-      }}>
+      }} onClick={onViewAll}>
         전체보기 <IconChevRight size={14} stroke={C.text4} />
       </button>
     </div>);
@@ -2075,7 +2075,7 @@ function App() {
           loading ? <HomeSkeleton /> : <>
             <InfoSection />
             <SectionDivider />
-            <MenuSection />
+            <MenuSection onViewAll={() => setTab('메뉴')} />
             <SectionDivider />
             <PhotosSection />
             <SectionDivider />

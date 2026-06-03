@@ -21,6 +21,7 @@ abstract class ClubModel with _$ClubModel {
     required String geohash,
     required String genre,
     required double rating,
+    @Default(0) int reviewCount,
     @Default(OperatingHours()) OperatingHours operatingHours,
     required int entryFeeMin,
     required int entryFeeMax,
@@ -52,6 +53,7 @@ abstract class ClubModel with _$ClubModel {
       geohash: location['geohash'] as String? ?? '',
       genre: data['genre'] as String? ?? '',
       rating: (data['rating'] as num?)?.toDouble() ?? 0.0,
+      reviewCount: (data['reviewCount'] as num?)?.toInt() ?? 0,
       operatingHours: OperatingHours.fromMap(
           data['operatingHours'] as Map<String, dynamic>?),
       entryFeeMin: (data['entryFeeMin'] as num?)?.toInt() ?? 0,
