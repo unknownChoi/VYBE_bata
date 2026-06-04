@@ -214,15 +214,11 @@ class _HeroState extends State<_Hero> {
             controller: _pageController,
             onPageChanged: (i) => setState(() => _currentIndex = i),
             itemCount: total,
-            itemBuilder: (_, i) => Image.network(
-              images[i],
+            itemBuilder: (_, i) => SkeletonImage(
+              url: images[i],
               fit: BoxFit.cover,
               width: double.infinity,
               height: 270.h,
-              errorBuilder: (_, __, ___) => Container(
-                color: VybeColors.gray900,
-                height: 270.h,
-              ),
             ),
           ),
           // top scrim
@@ -505,8 +501,7 @@ class _TitleBlock extends ConsumerWidget {
             runSpacing: 6.h,
             children: tags.map((tag) {
               return Container(
-                padding:
-                    EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
+                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
                 decoration: BoxDecoration(
                   color: const Color(0x247731FE),
                   borderRadius: BorderRadius.circular(99.r),

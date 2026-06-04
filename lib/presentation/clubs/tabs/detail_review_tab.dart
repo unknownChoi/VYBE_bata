@@ -34,8 +34,7 @@ class _DetailReviewTabState extends ConsumerState<DetailReviewTab> {
       subtitle: 'NAVER 블로그',
       date: '2025.06.10',
       title: '홍대에서 입문자가 가기 좋은 클럽 TOP 5',
-      preview:
-          '어썸 레드는 입장료가 무료라서 처음 클럽에 가는 사람도 부담 없이 즐길 수 있는 곳이다...',
+      preview: '어썸 레드는 입장료가 무료라서 처음 클럽에 가는 사람도 부담 없이 즐길 수 있는 곳이다...',
       cover: 'assets/club_detail/images/home_tab_image_1.jpg',
     ),
     _BlogData(
@@ -81,10 +80,7 @@ class _DetailReviewTabState extends ConsumerState<DetailReviewTab> {
           ),
           padding: EdgeInsets.all(4.r),
           child: Row(
-            children: [
-              _toggleBtn('방문자 리뷰', 0),
-              _toggleBtn('블로그 리뷰', 1),
-            ],
+            children: [_toggleBtn('방문자 리뷰', 0), _toggleBtn('블로그 리뷰', 1)],
           ),
         ),
         SizedBox(height: 20.h),
@@ -132,12 +128,11 @@ class _DetailReviewTabState extends ConsumerState<DetailReviewTab> {
                   ),
                   SizedBox(height: 4.h),
                   ...sorted.asMap().entries.map(
-                        (e) => _ReviewCard(
-                          review: e.value,
-                          avatarColor:
-                              _avatarColors[e.key % _avatarColors.length],
-                        ),
-                      ),
+                    (e) => _ReviewCard(
+                      review: e.value,
+                      avatarColor: _avatarColors[e.key % _avatarColors.length],
+                    ),
+                  ),
                 ],
               );
             },
@@ -223,8 +218,7 @@ class _RatingSummary extends StatelessWidget {
     final avg = reviews.map((r) => r.rating).reduce((a, b) => a + b) / total;
 
     final dist = [5, 4, 3, 2, 1].map((star) {
-      final count =
-          reviews.where((r) => r.rating.floor() == star).length;
+      final count = reviews.where((r) => r.rating.floor() == star).length;
       return (star: star, count: count);
     }).toList();
 
@@ -269,9 +263,7 @@ class _RatingSummary extends StatelessWidget {
                   final filled = avg >= i + 1;
                   final half = !filled && avg >= i + 0.5;
                   return Icon(
-                    half
-                        ? Icons.star_half_rounded
-                        : Icons.star_rounded,
+                    half ? Icons.star_half_rounded : Icons.star_rounded,
                     size: 12.r,
                     color: (filled || half)
                         ? VybeColors.mainLime500
@@ -368,14 +360,13 @@ class _ReviewCardState extends State<_ReviewCard> {
     final r = widget.review;
     final isLong = r.content.length > 60;
     final showExpand = isLong && !_expanded;
-    final displayText =
-        showExpand ? '${r.content.substring(0, 60)}...' : r.content;
+    final displayText = showExpand
+        ? '${r.content.substring(0, 60)}...'
+        : r.content;
     final dateStr =
         '${r.createdAt.year}.${r.createdAt.month.toString().padLeft(2, '0')}.${r.createdAt.day.toString().padLeft(2, '0')}';
-    final initial =
-        r.userName.isNotEmpty ? r.userName.substring(0, 1) : '?';
-    final firstImage =
-        r.imageUrls.isNotEmpty ? r.imageUrls.first : null;
+    final initial = r.userName.isNotEmpty ? r.userName.substring(0, 1) : '?';
+    final firstImage = r.imageUrls.isNotEmpty ? r.imageUrls.first : null;
 
     return Container(
       padding: EdgeInsets.symmetric(vertical: 16.h),
@@ -424,9 +415,11 @@ class _ReviewCardState extends State<_ReviewCard> {
                       SizedBox(height: 2.h),
                       Row(
                         children: [
-                          Icon(Icons.star_rounded,
-                              size: 12.r,
-                              color: VybeColors.mainLime500),
+                          Icon(
+                            Icons.star_rounded,
+                            size: 12.r,
+                            color: VybeColors.mainLime500,
+                          ),
                           SizedBox(width: 4.w),
                           Text(
                             r.rating.toStringAsFixed(1),
@@ -484,8 +477,11 @@ class _ReviewCardState extends State<_ReviewCard> {
                                 color: VybeColors.gray500,
                               ),
                             ),
-                            Icon(Icons.keyboard_arrow_down_rounded,
-                                size: 10.r, color: VybeColors.gray500),
+                            Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              size: 10.r,
+                              color: VybeColors.gray500,
+                            ),
                           ],
                         ),
                       ),
@@ -500,19 +496,12 @@ class _ReviewCardState extends State<_ReviewCard> {
                   height: 90.r,
                   child: Stack(
                     children: [
-                      ClipRRect(
+                      SkeletonImage(
+                        url: firstImage,
+                        width: 90.r,
+                        height: 90.r,
+                        fit: BoxFit.cover,
                         borderRadius: BorderRadius.circular(6.r),
-                        child: Image.network(
-                          firstImage,
-                          width: 90.r,
-                          height: 90.r,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
-                            width: 90.r,
-                            height: 90.r,
-                            color: VybeColors.gray800,
-                          ),
-                        ),
                       ),
                       if (r.imageUrls.length > 1)
                         Positioned(

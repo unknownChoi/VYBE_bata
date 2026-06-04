@@ -26,7 +26,6 @@ class _DetailMenuTabState extends ConsumerState<DetailMenuTab> {
     'COCKTAIL',
   ];
 
-
   @override
   Widget build(BuildContext context) {
     final clubAsync = ref.watch(clubDetailProvider(widget.clubId));
@@ -104,19 +103,12 @@ class _DetailMenuTabState extends ConsumerState<DetailMenuTab> {
               children: boardImages.map((url) {
                 return Padding(
                   padding: EdgeInsets.only(right: 8.w),
-                  child: ClipRRect(
+                  child: SkeletonImage(
+                    url: url,
+                    width: 121.r,
+                    height: 121.r,
+                    fit: BoxFit.cover,
                     borderRadius: BorderRadius.circular(8.r),
-                    child: Image.network(
-                      url,
-                      width: 121.r,
-                      height: 121.r,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        width: 121.r,
-                        height: 121.r,
-                        color: VybeColors.gray800,
-                      ),
-                    ),
                   ),
                 );
               }).toList(),
@@ -158,8 +150,7 @@ class _DetailMenuTabState extends ConsumerState<DetailMenuTab> {
                     style: TextStyle(
                       fontFamily: 'Pretendard',
                       fontSize: 13.sp,
-                      fontWeight:
-                          selected ? FontWeight.w600 : FontWeight.w500,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
                       color: selected ? Colors.white : VybeColors.gray400,
                     ),
                   ),
@@ -297,16 +288,12 @@ class _MenuItemWidget extends StatelessWidget {
           ),
           if (item.imageUrl.isNotEmpty) ...[
             SizedBox(width: 16.w),
-            ClipRRect(
+            SkeletonImage(
+              url: item.imageUrl,
+              width: 100.r,
+              height: 100.r,
+              fit: BoxFit.cover,
               borderRadius: BorderRadius.circular(6.r),
-              child: Image.network(
-                item.imageUrl,
-                width: 100.r,
-                height: 100.r,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) =>
-                    SizedBox(width: 100.r, height: 100.r),
-              ),
             ),
           ],
         ],

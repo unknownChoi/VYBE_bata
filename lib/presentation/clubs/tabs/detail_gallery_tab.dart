@@ -61,10 +61,10 @@ class _DetailGalleryTabState extends ConsumerState<DetailGalleryTab> {
                           style: TextStyle(
                             fontFamily: 'Pretendard',
                             fontSize: 13.sp,
-                            fontWeight:
-                                selected ? FontWeight.w600 : FontWeight.w500,
-                            color:
-                                selected ? Colors.white : VybeColors.gray400,
+                            fontWeight: selected
+                                ? FontWeight.w600
+                                : FontWeight.w500,
+                            color: selected ? Colors.white : VybeColors.gray400,
                           ),
                         ),
                       ),
@@ -100,18 +100,12 @@ class _DetailGalleryTabState extends ConsumerState<DetailGalleryTab> {
               childCount: images.length,
               itemBuilder: (context, index) {
                 final isEven = index % 2 == 0;
-                return ClipRRect(
+                return SkeletonImage(
+                  url: images[index],
+                  width: double.infinity,
+                  height: isEven ? 180.h : 130.h,
+                  fit: BoxFit.cover,
                   borderRadius: BorderRadius.circular(6.r),
-                  child: Image.network(
-                    images[index],
-                    width: double.infinity,
-                    height: isEven ? 180.h : 130.h,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      height: isEven ? 180.h : 130.h,
-                      color: VybeColors.gray800,
-                    ),
-                  ),
                 );
               },
             ),

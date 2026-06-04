@@ -20,7 +20,10 @@ class FavoriteViewModel extends _$FavoriteViewModel {
   Map<String, bool> build() => {};
 
   Future<void> toggleFavorite(
-      String userId, String clubId, bool currentIsFav) async {
+    String userId,
+    String clubId,
+    bool currentIsFav,
+  ) async {
     // 낙관적 UI 즉시 반영
     state = {...state, clubId: !currentIsFav};
 

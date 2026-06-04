@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
@@ -64,6 +66,118 @@ class _VybeSkelState extends State<VybeSkel>
         ),
       ),
     );
+  }
+}
+
+// ── Skeleton 이미지 ─────────────────────────────────────────────
+//
+// Image.network 로딩 중 + 디코드 완료 후에도 최소 [minSkeleton] 동안
+// 스켈레톤(shimmer)을 유지한 뒤 페이드로 이미지를 노출한다.
+// URL 로딩 지연 시 깜빡임을 막기 위한 위젯.
+
+class SkeletonImage extends StatefulWidget {
+  final String url;
+  final double? width;
+  final double? height;
+  final BoxFit fit;
+  final BorderRadius? borderRadius;
+  final Duration minSkeleton;
+
+  const SkeletonImage({
+    super.key,
+    required this.url,
+    this.width,
+    this.height,
+    this.fit = BoxFit.cover,
+    this.borderRadius,
+    this.minSkeleton = const Duration(seconds: 1),
+  });
+
+  @override
+  State<SkeletonImage> createState() => _SkeletonImageState();
+}
+
+class _SkeletonImageState extends State<SkeletonImage> {
+  bool _revealed = false;
+  bool _loaded = false;
+  late final DateTime _start;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _start = DateTime.now();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  // 이미지 디코드(또는 에러) 완료 시 호출 — 최소 표시 시간 보장 후 reveal.
+  void _onSettled() {
+    if (_loaded) return;
+    _loaded = true;
+    final remain = widget.minSkeleton - DateTime.now().difference(_start);
+    if (remain > Duration.zero) {
+      _timer = Timer(remain, () {
+        if (mounted) setState(() => _revealed = true);
+      });
+    } else {
+      if (mounted) setState(() => _revealed = true);
+    }
+  }
+
+  void _scheduleSettle() {
+    WidgetsBinding.instance.addPostFrameCallback((_) => _onSettled());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final image = Image.network(
+      widget.url,
+      width: widget.width,
+      height: widget.height,
+      fit: widget.fit,
+      frameBuilder: (_, child, frame, wasSync) {
+        if ((frame != null || wasSync) && !_loaded) _scheduleSettle();
+        return child;
+      },
+      errorBuilder: (_, __, ___) {
+        if (!_loaded) _scheduleSettle();
+        return Container(
+          width: widget.width,
+          height: widget.height,
+          color: VybeColors.gray900,
+        );
+      },
+    );
+
+    final content = Stack(
+      fit: StackFit.passthrough,
+      children: [
+        image,
+        Positioned.fill(
+          child: IgnorePointer(
+            ignoring: _revealed,
+            child: AnimatedOpacity(
+              opacity: _revealed ? 0 : 1,
+              duration: const Duration(milliseconds: 350),
+              curve: Curves.easeInOut,
+              child: VybeSkel(
+                width: widget.width,
+                height: widget.height,
+                radius: 0,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+
+    if (widget.borderRadius == null) return content;
+    return ClipRRect(borderRadius: widget.borderRadius!, child: content);
   }
 }
 
@@ -626,6 +740,56 @@ class LocationSkeleton extends StatelessWidget {
               );
             }),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class DetailInfoSkeleton extends StatelessWidget {
+  const DetailInfoSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // '상세 정보' 타이틀
+          VybeSkel(width: 80.w, height: 20.h),
+          SizedBox(height: 16.h),
+          // 정보 행 4개 (영업시간/전화/인스타/오픈채팅)
+          ...List.generate(4, (i) {
+            return Container(
+              padding: EdgeInsets.symmetric(vertical: 16.h),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: VybeColors.gray900),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      VybeSkel(width: 16.r, height: 16.r, radius: 4),
+                      SizedBox(width: 8.w),
+                      VybeSkel(width: 60.w, height: 13.h),
+                    ],
+                  ),
+                  SizedBox(height: 10.h),
+                  Padding(
+                    padding: EdgeInsets.only(left: 24.w),
+                    child: VybeSkel(width: 130.w, height: 14.h),
+                  ),
+                ],
+              ),
+            );
+          }),
+          SizedBox(height: 16.h),
+          // 안내/유의사항 박스
+          VybeSkel(width: double.infinity, height: 44.h, radius: 12),
         ],
       ),
     );

@@ -35,7 +35,9 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
       children: [
         isLoading ? const LocationSkeleton() : _buildLocationSection(),
         _sectionDivider(),
-        _buildDetailInfoSection(clubAsync.value, clubInfoAsync.value),
+        isLoading
+            ? const DetailInfoSkeleton()
+            : _buildDetailInfoSection(clubAsync.value, clubInfoAsync.value),
         SizedBox(height: 32.h),
       ],
     );
@@ -58,8 +60,8 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
   /// 하루 영업시간 문자열
   String _dayHoursText(DayHours d) =>
       (d.isOpen && d.open != null && d.close != null)
-          ? '${d.open} - ${d.close}'
-          : '정기휴무';
+      ? '${d.open} - ${d.close}'
+      : '정기휴무';
 
   Widget _sectionDivider() {
     return Container(
@@ -157,11 +159,7 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
                 accent: false,
               ),
               SizedBox(width: 8.w),
-              _actionChip(
-                icon: Icons.map_rounded,
-                label: '지도',
-                accent: false,
-              ),
+              _actionChip(icon: Icons.map_rounded, label: '지도', accent: false),
               SizedBox(width: 8.w),
               _actionChip(
                 icon: Icons.near_me_rounded,
@@ -253,8 +251,7 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
             icon: Icons.access_time_rounded,
             label: '영업 시간',
             child: GestureDetector(
-              onTap: () =>
-                  setState(() => _hoursExpanded = !_hoursExpanded),
+              onTap: () => setState(() => _hoursExpanded = !_hoursExpanded),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -269,23 +266,28 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
                               vertical: 2.h,
                             ),
                             decoration: BoxDecoration(
-                              color: VybeColors.mainLime500
-                                  .withValues(alpha: 0.16),
+                              color:
+                                  (isOpen
+                                          ? VybeColors.mainLime500
+                                          : VybeColors.gray500)
+                                      .withValues(alpha: 0.16),
                               borderRadius: BorderRadius.circular(99.r),
                             ),
                             child: Text(
-                              '영업중',
+                              isOpen ? '영업중' : '영업종료',
                               style: TextStyle(
                                 fontFamily: 'Pretendard',
                                 fontSize: 12.sp,
                                 fontWeight: FontWeight.w700,
-                                color: VybeColors.mainLime500,
+                                color: isOpen
+                                    ? VybeColors.mainLime500
+                                    : VybeColors.gray500,
                               ),
                             ),
                           ),
                           SizedBox(width: 8.w),
                           Text(
-                            '11:00 - 02:00',
+                            _dayHoursText(todayHours),
                             style: TextStyle(
                               fontFamily: 'Pretendard',
                               fontSize: 14.sp,
@@ -307,7 +309,7 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
                   ),
                   if (_hoursExpanded) ...[
                     SizedBox(height: 12.h),
-                    ...List.generate(_hours.length, (i) {
+                    ...List.generate(days.length, (i) {
                       final isToday = i == today;
                       return Padding(
                         padding: EdgeInsets.only(bottom: 8.h),
@@ -316,7 +318,7 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
                             SizedBox(
                               width: 18.w,
                               child: Text(
-                                _hours[i][0],
+                                _weekdayLabels[i],
                                 style: TextStyle(
                                   fontFamily: 'Pretendard',
                                   fontSize: 13.sp,
@@ -331,7 +333,7 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
                             ),
                             SizedBox(width: 12.w),
                             Text(
-                              _hours[i][1],
+                              _dayHoursText(days[i]),
                               style: TextStyle(
                                 fontFamily: 'Pretendard',
                                 fontSize: 13.sp,
@@ -352,8 +354,7 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
                                 ),
                                 decoration: BoxDecoration(
                                   color: const Color(0x247731FE),
-                                  borderRadius:
-                                      BorderRadius.circular(4.r),
+                                  borderRadius: BorderRadius.circular(4.r),
                                 ),
                                 child: Text(
                                   '오늘',
@@ -383,7 +384,7 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
             child: Row(
               children: [
                 Text(
-                  '02-1234-1234',
+                  phone.isNotEmpty ? phone : '-',
                   style: TextStyle(
                     fontFamily: 'Pretendard',
                     fontSize: 14.sp,
@@ -410,7 +411,7 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
             child: Row(
               children: [
                 Text(
-                  '@awesomered_omg',
+                  instagram.isNotEmpty ? instagram : '-',
                   style: TextStyle(
                     fontFamily: 'Pretendard',
                     fontSize: 14.sp,
@@ -435,7 +436,7 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
               children: [
                 Expanded(
                   child: Text(
-                    'open.kakao.com/o/gYnkW0yf',
+                    openChatUrl.isNotEmpty ? _stripScheme(openChatUrl) : '-',
                     style: TextStyle(
                       fontFamily: 'Pretendard',
                       fontSize: 14.sp,
@@ -455,112 +456,108 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
           ),
 
           // notice section
-          SizedBox(height: 16.h),
-          GestureDetector(
-            onTap: () =>
-                setState(() => _noticeExpanded = !_noticeExpanded),
-            child: Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: 14.w,
-                vertical: 12.h,
-              ),
-              decoration: BoxDecoration(
-                color: VybeColors.accentRed500.withValues(alpha: 0.08),
-                border: Border.all(
-                  color: VybeColors.accentRed500.withValues(alpha: 0.25),
+          if (cautions.isNotEmpty) ...[
+            SizedBox(height: 16.h),
+            GestureDetector(
+              onTap: () => setState(() => _noticeExpanded = !_noticeExpanded),
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+                decoration: BoxDecoration(
+                  color: VybeColors.accentRed500.withValues(alpha: 0.08),
+                  border: Border.all(
+                    color: VybeColors.accentRed500.withValues(alpha: 0.25),
+                  ),
+                  borderRadius: _noticeExpanded
+                      ? BorderRadius.vertical(top: Radius.circular(12.r))
+                      : BorderRadius.circular(12.r),
                 ),
-                borderRadius: _noticeExpanded
-                    ? BorderRadius.vertical(top: Radius.circular(12.r))
-                    : BorderRadius.circular(12.r),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.warning_amber_rounded,
-                    size: 16.r,
-                    color: VybeColors.accentRed500,
-                  ),
-                  SizedBox(width: 8.w),
-                  Text(
-                    '안내 및 유의사항',
-                    style: TextStyle(
-                      fontFamily: 'Pretendard',
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w700,
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      size: 16.r,
                       color: VybeColors.accentRed500,
                     ),
-                  ),
-                  const Spacer(),
-                  AnimatedRotation(
-                    turns: _noticeExpanded ? 0.5 : 0,
-                    duration: const Duration(milliseconds: 200),
-                    child: Icon(
-                      Icons.keyboard_arrow_down_rounded,
-                      size: 14.r,
-                      color: VybeColors.accentRed500,
+                    SizedBox(width: 8.w),
+                    Text(
+                      '안내 및 유의사항',
+                      style: TextStyle(
+                        fontFamily: 'Pretendard',
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w700,
+                        color: VybeColors.accentRed500,
+                      ),
                     ),
-                  ),
-                ],
+                    const Spacer(),
+                    AnimatedRotation(
+                      turns: _noticeExpanded ? 0.5 : 0,
+                      duration: const Duration(milliseconds: 200),
+                      child: Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        size: 14.r,
+                        color: VybeColors.accentRed500,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          if (_noticeExpanded)
-            Container(
-              padding: EdgeInsets.fromLTRB(14.w, 14.h, 14.w, 16.h),
-              decoration: BoxDecoration(
-                color: VybeColors.accentRed500.withValues(alpha: 0.04),
-                border: Border(
-                  left: BorderSide(
-                    color:
-                        VybeColors.accentRed500.withValues(alpha: 0.25),
+            if (_noticeExpanded)
+              Container(
+                padding: EdgeInsets.fromLTRB(14.w, 14.h, 14.w, 16.h),
+                decoration: BoxDecoration(
+                  color: VybeColors.accentRed500.withValues(alpha: 0.04),
+                  border: Border(
+                    left: BorderSide(
+                      color: VybeColors.accentRed500.withValues(alpha: 0.25),
+                    ),
+                    right: BorderSide(
+                      color: VybeColors.accentRed500.withValues(alpha: 0.25),
+                    ),
+                    bottom: BorderSide(
+                      color: VybeColors.accentRed500.withValues(alpha: 0.25),
+                    ),
                   ),
-                  right: BorderSide(
-                    color:
-                        VybeColors.accentRed500.withValues(alpha: 0.25),
-                  ),
-                  bottom: BorderSide(
-                    color:
-                        VybeColors.accentRed500.withValues(alpha: 0.25),
+                  borderRadius: BorderRadius.vertical(
+                    bottom: Radius.circular(12.r),
                   ),
                 ),
-                borderRadius:
-                    BorderRadius.vertical(bottom: Radius.circular(12.r)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: _notices.map((notice) {
-                  return Padding(
-                    padding: EdgeInsets.only(bottom: 10.h),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '•',
-                          style: TextStyle(
-                            fontFamily: 'Pretendard',
-                            fontSize: 14.sp,
-                            color: VybeColors.gray500,
-                            height: 1.43,
-                          ),
-                        ),
-                        SizedBox(width: 8.w),
-                        Expanded(
-                          child: Text(
-                            notice,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: cautions.map((notice) {
+                    return Padding(
+                      padding: EdgeInsets.only(bottom: 10.h),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '•',
                             style: TextStyle(
                               fontFamily: 'Pretendard',
                               fontSize: 14.sp,
-                              color: VybeColors.gray200,
+                              color: VybeColors.gray500,
                               height: 1.43,
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
+                          SizedBox(width: 8.w),
+                          Expanded(
+                            child: Text(
+                              notice,
+                              style: TextStyle(
+                                fontFamily: 'Pretendard',
+                                fontSize: 14.sp,
+                                color: VybeColors.gray200,
+                                height: 1.43,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
               ),
-            ),
+          ],
         ],
       ),
     );

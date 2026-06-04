@@ -23,7 +23,10 @@ class ReviewViewModel extends _$ReviewViewModel {
   }
 
   Future<void> updateReview(
-      String clubId, String reviewId, ReviewModel review) async {
+    String clubId,
+    String reviewId,
+    ReviewModel review,
+  ) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(
       () => ref
@@ -35,9 +38,7 @@ class ReviewViewModel extends _$ReviewViewModel {
   Future<void> deleteReview(String clubId, String reviewId) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(
-      () => ref
-          .read(reviewRepositoryProvider)
-          .deleteReview(clubId, reviewId),
+      () => ref.read(reviewRepositoryProvider).deleteReview(clubId, reviewId),
     );
   }
 }

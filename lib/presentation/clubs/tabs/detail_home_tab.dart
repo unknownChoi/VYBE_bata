@@ -33,7 +33,7 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
   Widget build(BuildContext context) {
     final clubAsync = ref.watch(clubDetailProvider(widget.clubId));
     final clubInfoAsync = ref.watch(clubInfoProvider(widget.clubId));
-    final menusAsync = ref.watch(featuredMenusProvider(widget.clubId));
+    final menusAsync = ref.watch(clubMenusProvider(widget.clubId));
 
     return ListView(
       physics: const ClampingScrollPhysics(),
@@ -51,9 +51,7 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
             ? const PhotosSkeleton()
             : _buildPhotoPreviewSection(clubAsync.value?.imageUrls ?? []),
         _sectionDivider(),
-        _buildNearbyClubsSection(
-          ref.watch(nearbyClubsProvider(widget.clubId)),
-        ),
+        _buildNearbyClubsSection(ref.watch(nearbyClubsProvider(widget.clubId))),
         SizedBox(height: 32.h),
       ],
     );
@@ -111,80 +109,87 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
                 BlendMode.srcIn,
               ),
             ),
-            child: GestureDetector(
-              onTap: () => setState(() => _addrExpanded = !_addrExpanded),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          address,
-                          style: TextStyle(
-                            fontFamily: 'Pretendard',
-                            fontSize: 14.sp,
-                            color: VybeColors.gray200,
-                            height: 1.5,
+            onTap: () => setState(() => _addrExpanded = !_addrExpanded),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        address,
+                        style: TextStyle(
+                          fontFamily: 'Pretendard',
+                          fontSize: 14.sp,
+                          color: VybeColors.gray200,
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+                    AnimatedRotation(
+                      turns: _addrExpanded ? 0.5 : 0,
+                      duration: const Duration(milliseconds: 200),
+                      child: Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: VybeColors.gray500,
+                        size: 16.r,
+                      ),
+                    ),
+                  ],
+                ),
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  alignment: Alignment.topCenter,
+                  child: ClipRect(
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      heightFactor: _addrExpanded ? 1 : 0,
+                      child: AnimatedOpacity(
+                        opacity: _addrExpanded ? 1 : 0,
+                        duration: const Duration(milliseconds: 250),
+                        curve: Curves.easeInOut,
+                        child: Padding(
+                          padding: EdgeInsets.only(top: 10.h),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: nearbySubways.map<Widget>((s) {
+                              final name = s['stationName'] as String? ?? '';
+                              final dist = s['distanceM'] as int? ?? 0;
+                              final lines =
+                                  (s['lines'] as List?)?.cast<String>() ??
+                                  const <String>[];
+                              return Padding(
+                                padding: EdgeInsets.only(bottom: 4.h),
+                                child: Row(
+                                  children: [
+                                    ...lines.map(
+                                      (l) => Padding(
+                                        padding: EdgeInsets.only(right: 4.w),
+                                        child: SubwayLineBadge(line: l),
+                                      ),
+                                    ),
+                                    if (lines.isNotEmpty) SizedBox(width: 2.w),
+                                    Text(
+                                      '$name에서 ${dist}m',
+                                      style: TextStyle(
+                                        fontFamily: 'Pretendard',
+                                        fontSize: 13.sp,
+                                        color: VybeColors.gray300,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
                           ),
                         ),
                       ),
-                      AnimatedRotation(
-                        turns: _addrExpanded ? 0.5 : 0,
-                        duration: const Duration(milliseconds: 200),
-                        child: Icon(
-                          Icons.keyboard_arrow_down_rounded,
-                          color: VybeColors.gray500,
-                          size: 16.r,
-                        ),
-                      ),
-                    ],
-                  ),
-                  AnimatedCrossFade(
-                    firstChild: const SizedBox.shrink(),
-                    secondChild: Padding(
-                      padding: EdgeInsets.only(top: 10.h),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: nearbySubways.map<Widget>((s) {
-                          final name = s['stationName'] as String? ?? '';
-                          final dist = s['distanceM'] as int? ?? 0;
-                          final lines =
-                              (s['lines'] as List?)?.cast<String>() ??
-                                  const <String>[];
-                          return Padding(
-                            padding: EdgeInsets.only(bottom: 4.h),
-                            child: Row(
-                              children: [
-                                ...lines.map(
-                                  (l) => Padding(
-                                    padding: EdgeInsets.only(right: 4.w),
-                                    child: SubwayLineBadge(line: l),
-                                  ),
-                                ),
-                                if (lines.isNotEmpty) SizedBox(width: 2.w),
-                                Text(
-                                  '$name에서 ${dist}m',
-                                  style: TextStyle(
-                                    fontFamily: 'Pretendard',
-                                    fontSize: 13.sp,
-                                    color: VybeColors.gray300,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }).toList(),
-                      ),
                     ),
-                    crossFadeState: _addrExpanded
-                        ? CrossFadeState.showSecond
-                        : CrossFadeState.showFirst,
-                    duration: const Duration(milliseconds: 300),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
           SizedBox(height: 16.h),
@@ -199,137 +204,153 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
                 BlendMode.srcIn,
               ),
             ),
-            child: GestureDetector(
-              onTap: () =>
-                  setState(() => _hoursExpanded = !_hoursExpanded),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
+            onTap: () => setState(() => _hoursExpanded = !_hoursExpanded),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          isOpen ? '영업중' : '영업종료',
+                          style: TextStyle(
+                            fontFamily: 'Pretendard',
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w600,
+                            color: isOpen
+                                ? VybeColors.mainLime500
+                                : VybeColors.gray500,
+                          ),
+                        ),
+                        if (isOpen && todayHours.close != null) ...[
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 6.w),
+                            child: Container(
+                              width: 2.r,
+                              height: 2.r,
+                              decoration: const BoxDecoration(
+                                color: VybeColors.gray700,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
                           Text(
-                            isOpen ? '영업중' : '영업종료',
+                            '${todayHours.close}에 영업 종료',
                             style: TextStyle(
                               fontFamily: 'Pretendard',
                               fontSize: 14.sp,
-                              fontWeight: FontWeight.w600,
-                              color: isOpen
-                                  ? VybeColors.mainLime500
-                                  : VybeColors.gray500,
+                              color: VybeColors.gray400,
                             ),
                           ),
-                          if (isOpen && todayHours.close != null) ...[
-                            Padding(
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: 6.w),
-                              child: Container(
-                                width: 2.r,
-                                height: 2.r,
-                                decoration: const BoxDecoration(
-                                  color: VybeColors.gray700,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            ),
-                            Text(
-                              '${todayHours.close}에 영업 종료',
-                              style: TextStyle(
-                                fontFamily: 'Pretendard',
-                                fontSize: 14.sp,
-                                color: VybeColors.gray400,
-                              ),
-                            ),
-                          ],
                         ],
+                      ],
+                    ),
+                    AnimatedRotation(
+                      turns: _hoursExpanded ? 0.5 : 0,
+                      duration: const Duration(milliseconds: 200),
+                      child: Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: VybeColors.gray500,
+                        size: 16.r,
                       ),
-                      AnimatedRotation(
-                        turns: _hoursExpanded ? 0.5 : 0,
-                        duration: const Duration(milliseconds: 200),
-                        child: Icon(
-                          Icons.keyboard_arrow_down_rounded,
-                          color: VybeColors.gray500,
-                          size: 16.r,
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (_hoursExpanded) ...[
-                    SizedBox(height: 10.h),
-                    ...weekdays.asMap().entries.map((e) {
-                      final i = e.key;
-                      final label = e.value.$1;
-                      final day = e.value.$2;
-                      final isToday = i == todayIndex;
-                      final timeStr = day.isOpen
-                          ? '${day.open} - ${day.close}'
-                          : '정기휴무';
-                      return Padding(
-                        padding: EdgeInsets.only(bottom: 6.h),
-                        child: Row(
-                          children: [
-                            SizedBox(
-                              width: 18.w,
-                              child: Text(
-                                label,
-                                style: TextStyle(
-                                  fontFamily: 'Pretendard',
-                                  fontSize: 13.sp,
-                                  fontWeight: isToday
-                                      ? FontWeight.w700
-                                      : FontWeight.w400,
-                                  color: isToday
-                                      ? Colors.white
-                                      : VybeColors.gray500,
-                                ),
-                              ),
-                            ),
-                            SizedBox(width: 10.w),
-                            Text(
-                              timeStr,
-                              style: TextStyle(
-                                fontFamily: 'Pretendard',
-                                fontSize: 13.sp,
-                                fontWeight: isToday
-                                    ? FontWeight.w600
-                                    : FontWeight.w400,
-                                color: isToday
-                                    ? Colors.white
-                                    : VybeColors.gray500,
-                              ),
-                            ),
-                            if (isToday) ...[
-                              SizedBox(width: 8.w),
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 6.w,
-                                  vertical: 1.h,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0x247731FE),
-                                  borderRadius:
-                                      BorderRadius.circular(4.r),
-                                ),
-                                child: Text(
-                                  '오늘',
-                                  style: TextStyle(
-                                    fontFamily: 'Pretendard',
-                                    fontSize: 10.sp,
-                                    fontWeight: FontWeight.w700,
-                                    color: VybeColors.mainPurple500,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      );
-                    }),
+                    ),
                   ],
-                ],
-              ),
+                ),
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  alignment: Alignment.topCenter,
+                  child: ClipRect(
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      heightFactor: _hoursExpanded ? 1 : 0,
+                      child: AnimatedOpacity(
+                        opacity: _hoursExpanded ? 1 : 0,
+                        duration: const Duration(milliseconds: 250),
+                        curve: Curves.easeInOut,
+                        child: Padding(
+                          padding: EdgeInsets.only(top: 10.h),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: weekdays.asMap().entries.map((e) {
+                              final i = e.key;
+                              final label = e.value.$1;
+                              final day = e.value.$2;
+                              final isToday = i == todayIndex;
+                              final timeStr = day.isOpen
+                                  ? '${day.open} - ${day.close}'
+                                  : '정기휴무';
+                              return Padding(
+                                padding: EdgeInsets.only(bottom: 6.h),
+                                child: Row(
+                                  children: [
+                                    SizedBox(
+                                      width: 18.w,
+                                      child: Text(
+                                        label,
+                                        style: TextStyle(
+                                          fontFamily: 'Pretendard',
+                                          fontSize: 13.sp,
+                                          fontWeight: isToday
+                                              ? FontWeight.w700
+                                              : FontWeight.w400,
+                                          color: isToday
+                                              ? Colors.white
+                                              : VybeColors.gray500,
+                                        ),
+                                      ),
+                                    ),
+                                    SizedBox(width: 10.w),
+                                    Text(
+                                      timeStr,
+                                      style: TextStyle(
+                                        fontFamily: 'Pretendard',
+                                        fontSize: 13.sp,
+                                        fontWeight: isToday
+                                            ? FontWeight.w600
+                                            : FontWeight.w400,
+                                        color: isToday
+                                            ? Colors.white
+                                            : VybeColors.gray500,
+                                      ),
+                                    ),
+                                    if (isToday) ...[
+                                      SizedBox(width: 8.w),
+                                      Container(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 6.w,
+                                          vertical: 1.h,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0x247731FE),
+                                          borderRadius: BorderRadius.circular(
+                                            4.r,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          '오늘',
+                                          style: TextStyle(
+                                            fontFamily: 'Pretendard',
+                                            fontSize: 10.sp,
+                                            fontWeight: FontWeight.w700,
+                                            color: VybeColors.mainPurple500,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           SizedBox(height: 16.h),
@@ -411,8 +432,12 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
     return seg != null ? '@$seg' : url;
   }
 
-  Widget _infoRow({required Widget icon, required Widget child}) {
-    return Row(
+  Widget _infoRow({
+    required Widget icon,
+    required Widget child,
+    VoidCallback? onTap,
+  }) {
+    final row = Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
@@ -425,6 +450,12 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
         SizedBox(width: 12.w),
         Expanded(child: child),
       ],
+    );
+    if (onTap == null) return row;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: row,
     );
   }
 
@@ -442,11 +473,9 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
           _sectionHeader('메뉴', onViewAll: widget.onViewAllMenus),
           SizedBox(height: 4.h),
           ...featured.asMap().entries.map(
-                (e) => _menuPreviewItem(
-                  e.value,
-                  isLast: e.key == featured.length - 1,
-                ),
-              ),
+            (e) =>
+                _menuPreviewItem(e.value, isLast: e.key == featured.length - 1),
+          ),
           SizedBox(height: 12.h),
           Text(
             '메뉴 항목과 가격은 매장 사정에 따라 다를 수 있습니다.',
@@ -536,16 +565,12 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
           ),
           if (item.imageUrl.isNotEmpty) ...[
             SizedBox(width: 16.w),
-            ClipRRect(
+            SkeletonImage(
+              url: item.imageUrl,
+              width: 100.r,
+              height: 100.r,
+              fit: BoxFit.cover,
               borderRadius: BorderRadius.circular(6.r),
-              child: Image.network(
-                item.imageUrl,
-                width: 100.r,
-                height: 100.r,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) =>
-                    SizedBox(width: 100.r, height: 100.r),
-              ),
             ),
           ],
         ],
@@ -563,16 +588,12 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
     final remaining = total - 4;
 
     Widget networkImage(String url, {double radius = 8, double opacity = 1.0}) {
-      Widget img = ClipRRect(
+      Widget img = SkeletonImage(
+        url: url,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
         borderRadius: BorderRadius.circular(radius.r),
-        child: Image.network(
-          url,
-          fit: BoxFit.cover,
-          width: double.infinity,
-          height: double.infinity,
-          errorBuilder: (_, __, ___) =>
-              Container(color: VybeColors.gray800),
-        ),
       );
       return opacity < 1.0 ? Opacity(opacity: opacity, child: img) : img;
     }
@@ -725,27 +746,19 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
                       children: [
                         Stack(
                           children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(10.r),
-                              child: club.thumbnailUrl.isNotEmpty
-                                  ? Image.network(
-                                      club.thumbnailUrl,
-                                      width: 124.w,
-                                      height: 124.h,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) =>
-                                          Container(
-                                            width: 124.w,
-                                            height: 124.h,
-                                            color: VybeColors.gray800,
-                                          ),
-                                    )
-                                  : Container(
-                                      width: 124.w,
-                                      height: 124.h,
-                                      color: VybeColors.gray800,
-                                    ),
-                            ),
+                            club.thumbnailUrl.isNotEmpty
+                                ? SkeletonImage(
+                                    url: club.thumbnailUrl,
+                                    width: 124.w,
+                                    height: 124.h,
+                                    fit: BoxFit.cover,
+                                    borderRadius: BorderRadius.circular(10.r),
+                                  )
+                                : Container(
+                                    width: 124.w,
+                                    height: 124.h,
+                                    color: VybeColors.gray800,
+                                  ),
                             Positioned(
                               top: 6.h,
                               left: 6.w,
@@ -838,7 +851,11 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
 
   // ── HELPERS ──
 
-  Widget _sectionHeader(String title, {String? count, VoidCallback? onViewAll}) {
+  Widget _sectionHeader(
+    String title, {
+    String? count,
+    VoidCallback? onViewAll,
+  }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
