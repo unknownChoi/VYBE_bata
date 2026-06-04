@@ -196,7 +196,7 @@ class _DetailMenuTabState extends ConsumerState<DetailMenuTab> {
                       color: Colors.white,
                     ),
                   ),
-                  SizedBox(height: 4.h),
+                  SizedBox(height: 16.h),
                   ...groups[cat]!.map((item) => _MenuItemWidget(item: item)),
                   Container(height: 1, color: VybeColors.gray800),
                 ],

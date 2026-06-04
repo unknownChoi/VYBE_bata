@@ -13,7 +13,13 @@ import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 class DetailHomeTab extends ConsumerStatefulWidget {
   final String clubId;
   final VoidCallback? onViewAllPhotos;
-  const DetailHomeTab({super.key, required this.clubId, this.onViewAllPhotos});
+  final VoidCallback? onViewAllMenus;
+  const DetailHomeTab({
+    super.key,
+    required this.clubId,
+    this.onViewAllPhotos,
+    this.onViewAllMenus,
+  });
 
   @override
   ConsumerState<DetailHomeTab> createState() => _DetailHomeTabState();
@@ -144,15 +150,20 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
                         children: nearbySubways.map<Widget>((s) {
                           final name = s['stationName'] as String? ?? '';
                           final dist = s['distanceM'] as int? ?? 0;
-                          final line = s['line'] as int? ?? 0;
+                          final lines =
+                              (s['lines'] as List?)?.cast<String>() ??
+                                  const <String>[];
                           return Padding(
                             padding: EdgeInsets.only(bottom: 4.h),
                             child: Row(
                               children: [
-                                if (line > 0) ...[
-                                  SubwayLineBadge(line: line),
-                                  SizedBox(width: 6.w),
-                                ],
+                                ...lines.map(
+                                  (l) => Padding(
+                                    padding: EdgeInsets.only(right: 4.w),
+                                    child: SubwayLineBadge(line: l),
+                                  ),
+                                ),
+                                if (lines.isNotEmpty) SizedBox(width: 2.w),
                                 Text(
                                   '$name에서 ${dist}m',
                                   style: TextStyle(
@@ -428,9 +439,14 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionHeader('메뉴'),
+          _sectionHeader('메뉴', onViewAll: widget.onViewAllMenus),
           SizedBox(height: 4.h),
-          ...featured.map((item) => _menuPreviewItem(item)),
+          ...featured.asMap().entries.map(
+                (e) => _menuPreviewItem(
+                  e.value,
+                  isLast: e.key == featured.length - 1,
+                ),
+              ),
           SizedBox(height: 12.h),
           Text(
             '메뉴 항목과 가격은 매장 사정에 따라 다를 수 있습니다.',
@@ -445,11 +461,16 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
     );
   }
 
-  Widget _menuPreviewItem(MenuModel item) {
+  Widget _menuPreviewItem(MenuModel item, {bool isLast = false}) {
     return Container(
       padding: EdgeInsets.symmetric(vertical: 16.h),
       decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: VybeColors.gray800)),
+        border: Border(
+          top: BorderSide(color: VybeColors.gray800),
+          bottom: isLast
+              ? BorderSide(color: VybeColors.gray800)
+              : BorderSide.none,
+        ),
       ),
       child: Row(
         children: [

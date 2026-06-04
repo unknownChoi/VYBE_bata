@@ -534,7 +534,7 @@ class ReviewsTabSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 32.h),
+      padding: EdgeInsets.fromLTRB(0, 20.h, 0, 32.h),
       child: Column(
         children: [
           // toggle
@@ -586,6 +586,46 @@ class ReviewsTabSkeleton extends StatelessWidget {
               ),
             );
           }),
+        ],
+      ),
+    );
+  }
+}
+
+class LocationSkeleton extends StatelessWidget {
+  const LocationSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // '위치' 타이틀
+          VybeSkel(width: 60.w, height: 20.h),
+          SizedBox(height: 16.h),
+          // 지도 카드
+          VybeSkel(width: double.infinity, height: 200.h, radius: 12),
+          SizedBox(height: 16.h),
+          // 주소 카드
+          VybeSkel(width: double.infinity, height: 78.h, radius: 12),
+          SizedBox(height: 10.h),
+          // 액션 칩 3개
+          Row(
+            children: List.generate(3, (i) {
+              return Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(right: i < 2 ? 8.w : 0),
+                  child: VybeSkel(
+                    width: double.infinity,
+                    height: 38.h,
+                    radius: 8,
+                  ),
+                ),
+              );
+            }),
+          ),
         ],
       ),
     );

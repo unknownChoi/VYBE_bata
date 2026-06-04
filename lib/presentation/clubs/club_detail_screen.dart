@@ -101,6 +101,7 @@ class _ClubDetailScreenState extends ConsumerState<ClubDetailScreen>
             DetailHomeTab(
               clubId: widget.clubId,
               onViewAllPhotos: () => _tabController.animateTo(2),
+              onViewAllMenus: () => _tabController.animateTo(1),
             ),
             _LazyTabBody(
               isSelected: _tabController.index == 1,

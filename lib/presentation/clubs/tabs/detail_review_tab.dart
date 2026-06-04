@@ -224,7 +224,7 @@ class _RatingSummary extends StatelessWidget {
 
     final dist = [5, 4, 3, 2, 1].map((star) {
       final count =
-          reviews.where((r) => r.rating.round() == star).length;
+          reviews.where((r) => r.rating.floor() == star).length;
       return (star: star, count: count);
     }).toList();
 
@@ -244,7 +244,7 @@ class _RatingSummary extends StatelessWidget {
                 textBaseline: TextBaseline.alphabetic,
                 children: [
                   Text(
-                    avg.toStringAsFixed(2),
+                    avg.toStringAsFixed(1),
                     style: TextStyle(
                       fontFamily: 'Pretendard',
                       fontSize: 28.sp,
@@ -265,10 +265,17 @@ class _RatingSummary extends StatelessWidget {
               SizedBox(height: 4.h),
               Row(
                 children: List.generate(5, (i) {
+                  // 평균 평점만큼 채워진 별 (반올림 0.5 단위)
+                  final filled = avg >= i + 1;
+                  final half = !filled && avg >= i + 0.5;
                   return Icon(
-                    Icons.star_rounded,
+                    half
+                        ? Icons.star_half_rounded
+                        : Icons.star_rounded,
                     size: 12.r,
-                    color: VybeColors.mainLime500,
+                    color: (filled || half)
+                        ? VybeColors.mainLime500
+                        : VybeColors.gray700,
                   );
                 }),
               ),

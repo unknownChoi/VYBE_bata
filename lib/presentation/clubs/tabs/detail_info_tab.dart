@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_naver_map/flutter_naver_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vybe/data/models/club_info_model.dart';
+import 'package:vybe/data/models/club_model.dart';
+import 'package:vybe/data/models/operating_hours.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
 import 'package:vybe/presentation/clubs/widgets/subway_line_badge.dart';
+import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 
 class DetailInfoTab extends ConsumerStatefulWidget {
   final String clubId;
@@ -18,35 +22,44 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
   bool _hoursExpanded = false;
   bool _noticeExpanded = true;
 
-  static const List<List<String>> _hours = [
-    ['월', '11:00 - 02:00'],
-    ['화', '11:00 - 02:00'],
-    ['수', '11:00 - 02:00'],
-    ['목', '11:00 - 02:00'],
-    ['금', '11:00 - 02:00'],
-    ['토', '11:00 - 02:00'],
-    ['일', '정기휴무'],
-  ];
-
-  static const _notices = [
-    '성인만 입장 가능합니다.',
-    '프로모션 기간에는 운영 시간과 가격이 변동될 수 있습니다.',
-    '예약 변경 및 취소는 방문일 전 3일까지 앱을 통해 가능하며, 2일 ~ 하루 전 취소 시 50% 환불, 당일 취소 및 노쇼는 환불 불가입니다.',
-  ];
+  static const _weekdayLabels = ['월', '화', '수', '목', '금', '토', '일'];
 
   @override
   Widget build(BuildContext context) {
+    final clubAsync = ref.watch(clubDetailProvider(widget.clubId));
+    final clubInfoAsync = ref.watch(clubInfoProvider(widget.clubId));
+    final isLoading = clubAsync.isLoading;
     return ListView(
       physics: const ClampingScrollPhysics(),
       padding: EdgeInsets.zero,
       children: [
-        _buildLocationSection(),
+        isLoading ? const LocationSkeleton() : _buildLocationSection(),
         _sectionDivider(),
-        _buildDetailInfoSection(),
+        _buildDetailInfoSection(clubAsync.value, clubInfoAsync.value),
         SizedBox(height: 32.h),
       ],
     );
   }
+
+  /// "https://instagram.com/awesomered_omg" → "@awesomered_omg"
+  String _instagramHandle(String url) {
+    if (url.isEmpty) return '';
+    final cleaned = url
+        .replaceFirst(RegExp(r'^https?://'), '')
+        .replaceFirst(RegExp(r'^(www\.)?instagram\.com/'), '')
+        .replaceAll(RegExp(r'/+$'), '');
+    return cleaned.isEmpty ? '' : '@$cleaned';
+  }
+
+  /// URL 표시용 — 스킴 제거
+  String _stripScheme(String url) =>
+      url.replaceFirst(RegExp(r'^https?://'), '');
+
+  /// 하루 영업시간 문자열
+  String _dayHoursText(DayHours d) =>
+      (d.isOpen && d.open != null && d.close != null)
+          ? '${d.open} - ${d.close}'
+          : '정기휴무';
 
   Widget _sectionDivider() {
     return Container(
@@ -118,7 +131,7 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
                   padding: EdgeInsets.only(left: 28.w),
                   child: Row(
                     children: [
-                      const SubwayLineBadge(line: 9),
+                      const SubwayLineBadge(line: '9호선'),
                       SizedBox(width: 6.w),
                       Text(
                         '상수역 1번 출구에서 422m',
@@ -201,8 +214,24 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
 
   // ── DETAIL INFO ──
 
-  Widget _buildDetailInfoSection() {
+  Widget _buildDetailInfoSection(ClubModel? club, ClubInfoModel? clubInfo) {
     final today = DateTime.now().weekday - 1;
+    final hours = club?.operatingHours ?? const OperatingHours();
+    final days = [
+      hours.mon,
+      hours.tue,
+      hours.wed,
+      hours.thu,
+      hours.fri,
+      hours.sat,
+      hours.sun,
+    ];
+    final todayHours = hours.today;
+    final isOpen = todayHours.isCurrentlyOpen;
+    final phone = club?.phone ?? '';
+    final instagram = _instagramHandle(club?.instagramUrl ?? '');
+    final openChatUrl = clubInfo?.openChatUrl ?? '';
+    final cautions = clubInfo?.cautions ?? const <String>[];
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
       child: Column(
