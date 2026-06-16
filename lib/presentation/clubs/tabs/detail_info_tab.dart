@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_naver_map/flutter_naver_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -8,7 +9,9 @@ import 'package:vybe/data/models/operating_hours.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
 import 'package:vybe/presentation/clubs/widgets/subway_line_badge.dart';
+import 'package:vybe/presentation/common/widgets/vybe_map_pin.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
+import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
 
 class DetailInfoTab extends ConsumerStatefulWidget {
   final String clubId;
@@ -78,6 +81,10 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
   // ── LOCATION ──
 
   Widget _buildLocationSection() {
+    final club = ref.watch(clubDetailProvider(widget.clubId)).value;
+    final address = (club?.address.isNotEmpty ?? false)
+        ? club!.address
+        : '서울 마포구 잔다리로 12 지하 1층';
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
       child: Column(
@@ -117,7 +124,7 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
                     SizedBox(width: 10.w),
                     Expanded(
                       child: Text(
-                        '서울 마포구 잔다리로 12 지하 1층',
+                        address,
                         style: TextStyle(
                           fontFamily: 'Pretendard',
                           fontSize: 14.sp,
@@ -157,6 +164,7 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
                 icon: Icons.copy_rounded,
                 label: '주소 복사',
                 accent: false,
+                onTap: () => _copyAddress(address),
               ),
               SizedBox(width: 8.w),
               _actionChip(icon: Icons.map_rounded, label: '지도', accent: false),
@@ -173,15 +181,22 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
     );
   }
 
+  Future<void> _copyAddress(String address) async {
+    await Clipboard.setData(ClipboardData(text: address));
+    if (!mounted) return;
+    VybeToast.show(context, message: '주소가 복사되었습니다');
+  }
+
   Widget _actionChip({
     required IconData icon,
     required String label,
     required bool accent,
+    VoidCallback? onTap,
   }) {
     final color = accent ? VybeColors.mainLime500 : VybeColors.gray200;
     return Expanded(
       child: GestureDetector(
-        onTap: () {},
+        onTap: onTap,
         child: Container(
           padding: EdgeInsets.symmetric(vertical: 10.h),
           decoration: BoxDecoration(
@@ -307,9 +322,18 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
                       ),
                     ],
                   ),
-                  if (_hoursExpanded) ...[
-                    SizedBox(height: 12.h),
-                    ...List.generate(days.length, (i) {
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                    alignment: Alignment.topCenter,
+                    child: ClipRect(
+                      child: Align(
+                        alignment: Alignment.topCenter,
+                        heightFactor: _hoursExpanded ? 1 : 0,
+                        child: Padding(
+                          padding: EdgeInsets.only(top: 12.h),
+                          child: Column(
+                            children: List.generate(days.length, (i) {
                       final isToday = i == today;
                       return Padding(
                         padding: EdgeInsets.only(bottom: 8.h),
@@ -370,8 +394,12 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
                           ],
                         ),
                       );
-                    }),
-                  ],
+                            }),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -434,7 +462,7 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
             label: '오픈 채팅',
             child: Row(
               children: [
-                Expanded(
+                Flexible(
                   child: Text(
                     openChatUrl.isNotEmpty ? _stripScheme(openChatUrl) : '-',
                     style: TextStyle(
@@ -502,9 +530,16 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
                 ),
               ),
             ),
-            if (_noticeExpanded)
-              Container(
-                padding: EdgeInsets.fromLTRB(14.w, 14.h, 14.w, 16.h),
+            AnimatedSize(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              alignment: Alignment.topCenter,
+              child: ClipRect(
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  heightFactor: _noticeExpanded ? 1 : 0,
+                  child: Container(
+                    padding: EdgeInsets.fromLTRB(14.w, 14.h, 14.w, 16.h),
                 decoration: BoxDecoration(
                   color: VybeColors.accentRed500.withValues(alpha: 0.04),
                   border: Border(
@@ -557,6 +592,9 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
                   }).toList(),
                 ),
               ),
+                ),
+              ),
+            ),
           ],
         ],
       ),
@@ -640,6 +678,9 @@ class _NaverMapCardState extends ConsumerState<_NaverMapCard> {
         width: double.infinity,
         height: 200.h,
         child: NaverMap(
+          // 탭뷰(가로 스와이프) 안에서도 지도가 제스처를 독점하도록.
+          // 미지정 시 가로 드래그가 부모 PageView로 전달돼 탭이 넘어감.
+          forceGesture: true,
           options: NaverMapViewOptions(
             initialCameraPosition: NCameraPosition(
               target: NLatLng(lat, lng),
@@ -648,25 +689,81 @@ class _NaverMapCardState extends ConsumerState<_NaverMapCard> {
             mapType: NMapType.basic,
             activeLayerGroups: [NLayerGroup.building, NLayerGroup.transit],
             nightModeEnable: true,
-            scrollGesturesEnable: false,
-            zoomGesturesEnable: false,
+            // 좌우 이동(scroll) + 축소/확대(zoom) 허용
+            scrollGesturesEnable: true,
+            zoomGesturesEnable: true,
             rotationGesturesEnable: false,
             tiltGesturesEnable: false,
           ),
           onMapReady: (controller) async {
             _mapController = controller;
+            if (!mounted) return;
+            // 보라 라벨 + 핀을 하나의 마커 이미지로 생성.
+            // 지도를 움직여도 클럽 좌표에 정확히 붙어 따라간다.
+            final overlayImage = await NOverlayImage.fromWidget(
+              widget: _PinWithLabel(label: name),
+              size: Size(240.r, 64.r),
+              context: context,
+            );
             final marker = NMarker(
               id: 'club_marker',
               position: NLatLng(lat, lng),
-            );
-            final infoWindow = NInfoWindow.onMarker(
-              id: 'club_info',
-              text: name,
+              icon: overlayImage,
+              // 핀 바닥(캔버스 하단 중앙)이 좌표를 가리키도록
+              anchor: const NPoint(0.5, 1.0),
             );
             await controller.addOverlay(marker);
-            marker.openInfoWindow(infoWindow);
           },
         ),
+      ),
+    );
+  }
+}
+
+// 지도 마커용 보라 라벨 + 핀 (디자인의 main pin).
+// fromWidget으로 이미지화 → 핀 바닥이 캔버스 하단(=좌표)에 오도록 하단 정렬.
+class _PinWithLabel extends StatelessWidget {
+  final String label;
+  const _PinWithLabel({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 240.r,
+      height: 64.r,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+            decoration: BoxDecoration(
+              color: VybeColors.mainPurple500,
+              borderRadius: BorderRadius.circular(8.r),
+              boxShadow: [
+                BoxShadow(
+                  color: VybeColors.mainPurple500.withValues(alpha: 0.4),
+                  blurRadius: 12.r,
+                  offset: Offset(0, 4.h),
+                ),
+              ],
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'Pretendard',
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          SizedBox(height: 4.h),
+          SizedBox(
+            width: 24.r,
+            height: 27.r,
+            child: const CustomPaint(painter: VybeMapPinPainter()),
+          ),
+        ],
       ),
     );
   }

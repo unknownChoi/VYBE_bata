@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/data/models/menu_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
+import 'package:vybe/presentation/common/widgets/vybe_photo_viewer.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 
 class DetailMenuTab extends ConsumerStatefulWidget {
@@ -17,6 +18,9 @@ class DetailMenuTab extends ConsumerStatefulWidget {
 class _DetailMenuTabState extends ConsumerState<DetailMenuTab> {
   int _selectedCategoryIndex = 0;
 
+  // 카테고리별 섹션 위치 키 (칩 클릭 시 해당 섹션으로 스크롤)
+  final Map<String, GlobalKey> _sectionKeys = {};
+
   static const _categoryOrder = [
     '대표메뉴',
     'SET',
@@ -25,6 +29,18 @@ class _DetailMenuTabState extends ConsumerState<DetailMenuTab> {
     'BEER',
     'COCKTAIL',
   ];
+
+  void _scrollToCategory(int index, String category) {
+    setState(() => _selectedCategoryIndex = index);
+    final ctx = _sectionKeys[category]?.currentContext;
+    if (ctx == null) return;
+    Scrollable.ensureVisible(
+      ctx,
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeInOut,
+      alignment: 0,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -100,15 +116,24 @@ class _DetailMenuTabState extends ConsumerState<DetailMenuTab> {
             scrollDirection: Axis.horizontal,
             padding: EdgeInsets.symmetric(horizontal: 20.w),
             child: Row(
-              children: boardImages.map((url) {
+              children: boardImages.asMap().entries.map((entry) {
+                final index = entry.key;
+                final url = entry.value;
                 return Padding(
                   padding: EdgeInsets.only(right: 8.w),
-                  child: SkeletonImage(
-                    url: url,
-                    width: 121.r,
-                    height: 121.r,
-                    fit: BoxFit.cover,
-                    borderRadius: BorderRadius.circular(8.r),
+                  child: GestureDetector(
+                    onTap: () => VybePhotoViewer.open(
+                      context,
+                      imageUrls: boardImages,
+                      initialIndex: index,
+                    ),
+                    child: SkeletonImage(
+                      url: url,
+                      width: 121.r,
+                      height: 121.r,
+                      fit: BoxFit.cover,
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
                   ),
                 );
               }).toList(),
@@ -133,7 +158,7 @@ class _DetailMenuTabState extends ConsumerState<DetailMenuTab> {
             return Padding(
               padding: EdgeInsets.only(right: 8.w),
               child: GestureDetector(
-                onTap: () => setState(() => _selectedCategoryIndex = i),
+                onTap: () => _scrollToCategory(i, categories[i]),
                 child: Container(
                   padding: EdgeInsets.symmetric(
                     horizontal: 14.w,
@@ -173,7 +198,9 @@ class _DetailMenuTabState extends ConsumerState<DetailMenuTab> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ...categories.map((cat) {
+            final key = _sectionKeys.putIfAbsent(cat, () => GlobalKey());
             return Padding(
+              key: key,
               padding: EdgeInsets.only(top: 16.h),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

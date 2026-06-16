@@ -2,6 +2,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:vybe/data/models/club_info_model.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/data/models/menu_model.dart';
+import 'package:vybe/data/models/photo_model.dart';
 import 'package:vybe/data/repositories/club_repository_impl.dart';
 
 part 'club_detail_viewmodel.g.dart';
@@ -19,6 +20,11 @@ Future<ClubInfoModel?> clubInfo(Ref ref, String clubId) {
 @riverpod
 Future<List<MenuModel>> clubMenus(Ref ref, String clubId) {
   return ref.watch(clubRepositoryProvider).getMenus(clubId);
+}
+
+@riverpod
+Future<List<PhotoModel>> clubPhotos(Ref ref, String clubId) {
+  return ref.watch(clubRepositoryProvider).getPhotos(clubId);
 }
 
 @riverpod

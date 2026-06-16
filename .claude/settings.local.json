@@ -39,7 +39,16 @@
       "Bash(gh repo *)",
       "Bash(curl *)",
       "Bash(gsutil cp *)",
-      "Bash(node *)"
+      "Bash(node *)",
+      "Read(//Users/justinchoi/**)",
+      "Read(//Users/justinchoi/Downloads/**)",
+      "mcp__plugin_firebase_firebase__firebase_get_project",
+      "WebFetch(domain:api.anthropic.com)",
+      "Bash(grep -n \"imageUrls\\\\|SkeletonImage\\\\|onTap\\\\|GestureDetector\\\\|photos\\\\|firstPhoto\\\\|+\\\\$\\\\|morePhoto\" lib/presentation/clubs/tabs/detail_review_tab.dart)",
+      "Bash(firebase projects:list)",
+      "mcp__plugin_firebase_firebase__firestore_delete_document",
+      "Bash(python3 -c 'import sys,json; d=json.load\\(sys.stdin\\); docs=d.get\\('\\\\''documents'\\\\'',[]\\); *)",
+      "Bash(cd *)"
     ]
   },
   "disabledMcpjsonServers": [

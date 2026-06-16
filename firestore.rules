@@ -45,6 +45,20 @@ service cloud.firestore {
           && request.auth.token.admin == true;
       }
 
+      // clubs/{clubId}/photos/{photoId}
+      match /photos/{photoId} {
+        allow read: if true;
+
+        // 생성: 로그인 유저, 본인 userId로만
+        allow create: if request.auth != null
+          && request.resource.data.userId == request.auth.uid;
+
+        // 삭제: 본인 또는 어드민
+        allow delete: if request.auth != null
+          && (resource.data.userId == request.auth.uid
+            || request.auth.token.admin == true);
+      }
+
       // clubs/{clubId}/reviews/{reviewId}
       match /reviews/{reviewId} {
         allow read: if true;

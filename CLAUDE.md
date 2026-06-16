@@ -431,7 +431,7 @@ updatedAt       : timestamp
 
 #### clubs/{clubId}
 ```
-clubId              : string    // Firestore 자동 생성 (PK)
+clubId              : string    // = 문서 ID (PK). 문서 필드로는 저장 안 됨 (doc.id 사용)
 name                : string    // 클럽 이름
 description         : string    // 클럽 소개글
 address             : string    // 주소
@@ -450,6 +450,8 @@ operatingHours      : object    // 요일별 영업시간
                                 //   각 요일: { isOpen: boolean, open: string?, close: string? }
                                 //   예: { isOpen: true, open: "22:00", close: "06:00" }
                                 //   휴무일: { isOpen: false }
+closeTime           : string    // (레거시) 일부 클럽에 존재하는 단일 마감시각 필드.
+                                //   영업시간 표시는 operatingHours 기준 — closeTime 신규 사용 금지
 entryFeeMin         : number    // 입장료 최소 (원, 0이면 무료)
 entryFeeMax         : number    // 입장료 최대 (원)
 heroImageUrls       : array     // 상단 슬라이더 이미지 URL 목록 (상세 페이지 히어로)
@@ -466,7 +468,8 @@ updatedAt           : timestamp
 
 #### clubs/{clubId}/info/{clubId}
 ```
-nearbySubways   : array     // 주변 지하철역 목록 [{ stationName: string, distanceM: number }]
+nearbySubways   : array     // 주변 지하철역 목록 [{ stationName: string, distanceM: number, lines: string[] }]
+                            //   lines: 호선 목록 (예: ["9호선"]) — SubwayLineBadge 표시용
 openChatUrl     : string    // 카카오 오픈채팅방 URL
 cautions        : array     // 유의사항 목록 (string[])
 updatedAt       : timestamp
@@ -485,6 +488,19 @@ isAvailable     : boolean   // 판매 여부
 isFeatured      : boolean   // 대표 메뉴 여부
 createdAt       : timestamp
 ```
+
+#### clubs/{clubId}/photos/{photoId}
+```
+photoId         : string    // PK (Firestore 자동 생성)
+clubId          : string    // FK → clubs
+userId          : string    // 올린 사람 uid (seed 데이터는 "seed")
+url             : string    // Storage 다운로드 URL
+category        : string    // "venue"(업체) | "food"(음식) | "inside"(내부)
+                            //   PhotoCategory enum — Firestore엔 영문키, UI는 한글 라벨 매핑
+createdAt       : timestamp // 사진탭은 createdAt desc 정렬 → index 0이 최신
+```
+> 사진탭(detail_gallery_tab) 카테고리 필터의 데이터 소스. 칩별 count는 메모리 집계.
+> 기존 `clubs.imageUrls` 배열을 마이그레이션(`scripts/seed_photos.js`)해 생성 — 카테고리는 round-robin 임의 배정(실제 분류 아님).
 
 #### clubs/{clubId}/reviews/{reviewId}
 ```
@@ -559,6 +575,7 @@ createdAt       : timestamp
 | `users/{uid}` | 본인만 | 본인만 (uid / provider / createdAt 수정 불가) |
 | `clubs/{clubId}` | 누구나 (isActive=true만) | 어드민만 |
 | `clubs/.../info`, `menus` | 누구나 | 어드민만 |
+| `clubs/.../photos` | 누구나 | 생성: 로그인 유저(본인 userId) / 삭제: 본인 또는 어드민 |
 | `clubs/.../reviews` | 누구나 | 생성: 로그인 유저 / 수정·삭제: 본인 또는 어드민 |
 | `favorites` | 본인만 | 생성·삭제: 본인만 |
 | `users/.../searchHistory` | 본인만 | 본인만 |
@@ -583,13 +600,21 @@ request.auth.token.admin == true
 
 ### Firebase Storage 경로 구조
 
+실제 구조 (더 베이스 `62VaHypRMWcCySNQZEaa` 기준). 확장자는 원본 따라 `.jpg`/`.png`/`.jpeg` 혼재.
+
 ```
-clubs/{clubId}/thumbnail.jpg           // 클럽 대표 이미지 (1장)
-clubs/{clubId}/gallery/{filename}      // 갤러리 이미지 (여러 장)
-clubs/{clubId}/menus/{menuId}.jpg      // 메뉴 이미지
-reviews/{clubId}/{reviewId}/{filename} // 리뷰 첨부 이미지
-users/{uid}/profile.jpg                // 프로필 이미지 (덮어쓰기)
+clubs/{clubId}/thumbnail.jpeg               // 클럽 대표 이미지 (1장, 리스트 썸네일)
+clubs/{clubId}/gallery/{n}.{jpg|png}        // 갤러리 이미지 (1.jpg, 2.png, … 순번)
+                                            //   → heroImageUrls(상단 슬라이더)·imageUrls(사진탭) 둘 다 이 폴더 참조
+clubs/{clubId}/menus/{menuId}.{jpg|png}     // 개별 메뉴 이미지
+clubs/{clubId}/menus/boards/board_{n}.png   // 메뉴판 이미지 (menuBoardUrls)
+reviews/{clubId}/{reviewId}/{filename}      // 리뷰 첨부 이미지
+users/{uid}/profile.jpg                     // 프로필 이미지 (덮어쓰기)
 ```
+
+> **URL 토큰 차이**: `thumbnail`은 다운로드 토큰(`?alt=media&token=…`) 포함, `gallery`/`menus`는 토큰 없이 `?alt=media`만 → Storage 규칙 `clubs/** read: if true`(공개 읽기)에 의존.
+>
+> **사진탭 photos 서브컬렉션**: 현재 seed 데이터는 기존 `gallery/` URL을 재활용(별도 업로드 없음). 추후 유저 업로드 기능 추가 시 권장 경로 `clubs/{clubId}/photos/{photoId}.{ext}`.
 
 ---
 

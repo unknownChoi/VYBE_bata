@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/core/providers/auth_providers.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/clubs/club_detail_screen.dart';
 import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
 import 'package:vybe/presentation/nearby/viewmodels/nearby_viewmodel.dart';
 import 'package:vybe/presentation/nearby/widgets/club_nearby_list_item.dart';
@@ -54,6 +55,12 @@ class NearbyBottomSheet extends ConsumerWidget {
                       itemBuilder: (_, i) => ClubNearbyListItem(
                         club: clubs[i],
                         isFavorited: favoritedIds.contains(clubs[i].clubId),
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                ClubDetailScreen(clubId: clubs[i].clubId),
+                          ),
+                        ),
                         onFavoriteTap: uid == null
                             ? null
                             : () => ref

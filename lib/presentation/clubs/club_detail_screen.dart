@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:vybe/core/providers/auth_providers.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/tabs/detail_gallery_tab.dart';
 import 'package:vybe/presentation/clubs/tabs/detail_home_tab.dart';
@@ -10,6 +11,7 @@ import 'package:vybe/presentation/clubs/tabs/detail_info_tab.dart';
 import 'package:vybe/presentation/clubs/tabs/detail_menu_tab.dart';
 import 'package:vybe/presentation/clubs/tabs/detail_review_tab.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
+import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 
 class ClubDetailScreen extends ConsumerStatefulWidget {
@@ -59,6 +61,7 @@ class _ClubDetailScreenState extends ConsumerState<ClubDetailScreen>
                 : _Hero(
                     onBack: () => Navigator.of(context).maybePop(),
                     imageUrls: imageUrls,
+                    clubId: widget.clubId,
                   ),
           ),
           SliverToBoxAdapter(
@@ -122,7 +125,6 @@ class _ClubDetailScreenState extends ConsumerState<ClubDetailScreen>
           ],
         ),
       ),
-      bottomNavigationBar: const _BottomNav(),
     );
   }
 }
@@ -166,16 +168,21 @@ class _LazyTabBodyState extends State<_LazyTabBody>
 
 // ============ HERO ============
 
-class _Hero extends StatefulWidget {
+class _Hero extends ConsumerStatefulWidget {
   final VoidCallback onBack;
   final List<String> imageUrls;
-  const _Hero({required this.onBack, required this.imageUrls});
+  final String clubId;
+  const _Hero({
+    required this.onBack,
+    required this.imageUrls,
+    required this.clubId,
+  });
 
   @override
-  State<_Hero> createState() => _HeroState();
+  ConsumerState<_Hero> createState() => _HeroState();
 }
 
-class _HeroState extends State<_Hero> {
+class _HeroState extends ConsumerState<_Hero> {
   int _currentIndex = 0;
   final _pageController = PageController();
   Timer? _timer;
@@ -205,6 +212,17 @@ class _HeroState extends State<_Hero> {
   Widget build(BuildContext context) {
     final images = widget.imageUrls;
     final total = images.length;
+
+    // 찜 상태 (스트림 + 낙관적 오버라이드 머지)
+    final uid = ref.watch(currentUidProvider);
+    final streamFavIds = uid != null
+        ? ref.watch(favoritedClubIdsProvider(uid)).asData?.value ?? <String>{}
+        : <String>{};
+    final optimistic = ref.watch(favoriteViewModelProvider);
+    final isFavorited = optimistic.containsKey(widget.clubId)
+        ? optimistic[widget.clubId]!
+        : streamFavIds.contains(widget.clubId);
+
     if (total == 0) return SizedBox(height: 270.h);
     return SizedBox(
       height: 270.h,
@@ -273,7 +291,7 @@ class _HeroState extends State<_Hero> {
                       children: [
                         _iconButton(Icons.ios_share_rounded, () {}),
                         SizedBox(width: 10.w),
-                        _iconButton(Icons.favorite_border_rounded, () {}),
+                        _heartButton(isFavorited, uid),
                       ],
                     ),
                   ],
@@ -342,6 +360,44 @@ class _HeroState extends State<_Hero> {
         ),
         alignment: Alignment.center,
         child: Icon(icon, color: Colors.white, size: 20.r),
+      ),
+    );
+  }
+
+  // 찜 하트 버튼 — 찜 상태면 핑크레드(#FF3B6E) 채움 + 바운스 모션
+  Widget _heartButton(bool isFavorited, String? uid) {
+    return GestureDetector(
+      onTap: uid == null
+          ? null
+          : () => ref
+              .read(favoriteViewModelProvider.notifier)
+              .toggleFavorite(uid, widget.clubId, isFavorited),
+      child: Container(
+        width: 36.r,
+        height: 36.r,
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.4),
+          shape: BoxShape.circle,
+        ),
+        alignment: Alignment.center,
+        child: TweenAnimationBuilder<double>(
+          key: ValueKey(isFavorited),
+          tween: Tween(begin: isFavorited ? 0.7 : 1, end: 1),
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.elasticOut,
+          builder: (_, scale, child) =>
+              Transform.scale(scale: scale, child: child),
+          // 주변 페이지와 동일한 outline 하트 — 찜 시 보라 테두리(채움 없음)
+          child: SvgPicture.asset(
+            'assets/icons/common/club_card/favorite.svg',
+            width: 20.r,
+            height: 20.r,
+            colorFilter: ColorFilter.mode(
+              isFavorited ? VybeColors.mainPurple500 : Colors.white,
+              BlendMode.srcIn,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -544,178 +600,3 @@ class _SectionDivider extends StatelessWidget {
 }
 
 // ============ TAB BAR DELEGATE ============
-
-// ============ BOTTOM NAV ============
-
-class _BottomNav extends StatefulWidget {
-  const _BottomNav();
-
-  @override
-  State<_BottomNav> createState() => _BottomNavState();
-}
-
-class _BottomNavState extends State<_BottomNav>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _bob;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
-    _bob = Tween<double>(
-      begin: 0,
-      end: -3,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xD90E0E11),
-        border: Border(top: BorderSide(color: Color(0xFF1F1F23))),
-      ),
-      child: SafeArea(
-        top: true,
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 8.h),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              AnimatedBuilder(
-                animation: _bob,
-                builder: (_, __) => Transform.translate(
-                  offset: Offset(0, _bob.value),
-                  child: _TooltipBubble(),
-                ),
-              ),
-              SizedBox(height: 10.h),
-              Row(
-                children: [
-                  Expanded(
-                    flex: 10,
-                    child: SizedBox(
-                      height: 48.h,
-                      child: OutlinedButton(
-                        onPressed: () {},
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(
-                            color: VybeColors.mainPurple500,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8.r),
-                          ),
-                          padding: EdgeInsets.zero,
-                        ),
-                        child: Text(
-                          '웨이팅 등록',
-                          style: TextStyle(
-                            fontFamily: 'Pretendard',
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 8.w),
-                  Expanded(
-                    flex: 13,
-                    child: SizedBox(
-                      height: 48.h,
-                      child: ElevatedButton(
-                        onPressed: () {},
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: VybeColors.mainPurple700,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8.r),
-                          ),
-                          padding: EdgeInsets.zero,
-                          elevation: 0,
-                        ),
-                        child: Text(
-                          '테이블 예약',
-                          style: TextStyle(
-                            fontFamily: 'Pretendard',
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _TooltipBubble extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(6.r),
-          ),
-          child: Text(
-            '온라인 웨이팅 가능',
-            style: TextStyle(
-              fontFamily: 'Pretendard',
-              fontSize: 12.sp,
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFF0E0E11),
-            ),
-          ),
-        ),
-        Padding(
-          padding: EdgeInsets.only(left: 22.w),
-          child: Container(
-            width: 8.r,
-            height: 5.r,
-            color: Colors.white,
-            child: CustomPaint(painter: _ArrowPainter()),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ArrowPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = Colors.white;
-    final path = Path()
-      ..moveTo(0, 0)
-      ..lineTo(size.width, 0)
-      ..lineTo(size.width / 2, size.height)
-      ..close();
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(_ArrowPainter old) => false;
-}

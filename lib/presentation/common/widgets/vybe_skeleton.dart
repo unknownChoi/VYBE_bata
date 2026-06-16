@@ -107,6 +107,15 @@ class _SkeletonImageState extends State<SkeletonImage> {
   void initState() {
     super.initState();
     _start = DateTime.now();
+
+    // 이미 ImageCache에 있으면(재방문) skeleton 없이 즉시 노출.
+    // 최초 로드(캐시 없음)일 때만 minSkeleton 동안 shimmer 표시.
+    final status = PaintingBinding.instance.imageCache
+        .statusForKey(NetworkImage(widget.url));
+    if (status.keepAlive || status.live) {
+      _loaded = true;
+      _revealed = true;
+    }
   }
 
   @override

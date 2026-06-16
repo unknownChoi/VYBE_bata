@@ -146,15 +146,11 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
                     child: Align(
                       alignment: Alignment.topCenter,
                       heightFactor: _addrExpanded ? 1 : 0,
-                      child: AnimatedOpacity(
-                        opacity: _addrExpanded ? 1 : 0,
-                        duration: const Duration(milliseconds: 250),
-                        curve: Curves.easeInOut,
-                        child: Padding(
-                          padding: EdgeInsets.only(top: 10.h),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: nearbySubways.map<Widget>((s) {
+                      child: Padding(
+                        padding: EdgeInsets.only(top: 10.h),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: nearbySubways.map<Widget>((s) {
                               final name = s['stationName'] as String? ?? '';
                               final dist = s['distanceM'] as int? ?? 0;
                               final lines =
@@ -188,7 +184,6 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
                       ),
                     ),
                   ),
-                ),
               ],
             ),
           ),
@@ -266,15 +261,11 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
                     child: Align(
                       alignment: Alignment.topCenter,
                       heightFactor: _hoursExpanded ? 1 : 0,
-                      child: AnimatedOpacity(
-                        opacity: _hoursExpanded ? 1 : 0,
-                        duration: const Duration(milliseconds: 250),
-                        curve: Curves.easeInOut,
-                        child: Padding(
-                          padding: EdgeInsets.only(top: 10.h),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: weekdays.asMap().entries.map((e) {
+                      child: Padding(
+                        padding: EdgeInsets.only(top: 10.h),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: weekdays.asMap().entries.map((e) {
                               final i = e.key;
                               final label = e.value.$1;
                               final day = e.value.$2;
@@ -349,7 +340,6 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
                       ),
                     ),
                   ),
-                ),
               ],
             ),
           ),

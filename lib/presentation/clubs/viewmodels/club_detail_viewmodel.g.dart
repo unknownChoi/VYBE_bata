@@ -233,6 +233,81 @@ final class ClubMenusFamily extends $Family
   String toString() => r'clubMenusProvider';
 }
 
+@ProviderFor(clubPhotos)
+final clubPhotosProvider = ClubPhotosFamily._();
+
+final class ClubPhotosProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<PhotoModel>>,
+          List<PhotoModel>,
+          FutureOr<List<PhotoModel>>
+        >
+    with $FutureModifier<List<PhotoModel>>, $FutureProvider<List<PhotoModel>> {
+  ClubPhotosProvider._({
+    required ClubPhotosFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'clubPhotosProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$clubPhotosHash();
+
+  @override
+  String toString() {
+    return r'clubPhotosProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<List<PhotoModel>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<PhotoModel>> create(Ref ref) {
+    final argument = this.argument as String;
+    return clubPhotos(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is ClubPhotosProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$clubPhotosHash() => r'b5ada9fc21b95bf367d4a056d6bc954f32465d5b';
+
+final class ClubPhotosFamily extends $Family
+    with $FunctionalFamilyOverride<FutureOr<List<PhotoModel>>, String> {
+  ClubPhotosFamily._()
+    : super(
+        retry: null,
+        name: r'clubPhotosProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  ClubPhotosProvider call(String clubId) =>
+      ClubPhotosProvider._(argument: clubId, from: this);
+
+  @override
+  String toString() => r'clubPhotosProvider';
+}
+
 @ProviderFor(nearbyClubs)
 final nearbyClubsProvider = NearbyClubsFamily._();
 

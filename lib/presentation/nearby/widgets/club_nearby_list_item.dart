@@ -9,36 +9,42 @@ class ClubNearbyListItem extends StatelessWidget {
   final ClubModel club;
   final bool isFavorited;
   final VoidCallback? onFavoriteTap;
+  final VoidCallback? onTap;
 
   const ClubNearbyListItem({
     super.key,
     required this.club,
     required this.isFavorited,
     this.onFavoriteTap,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: VybeColors.gray800, width: 1),
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        decoration: const BoxDecoration(
+          border: Border(
+            bottom: BorderSide(color: VybeColors.gray800, width: 1),
+          ),
         ),
-      ),
-      padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 24.h),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildNameRow(),
-          SizedBox(height: 8.h),
-          _buildRatingTagRow(),
-          SizedBox(height: 8.h),
-          _buildImage(),
-          SizedBox(height: 8.h),
-          _buildAddressRow(),
-          SizedBox(height: 4.h),
-          _buildBusinessRow(),
-        ],
+        padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 24.h),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildNameRow(),
+            SizedBox(height: 8.h),
+            _buildRatingTagRow(),
+            SizedBox(height: 8.h),
+            _buildImage(),
+            SizedBox(height: 8.h),
+            _buildAddressRow(),
+            SizedBox(height: 4.h),
+            _buildBusinessRow(),
+          ],
+        ),
       ),
     );
   }

@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:vybe/data/models/photo_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
+import 'package:vybe/presentation/common/widgets/vybe_photo_viewer.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 
 class DetailGalleryTab extends ConsumerStatefulWidget {
@@ -15,15 +17,18 @@ class DetailGalleryTab extends ConsumerStatefulWidget {
 }
 
 class _DetailGalleryTabState extends ConsumerState<DetailGalleryTab> {
-  int _selectedCategoryIndex = 0;
-
-  static const _categories = ['전체', '업체', '음식', '내부'];
+  // null = 전체, 그 외 = 해당 카테고리 필터
+  PhotoCategory? _selected;
 
   @override
   Widget build(BuildContext context) {
-    final clubAsync = ref.watch(clubDetailProvider(widget.clubId));
-    final images = clubAsync.value?.imageUrls ?? [];
-    final total = images.length;
+    final photosAsync = ref.watch(clubPhotosProvider(widget.clubId));
+    final photos = photosAsync.value ?? [];
+
+    // 선택 카테고리로 필터
+    final filtered = _selected == null
+        ? photos
+        : photos.where((p) => p.category == _selected).toList();
 
     return CustomScrollView(
       physics: const ClampingScrollPhysics(),
@@ -37,47 +42,20 @@ class _DetailGalleryTabState extends ConsumerState<DetailGalleryTab> {
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
-                children: List.generate(_categories.length, (i) {
-                  final selected = i == _selectedCategoryIndex;
-                  final label = _categories[i];
-                  final count = i == 0 ? total : 0;
-                  return Padding(
-                    padding: EdgeInsets.only(right: 8.w),
-                    child: GestureDetector(
-                      onTap: () => setState(() => _selectedCategoryIndex = i),
-                      child: Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 14.w,
-                          vertical: 7.h,
-                        ),
-                        decoration: BoxDecoration(
-                          color: selected
-                              ? VybeColors.mainPurple700
-                              : VybeColors.gray800,
-                          borderRadius: BorderRadius.circular(999.r),
-                        ),
-                        child: Text(
-                          count > 0 ? '$label $count' : label,
-                          style: TextStyle(
-                            fontFamily: 'Pretendard',
-                            fontSize: 13.sp,
-                            fontWeight: selected
-                                ? FontWeight.w600
-                                : FontWeight.w500,
-                            color: selected ? Colors.white : VybeColors.gray400,
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                }),
+                children: [
+                  _chip(label: '전체', count: photos.length, category: null),
+                  ...PhotoCategory.values.map((c) {
+                    final count = photos.where((p) => p.category == c).length;
+                    return _chip(label: c.label, count: count, category: c);
+                  }),
+                ],
               ),
             ),
           ),
         ),
-        if (clubAsync.isLoading)
+        if (photosAsync.isLoading)
           const SliverToBoxAdapter(child: PhotosTabSkeleton())
-        else if (images.isEmpty)
+        else if (filtered.isEmpty)
           SliverFillRemaining(
             child: Center(
               child: Text(
@@ -97,21 +75,58 @@ class _DetailGalleryTabState extends ConsumerState<DetailGalleryTab> {
               crossAxisCount: 2,
               mainAxisSpacing: 8,
               crossAxisSpacing: 8,
-              childCount: images.length,
+              childCount: filtered.length,
               itemBuilder: (context, index) {
                 final isEven = index % 2 == 0;
-                return SkeletonImage(
-                  url: images[index],
-                  width: double.infinity,
-                  height: isEven ? 180.h : 130.h,
-                  fit: BoxFit.cover,
-                  borderRadius: BorderRadius.circular(6.r),
+                return GestureDetector(
+                  onTap: () => VybePhotoViewer.open(
+                    context,
+                    imageUrls: filtered.map((p) => p.url).toList(),
+                    initialIndex: index,
+                  ),
+                  child: SkeletonImage(
+                    url: filtered[index].url,
+                    width: double.infinity,
+                    height: isEven ? 180.h : 130.h,
+                    fit: BoxFit.cover,
+                    borderRadius: BorderRadius.circular(6.r),
+                  ),
                 );
               },
             ),
           ),
         SliverToBoxAdapter(child: SizedBox(height: 32.h)),
       ],
+    );
+  }
+
+  Widget _chip({
+    required String label,
+    required int count,
+    required PhotoCategory? category,
+  }) {
+    final selected = category == _selected;
+    return Padding(
+      padding: EdgeInsets.only(right: 8.w),
+      child: GestureDetector(
+        onTap: () => setState(() => _selected = category),
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 7.h),
+          decoration: BoxDecoration(
+            color: selected ? VybeColors.mainPurple700 : VybeColors.gray800,
+            borderRadius: BorderRadius.circular(999.r),
+          ),
+          child: Text(
+            count > 0 ? '$label $count' : label,
+            style: TextStyle(
+              fontFamily: 'Pretendard',
+              fontSize: 13.sp,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+              color: selected ? Colors.white : VybeColors.gray400,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

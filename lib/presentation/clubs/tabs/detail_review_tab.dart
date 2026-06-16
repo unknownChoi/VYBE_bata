@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/data/models/review_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/viewmodels/review_viewmodel.dart';
+import 'package:vybe/presentation/common/widgets/vybe_photo_viewer.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 
 class DetailReviewTab extends ConsumerStatefulWidget {
@@ -491,7 +492,12 @@ class _ReviewCardState extends State<_ReviewCard> {
               ),
               if (firstImage != null) ...[
                 SizedBox(width: 14.w),
-                SizedBox(
+                GestureDetector(
+                  onTap: () => VybePhotoViewer.open(
+                    context,
+                    imageUrls: r.imageUrls,
+                  ),
+                  child: SizedBox(
                   width: 90.r,
                   height: 90.r,
                   child: Stack(
@@ -529,6 +535,7 @@ class _ReviewCardState extends State<_ReviewCard> {
                         ),
                     ],
                   ),
+                ),
                 ),
               ],
             ],

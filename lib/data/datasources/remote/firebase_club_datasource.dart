@@ -4,6 +4,7 @@ import 'package:vybe/core/utils/geohash_utils.dart';
 import 'package:vybe/data/models/club_info_model.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/data/models/menu_model.dart';
+import 'package:vybe/data/models/photo_model.dart';
 
 class FirebaseClubDataSource {
   final FirebaseFirestore _firestore;
@@ -76,6 +77,21 @@ class FirebaseClubDataSource {
         .where('isAvailable', isEqualTo: true)
         .get();
     return snapshot.docs.map(MenuModel.fromFirestore).toList();
+  }
+
+  Future<List<PhotoModel>> getPhotos(String clubId) async {
+    logFirebaseAccess(
+      file: 'firebase_club_datasource.dart',
+      service: 'Firestore(clubs/$clubId/photos)',
+      purpose: '[사진탭] 갤러리 사진 목록 조회',
+    );
+    final snapshot = await _firestore
+        .collection('clubs')
+        .doc(clubId)
+        .collection('photos')
+        .orderBy('createdAt', descending: true)
+        .get();
+    return snapshot.docs.map(PhotoModel.fromFirestore).toList();
   }
 
   Future<List<ClubModel>> getClubsByArea(String area) async {

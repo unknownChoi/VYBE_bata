@@ -3,6 +3,7 @@ import 'package:vybe/data/datasources/remote/firebase_club_datasource.dart';
 import 'package:vybe/data/models/club_info_model.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/data/models/menu_model.dart';
+import 'package:vybe/data/models/photo_model.dart';
 import 'package:vybe/domain/repositories/club_repository.dart';
 
 part 'club_repository_impl.g.dart';
@@ -32,6 +33,10 @@ class ClubRepositoryImpl implements ClubRepository {
   @override
   Future<List<MenuModel>> getMenus(String clubId) =>
       _dataSource.getMenus(clubId);
+
+  @override
+  Future<List<PhotoModel>> getPhotos(String clubId) =>
+      _dataSource.getPhotos(clubId);
 
   @override
   Future<List<ClubModel>> getClubsByArea(String area) =>
