@@ -245,15 +245,17 @@ class _HeroState extends ConsumerState<_Hero> {
             left: 0,
             right: 0,
             height: 130.h,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withValues(alpha: 0.6),
-                    Colors.transparent,
-                  ],
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.6),
+                      Colors.transparent,
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -264,12 +266,14 @@ class _HeroState extends ConsumerState<_Hero> {
             left: 0,
             right: 0,
             height: 120.h,
-            child: const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  colors: [Color(0xFF0E0E11), Colors.transparent],
+            child: const IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [Color(0xFF0E0E11), Colors.transparent],
+                  ),
                 ),
               ),
             ),
@@ -303,7 +307,8 @@ class _HeroState extends ConsumerState<_Hero> {
           Positioned(
             right: 16.w,
             bottom: 40.h,
-            child: Container(
+            child: IgnorePointer(
+              child: Container(
               padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
               decoration: BoxDecoration(
                 color: Colors.black.withValues(alpha: 0.55),
@@ -318,6 +323,7 @@ class _HeroState extends ConsumerState<_Hero> {
                   fontWeight: FontWeight.w500,
                 ),
               ),
+              ),
             ),
           ),
           // dot indicators
@@ -325,22 +331,24 @@ class _HeroState extends ConsumerState<_Hero> {
             bottom: 18.h,
             left: 0,
             right: 0,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(total, (i) {
-                return AnimatedContainer(
-                  duration: const Duration(milliseconds: 250),
-                  margin: EdgeInsets.symmetric(horizontal: 2.5.w),
-                  width: i == _currentIndex ? 16.w : 5.w,
-                  height: 5.h,
-                  decoration: BoxDecoration(
-                    color: i == _currentIndex
-                        ? Colors.white
-                        : Colors.white.withValues(alpha: 0.4),
-                    borderRadius: BorderRadius.circular(999.r),
-                  ),
-                );
-              }),
+            child: IgnorePointer(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(total, (i) {
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    margin: EdgeInsets.symmetric(horizontal: 2.5.w),
+                    width: i == _currentIndex ? 16.w : 5.w,
+                    height: 5.h,
+                    decoration: BoxDecoration(
+                      color: i == _currentIndex
+                          ? Colors.white
+                          : Colors.white.withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(999.r),
+                    ),
+                  );
+                }),
+              ),
             ),
           ),
         ],
