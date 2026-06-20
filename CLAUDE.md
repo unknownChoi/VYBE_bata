@@ -52,17 +52,28 @@ View (Widget) → ViewModel (Notifier) → Repository → DataSource (Firebase)
 │   │   │       ├── firebase_club_datasource.dart
 │   │   │       ├── firebase_search_history_datasource.dart
 │   │   │       ├── firebase_review_datasource.dart
-│   │   │       └── firebase_favorite_datasource.dart
-│   │   ├── models/      # Freezed 모델
-│   │   └── repositories/# domain 인터페이스 구현체
-│   ├── domain/          # entities, repository 인터페이스 (Firebase 의존 금지)
+│   │   │       ├── firebase_favorite_datasource.dart
+│   │   │       └── firebase_banner_datasource.dart
+│   │   ├── models/      # Freezed 모델 (user, club, club_info, menu, photo,
+│   │   │                #   review, favorite, banner, search_history, operating_hours)
+│   │   └── repositories/# domain 인터페이스 구현체 (*_repository_impl.dart, Riverpod provider 포함)
+│   ├── domain/
+│   │   └── repositories/    # repository 인터페이스 (Firebase 의존 금지)
 │   ├── presentation/
 │   │   ├── common/widgets/  # 공통 위젯 (Vybe prefix)
-│   │   ├── clubs/
-│   │   ├── map/
-│   │   ├── search/
-│   │   └── auth/
+│   │   ├── main_scaffold/   # 루트 IndexedStack + 하단 탭바
+│   │   ├── home/            # 홈
+│   │   ├── nearby/          # 내 주변 (지도 기반)
+│   │   ├── pass_wallet/     # 패스/지갑 (플레이스홀더)
+│   │   ├── search/          # 검색
+│   │   ├── clubs/           # 클럽 상세 (tabs/, widgets/, viewmodels/)
+│   │   ├── my_page/         # 마이페이지
+│   │   ├── profile/         # 프로필
+│   │   └── auth/            # 인증 플로우
 │   └── main.dart
+│
+├── functions/           # Cloud Functions (TypeScript, src/auth · favorites · reviews)
+├── scripts/             # Firestore/Storage seed·migration 스크립트 (Node.js)
 │
 └── assets/
     ├── images/          # 로고 등 이미지
@@ -78,16 +89,21 @@ View (Widget) → ViewModel (Notifier) → Repository → DataSource (Firebase)
 
 | 역할 | 패키지 |
 |------|--------|
-| 상태관리 | `flutter_riverpod` |
+| 상태관리 | `flutter_riverpod` ^3.0 |
 | 백엔드 | Firebase (Firestore, Auth, Storage, Functions) |
-| 지도 | `google_maps_flutter` |
-| 라우팅 | `go_router` |
-| 코드 생성 | `riverpod_generator`, `freezed`, `json_serializable` |
-| 아이콘 | `cupertino_icons` |
+| 지도 | `flutter_naver_map` + `geoflutterfire_plus` (geohash GeoQuery) |
+| 라우팅 | **별도 라우터 패키지 없음** — `MainScaffold`(IndexedStack 5탭) + 탭 내부 `Navigator` |
+| 코드 생성 | `riverpod_generator` ^4.0, `freezed` ^3.0 |
+| 아이콘/벡터 | `cupertino_icons`, `flutter_svg` |
+| 미디어 | `video_player` |
+| UI 보조 | `flutter_spinkit`(로딩), `flutter_staggered_grid_view`(갤러리) |
 | 반응형 | `flutter_screenutil` |
 | 네이버 로그인 | `flutter_naver_login` |
 | 카카오 로그인 | `kakao_flutter_sdk_user` |
 | 환경변수 관리 | `flutter_dotenv` (Flutter) / `dotenv` (Cloud Functions) |
+
+> ⚠️ `go_router` / `google_maps_flutter` / `json_serializable` 미사용. 화면 전환은
+> 하단 탭(`MainScaffold`) + 탭별 `Navigator.push`. 지도는 네이버 지도.
 
 ---
 
@@ -129,10 +145,12 @@ API 키는 `.env` 파일로 관리하며 절대 git에 커밋하지 않는다.
 
 ```
 # .env (git 제외)
-KAKAO_NATIVE_APP_KEY=your_key_here
-NAVER_CLIENT_ID=your_id_here
-NAVER_CLIENT_SECRET=your_secret_here
+KAKAO_NATIVE_APP_KEY=your_key_here     # main.dart: KakaoSdk.init
+NAVER_MAP_CLIENT_ID=your_id_here       # main.dart: 네이버 지도 초기화 (FlutterNaverMap)
 ```
+
+> main.dart 초기화 순서: `dotenv.load` → `Firebase.initializeApp` → `KakaoSdk.init` → 네이버 지도(`NAVER_MAP_CLIENT_ID`).
+> 네이버 **로그인** secret(`NAVER_CLIENT_ID`/`NAVER_CLIENT_SECRET`)은 Cloud Functions(`functions/.env`)에서만 사용.
 
 사용법:
 ```dart
@@ -248,48 +266,44 @@ ElevatedButton(onPressed: () {}, child: Text('로그인'))
 
 ---
 
-## 현재 구현 상태 (2026.04.18 기준)
+## 현재 구현 상태 (2026.06.20 기준)
 
 ### 완료 ✅
-- 디자인 시스템 (colors, typography, spacing)
-- 앱 테마 설정
-- Firebase 초기화 (firebase_options.dart)
+- 디자인 시스템 (colors, typography, spacing) + 앱 테마
+- Firebase 초기화 (firebase_options.dart), dotenv/카카오/네이버지도 초기화
 - 인증 UI 화면 전체 (welcome, OTP, 본인인증, 약관, 가입완료)
 - 공통 위젯 (VybeButton, VybeTextField 등)
+- **Cloud Functions 13개 전부 구현** (auth 7 + favorites 2 + reviews 3 + index)
+- **Flutter 데이터 레이어 전부 구현** — Freezed 모델 10종, datasource 8종,
+  repository 인터페이스 7종 + impl 7종 (각 Riverpod provider 포함)
+- 인증 플로우 연결 (SDK → Functions → Firebase)
+- `MainScaffold` 5탭 (홈 / 주변 / 패스·지갑 / 검색 / 마이페이지)
+- 홈 (배너·추천), 내 주변 (네이버 지도 + geohash), 검색 화면
+- 클럽 상세 (정보·메뉴·사진·리뷰 탭, 찜, 스켈레톤 로딩)
 
-### 미구현 ✗
-- Flutter 데이터 레이어 전체 (models, datasources, repositories, viewmodels)
-- Cloud Functions 전체 7개 (naverLogin, onUserCreated, verifyIdentity, deleteUser, onFavoriteCreated, onFavoriteDeleted)
-- Firestore / Storage Security Rules 배포
-- 인증 플로우 실제 연결 (SDK → Functions → Firebase)
-- 홈 / 지도 / 클럽 상세 / 검색 / 찜 / 프로필 화면
+### 미구현 / 진행 중 ✗
+- 패스·지갑 탭 (`pass_wallet_screen.dart` 플레이스홀더)
+- 주변 페이지 ↔ 상세 페이지 연동 마무리 (최근 커밋 진행 중)
+- 마이페이지 / 프로필 세부 (리뷰 내역 등)
+- Firestore / Storage Security Rules 배포 검증
+- Apple 로그인 (이후 구현)
 
 ---
 
 ## 작업 순서 (로드맵)
 
+핵심 백엔드·데이터 레이어·주요 화면은 완료. 남은 작업:
+
 ```
-1. Cloud Functions 구현 및 배포
-   - onUserCreated (Auth 트리거) — 신규 유저 Firestore 문서 자동 생성
-   - verifyIdentity (본인인증)
-   - onFavoriteCreated / onFavoriteDeleted (찜 카운트)
-   - deleteUser (회원탈퇴)
+1. 주변 ↔ 상세 페이지 연동 마무리 (진행 중)
         ↓
-2. Firestore / Storage Security Rules 배포
+2. 마이페이지 / 프로필 (리뷰 내역, 찜 목록 화면)
         ↓
-3. Flutter 인증 플로우 완성
-   - 본인인증 완료 → Firestore users/{uid} 생성
-   - 로그인 상태 유지 (go_router redirect)
+3. 패스·지갑 탭 실제 구현
         ↓
-4. Flutter 데이터 레이어 구현
-   - Freezed 모델 (UserModel, ClubModel 등)
-   - DataSources / Repositories / ViewModels
+4. Security Rules 배포 검증 + 본인인증(verifyIdentity) 실연동 점검
         ↓
-5. 홈 / 지도 화면
-        ↓
-6. 클럽 상세 화면 (정보, 메뉴, 리뷰, 찜)
-        ↓
-7. 검색 / 찜 목록 / 프로필 화면
+5. Apple 로그인 (이후)
 ```
 
 ---
@@ -531,17 +545,36 @@ keyword         : string    // 검색어
 createdAt       : timestamp
 ```
 
+#### banners/{bannerId}
+```
+bannerId        : string    // PK (= doc.id fallback)
+imageUrl        : string    // 배너 이미지 URL
+linkType        : string    // 링크 종류 (예: "club", "url" 등)
+linkValue       : string    // 링크 대상 값
+order           : number    // 정렬 순서 (오름차순)
+isActive        : boolean   // 노출 여부
+startAt         : timestamp // 노출 시작
+endAt           : timestamp // 노출 종료
+createdAt       : timestamp
+```
+> 홈 배너 데이터 소스. `firebase_banner_datasource.getActiveBanners()`는
+> `isActive=true` 쿼리 후 클라이언트에서 `startAt < now < endAt` 필터 + `order` 정렬.
+
 ---
 
 ### Cloud Functions 목록
 
-총 10개 함수. Firebase 관련 서버 로직은 모두 Cloud Functions으로 처리.
+총 **13개** 함수 (`functions/src/index.ts` export 기준). Firebase 관련 서버 로직은 모두 Cloud Functions으로 처리.
+구조: `functions/src/auth/` (7) · `favorites/` (2) · `reviews/` (3) + `index.ts`.
 
-#### HTTP 요청 함수 (앱에서 직접 호출)
+#### HTTP 요청 함수 (앱에서 직접 호출, `https.onCall`)
 
 | 함수명 | 입력 | 출력 | 역할 |
 |--------|------|------|------|
-| `naverLogin` | `{ accessToken }` | `{ customToken, isNewUser }` | 네이버 accessToken → Firebase Custom Token 발급 |
+| `naverLogin` | `{ accessToken }` | `{ customToken, isNewUser }` | 네이버 accessToken → Custom Token (`naver:{naverId}`) |
+| `kakaoLogin` | `{ accessToken }` | `{ customToken, isNewUser }` | 카카오 accessToken → Custom Token (`kakao:{kakaoId}`) |
+| `phoneLogin` | `{ phone }` | `{ customToken, isNewUser }` | 전화번호 기반 Custom Token (`phone:{phone}`) |
+| `checkPhoneDuplicate` | `{ phone }` | `{ isDuplicate }` | users 컬렉션 phone 중복 체크 (가입 전 검사) |
 | `verifyIdentity` | `{ impUid }` | `{ verified }` | 본인인증 결과 검증 → phone/birthDate Firestore 저장 |
 | `deleteUser` | Auth 헤더 | `{ success }` | 회원탈퇴 (Auth + Firestore + Storage 일괄 삭제) |
 

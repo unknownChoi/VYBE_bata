@@ -12,6 +12,7 @@ import 'package:vybe/presentation/clubs/tabs/detail_menu_tab.dart';
 import 'package:vybe/presentation/clubs/tabs/detail_review_tab.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
 import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
+import 'package:vybe/presentation/clubs/widgets/club_section_divider.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 
 class ClubDetailScreen extends ConsumerStatefulWidget {
@@ -69,7 +70,7 @@ class _ClubDetailScreenState extends ConsumerState<ClubDetailScreen>
                 ? const TitleSkeleton()
                 : _TitleBlock(clubId: widget.clubId),
           ),
-          const SliverToBoxAdapter(child: _SectionDivider()),
+          const SliverToBoxAdapter(child: ClubSectionDivider()),
           SliverToBoxAdapter(
             child: Container(
               color: VybeColors.background,
@@ -583,25 +584,6 @@ class _TitleBlock extends ConsumerWidget {
             }).toList(),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ============ SECTION DIVIDER ============
-
-class _SectionDivider extends StatelessWidget {
-  const _SectionDivider();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 8.h,
-      decoration: const BoxDecoration(
-        color: Colors.black,
-        border: Border.symmetric(
-          horizontal: BorderSide(color: Color(0xFF1F1F23)),
-        ),
       ),
     );
   }

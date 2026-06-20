@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vybe/core/utils/number_format.dart';
 import 'package:vybe/data/models/menu_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
@@ -302,7 +303,7 @@ class _MenuItemWidget extends StatelessWidget {
                 ],
                 SizedBox(height: 10.h),
                 Text(
-                  '${_formatPrice(item.price)}원',
+                  '${formatThousands(item.price)}원',
                   style: TextStyle(
                     fontFamily: 'Pretendard',
                     fontSize: 16.sp,
@@ -325,13 +326,6 @@ class _MenuItemWidget extends StatelessWidget {
           ],
         ],
       ),
-    );
-  }
-
-  String _formatPrice(int price) {
-    return price.toString().replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (m) => '${m[1]},',
     );
   }
 }

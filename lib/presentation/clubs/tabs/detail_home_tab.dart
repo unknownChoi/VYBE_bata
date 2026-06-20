@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:vybe/core/utils/number_format.dart';
+import 'package:vybe/core/utils/url_utils.dart';
+import 'package:vybe/data/models/club_info_model.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/data/models/menu_model.dart';
 import 'package:vybe/data/models/operating_hours.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
+import 'package:vybe/presentation/clubs/widgets/club_section_divider.dart';
 import 'package:vybe/presentation/clubs/widgets/subway_line_badge.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 
@@ -42,36 +46,24 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
         clubAsync.isLoading
             ? const InfoSkeleton()
             : _buildInfoSection(clubAsync.value, clubInfoAsync.value),
-        _sectionDivider(),
+        const ClubSectionDivider(),
         menusAsync.isLoading
             ? const MenuSkeleton()
             : _buildMenuPreviewSection(menusAsync.value ?? []),
-        _sectionDivider(),
+        const ClubSectionDivider(),
         clubAsync.isLoading
             ? const PhotosSkeleton()
             : _buildPhotoPreviewSection(clubAsync.value?.imageUrls ?? []),
-        _sectionDivider(),
+        const ClubSectionDivider(),
         _buildNearbyClubsSection(ref.watch(nearbyClubsProvider(widget.clubId))),
         SizedBox(height: 32.h),
       ],
     );
   }
 
-  Widget _sectionDivider() {
-    return Container(
-      height: 8.h,
-      decoration: const BoxDecoration(
-        color: Colors.black,
-        border: Border.symmetric(
-          horizontal: BorderSide(color: Color(0xFF1F1F23)),
-        ),
-      ),
-    );
-  }
-
   // ── INFO SECTION ──
 
-  Widget _buildInfoSection(club, clubInfo) {
+  Widget _buildInfoSection(ClubModel? club, ClubInfoModel? clubInfo) {
     final address = club?.address ?? '';
     final hours = club?.operatingHours ?? const OperatingHours();
     final todayHours = hours.today;
@@ -79,7 +71,7 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
     final entryFeeMin = club?.entryFeeMin ?? 0;
     final entryFeeMax = club?.entryFeeMax ?? 0;
     final instagramUrl = club?.instagramUrl ?? '';
-    final instagramHandle = _extractInstagramHandle(instagramUrl);
+    final igHandle = instagramHandle(instagramUrl);
     final nearbySubways = (clubInfo?.nearbySubways ?? []);
 
     final weekdays = [
@@ -388,7 +380,7 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
               ),
             ),
             child: Text(
-              instagramHandle,
+              igHandle,
               style: TextStyle(
                 fontFamily: 'Pretendard',
                 fontSize: 14.sp,
@@ -403,23 +395,8 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
 
   String _formatEntryFee(int min, int max) {
     if (min == 0 && max == 0) return '무료';
-    final minStr = _formatWon(min);
-    final maxStr = _formatWon(max);
-    return min == 0 ? '0 ~ $maxStr원' : '$minStr ~ $maxStr원';
-  }
-
-  String _formatWon(int amount) {
-    return amount.toString().replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (m) => '${m[1]},',
-    );
-  }
-
-  String _extractInstagramHandle(String url) {
-    if (url.isEmpty) return '';
-    final uri = Uri.tryParse(url);
-    final seg = uri?.pathSegments.where((s) => s.isNotEmpty).lastOrNull;
-    return seg != null ? '@$seg' : url;
+    final maxStr = formatThousands(max);
+    return min == 0 ? '0 ~ $maxStr원' : '${formatThousands(min)} ~ $maxStr원';
   }
 
   Widget _infoRow({
@@ -542,7 +519,7 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
                 ],
                 SizedBox(height: 10.h),
                 Text(
-                  '${_formatWon(item.price)}원',
+                  '${formatThousands(item.price)}원',
                   style: TextStyle(
                     fontFamily: 'Pretendard',
                     fontSize: 16.sp,

@@ -3,11 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_naver_map/flutter_naver_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vybe/core/utils/url_utils.dart';
 import 'package:vybe/data/models/club_info_model.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/data/models/operating_hours.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
+import 'package:vybe/presentation/clubs/widgets/club_section_divider.dart';
 import 'package:vybe/presentation/clubs/widgets/subway_line_badge.dart';
 import 'package:vybe/presentation/common/widgets/vybe_map_pin.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
@@ -37,7 +39,7 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
       padding: EdgeInsets.zero,
       children: [
         isLoading ? const LocationSkeleton() : _buildLocationSection(),
-        _sectionDivider(),
+        const ClubSectionDivider(),
         isLoading
             ? const DetailInfoSkeleton()
             : _buildDetailInfoSection(clubAsync.value, clubInfoAsync.value),
@@ -46,37 +48,11 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
     );
   }
 
-  /// "https://instagram.com/awesomered_omg" → "@awesomered_omg"
-  String _instagramHandle(String url) {
-    if (url.isEmpty) return '';
-    final cleaned = url
-        .replaceFirst(RegExp(r'^https?://'), '')
-        .replaceFirst(RegExp(r'^(www\.)?instagram\.com/'), '')
-        .replaceAll(RegExp(r'/+$'), '');
-    return cleaned.isEmpty ? '' : '@$cleaned';
-  }
-
-  /// URL 표시용 — 스킴 제거
-  String _stripScheme(String url) =>
-      url.replaceFirst(RegExp(r'^https?://'), '');
-
   /// 하루 영업시간 문자열
   String _dayHoursText(DayHours d) =>
       (d.isOpen && d.open != null && d.close != null)
       ? '${d.open} - ${d.close}'
       : '정기휴무';
-
-  Widget _sectionDivider() {
-    return Container(
-      height: 8.h,
-      decoration: const BoxDecoration(
-        color: Colors.black,
-        border: Border.symmetric(
-          horizontal: BorderSide(color: Color(0xFF1F1F23)),
-        ),
-      ),
-    );
-  }
 
   // ── LOCATION ──
 
@@ -242,7 +218,7 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
     final todayHours = hours.today;
     final isOpen = todayHours.isCurrentlyOpen;
     final phone = club?.phone ?? '';
-    final instagram = _instagramHandle(club?.instagramUrl ?? '');
+    final instagram = instagramHandle(club?.instagramUrl ?? '');
     final openChatUrl = clubInfo?.openChatUrl ?? '';
     final cautions = clubInfo?.cautions ?? const <String>[];
     return Padding(
@@ -464,7 +440,7 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
               children: [
                 Flexible(
                   child: Text(
-                    openChatUrl.isNotEmpty ? _stripScheme(openChatUrl) : '-',
+                    openChatUrl.isNotEmpty ? stripScheme(openChatUrl) : '-',
                     style: TextStyle(
                       fontFamily: 'Pretendard',
                       fontSize: 14.sp,
