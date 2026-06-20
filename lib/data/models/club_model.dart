@@ -33,6 +33,7 @@ abstract class ClubModel with _$ClubModel {
     required int favoriteCount,
     required bool isActive,
     required bool isVybeRecommended,
+    @Default(false) bool isNonSmoking,
     required DateTime createdAt,
     required DateTime updatedAt,
   }) = _ClubModel;
@@ -68,6 +69,7 @@ abstract class ClubModel with _$ClubModel {
       favoriteCount: (data['favoriteCount'] as num?)?.toInt() ?? 0,
       isActive: data['isActive'] as bool? ?? false,
       isVybeRecommended: data['isVybeRecommended'] as bool? ?? false,
+      isNonSmoking: data['isNonSmoking'] as bool? ?? false,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );

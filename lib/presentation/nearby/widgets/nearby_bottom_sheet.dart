@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/core/providers/auth_providers.dart';
+import 'package:vybe/core/providers/location_providers.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 import 'package:vybe/presentation/clubs/club_detail_screen.dart';
 import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
 import 'package:vybe/presentation/nearby/viewmodels/nearby_viewmodel.dart';
 import 'package:vybe/presentation/nearby/widgets/club_nearby_list_item.dart';
+import 'package:vybe/presentation/search/viewmodels/club_filter_viewmodel.dart';
 import 'package:vybe/presentation/search/widgets/filter_chip_bar.dart';
 
 class NearbyBottomSheet extends ConsumerWidget {
@@ -18,7 +21,26 @@ class NearbyBottomSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final clubsAsync = ref.watch(nearbyViewModelProvider);
+    final activeFilters = ref.watch(clubFilterViewModelProvider);
+    final sort = ref.watch(clubSortViewModelProvider);
+    // 거리순 기준 = 내 위치(지도 내 위치 마커와 동일 좌표).
+    final myLocation = ref.watch(userLocationProvider);
+    // 지역 클러스터에서 선택한 area (null이면 전체).
+    final selectedArea = ref.watch(selectedAreaProvider);
     final uid = ref.watch(currentUidProvider);
+
+    // 지역 선택 → 칩 필터 → 정렬 순으로 적용.
+    final filteredAsync = clubsAsync.whenData((clubs) {
+      var filtered = selectedArea == null
+          ? clubs
+          : clubs.where((c) => c.area == selectedArea).toList();
+      if (activeFilters.isNotEmpty) {
+        filtered =
+            filtered.where((c) => clubMatchesFilters(c, activeFilters)).toList();
+      }
+      return sortClubs(filtered, sort,
+          refLat: myLocation.lat, refLng: myLocation.lng);
+    });
 
     // 찜 목록 스트림 1번만 구독 → Set<clubId>
     final streamFavIds = uid != null
@@ -48,17 +70,21 @@ class NearbyBottomSheet extends ConsumerWidget {
             child: Column(
               children: [
                 _Handle(),
-                _SheetHeader(count: clubsAsync.asData?.value.length ?? 0),
+                _SheetHeader(
+                  count: filteredAsync.asData?.value.length ?? 0,
+                  area: selectedArea,
+                  loading: filteredAsync.isLoading,
+                ),
                 const FilterChipBar(hasBackground: true),
                 SizedBox(height: 8.h),
               ],
             ),
           ),
-          clubsAsync.when(
+          filteredAsync.when(
             data: (clubs) => clubs.isEmpty
                 ? _centerSliver(
                     Text(
-                      '주변에 클럽이 없어요',
+                      activeFilters.isEmpty ? '주변에 클럽이 없어요' : '조건에 맞는 클럽이 없어요',
                       style: VybeTypography.body2
                           .copyWith(color: VybeColors.gray500),
                     ),
@@ -85,15 +111,9 @@ class NearbyBottomSheet extends ConsumerWidget {
                               ),
                     ),
                   ),
-            loading: () => const SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 40),
-                child: Center(
-                  child: CircularProgressIndicator(
-                    color: VybeColors.mainPurple500,
-                  ),
-                ),
-              ),
+            loading: () => SliverList.builder(
+              itemCount: 4,
+              itemBuilder: (_, __) => const NearbyListItemSkeleton(),
             ),
             error: (e, _) => _centerSliver(
               Text(
@@ -121,30 +141,29 @@ class NearbyBottomSheet extends ConsumerWidget {
 
 class _SheetHeader extends StatelessWidget {
   final int count;
+  final String? area;
+  final bool loading;
 
-  const _SheetHeader({required this.count});
+  const _SheetHeader({required this.count, this.area, this.loading = false});
 
   @override
   Widget build(BuildContext context) {
+    final labelStyle = VybeTypography.body3.copyWith(
+      color: Colors.white,
+      fontWeight: FontWeight.w600,
+    );
     return Padding(
       padding: EdgeInsets.fromLTRB(24.w, 4.h, 24.w, 12.h),
       child: Row(
         children: [
-          Text.rich(
-            TextSpan(
-              style: VybeTypography.body3.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-              ),
-              children: [
-                const TextSpan(text: '내 주변 클럽 '),
-                TextSpan(
-                  text: '$count',
-                  style: const TextStyle(color: VybeColors.mainLime500),
+          Text(area == null ? '내 주변 클럽 ' : '$area 클럽 ', style: labelStyle),
+          // 로딩 중엔 카운트 자리에 shimmer.
+          loading
+              ? VybeSkel(width: 20.w, height: 15.h, radius: 4)
+              : Text(
+                  '$count',
+                  style: labelStyle.copyWith(color: VybeColors.mainLime500),
                 ),
-              ],
-            ),
-          ),
         ],
       ),
     );

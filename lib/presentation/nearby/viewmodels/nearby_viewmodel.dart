@@ -18,6 +18,7 @@ class NearbyViewModel extends _$NearbyViewModel {
   }
 
   Future<void> searchNearby(double lat, double lng, double radiusKm) async {
+    ref.read(nearbyCenterProvider.notifier).set(lat, lng);
     state = const AsyncLoading();
     state = await AsyncValue.guard(
       () => ref
@@ -25,4 +26,23 @@ class NearbyViewModel extends _$NearbyViewModel {
           .getClubsNearby(lat, lng, radiusKm),
     );
   }
+}
+
+/// 마지막 조회 중심 좌표. 거리순 정렬의 기준점.
+@riverpod
+class NearbyCenter extends _$NearbyCenter {
+  @override
+  ({double lat, double lng}) build() =>
+      (lat: _kInitialLat, lng: _kInitialLng);
+
+  void set(double lat, double lng) => state = (lat: lat, lng: lng);
+}
+
+/// 지역 클러스터에서 선택한 area. null이면 전체. 바텀시트 리스트 필터용.
+@riverpod
+class SelectedArea extends _$SelectedArea {
+  @override
+  String? build() => null;
+
+  void select(String? area) => state = area;
 }

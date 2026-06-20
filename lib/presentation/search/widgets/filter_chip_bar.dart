@@ -1,32 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/search/viewmodels/club_filter_viewmodel.dart';
 
-class FilterChipBar extends StatefulWidget {
+class FilterChipBar extends ConsumerStatefulWidget {
   final bool hasBackground;
 
   const FilterChipBar({super.key, this.hasBackground = false});
 
   @override
-  State<FilterChipBar> createState() => _FilterChipBarState();
+  ConsumerState<FilterChipBar> createState() => _FilterChipBarState();
 }
 
-class _FilterChipBarState extends State<FilterChipBar> {
-  static const List<String> _sortOptions = [
-    '추천순',
-    '거리순',
-    '평점순',
-    '리뷰 많은순',
-  ];
-
-  String _sortOrder = '추천순';
+class _FilterChipBarState extends ConsumerState<FilterChipBar> {
   bool _sortOpen = false;
-  bool _filterOpen = false;
-  bool _onlyOpen = false;
-  bool _serviceDrink = false;
-  bool _freeEntry = false;
 
   // 정렬 칩 아래에 붙는 드롭다운 오버레이.
   final LayerLink _sortLink = LayerLink();
@@ -64,8 +54,7 @@ class _FilterChipBarState extends State<FilterChipBar> {
             followerAnchor: Alignment.topLeft,
             offset: Offset(0, 8.h),
             child: _SortDropdown(
-              current: _sortOrder,
-              options: _sortOptions,
+              current: ref.read(clubSortViewModelProvider),
               onSelect: _selectSort,
             ),
           ),
@@ -86,18 +75,31 @@ class _FilterChipBarState extends State<FilterChipBar> {
     _sortOverlay = null;
   }
 
-  void _selectSort(String opt) {
+  void _selectSort(ClubSort opt) {
     _removeSortOverlay();
     if (!mounted) return;
-    setState(() {
-      _sortOpen = false;
-      _sortOrder = opt;
-    });
-    // TODO: 선택된 정렬값으로 목록 재정렬 (viewmodel 연동)
+    ref.read(clubSortViewModelProvider.notifier).select(opt);
+    setState(() => _sortOpen = false);
   }
 
   @override
   Widget build(BuildContext context) {
+    final active = ref.watch(clubFilterViewModelProvider);
+    final notifier = ref.read(clubFilterViewModelProvider.notifier);
+
+    Widget toggle({
+      required String label,
+      required IconData icon,
+      required ClubFilter filter,
+    }) {
+      return _buildToggleChip(
+        label: label,
+        icon: icon,
+        isActive: active.contains(filter),
+        onTap: () => notifier.toggle(filter),
+      );
+    }
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: EdgeInsets.fromLTRB(24.w, 12.h, 24.w, 4.h),
@@ -105,24 +107,46 @@ class _FilterChipBarState extends State<FilterChipBar> {
         children: [
           _buildSortChip(),
           SizedBox(width: 8.w),
-          _buildFilterChip(),
-          SizedBox(width: 8.w),
-          _buildToggleChip(
+          toggle(
             label: '영업중',
-            isActive: _onlyOpen,
-            onTap: () => setState(() => _onlyOpen = !_onlyOpen),
+            icon: Icons.access_time_rounded,
+            filter: ClubFilter.open,
           ),
           SizedBox(width: 8.w),
-          _buildToggleChip(
+          toggle(
             label: '서비스 음료',
-            isActive: _serviceDrink,
-            onTap: () => setState(() => _serviceDrink = !_serviceDrink),
+            icon: Icons.local_bar_rounded,
+            filter: ClubFilter.serviceDrink,
           ),
           SizedBox(width: 8.w),
-          _buildToggleChip(
+          toggle(
             label: '입장료 무료',
-            isActive: _freeEntry,
-            onTap: () => setState(() => _freeEntry = !_freeEntry),
+            icon: Icons.money_off_rounded,
+            filter: ClubFilter.freeEntry,
+          ),
+          SizedBox(width: 8.w),
+          toggle(
+            label: '힙합',
+            icon: Icons.headphones_rounded,
+            filter: ClubFilter.hiphop,
+          ),
+          SizedBox(width: 8.w),
+          toggle(
+            label: 'EDM',
+            icon: Icons.graphic_eq_rounded,
+            filter: ClubFilter.edm,
+          ),
+          SizedBox(width: 8.w),
+          toggle(
+            label: '하이브리드',
+            icon: Icons.shuffle_rounded,
+            filter: ClubFilter.hybrid,
+          ),
+          SizedBox(width: 8.w),
+          toggle(
+            label: '금연',
+            icon: Icons.smoke_free_rounded,
+            filter: ClubFilter.noSmoking,
           ),
         ],
       ),
@@ -130,8 +154,9 @@ class _FilterChipBarState extends State<FilterChipBar> {
   }
 
   Widget _buildSortChip() {
+    final sort = ref.watch(clubSortViewModelProvider);
     // 기본값(추천순)이 아니거나 열린 상태면 보라로 강조.
-    final isActive = _sortOpen || _sortOrder != _sortOptions.first;
+    final isActive = _sortOpen || sort != ClubSort.recommended;
     return CompositedTransformTarget(
       link: _sortLink,
       child: GestureDetector(
@@ -142,7 +167,7 @@ class _FilterChipBarState extends State<FilterChipBar> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                _sortOrder,
+                kClubSortLabels[sort]!,
                 style: VybeTypography.caption.copyWith(
                   color: isActive ? Colors.white : VybeColors.gray200,
                   height: 14 / 12,
@@ -165,43 +190,27 @@ class _FilterChipBarState extends State<FilterChipBar> {
     );
   }
 
-  Widget _buildFilterChip() {
-    return GestureDetector(
-      onTap: () => setState(() => _filterOpen = !_filterOpen),
-      child: _chipContainer(
-        isActive: _filterOpen,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '필터',
-              style:
-                  VybeTypography.caption.copyWith(color: VybeColors.gray200, height: 14 / 12),
-            ),
-            SizedBox(width: 4.w),
-            SvgPicture.asset(
-              'assets/icons/common/filter.svg',
-              width: 12.r,
-              height: 12.r,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildToggleChip({
     required String label,
     required bool isActive,
     required VoidCallback onTap,
+    required IconData icon,
   }) {
+    final color = isActive ? Colors.white : VybeColors.gray200;
     return GestureDetector(
       onTap: onTap,
       child: _chipContainer(
         isActive: isActive,
-        child: Text(
-          label,
-          style: VybeTypography.caption.copyWith(color: VybeColors.gray200, height: 14 / 12),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14.r, color: color),
+            SizedBox(width: 4.w),
+            Text(
+              label,
+              style: VybeTypography.caption.copyWith(color: color, height: 14 / 12),
+            ),
+          ],
         ),
       ),
     );
@@ -229,13 +238,11 @@ class _FilterChipBarState extends State<FilterChipBar> {
 
 // 정렬 칩 아래 드롭다운. 선택 항목 = 라임 배경 pill + 라임 텍스트 + 체크.
 class _SortDropdown extends StatelessWidget {
-  final String current;
-  final List<String> options;
-  final ValueChanged<String> onSelect;
+  final ClubSort current;
+  final ValueChanged<ClubSort> onSelect;
 
   const _SortDropdown({
     required this.current,
-    required this.options,
     required this.onSelect,
   });
 
@@ -262,7 +269,7 @@ class _SortDropdown extends StatelessWidget {
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: options.map((opt) {
+          children: ClubSort.values.map((opt) {
             final selected = opt == current;
             return InkWell(
               borderRadius: BorderRadius.circular(8.r),
@@ -280,7 +287,7 @@ class _SortDropdown extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        opt,
+                        kClubSortLabels[opt]!,
                         style: VybeTypography.body4.copyWith(
                           color: selected ? _lime : VybeColors.gray200,
                           fontWeight:

@@ -19,9 +19,14 @@ class NearbyScreen extends ConsumerStatefulWidget {
 }
 
 class _NearbyScreenState extends ConsumerState<NearbyScreen> {
+  // 이 줌 이하로 축소되면 개별 핀 대신 지역(area)별 클러스터 동그라미 표시.
+  static const double _kRegionZoomThreshold = 13.0;
+
   NaverMapController? _mapController;
   bool _showReSearch = false;
   bool _ignoreNextIdle = true;
+  // 현재 지역 클러스터 모드 여부 (줌 임계값 기준).
+  bool _regionMode = false;
   late final DraggableScrollableController _sheetController;
   double _stackHeight = 0;
   List<ClubModel> _pendingClubs = [];
@@ -32,6 +37,8 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen> {
   // 정리(Directory.delete) 로그가 반복돼 캐시해 재사용.
   // 클럽 핀은 이름 라벨 포함이라 (clubId + 선택여부)별로 캐시.
   final Map<String, NOverlayImage> _clubPinCache = {};
+  // 지역 클러스터 동그라미 이미지 캐시. 키: area|count.
+  final Map<String, NOverlayImage> _regionPinCache = {};
   NOverlayImage? _myLocationIcon;
 
   // 클럽별 마커 핸들 + 마지막 렌더된 클럽 목록 (선택 토글용).
@@ -123,6 +130,19 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen> {
       _selectedClubId = null;
     }
 
+    await _mapController!.clearOverlays();
+    // 줌 임계값에 따라 지역 클러스터 / 개별 핀 분기.
+    if (_regionMode) {
+      await _addRegionMarkers(clubs);
+    } else {
+      await _addClubMarkers(clubs);
+    }
+    // clearOverlays가 내 위치 마커도 지우므로 재추가.
+    if (_myPos != null) await _addMyLocationMarker(_myPos!);
+  }
+
+  // 개별 클럽 핀(이름 라벨 + 핀). 줌 인 상태.
+  Future<void> _addClubMarkers(List<ClubModel> clubs) async {
     final markers = <NMarker>{};
     _clubMarkers.clear();
     for (final c in clubs) {
@@ -138,11 +158,66 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen> {
       markers.add(marker);
       _clubMarkers[c.clubId] = marker;
     }
-
-    await _mapController!.clearOverlays();
     await _mapController!.addOverlayAll(markers);
-    // clearOverlays가 내 위치 마커도 지우므로 재추가.
-    if (_myPos != null) await _addMyLocationMarker(_myPos!);
+  }
+
+  // area별 클러스터 동그라미(지역명 + 클럽 수). 줌 아웃 상태.
+  Future<void> _addRegionMarkers(List<ClubModel> clubs) async {
+    _clubMarkers.clear();
+    // area별 그룹핑 (빈 area 제외).
+    final byArea = <String, List<ClubModel>>{};
+    for (final c in clubs) {
+      if (c.area.isEmpty) continue;
+      byArea.putIfAbsent(c.area, () => []).add(c);
+    }
+
+    final markers = <NMarker>{};
+    for (final entry in byArea.entries) {
+      final area = entry.key;
+      final group = entry.value;
+      // 그룹 중심 = 좌표 평균.
+      final lat =
+          group.map((c) => c.lat).reduce((a, b) => a + b) / group.length;
+      final lng =
+          group.map((c) => c.lng).reduce((a, b) => a + b) / group.length;
+      final marker = NMarker(
+        id: 'region_$area',
+        position: NLatLng(lat, lng),
+        icon: await _getRegionIcon(area, group.length),
+        anchor: const NPoint(0.5, 0.5),
+      );
+      // 탭 → 해당 지역으로 줌 인 + 바텀시트에 그 지역 클럽 목록 표시.
+      marker.setOnTapListener((_) async {
+        ref.read(selectedAreaProvider.notifier).select(area);
+        // 시트를 절반 높이로 펼쳐 리스트가 보이게.
+        if (_sheetController.isAttached) {
+          _sheetController.animateTo(
+            0.5,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        }
+        await _mapController?.updateCamera(
+          NCameraUpdate.withParams(target: NLatLng(lat, lng), zoom: 15),
+        );
+      });
+      markers.add(marker);
+    }
+    await _mapController!.addOverlayAll(markers);
+  }
+
+  // 지역 클러스터 동그라미 이미지. 캐시 키: area|count.
+  Future<NOverlayImage> _getRegionIcon(String area, int count) async {
+    final key = '$area|$count';
+    final cached = _regionPinCache[key];
+    if (cached != null) return cached;
+    final img = await NOverlayImage.fromWidget(
+      widget: _RegionCluster(area: area, count: count),
+      size: Size(88.r, 88.r),
+      context: context,
+    );
+    _regionPinCache[key] = img;
+    return img;
   }
 
   @override
@@ -202,7 +277,22 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen> {
           _pendingClubs = [];
         }
       },
-      onCameraIdle: () {
+      onCameraIdle: () async {
+        // 현재 지도 줌 → 비율(%) 출력. 네이버 지도 zoom 범위 0~21 기준.
+        final pos = await _mapController?.getCameraPosition();
+        if (pos != null) {
+          final percent = (pos.zoom / 21 * 100).toStringAsFixed(1);
+          debugPrint('[지도 줌] ${pos.zoom.toStringAsFixed(2)} ($percent%)');
+
+          // 줌 임계값 교차 시 마커 모드 전환 후 재렌더.
+          final newRegionMode = pos.zoom <= _kRegionZoomThreshold;
+          if (newRegionMode != _regionMode) {
+            _regionMode = newRegionMode;
+            if (_lastRenderedClubs != null) {
+              await _addMarkers(_lastRenderedClubs!);
+            }
+          }
+        }
         if (_ignoreNextIdle) {
           _ignoreNextIdle = false;
           return;
@@ -324,6 +414,8 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen> {
   Future<void> _onReSearch() async {
     if (_mapController == null) return;
     setState(() => _showReSearch = false);
+    // 지역 선택 해제 (새 영역 조회).
+    ref.read(selectedAreaProvider.notifier).select(null);
 
     final bounds = await _mapController!.getContentBounds();
     final centerLat =
@@ -407,6 +499,72 @@ class _NearbyPin extends StatelessWidget {
             child: CustomPaint(painter: VybeMapPinPainter(color: pinColor)),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// 지역 클러스터 동그라미. 보라 원 + 지역명(작게) + 클럽 수(크게) + glow.
+class _RegionCluster extends StatelessWidget {
+  final String area;
+  final int count;
+  const _RegionCluster({required this.area, required this.count});
+
+  static const _purple = Color(0xFF622ACF);
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 88.r,
+      height: 88.r,
+      child: Center(
+        child: Container(
+          width: 64.r,
+          height: 64.r,
+          decoration: BoxDecoration(
+            color: _purple,
+            shape: BoxShape.circle,
+            border: Border.all(color: const Color(0xFFB388FF), width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: _purple.withValues(alpha: 0.5),
+                blurRadius: 20.r,
+                spreadRadius: 2.r,
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                area,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: 'Pretendard',
+                  fontSize: 11.sp,
+                  fontWeight: FontWeight.w600,
+                  height: 13 / 11,
+                  letterSpacing: 11 * -0.025,
+                  color: Colors.white,
+                ),
+              ),
+              SizedBox(height: 1.h),
+              Text(
+                '$count',
+                style: TextStyle(
+                  fontFamily: 'Pretendard',
+                  fontSize: 20.sp,
+                  fontWeight: FontWeight.w700,
+                  height: 22 / 20,
+                  letterSpacing: 20 * -0.025,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

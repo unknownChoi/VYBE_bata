@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 
 class ClubNearbyListItem extends StatelessWidget {
   final ClubModel club;
@@ -139,20 +140,24 @@ class ClubNearbyListItem extends StatelessWidget {
       height: 152.h,
       child: Stack(
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12.r),
-            child: Container(
-              width: double.infinity,
-              height: 152.h,
-              decoration: BoxDecoration(
-                color: VybeColors.gray800,
-                borderRadius: BorderRadius.circular(12.r),
-                border: Border.all(color: VybeColors.gray900, width: 1),
-              ),
-              child: club.thumbnailUrl.isNotEmpty
-                  ? Image.network(club.thumbnailUrl, fit: BoxFit.cover)
-                  : null,
+          Container(
+            width: double.infinity,
+            height: 152.h,
+            decoration: BoxDecoration(
+              color: VybeColors.gray800,
+              borderRadius: BorderRadius.circular(12.r),
+              border: Border.all(color: VybeColors.gray900, width: 1),
             ),
+            clipBehavior: Clip.antiAlias,
+            // 상세 페이지처럼 로드 중 1초간 스켈레톤 표시 후 페이드 인.
+            child: club.thumbnailUrl.isNotEmpty
+                ? SkeletonImage(
+                    url: club.thumbnailUrl,
+                    width: double.infinity,
+                    height: 152.h,
+                    fit: BoxFit.cover,
+                  )
+                : null,
           ),
           Positioned(
             bottom: 8.h,

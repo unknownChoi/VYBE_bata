@@ -479,6 +479,60 @@ class NearbySkeleton extends StatelessWidget {
   }
 }
 
+// ── 주변 바텀시트 클럽 카드 스켈레톤 ───────────────────────────────
+//
+// ClubNearbyListItem 레이아웃(이름·평점·이미지·주소·영업)과 동일한 골격.
+// 바텀시트 로딩 중 표시.
+
+class NearbyListItemSkeleton extends StatelessWidget {
+  const NearbyListItemSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: VybeColors.gray800, width: 1),
+        ),
+      ),
+      padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 24.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 이름 + 추천 뱃지
+          Row(
+            children: [
+              VybeSkel(width: 108.w, height: 18.h),
+              SizedBox(width: 8.w),
+              VybeSkel(width: 88.w, height: 18.h, radius: 999),
+            ],
+          ),
+          SizedBox(height: 8.h),
+          // 평점 · 지역 · 장르
+          Row(
+            children: [
+              VybeSkel(width: 44.w, height: 12.h),
+              SizedBox(width: 8.w),
+              VybeSkel(width: 36.w, height: 12.h),
+              SizedBox(width: 8.w),
+              VybeSkel(width: 52.w, height: 12.h),
+            ],
+          ),
+          SizedBox(height: 8.h),
+          // 대표 이미지
+          VybeSkel(width: double.infinity, height: 152.h, radius: 12),
+          SizedBox(height: 8.h),
+          // 주소
+          VybeSkel(width: 220.w, height: 12.h),
+          SizedBox(height: 4.h),
+          // 영업 정보
+          VybeSkel(width: 160.w, height: 12.h),
+        ],
+      ),
+    );
+  }
+}
+
 class HomeSkeleton extends StatelessWidget {
   const HomeSkeleton({super.key});
 
