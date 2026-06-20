@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_naver_map/flutter_naver_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vybe/core/providers/location_providers.dart';
 import 'package:vybe/core/utils/url_utils.dart';
 import 'package:vybe/data/models/club_info_model.dart';
 import 'package:vybe/data/models/club_model.dart';
@@ -628,6 +629,9 @@ class _NaverMapCard extends ConsumerStatefulWidget {
 
 class _NaverMapCardState extends ConsumerState<_NaverMapCard> {
   NaverMapController? _mapController; // ignore: unused_field
+  // 마커 이미지 캐시 — fromWidget 재생성 시 플러그인 캐시 정리 로그 방지.
+  NOverlayImage? _myLocationIcon;
+  NOverlayImage? _clubPinIcon;
 
   @override
   Widget build(BuildContext context) {
@@ -647,6 +651,8 @@ class _NaverMapCardState extends ConsumerState<_NaverMapCard> {
     final lat = club.lat;
     final lng = club.lng;
     final name = club.name;
+    // 앱 진입 시 설정된 내 위치 — 초기 카메라/내 위치 마커 기준.
+    final myLocation = ref.watch(userLocationProvider);
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(12.r),
@@ -658,8 +664,9 @@ class _NaverMapCardState extends ConsumerState<_NaverMapCard> {
           // 미지정 시 가로 드래그가 부모 PageView로 전달돼 탭이 넘어감.
           forceGesture: true,
           options: NaverMapViewOptions(
+            // 초기 위치 = 내 위치(화면 가운데).
             initialCameraPosition: NCameraPosition(
-              target: NLatLng(lat, lng),
+              target: NLatLng(myLocation.lat, myLocation.lng),
               zoom: 16,
             ),
             mapType: NMapType.basic,
@@ -674,9 +681,31 @@ class _NaverMapCardState extends ConsumerState<_NaverMapCard> {
           onMapReady: (controller) async {
             _mapController = controller;
             if (!mounted) return;
-            // 보라 라벨 + 핀을 하나의 마커 이미지로 생성.
+
+            // 1) 내 위치 아이콘 표시 + 해당 위치를 화면 가운데로 (먼저 처리).
+            // locationOverlay 기본 아이콘이 환경에 따라 안 보여 커스텀 마커로 그림.
+            final myPos = NLatLng(myLocation.lat, myLocation.lng);
+            await controller.updateCamera(
+              NCameraUpdate.withParams(target: myPos, zoom: 16),
+            );
+            if (!mounted) return;
+            final myIcon = _myLocationIcon ??= await NOverlayImage.fromWidget(
+              widget: const _MyLocationDot(),
+              size: const Size(28, 28),
+              context: context,
+            );
+            final myMarker = NMarker(
+              id: 'my_location_marker',
+              position: myPos,
+              icon: myIcon,
+              anchor: const NPoint(0.5, 0.5),
+            );
+            await controller.addOverlay(myMarker);
+
+            // 2) 보라 라벨 + 핀을 하나의 마커 이미지로 생성.
             // 지도를 움직여도 클럽 좌표에 정확히 붙어 따라간다.
-            final overlayImage = await NOverlayImage.fromWidget(
+            if (!mounted) return;
+            final overlayImage = _clubPinIcon ??= await NOverlayImage.fromWidget(
               widget: _PinWithLabel(label: name),
               size: Size(240.r, 64.r),
               context: context,
@@ -690,6 +719,33 @@ class _NaverMapCardState extends ConsumerState<_NaverMapCard> {
             );
             await controller.addOverlay(marker);
           },
+        ),
+      ),
+    );
+  }
+}
+
+// 내 위치 점 (파란 점 + 흰 테두리). fromWidget으로 마커 이미지화.
+class _MyLocationDot extends StatelessWidget {
+  const _MyLocationDot();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        width: 18,
+        height: 18,
+        decoration: BoxDecoration(
+          color: const Color(0xFF0086FF),
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 3),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF0086FF).withValues(alpha: 0.4),
+              blurRadius: 6,
+              spreadRadius: 1,
+            ),
+          ],
         ),
       ),
     );

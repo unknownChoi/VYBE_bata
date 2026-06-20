@@ -61,27 +61,34 @@ class ClubNearbyListItem extends StatelessWidget {
         ),
         if (club.isVybeRecommended) ...[
           SizedBox(width: 8.w),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SvgPicture.asset(
-                'assets/icons/common/club_card/vybe_recommend.svg',
-                width: 12.r,
-                height: 12.r,
-              ),
-              SizedBox(width: 2.w),
-              Text(
-                'VYBE 추천 클럽',
-                style: TextStyle(
-                  fontFamily: 'Pretendard',
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12.sp,
-                  height: 14 / 12,
-                  letterSpacing: 12 * -0.025,
-                  color: VybeColors.mainLime500,
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 2.h),
+            decoration: BoxDecoration(
+              color: VybeColors.mainLime500.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(999.r),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SvgPicture.asset(
+                  'assets/icons/common/club_card/vybe_recommend.svg',
+                  width: 12.r,
+                  height: 12.r,
                 ),
-              ),
-            ],
+                SizedBox(width: 3.w),
+                Text(
+                  'VYBE 추천 클럽',
+                  style: TextStyle(
+                    fontFamily: 'Pretendard',
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12.sp,
+                    height: 14 / 12,
+                    letterSpacing: 12 * -0.025,
+                    color: VybeColors.mainLime500,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ],
@@ -209,7 +216,13 @@ class ClubNearbyListItem extends StatelessWidget {
           height: 14.r,
         ),
         SizedBox(width: 6.w),
-        Text(_isOpenNow(club) ? '영업중' : '영업종료', style: infoStyle),
+        Text(
+          _isOpenNow(club) ? '영업중' : '영업종료',
+          style: infoStyle.copyWith(
+            color: _isOpenNow(club) ? VybeColors.mainLime500 : VybeColors.gray500,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         if (_isOpenNow(club)) ...[
           SizedBox(width: 4.w),
           Container(

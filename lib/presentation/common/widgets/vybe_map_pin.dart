@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 /// 지도 마커 핀 페인터.
 /// 내 주변 지도탭과 클럽 상세 위치 지도에서 공통 사용.
 class VybeMapPinPainter extends CustomPainter {
-  const VybeMapPinPainter();
+  final Color color;
+  const VybeMapPinPainter({this.color = const Color(0xFF622ACF)});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -11,7 +12,7 @@ class VybeMapPinPainter extends CustomPainter {
     final sy = size.height / 27;
 
     final bodyPaint = Paint()
-      ..color = const Color(0xFF622ACF)
+      ..color = color
       ..style = PaintingStyle.fill;
 
     final path = Path()
@@ -40,5 +41,6 @@ class VybeMapPinPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(VybeMapPinPainter oldDelegate) => false;
+  bool shouldRepaint(VybeMapPinPainter oldDelegate) =>
+      oldDelegate.color != color;
 }
