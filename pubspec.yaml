@@ -60,6 +60,7 @@ dependencies:
   flutter_naver_map: ^1.4.4
   geoflutterfire_plus: ^0.0.32
   flutter_staggered_grid_view: ^0.7.0
+  liquid_glass_renderer: ^0.2.0-dev.4
 
 dev_dependencies:
   flutter_test:

@@ -6,8 +6,10 @@ import 'package:vybe/core/providers/location_providers.dart';
 import 'package:vybe/core/utils/geohash_utils.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/design_system/colors.dart';
+import 'package:vybe/presentation/clubs/club_detail_screen.dart';
 import 'package:vybe/presentation/common/widgets/vybe_map_pin.dart';
 import 'package:vybe/presentation/nearby/viewmodels/nearby_viewmodel.dart';
+import 'package:vybe/presentation/main_scaffold/nav_bar_visibility_provider.dart';
 import 'package:vybe/presentation/nearby/widgets/nearby_bottom_sheet.dart';
 import 'package:vybe/presentation/nearby/widgets/nearby_gnb.dart';
 
@@ -28,6 +30,9 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen> {
   // 현재 지역 클러스터 모드 여부 (줌 임계값 기준).
   bool _regionMode = false;
   late final DraggableScrollableController _sheetController;
+  // LayoutBuilder가 레이아웃 단계에서 Stack을 재빌드할 때 시트가 재생성(initState
+  // 재실행 → 컨트롤러 중복 attach 어설션)되지 않도록 element 식별자를 고정한다.
+  final GlobalKey _sheetKey = GlobalKey();
   double _stackHeight = 0;
   List<ClubModel> _pendingClubs = [];
   List<ClubModel>? _lastRenderedClubs;
@@ -44,6 +49,8 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen> {
   // 클럽별 마커 핸들 + 마지막 렌더된 클럽 목록 (선택 토글용).
   final Map<String, NMarker> _clubMarkers = {};
   String? _selectedClubId;
+  // 핀 탭 시 지도 위로 띄우는 상세 시트 대상 클럽 (null이면 시트 닫힘).
+  ClubModel? _detailClub;
 
   // 이름 라벨 + 핀 이미지 (선택 시 녹색). 캐시 키: clubId|selected
   Future<NOverlayImage> _getClubPinIcon(ClubModel club, bool selected) async {
@@ -83,20 +90,74 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen> {
     await _mapController!.addOverlay(marker);
   }
 
-  // 핀 탭 → 이전 선택 보라/현재 선택 녹색으로 아이콘 교체.
+  // 핀 탭 → 이전 선택 보라/현재 선택 녹색으로 아이콘 교체 + 상세 시트 표시.
   Future<void> _onPinTap(ClubModel club) async {
-    if (_selectedClubId == club.clubId) return;
-    final prevId = _selectedClubId;
-    _selectedClubId = club.clubId;
+    if (_selectedClubId != club.clubId) {
+      final prevId = _selectedClubId;
+      _selectedClubId = club.clubId;
 
-    final prevMarker = prevId == null ? null : _clubMarkers[prevId];
-    final prevClub = _clubById[prevId];
-    if (prevMarker != null && prevClub != null) {
-      prevMarker.setIcon(await _getClubPinIcon(prevClub, false));
+      final prevMarker = prevId == null ? null : _clubMarkers[prevId];
+      final prevClub = _clubById[prevId];
+      if (prevMarker != null && prevClub != null) {
+        prevMarker.setIcon(await _getClubPinIcon(prevClub, false));
+      }
+      final marker = _clubMarkers[club.clubId];
+      if (marker != null) {
+        marker.setIcon(await _getClubPinIcon(club, true));
+      }
     }
-    final marker = _clubMarkers[club.clubId];
-    if (marker != null) {
-      marker.setIcon(await _getClubPinIcon(club, true));
+
+    // 클럽 리스트 시트를 최소로 내리고 상세 시트를 띄움.
+    if (_sheetController.isAttached) {
+      _sheetController.animateTo(
+        0.2,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
+    }
+    // 선택 핀이 카메라 중앙에 오도록 이동.
+    await _mapController?.updateCamera(
+      NCameraUpdate.scrollAndZoomTo(target: NLatLng(club.lat, club.lng)),
+    );
+    if (!mounted) return;
+    setState(() => _detailClub = club);
+    await _showDetailSheet(club);
+  }
+
+  // 상세 페이지를 모달 바텀시트로 그대로 띄운다.
+  Future<void> _showDetailSheet(ClubModel club) async {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final topPadding = MediaQuery.of(context).padding.top;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: const Color(0x8C000000),
+      builder: (ctx) => SizedBox(
+        height: screenHeight - topPadding - 8.h,
+        child: ClipRRect(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28.r)),
+          child: ClubDetailScreen(
+            clubId: club.clubId,
+            onClose: () => Navigator.of(ctx).pop(),
+          ),
+        ),
+      ),
+    );
+    // 시트 닫힘 → 선택 핀 복원.
+    await _closeDetail();
+  }
+
+  // 상세 시트 닫기 → 선택 핀 보라로 복원.
+  Future<void> _closeDetail() async {
+    final closed = _detailClub;
+    if (mounted) setState(() => _detailClub = null);
+    if (closed != null && _selectedClubId == closed.clubId) {
+      _selectedClubId = null;
+      final marker = _clubMarkers[closed.clubId];
+      if (marker != null) {
+        marker.setIcon(await _getClubPinIcon(closed, false));
+      }
     }
   }
 
@@ -277,7 +338,15 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen> {
           _pendingClubs = [];
         }
       },
+      onCameraChange: (reason, animated) {
+        // 사용자가 지도를 직접 움직일 때만 nav 축소 (프로그램 이동 제외).
+        if (reason == NCameraUpdateReason.gesture) {
+          ref.read(navBarVisibilityProvider.notifier).collapse();
+        }
+      },
       onCameraIdle: () async {
+        // 지도 멈추면 nav 복원.
+        ref.read(navBarVisibilityProvider.notifier).expand();
         // 현재 지도 줌 → 비율(%) 출력. 네이버 지도 zoom 범위 0~21 기준.
         final pos = await _mapController?.getCameraPosition();
         if (pos != null) {
@@ -314,6 +383,8 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen> {
 
   // 내 위치로 카메라 이동 FAB (디자인: MapControls)
   Widget _buildLocateButton() {
+    // 상세 시트가 떠 있으면 지도 컨트롤 숨김.
+    if (_detailClub != null) return const SizedBox.shrink();
     final sheetSize = _sheetController.isAttached ? _sheetController.size : 0.2;
 
     return Positioned(
@@ -354,7 +425,7 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen> {
   }
 
   Widget _buildReSearchButton() {
-    if (!_showReSearch) return const SizedBox.shrink();
+    if (!_showReSearch || _detailClub != null) return const SizedBox.shrink();
 
     final sheetSize = _sheetController.isAttached ? _sheetController.size : 0.2;
     if (sheetSize > 0.5) return const SizedBox.shrink();
@@ -399,6 +470,7 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen> {
 
   Widget _buildBottomSheet() {
     return DraggableScrollableSheet(
+      key: _sheetKey,
       controller: _sheetController,
       initialChildSize: 0.2,
       minChildSize: 0.2,

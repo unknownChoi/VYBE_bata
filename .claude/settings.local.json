@@ -48,7 +48,11 @@
       "Bash(firebase projects:list)",
       "mcp__plugin_firebase_firebase__firestore_delete_document",
       "Bash(python3 -c 'import sys,json; d=json.load\\(sys.stdin\\); docs=d.get\\('\\\\''documents'\\\\'',[]\\); *)",
-      "Bash(cd *)"
+      "Bash(cd *)",
+      "Read(//private/tmp/**)",
+      "Bash(rm -f vybe_frame_*.png)",
+      "Bash(ffmpeg -i \"/Users/justinchoi/Desktop/KakaoTalk_Video_2026-06-21-08-34-29.mp4\" -vf fps=2 vybe_frame_%03d.png -hide_banner -loglevel error)",
+      "Bash(ffmpeg -i \"/Users/justinchoi/Desktop/KakaoTalk_Video_2026-06-21-08-34-29.mp4\" -vf fps=2 /tmp/vf_%03d.png -hide_banner -loglevel error)"
     ]
   },
   "disabledMcpjsonServers": [

@@ -17,7 +17,9 @@ import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 
 class ClubDetailScreen extends ConsumerStatefulWidget {
   final String clubId;
-  const ClubDetailScreen({super.key, required this.clubId});
+  // 바텀시트(주변 페이지)로 띄울 때 닫기 동작 주입. null이면 Navigator.maybePop.
+  final VoidCallback? onClose;
+  const ClubDetailScreen({super.key, required this.clubId, this.onClose});
 
   @override
   ConsumerState<ClubDetailScreen> createState() => _ClubDetailScreenState();
@@ -60,7 +62,8 @@ class _ClubDetailScreenState extends ConsumerState<ClubDetailScreen>
             child: clubAsync.isLoading
                 ? const HeroSkeleton()
                 : _Hero(
-                    onBack: () => Navigator.of(context).maybePop(),
+                    onBack: widget.onClose ??
+                        () => Navigator.of(context).maybePop(),
                     imageUrls: imageUrls,
                     clubId: widget.clubId,
                   ),
