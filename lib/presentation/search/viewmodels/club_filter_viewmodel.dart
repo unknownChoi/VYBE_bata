@@ -5,7 +5,17 @@ import 'package:vybe/data/models/club_model.dart';
 part 'club_filter_viewmodel.g.dart';
 
 /// 필터 칩 종류. FilterChipBar 토글 칩과 1:1 매핑.
-enum ClubFilter { open, serviceDrink, freeEntry, hiphop, edm, hybrid, noSmoking }
+/// favorite은 런타임 찜 목록(favoritedIds) 의존 — clubMatchesFilters에 주입 필요.
+enum ClubFilter {
+  favorite,
+  open,
+  serviceDrink,
+  freeEntry,
+  hiphop,
+  edm,
+  hybrid,
+  noSmoking,
+}
 
 /// 현재 활성화된 필터 집합을 보관. 칩 탭으로 toggle, 리스트 화면에서 watch.
 @riverpod
@@ -77,15 +87,22 @@ List<ClubModel> sortClubs(
 }
 
 /// 활성 필터 전부를 AND로 적용해 클럽 통과 여부 반환.
-bool clubMatchesFilters(ClubModel c, Set<ClubFilter> filters) {
+/// favorite 필터를 쓰려면 현재 사용자의 찜 clubId 집합을 [favoritedIds]로 전달.
+bool clubMatchesFilters(
+  ClubModel c,
+  Set<ClubFilter> filters, {
+  Set<String> favoritedIds = const {},
+}) {
   for (final f in filters) {
-    if (!_matchesFilter(c, f)) return false;
+    if (!_matchesFilter(c, f, favoritedIds)) return false;
   }
   return true;
 }
 
-bool _matchesFilter(ClubModel c, ClubFilter f) {
+bool _matchesFilter(ClubModel c, ClubFilter f, Set<String> favoritedIds) {
   switch (f) {
+    case ClubFilter.favorite:
+      return favoritedIds.contains(c.clubId);
     case ClubFilter.open:
       return c.operatingHours.today.isCurrentlyOpen;
     case ClubFilter.serviceDrink:

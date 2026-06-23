@@ -169,51 +169,93 @@ class _BottomNavBar extends StatelessWidget {
         alignment: Alignment.bottomCenter,
         duration: const Duration(milliseconds: 250),
         curve: Curves.easeOutCubic,
-        child: LiquidGlass.withOwnLayer(
-        glassContainsChild: true,
-        shape: LiquidRoundedSuperellipse(borderRadius: 32.r),
-        settings: LiquidGlassSettings(
-          thickness: 16,
-          blur: 8,
-          glassColor: const Color(0x14FFFFFF),
-          refractiveIndex: 1.25,
-          chromaticAberration: 0.03,
-          lightAngle: 1.2,
-          lightIntensity: 0.6,
-          ambientStrength: 0.2,
-          saturation: 1.2,
-        ),
-        child: SizedBox(
-          height: 64.h,
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.w),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: List.generate(items.length, (i) {
-            final active = i == currentIndex;
-            return GestureDetector(
-              onTap: () => onTap(i),
-              behavior: HitTestBehavior.opaque,
-              child: SizedBox(
-                width: 40.w,
-                child: Center(
-                  child: SvgPicture.asset(
-                    items[i].icon,
-                    width: 24.r,
-                    height: 24.r,
-                    colorFilter: ColorFilter.mode(
-                      active ? VybeColors.mainLime500 : Colors.white,
-                      BlendMode.srcIn,
+        // 배경 캡슐 + 활성 탭 indicator 캡슐을 같은 레이어에서 블렌드 →
+        // 유리끼리 녹아드는 iOS Liquid Glass 탭 강조 효과.
+        child: LiquidGlassLayer(
+          settings: LiquidGlassSettings(
+            thickness: 16,
+            blur: 8,
+            glassColor: const Color(0x14FFFFFF),
+            refractiveIndex: 1.25,
+            chromaticAberration: 0.03,
+            lightAngle: 1.2,
+            lightIntensity: 0.6,
+            ambientStrength: 0.2,
+            saturation: 1.2,
+          ),
+          child: SizedBox(
+            height: 64.h,
+            child: LayoutBuilder(
+              builder: (context, c) {
+                const innerPad = 8.0;
+                final tabW = (c.maxWidth - innerPad * 2) / items.length;
+                final indW = tabW * 0.78;
+                final indH = 48.h;
+                return Stack(
+                  children: [
+                    // 배경 바.
+                    Positioned.fill(
+                      child: LiquidGlass.grouped(
+                        shape:
+                            LiquidRoundedSuperellipse(borderRadius: 32.r),
+                        child: const SizedBox.expand(),
+                      ),
                     ),
-                  ),
-                ),
-              ),
-            );
-              }),
+                    // 활성 탭 글래스 indicator (블렌드되어 강조).
+                    AnimatedPositioned(
+                      duration: const Duration(milliseconds: 280),
+                      curve: Curves.easeOutCubic,
+                      left: innerPad + tabW * currentIndex + (tabW - indW) / 2,
+                      top: (64.h - indH) / 2,
+                      width: indW,
+                      height: indH,
+                      child: LiquidGlass.grouped(
+                        glassContainsChild: true,
+                        shape:
+                            LiquidRoundedSuperellipse(borderRadius: 18.r),
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: const Color(0x24FFFFFF),
+                            borderRadius: BorderRadius.circular(18.r),
+                          ),
+                        ),
+                      ),
+                    ),
+                    // 아이콘 (유리 위에 표시).
+                    Padding(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: innerPad),
+                      child: Row(
+                        children: List.generate(items.length, (i) {
+                          final active = i == currentIndex;
+                          return Expanded(
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () => onTap(i),
+                              child: Center(
+                                child: SvgPicture.asset(
+                                  items[i].icon,
+                                  width: 24.r,
+                                  height: 24.r,
+                                  colorFilter: ColorFilter.mode(
+                                    active
+                                        ? VybeColors.mainLime500
+                                        : Colors.white,
+                                    BlendMode.srcIn,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         ),
-      ),
       ),
     );
   }

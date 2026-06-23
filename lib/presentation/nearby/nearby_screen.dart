@@ -2,13 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_naver_map/flutter_naver_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vybe/core/providers/auth_providers.dart';
 import 'package:vybe/core/providers/location_providers.dart';
 import 'package:vybe/core/utils/geohash_utils.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/club_detail_screen.dart';
+import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
 import 'package:vybe/presentation/common/widgets/vybe_map_pin.dart';
 import 'package:vybe/presentation/nearby/viewmodels/nearby_viewmodel.dart';
+import 'package:vybe/presentation/search/viewmodels/club_filter_viewmodel.dart';
 import 'package:vybe/presentation/main_scaffold/nav_bar_visibility_provider.dart';
 import 'package:vybe/presentation/nearby/widgets/nearby_bottom_sheet.dart';
 import 'package:vybe/presentation/nearby/widgets/nearby_gnb.dart';
@@ -36,6 +39,8 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen> {
   double _stackHeight = 0;
   List<ClubModel> _pendingClubs = [];
   List<ClubModel>? _lastRenderedClubs;
+  // 마커 재렌더 판단용 시그니처 (필터 결과 clubId 집합 + 클러스터 모드).
+  String? _lastMarkerSig;
   NLatLng? _myPos;
 
   // 마커 이미지 캐시 — 매번 fromWidget 재생성하면 플러그인 이미지 캐시
@@ -287,15 +292,36 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen> {
     _myPos = NLatLng(myLocation.lat, myLocation.lng);
 
     final clubsAsync = ref.watch(nearbyViewModelProvider);
+    final activeFilters = ref.watch(clubFilterViewModelProvider);
+
+    // 찜 필터용 favoritedIds (바텀시트와 동일 로직 — 마커도 동일 조건 적용).
+    final uid = ref.watch(currentUidProvider);
+    final streamFavIds = uid != null
+        ? ref.watch(favoritedClubIdsProvider(uid)).asData?.value ?? <String>{}
+        : <String>{};
+    final optimistic = ref.watch(favoriteViewModelProvider);
+    final favoritedIds = Set<String>.from(streamFavIds)
+      ..addAll(optimistic.entries.where((e) => e.value).map((e) => e.key))
+      ..removeAll(optimistic.entries.where((e) => !e.value).map((e) => e.key));
+
     clubsAsync.whenData((clubs) {
-      if (!identical(clubs, _lastRenderedClubs)) {
-        _lastRenderedClubs = clubs;
+      // 검색 칩 필터(찜 포함)를 마커에도 동일 적용.
+      final filtered = activeFilters.isEmpty
+          ? clubs
+          : clubs
+              .where((c) => clubMatchesFilters(c, activeFilters,
+                  favoritedIds: favoritedIds))
+              .toList();
+      final sig = '${filtered.map((c) => c.clubId).join(',')}|$_regionMode';
+      if (sig != _lastMarkerSig) {
+        _lastMarkerSig = sig;
+        _lastRenderedClubs = filtered;
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
           if (_mapController != null) {
-            _addMarkers(clubs);
+            _addMarkers(filtered);
           } else {
-            _pendingClubs = clubs;
+            _pendingClubs = filtered;
           }
         });
       }
@@ -345,8 +371,6 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen> {
         }
       },
       onCameraIdle: () async {
-        // 지도 멈추면 nav 복원.
-        ref.read(navBarVisibilityProvider.notifier).expand();
         // 현재 지도 줌 → 비율(%) 출력. 네이버 지도 zoom 범위 0~21 기준.
         final pos = await _mapController?.getCameraPosition();
         if (pos != null) {

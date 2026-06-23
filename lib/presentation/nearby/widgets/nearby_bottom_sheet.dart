@@ -29,19 +29,6 @@ class NearbyBottomSheet extends ConsumerWidget {
     final selectedArea = ref.watch(selectedAreaProvider);
     final uid = ref.watch(currentUidProvider);
 
-    // 지역 선택 → 칩 필터 → 정렬 순으로 적용.
-    final filteredAsync = clubsAsync.whenData((clubs) {
-      var filtered = selectedArea == null
-          ? clubs
-          : clubs.where((c) => c.area == selectedArea).toList();
-      if (activeFilters.isNotEmpty) {
-        filtered =
-            filtered.where((c) => clubMatchesFilters(c, activeFilters)).toList();
-      }
-      return sortClubs(filtered, sort,
-          refLat: myLocation.lat, refLng: myLocation.lng);
-    });
-
     // 찜 목록 스트림 1번만 구독 → Set<clubId>
     final streamFavIds = uid != null
         ? ref.watch(favoritedClubIdsProvider(uid)).asData?.value ?? {}
@@ -52,6 +39,21 @@ class NearbyBottomSheet extends ConsumerWidget {
     final favoritedIds = Set<String>.from(streamFavIds)
       ..addAll(optimistic.entries.where((e) => e.value).map((e) => e.key))
       ..removeAll(optimistic.entries.where((e) => !e.value).map((e) => e.key));
+
+    // 지역 선택 → 칩 필터(찜 포함) → 정렬 순으로 적용.
+    final filteredAsync = clubsAsync.whenData((clubs) {
+      var filtered = selectedArea == null
+          ? clubs
+          : clubs.where((c) => c.area == selectedArea).toList();
+      if (activeFilters.isNotEmpty) {
+        filtered = filtered
+            .where((c) => clubMatchesFilters(c, activeFilters,
+                favoritedIds: favoritedIds))
+            .toList();
+      }
+      return sortClubs(filtered, sort,
+          refLat: myLocation.lat, refLng: myLocation.lng);
+    });
 
     return Container(
       clipBehavior: Clip.antiAlias,
@@ -75,7 +77,7 @@ class NearbyBottomSheet extends ConsumerWidget {
                   area: selectedArea,
                   loading: filteredAsync.isLoading,
                 ),
-                const FilterChipBar(hasBackground: true),
+                const FilterChipBar(hasBackground: true, showFavorite: true),
                 SizedBox(height: 8.h),
               ],
             ),

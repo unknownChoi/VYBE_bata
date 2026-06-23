@@ -8,8 +8,14 @@ import 'package:vybe/presentation/search/viewmodels/club_filter_viewmodel.dart';
 
 class FilterChipBar extends ConsumerStatefulWidget {
   final bool hasBackground;
+  // 찜 필터 칩 노출 여부 (주변 페이지 전용 — 로그인 사용자 찜 목록 의존).
+  final bool showFavorite;
 
-  const FilterChipBar({super.key, this.hasBackground = false});
+  const FilterChipBar({
+    super.key,
+    this.hasBackground = false,
+    this.showFavorite = false,
+  });
 
   @override
   ConsumerState<FilterChipBar> createState() => _FilterChipBarState();
@@ -107,6 +113,14 @@ class _FilterChipBarState extends ConsumerState<FilterChipBar> {
         children: [
           _buildSortChip(),
           SizedBox(width: 8.w),
+          if (widget.showFavorite) ...[
+            toggle(
+              label: '찜',
+              icon: Icons.favorite_rounded,
+              filter: ClubFilter.favorite,
+            ),
+            SizedBox(width: 8.w),
+          ],
           toggle(
             label: '영업중',
             icon: Icons.access_time_rounded,

@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/search/data/club_search.dart';
 import 'package:vybe/presentation/search/data/dummy_clubs.dart';
 import 'package:vybe/presentation/search/widgets/club_list_item.dart';
 import 'package:vybe/presentation/search/widgets/filter_chip_bar.dart';
@@ -15,6 +16,9 @@ class SearchResultScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 테스트용: 가상 데이터(dummyClubs)에 검색 알고리즘 적용.
+    final results = searchDummyClubs(dummyClubs, query);
+
     return Scaffold(
       backgroundColor: VybeColors.background,
       body: SafeArea(
@@ -26,13 +30,27 @@ class SearchResultScreen extends StatelessWidget {
             _buildLocationRow(),
             const FilterChipBar(),
             Expanded(
-              child: ListView.builder(
-                padding: EdgeInsets.zero,
-                itemCount: dummyClubs.length,
-                itemBuilder: (_, i) => ClubListItem(club: dummyClubs[i]),
-              ),
+              child: results.isEmpty
+                  ? _buildEmpty()
+                  : ListView.builder(
+                      padding: EdgeInsets.zero,
+                      itemCount: results.length,
+                      itemBuilder: (_, i) => ClubListItem(club: results[i]),
+                    ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmpty() {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.only(bottom: 80.h),
+        child: Text(
+          "'$query' 검색 결과가 없어요",
+          style: VybeTypography.body3.copyWith(color: VybeColors.gray500),
         ),
       ),
     );

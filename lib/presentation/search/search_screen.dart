@@ -218,6 +218,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               children: list
                   .map((item) => KeywordChip(
                         item: item,
+                        onTap: () => _navigateToResult(item.keyword),
                         onDelete: () => ref
                             .read(searchViewModelProvider.notifier)
                             .deleteHistory(uid, item.historyId),

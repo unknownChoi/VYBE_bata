@@ -8,12 +8,21 @@ import 'package:vybe/design_system/typography.dart';
 class KeywordChip extends StatelessWidget {
   final SearchHistoryModel item;
   final VoidCallback onDelete;
+  final VoidCallback? onTap;
 
-  const KeywordChip({super.key, required this.item, required this.onDelete});
+  const KeywordChip({
+    super.key,
+    required this.item,
+    required this.onDelete,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
       height: 24.h,
       padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
       decoration: BoxDecoration(
@@ -37,6 +46,7 @@ class KeywordChip extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }
