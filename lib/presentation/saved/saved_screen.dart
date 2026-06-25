@@ -4,7 +4,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/data/models/folder_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/clubs/club_detail_screen.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
+import 'package:vybe/presentation/main_scaffold/nav_bar_visibility_provider.dart';
 import 'package:vybe/presentation/saved/viewmodels/saved_viewmodel.dart';
 
 // ============================================================
@@ -37,6 +39,13 @@ const List<List<Color>> _kGradients = [
 
 List<Color> _gradientFor(String key) =>
     _kGradients[key.hashCode.abs() % _kGradients.length];
+
+/// 탭 내부 Navigator로 클럽 상세 push.
+void _openClubDetail(BuildContext context, String clubId) {
+  Navigator.of(context).push(
+    MaterialPageRoute(builder: (_) => ClubDetailScreen(clubId: clubId)),
+  );
+}
 
 // ============ 화면 ============
 
@@ -79,12 +88,16 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
   }
 
   Future<void> _createGroup(int order) async {
+    // 시트 올라올 때 하단 nav 완전 숨김.
+    ref.read(navBarHiddenProvider.notifier).hide();
     final result = await showModalBottomSheet<(String, String)>(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (_) => const _CreateGroupSheet(),
     );
+    // 시트 닫히면 nav 다시 표시.
+    ref.read(navBarHiddenProvider.notifier).show();
     if (result == null) return;
     final id = await ref
         .read(savedActionsProvider.notifier)
@@ -587,6 +600,7 @@ class _ListCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final club = entry.club;
     return GestureDetector(
+      onTap: () => _openClubDetail(context, club.clubId),
       onLongPress: () => onMove(entry),
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 14.h),
@@ -757,6 +771,7 @@ class _GridCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final club = entry.club;
     return GestureDetector(
+      onTap: () => _openClubDetail(context, club.clubId),
       onLongPress: () => onMove(entry),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -18,3 +18,21 @@ class NavBarVisibility extends Notifier<bool> {
 
 final navBarVisibilityProvider =
     NotifierProvider<NavBarVisibility, bool>(NavBarVisibility.new);
+
+/// 하단 floating nav 바의 완전 숨김 상태.
+/// true = 화면 밖으로 슬라이드되어 사라짐 (모달 시트 등에서 사용).
+class NavBarHidden extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void hide() {
+    if (!state) state = true;
+  }
+
+  void show() {
+    if (state) state = false;
+  }
+}
+
+final navBarHiddenProvider =
+    NotifierProvider<NavBarHidden, bool>(NavBarHidden.new);

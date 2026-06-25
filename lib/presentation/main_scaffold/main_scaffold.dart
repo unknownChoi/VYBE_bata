@@ -166,11 +166,18 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
             left: 0,
             right: 0,
             bottom: 0,
-            child: _BottomNavBar(
-              currentIndex: _currentIndex,
-              onTap: _goToTab,
-              items: _navItems,
-              expanded: ref.watch(navBarVisibilityProvider),
+            child: AnimatedSlide(
+              offset: ref.watch(navBarHiddenProvider)
+                  ? const Offset(0, 1.4)
+                  : Offset.zero,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOutCubic,
+              child: _BottomNavBar(
+                currentIndex: _currentIndex,
+                onTap: _goToTab,
+                items: _navItems,
+                expanded: ref.watch(navBarVisibilityProvider),
+              ),
             ),
           ),
         ],
