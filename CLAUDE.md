@@ -53,9 +53,10 @@ View (Widget) → ViewModel (Notifier) → Repository → DataSource (Firebase)
 │   │   │       ├── firebase_search_history_datasource.dart
 │   │   │       ├── firebase_review_datasource.dart
 │   │   │       ├── firebase_favorite_datasource.dart
+│   │   │       ├── firebase_folder_datasource.dart  # 찜 그룹(users/{uid}/folders)
 │   │   │       └── firebase_banner_datasource.dart
 │   │   ├── models/      # Freezed 모델 (user, club, club_info, menu, photo,
-│   │   │                #   review, favorite, banner, search_history, operating_hours)
+│   │   │                #   review, favorite, folder, banner, search_history, operating_hours)
 │   │   └── repositories/# domain 인터페이스 구현체 (*_repository_impl.dart, Riverpod provider 포함)
 │   ├── domain/
 │   │   └── repositories/    # repository 인터페이스 (Firebase 의존 금지)
@@ -64,7 +65,8 @@ View (Widget) → ViewModel (Notifier) → Repository → DataSource (Firebase)
 │   │   ├── main_scaffold/   # 루트 IndexedStack + 하단 탭바
 │   │   ├── home/            # 홈
 │   │   ├── nearby/          # 내 주변 (지도 기반)
-│   │   ├── pass_wallet/     # 패스/지갑 (플레이스홀더)
+│   │   ├── saved/           # 찜 (favorites + 그룹/폴더, viewmodels/)
+│   │   ├── pass_wallet/     # 패스/지갑 (플레이스홀더, 현재 탭에서 미연결)
 │   │   ├── search/          # 검색
 │   │   ├── clubs/           # 클럽 상세 (tabs/, widgets/, viewmodels/)
 │   │   ├── my_page/         # 마이페이지
@@ -266,7 +268,7 @@ ElevatedButton(onPressed: () {}, child: Text('로그인'))
 
 ---
 
-## 현재 구현 상태 (2026.06.20 기준)
+## 현재 구현 상태 (2026.06.25 기준)
 
 ### 완료 ✅
 - 디자인 시스템 (colors, typography, spacing) + 앱 테마
@@ -274,18 +276,20 @@ ElevatedButton(onPressed: () {}, child: Text('로그인'))
 - 인증 UI 화면 전체 (welcome, OTP, 본인인증, 약관, 가입완료)
 - 공통 위젯 (VybeButton, VybeTextField 등)
 - **Cloud Functions 13개 전부 구현** (auth 7 + favorites 2 + reviews 3 + index)
-- **Flutter 데이터 레이어 전부 구현** — Freezed 모델 10종, datasource 8종,
-  repository 인터페이스 7종 + impl 7종 (각 Riverpod provider 포함)
+- **Flutter 데이터 레이어 전부 구현** — Freezed 모델 11종, datasource 9종,
+  repository 인터페이스 8종 + impl 8종 (각 Riverpod provider 포함)
 - 인증 플로우 연결 (SDK → Functions → Firebase)
-- `MainScaffold` 5탭 (홈 / 주변 / 패스·지갑 / 검색 / 마이페이지)
+- `MainScaffold` 5탭 (홈 / 주변 / 찜 / 검색 / 내 정보)
 - 홈 (배너·추천), 내 주변 (네이버 지도 + geohash), 검색 화면
 - 클럽 상세 (정보·메뉴·사진·리뷰 탭, 찜, 스켈레톤 로딩)
+- **찜 탭 (`saved/`) — favorites 실연동 + 그룹(폴더) 풀구현**
+  (그룹 생성/이동/삭제, 정렬, 리스트↔그리드, 카드 롱프레스 이동·칩 롱프레스 삭제)
 
 ### 미구현 / 진행 중 ✗
-- 패스·지갑 탭 (`pass_wallet_screen.dart` 플레이스홀더)
+- 패스·지갑 탭 (`pass_wallet_screen.dart` 플레이스홀더 — 현재 탭 슬롯엔 미연결)
 - 주변 페이지 ↔ 상세 페이지 연동 마무리 (최근 커밋 진행 중)
 - 마이페이지 / 프로필 세부 (리뷰 내역 등)
-- Firestore / Storage Security Rules 배포 검증
+- Storage Security Rules 배포 검증 (Firestore Rules는 배포됨)
 - Apple 로그인 (이후 구현)
 
 ---
@@ -297,9 +301,9 @@ ElevatedButton(onPressed: () {}, child: Text('로그인'))
 ```
 1. 주변 ↔ 상세 페이지 연동 마무리 (진행 중)
         ↓
-2. 마이페이지 / 프로필 (리뷰 내역, 찜 목록 화면)
+2. 마이페이지 / 프로필 (리뷰 내역 화면)
         ↓
-3. 패스·지갑 탭 실제 구현
+3. 패스·지갑 탭 실제 구현 (탭 슬롯 재배치 포함)
         ↓
 4. Security Rules 배포 검증 + 본인인증(verifyIdentity) 실연동 점검
         ↓
@@ -534,8 +538,22 @@ updatedAt       : timestamp
 favoriteId      : string    // PK
 userId          : string    // FK → users
 clubId          : string    // FK → clubs (favoriteCount 자동 연동)
+folderId        : string?   // FK → users/{uid}/folders. null/없으면 '전체'(그룹 미지정)
+                            //   그룹 이동은 moveFavoriteToFolder()로 update (folderId만 변경)
 createdAt       : timestamp
 ```
+
+#### users/{uid}/folders/{folderId}
+```
+folderId        : string    // PK (= doc.id)
+name            : string    // 그룹 이름
+emoji           : string    // 그룹 이모지 (없으면 '')
+order           : number    // 정렬 순서 (생성 시 기존 그룹 수로 부여)
+createdAt       : timestamp
+```
+> 찜 그룹(컬렉션) 데이터 소스. 찜 화면(`saved/`)의 그룹 칩. `firebase_folder_datasource`가
+> `order` asc로 watch. 그룹 삭제 시 favorites의 folderId는 그대로 남아 '전체'에서만 노출됨
+> (멤버십 정리 안 함 — 고아 folderId 허용). favoriteCount/별점류와 달리 클라이언트에서 직접 CRUD.
 
 #### users/{uid}/searchHistory/{historyId}
 ```
@@ -610,8 +628,9 @@ createdAt       : timestamp
 | `clubs/.../info`, `menus` | 누구나 | 어드민만 |
 | `clubs/.../photos` | 누구나 | 생성: 로그인 유저(본인 userId) / 삭제: 본인 또는 어드민 |
 | `clubs/.../reviews` | 누구나 | 생성: 로그인 유저 / 수정·삭제: 본인 또는 어드민 |
-| `favorites` | 본인만 | 생성·삭제: 본인만 |
+| `favorites` | 본인만 | 생성·삭제: 본인만 / 수정: 본인만 (userId·clubId·createdAt 변경 불가, folderId만) |
 | `users/.../searchHistory` | 본인만 | 본인만 |
+| `users/.../folders` | 본인만 | 본인만 (read·create·update·delete) |
 
 #### Storage Rules 요약
 | 경로 | 읽기 | 쓰기 |

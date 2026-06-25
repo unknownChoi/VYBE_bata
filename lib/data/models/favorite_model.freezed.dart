@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$FavoriteModel {
 
- String get favoriteId; String get userId; String get clubId; DateTime get createdAt;
+ String get favoriteId; String get userId; String get clubId; String? get folderId; DateTime get createdAt;
 /// Create a copy of FavoriteModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $FavoriteModelCopyWith<FavoriteModel> get copyWith => _$FavoriteModelCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is FavoriteModel&&(identical(other.favoriteId, favoriteId) || other.favoriteId == favoriteId)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.clubId, clubId) || other.clubId == clubId)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is FavoriteModel&&(identical(other.favoriteId, favoriteId) || other.favoriteId == favoriteId)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.clubId, clubId) || other.clubId == clubId)&&(identical(other.folderId, folderId) || other.folderId == folderId)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,favoriteId,userId,clubId,createdAt);
+int get hashCode => Object.hash(runtimeType,favoriteId,userId,clubId,folderId,createdAt);
 
 @override
 String toString() {
-  return 'FavoriteModel(favoriteId: $favoriteId, userId: $userId, clubId: $clubId, createdAt: $createdAt)';
+  return 'FavoriteModel(favoriteId: $favoriteId, userId: $userId, clubId: $clubId, folderId: $folderId, createdAt: $createdAt)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $FavoriteModelCopyWith<$Res>  {
   factory $FavoriteModelCopyWith(FavoriteModel value, $Res Function(FavoriteModel) _then) = _$FavoriteModelCopyWithImpl;
 @useResult
 $Res call({
- String favoriteId, String userId, String clubId, DateTime createdAt
+ String favoriteId, String userId, String clubId, String? folderId, DateTime createdAt
 });
 
 
@@ -62,12 +62,13 @@ class _$FavoriteModelCopyWithImpl<$Res>
 
 /// Create a copy of FavoriteModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? favoriteId = null,Object? userId = null,Object? clubId = null,Object? createdAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? favoriteId = null,Object? userId = null,Object? clubId = null,Object? folderId = freezed,Object? createdAt = null,}) {
   return _then(_self.copyWith(
 favoriteId: null == favoriteId ? _self.favoriteId : favoriteId // ignore: cast_nullable_to_non_nullable
 as String,userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
 as String,clubId: null == clubId ? _self.clubId : clubId // ignore: cast_nullable_to_non_nullable
-as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as String,folderId: freezed == folderId ? _self.folderId : folderId // ignore: cast_nullable_to_non_nullable
+as String?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,
   ));
 }
@@ -153,10 +154,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String favoriteId,  String userId,  String clubId,  DateTime createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String favoriteId,  String userId,  String clubId,  String? folderId,  DateTime createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _FavoriteModel() when $default != null:
-return $default(_that.favoriteId,_that.userId,_that.clubId,_that.createdAt);case _:
+return $default(_that.favoriteId,_that.userId,_that.clubId,_that.folderId,_that.createdAt);case _:
   return orElse();
 
 }
@@ -174,10 +175,10 @@ return $default(_that.favoriteId,_that.userId,_that.clubId,_that.createdAt);case
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String favoriteId,  String userId,  String clubId,  DateTime createdAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String favoriteId,  String userId,  String clubId,  String? folderId,  DateTime createdAt)  $default,) {final _that = this;
 switch (_that) {
 case _FavoriteModel():
-return $default(_that.favoriteId,_that.userId,_that.clubId,_that.createdAt);case _:
+return $default(_that.favoriteId,_that.userId,_that.clubId,_that.folderId,_that.createdAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -194,10 +195,10 @@ return $default(_that.favoriteId,_that.userId,_that.clubId,_that.createdAt);case
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String favoriteId,  String userId,  String clubId,  DateTime createdAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String favoriteId,  String userId,  String clubId,  String? folderId,  DateTime createdAt)?  $default,) {final _that = this;
 switch (_that) {
 case _FavoriteModel() when $default != null:
-return $default(_that.favoriteId,_that.userId,_that.clubId,_that.createdAt);case _:
+return $default(_that.favoriteId,_that.userId,_that.clubId,_that.folderId,_that.createdAt);case _:
   return null;
 
 }
@@ -209,12 +210,13 @@ return $default(_that.favoriteId,_that.userId,_that.clubId,_that.createdAt);case
 
 
 class _FavoriteModel extends FavoriteModel {
-  const _FavoriteModel({required this.favoriteId, required this.userId, required this.clubId, required this.createdAt}): super._();
+  const _FavoriteModel({required this.favoriteId, required this.userId, required this.clubId, this.folderId, required this.createdAt}): super._();
   
 
 @override final  String favoriteId;
 @override final  String userId;
 @override final  String clubId;
+@override final  String? folderId;
 @override final  DateTime createdAt;
 
 /// Create a copy of FavoriteModel
@@ -227,16 +229,16 @@ _$FavoriteModelCopyWith<_FavoriteModel> get copyWith => __$FavoriteModelCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _FavoriteModel&&(identical(other.favoriteId, favoriteId) || other.favoriteId == favoriteId)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.clubId, clubId) || other.clubId == clubId)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _FavoriteModel&&(identical(other.favoriteId, favoriteId) || other.favoriteId == favoriteId)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.clubId, clubId) || other.clubId == clubId)&&(identical(other.folderId, folderId) || other.folderId == folderId)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,favoriteId,userId,clubId,createdAt);
+int get hashCode => Object.hash(runtimeType,favoriteId,userId,clubId,folderId,createdAt);
 
 @override
 String toString() {
-  return 'FavoriteModel(favoriteId: $favoriteId, userId: $userId, clubId: $clubId, createdAt: $createdAt)';
+  return 'FavoriteModel(favoriteId: $favoriteId, userId: $userId, clubId: $clubId, folderId: $folderId, createdAt: $createdAt)';
 }
 
 
@@ -247,7 +249,7 @@ abstract mixin class _$FavoriteModelCopyWith<$Res> implements $FavoriteModelCopy
   factory _$FavoriteModelCopyWith(_FavoriteModel value, $Res Function(_FavoriteModel) _then) = __$FavoriteModelCopyWithImpl;
 @override @useResult
 $Res call({
- String favoriteId, String userId, String clubId, DateTime createdAt
+ String favoriteId, String userId, String clubId, String? folderId, DateTime createdAt
 });
 
 
@@ -264,12 +266,13 @@ class __$FavoriteModelCopyWithImpl<$Res>
 
 /// Create a copy of FavoriteModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? favoriteId = null,Object? userId = null,Object? clubId = null,Object? createdAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? favoriteId = null,Object? userId = null,Object? clubId = null,Object? folderId = freezed,Object? createdAt = null,}) {
   return _then(_FavoriteModel(
 favoriteId: null == favoriteId ? _self.favoriteId : favoriteId // ignore: cast_nullable_to_non_nullable
 as String,userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
 as String,clubId: null == clubId ? _self.clubId : clubId // ignore: cast_nullable_to_non_nullable
-as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as String,folderId: freezed == folderId ? _self.folderId : folderId // ignore: cast_nullable_to_non_nullable
+as String?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,
   ));
 }

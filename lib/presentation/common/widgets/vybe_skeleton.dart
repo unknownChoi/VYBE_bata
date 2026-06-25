@@ -859,6 +859,96 @@ class DetailInfoSkeleton extends StatelessWidget {
   }
 }
 
+// ── 찜 탭 스켈레톤 ───────────────────────────────────────────────
+//
+// SavedScreen 로딩 중 표시. 통계 바 + 그룹 칩 + 툴바 + 리스트 카드 골격.
+// 실제 레이아웃(_StatsBar / _FolderTabs / _ToolBar / _ListCard)과 패딩 동일.
+
+class _SavedListItemSkeleton extends StatelessWidget {
+  const _SavedListItemSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 14.h),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: VybeColors.gray900)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          VybeSkel(width: 96.w, height: 96.w, radius: 10),
+          SizedBox(width: 14.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                VybeSkel(width: 130.w, height: 16.h),
+                SizedBox(height: 12.h),
+                VybeSkel(width: 180.w, height: 12.h),
+                SizedBox(height: 10.h),
+                VybeSkel(width: 160.w, height: 12.h),
+                SizedBox(height: 12.h),
+                VybeSkel(width: 70.w, height: 11.h),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class SavedSkeleton extends StatelessWidget {
+  const SavedSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 통계 바
+        Padding(
+          padding: EdgeInsets.fromLTRB(20.w, 28.h, 20.w, 12.h),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              VybeSkel(width: 140.w, height: 28.h, radius: 8),
+              VybeSkel(width: 86.w, height: 14.h, radius: 99),
+            ],
+          ),
+        ),
+        // 그룹 칩
+        Padding(
+          padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 16.h),
+          child: Row(
+            children: [
+              ...[52, 64, 80, 56].map((w) => Padding(
+                    padding: EdgeInsets.only(right: 6.w),
+                    child: VybeSkel(width: w.w, height: 34.h, radius: 99),
+                  )),
+            ],
+          ),
+        ),
+        // 툴바 (정렬 + 뷰 전환)
+        Padding(
+          padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 16.h),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              VybeSkel(width: 80.w, height: 14.h),
+              VybeSkel(width: 64.w, height: 26.h, radius: 8),
+            ],
+          ),
+        ),
+        // 리스트 카드 5개
+        ...List.generate(5, (_) => const _SavedListItemSkeleton()),
+      ],
+    );
+  }
+}
+
 class InfoTabSkeleton extends StatelessWidget {
   const InfoTabSkeleton({super.key});
 

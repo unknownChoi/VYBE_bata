@@ -349,6 +349,9 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen> {
   Widget _buildMap() {
     final myPos = _myPos ?? const NLatLng(37.5572, 126.9239);
     return NaverMap(
+      // 지도가 제스처를 선점(EagerGestureRecognizer)해 부모 PageView 가로
+      // 스와이프에 팬이 가로채이지 않도록. 시트 영역은 지도 밖이라 영향 없음.
+      forceGesture: true,
       options: NaverMapViewOptions(
         // 초기 위치 = 내 위치 (화면 가운데).
         initialCameraPosition: NCameraPosition(target: myPos, zoom: 16),

@@ -9,7 +9,7 @@ import 'package:vybe/presentation/main_scaffold/nav_bar_visibility_provider.dart
 import 'package:vybe/presentation/home/home_screen.dart';
 import 'package:vybe/presentation/my_page/my_page_screen.dart';
 import 'package:vybe/presentation/nearby/nearby_screen.dart';
-import 'package:vybe/presentation/pass_wallet/pass_wallet_screen.dart';
+import 'package:vybe/presentation/saved/saved_screen.dart';
 import 'package:vybe/presentation/search/search_screen.dart';
 
 /// 탭별 중첩 Navigator.
@@ -28,9 +28,30 @@ class _TabNavigator extends StatelessWidget {
 }
 
 Widget _nearbyBuilder(BuildContext _) => const NearbyScreen();
-Widget _passWalletBuilder(BuildContext _) => const PassWalletScreen();
+Widget _savedBuilder(BuildContext _) => const SavedScreen();
 Widget _searchBuilder(BuildContext _) => const SearchScreen();
 Widget _myPageBuilder(BuildContext _) => const MyPageScreen();
+
+/// PageView로 탭 전환 시 화면 밖 페이지(중첩 Navigator 상태)를 살려둔다.
+class _KeepAlivePage extends StatefulWidget {
+  final Widget child;
+  const _KeepAlivePage({required this.child});
+
+  @override
+  State<_KeepAlivePage> createState() => _KeepAlivePageState();
+}
+
+class _KeepAlivePageState extends State<_KeepAlivePage>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.child;
+  }
+}
 
 class MainScaffold extends ConsumerStatefulWidget {
   const MainScaffold({super.key});
@@ -41,10 +62,12 @@ class MainScaffold extends ConsumerStatefulWidget {
 
 class _MainScaffoldState extends ConsumerState<MainScaffold> {
   int _currentIndex = 0;
-  final Set<int> _visitedTabs = {0};
+  late final PageController _pageController;
   late final List<Widget> _screens;
 
   bool _onScroll(UserScrollNotification n) {
+    // PageView의 가로 스크롤은 무시 — nav 표시는 세로 스크롤로만 제어.
+    if (n.metrics.axis != Axis.vertical) return false;
     // depth 0만 처리하면 좋지만 탭마다 구조가 달라 방향만 본다.
     if (n.direction == ScrollDirection.reverse) {
       ref.read(navBarVisibilityProvider.notifier).collapse();
@@ -69,25 +92,43 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
     return false;
   }
 
+  // 탭 클릭: 해당 페이지로 애니메이션 이동.
   void _goToTab(int index) {
-    setState(() {
-      _currentIndex = index;
-      _visitedTabs.add(index);
-    });
-    // 탭 클릭 시 축소된 nav를 원래 크기로 복원.
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  // 스와이프/이동으로 페이지가 바뀐 시점 처리.
+  void _onPageChanged(int index) {
+    setState(() => _currentIndex = index);
+    // 탭 전환 시 축소된 nav를 원래 크기로 복원.
     ref.read(navBarVisibilityProvider.notifier).expand();
   }
 
   @override
   void initState() {
     super.initState();
+    _pageController = PageController();
     _screens = [
-      _TabNavigator(builder: (_) => HomeScreen(onSearchTap: () => _goToTab(3))),
-      const _TabNavigator(builder: _nearbyBuilder),
-      const _TabNavigator(builder: _passWalletBuilder),
-      const _TabNavigator(builder: _searchBuilder),
-      const _TabNavigator(builder: _myPageBuilder),
+      _KeepAlivePage(
+        child: _TabNavigator(
+          builder: (_) => HomeScreen(onSearchTap: () => _goToTab(3)),
+        ),
+      ),
+      const _KeepAlivePage(child: _TabNavigator(builder: _nearbyBuilder)),
+      const _KeepAlivePage(child: _TabNavigator(builder: _savedBuilder)),
+      const _KeepAlivePage(child: _TabNavigator(builder: _searchBuilder)),
+      const _KeepAlivePage(child: _TabNavigator(builder: _myPageBuilder)),
     ];
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   static const _navItems = [
@@ -111,14 +152,12 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
               onNotification: _onSheetDrag,
               child: NotificationListener<UserScrollNotification>(
                 onNotification: _onScroll,
-                child: IndexedStack(
-                  index: _currentIndex,
-                  children: List.generate(
-                    _screens.length,
-                    (i) => _visitedTabs.contains(i)
-                        ? _screens[i]
-                        : const SizedBox.shrink(),
-                  ),
+                child: PageView(
+                  controller: _pageController,
+                  onPageChanged: _onPageChanged,
+                  // 주변 탭의 지도는 forceGesture로 팬을 선점하고, 시트 영역에선
+                  // 이 PageView가 가로 스와이프를 받아 탭 전환된다.
+                  children: _screens,
                 ),
               ),
             ),
