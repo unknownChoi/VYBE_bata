@@ -26,6 +26,10 @@ class NearbyScreen extends ConsumerStatefulWidget {
 class _NearbyScreenState extends ConsumerState<NearbyScreen> {
   // 이 줌 이하로 축소되면 개별 핀 대신 지역(area)별 클러스터 동그라미 표시.
   static const double _kRegionZoomThreshold = 13.0;
+  // 주변 탭 인덱스 (MainScaffold PageView 기준).
+  static const int _kNearbyTabIndex = 1;
+  // 화면 밖에서 마커 변경이 생겨 렌더를 보류한 상태 (다시 보일 때 렌더).
+  bool _renderWhenVisible = false;
 
   NaverMapController? _mapController;
   bool _showReSearch = false;
@@ -304,6 +308,11 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen> {
       ..addAll(optimistic.entries.where((e) => e.value).map((e) => e.key))
       ..removeAll(optimistic.entries.where((e) => !e.value).map((e) => e.key));
 
+    // 주변 탭이 화면에 보일 때만 마커를 렌더한다.
+    // (KeepAlive로 화면 밖에서도 build/mounted가 유지되는데, 이때
+    //  NOverlayImage.fromWidget을 offscreen context로 호출하면 네이티브 크래시)
+    final isActive = ref.watch(currentTabIndexProvider) == _kNearbyTabIndex;
+
     clubsAsync.whenData((clubs) {
       // 검색 칩 필터(찜 포함)를 마커에도 동일 적용.
       final filtered = activeFilters.isEmpty
@@ -313,9 +322,15 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen> {
                   favoritedIds: favoritedIds))
               .toList();
       final sig = '${filtered.map((c) => c.clubId).join(',')}|$_regionMode';
-      if (sig != _lastMarkerSig) {
+      final changed = sig != _lastMarkerSig;
+      if (changed) {
         _lastMarkerSig = sig;
         _lastRenderedClubs = filtered;
+        // 화면 밖이면 지금 렌더 금지 — 다시 보일 때 렌더하도록 표시.
+        if (!isActive) _renderWhenVisible = true;
+      }
+      if (isActive && (changed || _renderWhenVisible)) {
+        _renderWhenVisible = false;
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
           if (_mapController != null) {

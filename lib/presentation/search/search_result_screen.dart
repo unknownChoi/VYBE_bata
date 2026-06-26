@@ -5,6 +5,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vybe/core/providers/auth_providers.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
+import 'package:vybe/presentation/search/viewmodels/club_filter_viewmodel.dart';
 import 'package:vybe/presentation/search/viewmodels/search_viewmodel.dart';
 import 'package:vybe/presentation/search/widgets/club_list_item.dart';
 import 'package:vybe/presentation/search/widgets/filter_chip_bar.dart';
@@ -43,6 +45,18 @@ class _SearchResultScreenState extends ConsumerState<SearchResultScreen> {
   @override
   Widget build(BuildContext context) {
     final resultsAsync = ref.watch(searchViewModelProvider);
+    final filters = ref.watch(clubFilterViewModelProvider);
+    final sort = ref.watch(clubSortViewModelProvider);
+
+    // 찜 상태(스트림 + 낙관적 오버라이드 머지).
+    final uid = ref.watch(currentUidProvider);
+    final streamFavIds = uid != null
+        ? ref.watch(favoritedClubIdsProvider(uid)).asData?.value ?? <String>{}
+        : <String>{};
+    final optimistic = ref.watch(favoriteViewModelProvider);
+    final favoritedIds = Set<String>.from(streamFavIds)
+      ..addAll(optimistic.entries.where((e) => e.value).map((e) => e.key))
+      ..removeAll(optimistic.entries.where((e) => !e.value).map((e) => e.key));
 
     return Scaffold(
       backgroundColor: VybeColors.background,
@@ -63,10 +77,38 @@ class _SearchResultScreenState extends ConsumerState<SearchResultScreen> {
                 ),
                 error: (e, _) => _buildMessage('검색 중 오류가 발생했어요\n\n$e'),
                 data: (results) {
-                  final clubs = results.clubs;
-                  if (clubs.isEmpty) {
-                    return _buildMessage("'${widget.query}' 검색 결과가 없어요");
+                  // 로드된 결과에 필터 + 정렬 적용 (클라).
+                  var clubs = results.clubs
+                      .where((c) =>
+                          clubMatchesFilters(c, filters, favoritedIds: favoritedIds))
+                      .toList();
+                  clubs = sortClubs(clubs, sort);
+
+                  // 필터로 다 걸러졌는데 서버에 더 있으면 자동으로 다음 페이지 로드
+                  // (사용자가 스크롤할 콘텐츠가 없어 멈추는 것 방지).
+                  if (clubs.isEmpty &&
+                      results.hasMore &&
+                      !results.loadingMore) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      ref.read(searchViewModelProvider.notifier).loadMore();
+                    });
                   }
+
+                  if (clubs.isEmpty) {
+                    if (results.hasMore || results.loadingMore) {
+                      return const Center(
+                        child: CircularProgressIndicator(
+                          color: VybeColors.mainPurple500,
+                        ),
+                      );
+                    }
+                    return _buildMessage(
+                      filters.isEmpty
+                          ? "'${widget.query}' 검색 결과가 없어요"
+                          : '조건에 맞는 클럽이 없어요',
+                    );
+                  }
+
                   final showSpinner = results.hasMore || results.loadingMore;
                   return NotificationListener<ScrollNotification>(
                     onNotification: _onScroll,
@@ -84,7 +126,20 @@ class _SearchResultScreenState extends ConsumerState<SearchResultScreen> {
                             ),
                           );
                         }
-                        return ClubListItem(club: clubs[i]);
+                        final club = clubs[i];
+                        return ClubListItem(
+                          club: club,
+                          isFavorited: favoritedIds.contains(club.clubId),
+                          onFavoriteTap: uid == null
+                              ? null
+                              : () => ref
+                                  .read(favoriteViewModelProvider.notifier)
+                                  .toggleFavorite(
+                                    uid,
+                                    club.clubId,
+                                    favoritedIds.contains(club.clubId),
+                                  ),
+                        );
                       },
                     ),
                   );
@@ -103,6 +158,7 @@ class _SearchResultScreenState extends ConsumerState<SearchResultScreen> {
         padding: EdgeInsets.only(bottom: 80.h),
         child: Text(
           text,
+          textAlign: TextAlign.center,
           style: VybeTypography.body3.copyWith(color: VybeColors.gray500),
         ),
       ),

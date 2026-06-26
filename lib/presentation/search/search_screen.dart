@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/core/providers/auth_providers.dart';
+import 'package:vybe/presentation/clubs/club_detail_screen.dart';
 import 'package:vybe/presentation/search/search_result_screen.dart';
 import 'package:vybe/data/models/search_history_model.dart';
 import 'package:vybe/design_system/colors.dart';
@@ -12,26 +15,6 @@ import 'package:vybe/presentation/search/widgets/keyword_chip.dart';
 import 'package:vybe/presentation/search/widgets/search_bar.dart';
 import 'package:vybe/presentation/search/widgets/search_suggestion_item.dart';
 import 'package:vybe/presentation/search/widgets/trend_row.dart';
-
-// ── 검색어 자동완성 더미 데이터 ──
-const _suggestionKeywords = [
-  '홍대',
-  '홍대 클럽 레이저',
-  '홍대 클럽',
-  '힙합',
-  '힙합클럽',
-  '헌포',
-  '건대',
-  '강남',
-  '강남 클럽',
-  '무료입장',
-  'EDM',
-  '레이저',
-  '레이저 클럽',
-  '버뮤다',
-  '인클',
-  '동성로',
-];
 
 // ── 인기 해시태그 더미 데이터 ──
 const _popularHashtags = ['힙합', '무료입장', 'EDM', '홍대'];
@@ -65,6 +48,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   late final TextEditingController _controller;
   late final FocusNode _focusNode;
   String _query = '';
+  Timer? _debounce;
+
+  // 연관 검색어: 입력당 서버 폭증 방지 (디바운스 + 최소 글자수).
+  static const _kDebounce = Duration(milliseconds: 300);
+  static const _kMinChars = 2;
 
   @override
   void initState() {
@@ -75,18 +63,24 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _controller.dispose();
     // 외부 주입 FocusNode는 소유자(MainScaffold)가 dispose.
     if (widget.focusNode == null) _focusNode.dispose();
     super.dispose();
   }
 
-  List<String> get _filteredSuggestions {
-    if (_query.isEmpty) return [];
-    final lower = _query.toLowerCase();
-    return _suggestionKeywords
-        .where((k) => k.toLowerCase().startsWith(lower))
-        .toList();
+  void _onQueryChanged(String value) {
+    setState(() => _query = value);
+    _debounce?.cancel();
+    final q = value.trim();
+    if (q.length < _kMinChars) {
+      ref.read(searchSuggestionViewModelProvider.notifier).clear();
+      return;
+    }
+    _debounce = Timer(_kDebounce, () {
+      ref.read(searchSuggestionViewModelProvider.notifier).fetch(q);
+    });
   }
 
   @override
@@ -106,11 +100,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               controller: _controller,
               focusNode: _focusNode,
               autofocus: true,
-              onChanged: (value) => setState(() => _query = value),
+              onChanged: _onQueryChanged,
               onSubmitted: _navigateToResult,
             ),
             Expanded(
-              child: _query.isNotEmpty
+              child: _query.trim().length >= _kMinChars
                   ? _buildSuggestionList()
                   : _buildDefaultContent(historyAsync),
             ),
@@ -121,24 +115,63 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   void _navigateToResult(String query) {
-    if (query.trim().isEmpty) return;
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => SearchResultScreen(query: query),
-      ),
+    final q = query.trim();
+    if (q.isEmpty) return;
+    Navigator.of(context)
+        .push(_fadeRoute(SearchResultScreen(query: q)))
+        .then((_) => _restoreQuery(q));
+  }
+
+  // 클럽 제안 탭 → 해당 클럽 상세로. 돌아오면 입력 상태 그대로 복원.
+  void _openClub(String clubId) {
+    final q = _query.trim();
+    Navigator.of(context)
+        .push(_fadeRoute(ClubDetailScreen(clubId: clubId)))
+        .then((_) => _restoreQuery(q));
+  }
+
+  // 결과/상세에서 돌아오면 검색어를 그대로 유지한 채 입력 상태로 복원
+  // (지우지 않음) → 검색창 탭 시 끊김 없이 연관 검색어 + 키보드 노출.
+  void _restoreQuery(String q) {
+    if (!mounted) return;
+    if (q.isEmpty) {
+      _controller.clear();
+      ref.read(searchSuggestionViewModelProvider.notifier).clear();
+      setState(() => _query = '');
+    } else {
+      _controller.text = q;
+      _controller.selection = TextSelection.collapsed(offset: q.length);
+      setState(() => _query = q);
+      ref.read(searchSuggestionViewModelProvider.notifier).fetch(q);
+    }
+    _focusNode.requestFocus();
+  }
+
+  // 페이드 전환 — 기본 슬라이드보다 검색 흐름에 자연스럽다.
+  PageRoute<T> _fadeRoute<T>(Widget page) {
+    return PageRouteBuilder<T>(
+      transitionDuration: const Duration(milliseconds: 200),
+      reverseTransitionDuration: const Duration(milliseconds: 200),
+      pageBuilder: (_, __, ___) => page,
+      transitionsBuilder: (_, anim, __, child) =>
+          FadeTransition(opacity: anim, child: child),
     );
   }
 
   Widget _buildSuggestionList() {
-    final suggestions = _filteredSuggestions;
-    if (suggestions.isEmpty) return const SizedBox.shrink();
+    final async = ref.watch(searchSuggestionViewModelProvider);
+    final clubs = async.value ?? const [];
+    if (clubs.isEmpty) {
+      // 로딩 중이거나(첫 입력) 결과 없음 → 빈 화면.
+      return const SizedBox.shrink();
+    }
     return ListView.builder(
       padding: EdgeInsets.zero,
-      itemCount: suggestions.length,
+      itemCount: clubs.length,
       itemBuilder: (_, i) => SearchSuggestionItem(
-        keyword: suggestions[i],
-        query: _query,
-        onTap: () => _navigateToResult(suggestions[i]),
+        keyword: clubs[i].name,
+        query: _query.trim(),
+        onTap: () => _openClub(clubs[i].clubId),
       ),
     );
   }

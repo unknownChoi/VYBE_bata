@@ -11,6 +11,30 @@ Future<List<SearchHistoryModel>> searchHistory(Ref ref, String userId) {
   return ref.watch(searchHistoryRepositoryProvider).getSearchHistory(userId);
 }
 
+/// 입력 중 연관 검색어(클럽 제안). 디바운스는 호출측(화면)에서 처리.
+/// searchClubsPage(평점순 상위 8개)를 재사용 — 추가 인프라 없음.
+@riverpod
+class SearchSuggestionViewModel extends _$SearchSuggestionViewModel {
+  @override
+  AsyncValue<List<ClubModel>> build() => const AsyncData([]);
+
+  Future<void> fetch(String keyword) async {
+    final q = keyword.trim();
+    if (q.length < 2) {
+      state = const AsyncData([]);
+      return;
+    }
+    state = await AsyncValue.guard(() async {
+      final page = await ref
+          .read(clubRepositoryProvider)
+          .searchClubsPage(q, pageSize: 8);
+      return page.clubs;
+    });
+  }
+
+  void clear() => state = const AsyncData([]);
+}
+
 /// 검색 결과 + 페이지네이션 상태 (평점순 서버 페이지네이션).
 class SearchResults {
   final List<ClubModel> clubs;

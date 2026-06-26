@@ -9,8 +9,15 @@ import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 
 class ClubListItem extends StatelessWidget {
   final ClubModel club;
+  final bool isFavorited;
+  final VoidCallback? onFavoriteTap;
 
-  const ClubListItem({super.key, required this.club});
+  const ClubListItem({
+    super.key,
+    required this.club,
+    this.isFavorited = false,
+    this.onFavoriteTap,
+  });
 
   bool get _isOpen => club.operatingHours.today.isCurrentlyOpen;
   String? get _closeTime => club.operatingHours.today.close;
@@ -157,18 +164,22 @@ class ClubListItem extends StatelessWidget {
           Positioned(
             bottom: 8.h,
             right: 8.w,
-            child: Container(
-              width: 40.r,
-              height: 40.r,
-              decoration: BoxDecoration(
-                color: const Color(0xCC191919),
-                borderRadius: BorderRadius.circular(20.r),
-              ),
-              padding: EdgeInsets.all(8.r),
-              child: SvgPicture.asset(
-                'assets/icons/common/club_card/favorite.svg',
-                width: 24.r,
-                height: 24.r,
+            child: GestureDetector(
+              onTap: onFavoriteTap,
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                width: 40.r,
+                height: 40.r,
+                decoration: BoxDecoration(
+                  color: const Color(0xCC191919),
+                  borderRadius: BorderRadius.circular(20.r),
+                ),
+                padding: EdgeInsets.all(8.r),
+                child: Icon(
+                  isFavorited ? Icons.favorite : Icons.favorite_border,
+                  size: 24.r,
+                  color: isFavorited ? VybeColors.mainPurple500 : Colors.white,
+                ),
               ),
             ),
           ),

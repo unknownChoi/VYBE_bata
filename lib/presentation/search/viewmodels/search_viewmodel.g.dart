@@ -86,6 +86,79 @@ final class SearchHistoryFamily extends $Family
   String toString() => r'searchHistoryProvider';
 }
 
+/// 입력 중 연관 검색어(클럽 제안). 디바운스는 호출측(화면)에서 처리.
+/// searchClubsPage(평점순 상위 8개)를 재사용 — 추가 인프라 없음.
+
+@ProviderFor(SearchSuggestionViewModel)
+final searchSuggestionViewModelProvider = SearchSuggestionViewModelProvider._();
+
+/// 입력 중 연관 검색어(클럽 제안). 디바운스는 호출측(화면)에서 처리.
+/// searchClubsPage(평점순 상위 8개)를 재사용 — 추가 인프라 없음.
+final class SearchSuggestionViewModelProvider
+    extends
+        $NotifierProvider<
+          SearchSuggestionViewModel,
+          AsyncValue<List<ClubModel>>
+        > {
+  /// 입력 중 연관 검색어(클럽 제안). 디바운스는 호출측(화면)에서 처리.
+  /// searchClubsPage(평점순 상위 8개)를 재사용 — 추가 인프라 없음.
+  SearchSuggestionViewModelProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'searchSuggestionViewModelProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$searchSuggestionViewModelHash();
+
+  @$internal
+  @override
+  SearchSuggestionViewModel create() => SearchSuggestionViewModel();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(AsyncValue<List<ClubModel>> value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<AsyncValue<List<ClubModel>>>(value),
+    );
+  }
+}
+
+String _$searchSuggestionViewModelHash() =>
+    r'fac260fd4c1fc3d83a5afddbd572c7369862bbf3';
+
+/// 입력 중 연관 검색어(클럽 제안). 디바운스는 호출측(화면)에서 처리.
+/// searchClubsPage(평점순 상위 8개)를 재사용 — 추가 인프라 없음.
+
+abstract class _$SearchSuggestionViewModel
+    extends $Notifier<AsyncValue<List<ClubModel>>> {
+  AsyncValue<List<ClubModel>> build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref =
+        this.ref
+            as $Ref<AsyncValue<List<ClubModel>>, AsyncValue<List<ClubModel>>>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<
+                AsyncValue<List<ClubModel>>,
+                AsyncValue<List<ClubModel>>
+              >,
+              AsyncValue<List<ClubModel>>,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}
+
 @ProviderFor(SearchViewModel)
 final searchViewModelProvider = SearchViewModelProvider._();
 

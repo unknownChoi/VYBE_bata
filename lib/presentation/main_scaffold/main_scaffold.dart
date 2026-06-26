@@ -109,6 +109,8 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
   // 스와이프/이동으로 페이지가 바뀐 시점 처리.
   void _onPageChanged(int index) {
     setState(() => _currentIndex = index);
+    // 현재 탭 기록 (주변 지도 마커 렌더 가드용).
+    ref.read(currentTabIndexProvider.notifier).set(index);
     // 탭 전환 시 축소된 nav를 원래 크기로 복원.
     ref.read(navBarVisibilityProvider.notifier).expand();
     // 검색 탭 진입 시 키보드 자동 노출 (KeepAlive라 autofocus는 최초 1회뿐).

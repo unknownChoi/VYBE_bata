@@ -36,3 +36,18 @@ class NavBarHidden extends Notifier<bool> {
 
 final navBarHiddenProvider =
     NotifierProvider<NavBarHidden, bool>(NavBarHidden.new);
+
+/// 현재 활성 탭 인덱스 (PageView). 0=홈 1=주변 2=찜 3=검색 4=내정보.
+/// 주변 탭의 네이버 지도 마커는 화면 밖(KeepAlive)에서 NOverlayImage.fromWidget을
+/// 호출하면 크래시하므로, 활성 탭일 때만 렌더하도록 이 값을 참조한다.
+class CurrentTabIndex extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void set(int i) {
+    if (state != i) state = i;
+  }
+}
+
+final currentTabIndexProvider =
+    NotifierProvider<CurrentTabIndex, int>(CurrentTabIndex.new);
