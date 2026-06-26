@@ -11,6 +11,8 @@ import 'package:vybe/presentation/clubs/club_detail_screen.dart';
 import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
 import 'package:vybe/presentation/common/widgets/vybe_map_pin.dart';
 import 'package:vybe/presentation/nearby/viewmodels/nearby_viewmodel.dart';
+import 'package:vybe/presentation/nearby/viewmodels/nearby_search_provider.dart';
+import 'package:vybe/presentation/search/search_screen.dart';
 import 'package:vybe/presentation/search/viewmodels/club_filter_viewmodel.dart';
 import 'package:vybe/presentation/main_scaffold/nav_bar_visibility_provider.dart';
 import 'package:vybe/presentation/nearby/widgets/nearby_bottom_sheet.dart';
@@ -23,13 +25,16 @@ class NearbyScreen extends ConsumerStatefulWidget {
   ConsumerState<NearbyScreen> createState() => _NearbyScreenState();
 }
 
-class _NearbyScreenState extends ConsumerState<NearbyScreen> {
+class _NearbyScreenState extends ConsumerState<NearbyScreen>
+    with WidgetsBindingObserver {
   // 이 줌 이하로 축소되면 개별 핀 대신 지역(area)별 클러스터 동그라미 표시.
   static const double _kRegionZoomThreshold = 13.0;
   // 주변 탭 인덱스 (MainScaffold PageView 기준).
   static const int _kNearbyTabIndex = 1;
   // 화면 밖에서 마커 변경이 생겨 렌더를 보류한 상태 (다시 보일 때 렌더).
   bool _renderWhenVisible = false;
+  // 직전 build에서 주변 탭이 활성이었는지 (숨김→재진입 감지용).
+  bool _wasActive = false;
 
   NaverMapController? _mapController;
   bool _showReSearch = false;
@@ -46,6 +51,8 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen> {
   // 마커 재렌더 판단용 시그니처 (필터 결과 clubId 집합 + 클러스터 모드).
   String? _lastMarkerSig;
   NLatLng? _myPos;
+  // 직전 렌더한 검색어 (새 검색 감지 → 카메라 핀에 맞춤용). null=geo 모드.
+  String? _lastSearchKeyword;
 
   // 마커 이미지 캐시 — 매번 fromWidget 재생성하면 플러그인 이미지 캐시
   // 정리(Directory.delete) 로그가 반복돼 캐시해 재사용.
@@ -176,15 +183,41 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _sheetController = DraggableScrollableController();
     _sheetController.addListener(_onSheetChanged);
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _sheetController.removeListener(_onSheetChanged);
     _sheetController.dispose();
     super.dispose();
+  }
+
+  // 앱이 백그라운드→포그라운드 복귀 시 iOS가 temp 디렉토리(마커 PNG)를 purge했을
+  // 수 있다. 캐시된 NOverlayImage는 사라진 파일 경로를 들고 있어 재사용 시 네이티브
+  // crash(NOverlayImage.swift force-unwrap)가 난다. 복귀 시 아이콘 캐시를 폐기해
+  // 다음 렌더에서 파일을 새로 쓰도록 한다.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _invalidateIconCaches();
+      final isActive =
+          ref.read(currentTabIndexProvider) == _kNearbyTabIndex;
+      if (isActive && mounted) setState(() {});
+    }
+  }
+
+  // 마커 아이콘 캐시 전부 폐기 + 강제 재렌더 표시.
+  // 재렌더 시 NOverlayImage.fromWidget이 temp PNG를 새로 써서 stale 경로 crash 방지.
+  void _invalidateIconCaches() {
+    _clubPinCache.clear();
+    _regionPinCache.clear();
+    _myLocationIcon = null;
+    _lastMarkerSig = null; // build의 whenData가 변경 감지해 재렌더하도록.
+    _renderWhenVisible = true;
   }
 
   void _onSheetChanged() => setState(() {});
@@ -313,15 +346,35 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen> {
     //  NOverlayImage.fromWidget을 offscreen context로 호출하면 네이티브 크래시)
     final isActive = ref.watch(currentTabIndexProvider) == _kNearbyTabIndex;
 
-    clubsAsync.whenData((clubs) {
+    // 탭이 숨겨졌다(다른 탭) 재진입하는 순간: 숨김 동안 iOS가 temp PNG를
+    // purge했을 수 있어 캐시된 NOverlayImage 경로가 죽었을 수 있다.
+    // 아이콘 캐시를 폐기해 아래 whenData에서 fresh 재렌더하도록 한다.
+    if (isActive && !_wasActive) {
+      _invalidateIconCaches();
+    }
+    _wasActive = isActive;
+
+    // 검색 결과가 있으면 geo 클럽 대신 검색결과를 핀 소스로 사용.
+    final searchResult = ref.watch(nearbySearchResultProvider);
+    final List<ClubModel>? sourceClubs =
+        searchResult != null ? searchResult.clubs : clubsAsync.asData?.value;
+
+    if (sourceClubs != null) {
       // 검색 칩 필터(찜 포함)를 마커에도 동일 적용.
       final filtered = activeFilters.isEmpty
-          ? clubs
-          : clubs
+          ? sourceClubs
+          : sourceClubs
               .where((c) => clubMatchesFilters(c, activeFilters,
                   favoritedIds: favoritedIds))
               .toList();
-      final sig = '${filtered.map((c) => c.clubId).join(',')}|$_regionMode';
+      final searchKeyword = searchResult?.keyword;
+      // 새 검색이면 카메라를 결과 핀에 맞춤.
+      final newSearch =
+          searchKeyword != null && searchKeyword != _lastSearchKeyword;
+      _lastSearchKeyword = searchKeyword;
+
+      final sig =
+          '${searchKeyword ?? "geo"}|${filtered.map((c) => c.clubId).join(',')}|$_regionMode';
       final changed = sig != _lastMarkerSig;
       if (changed) {
         _lastMarkerSig = sig;
@@ -335,12 +388,23 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen> {
           if (!mounted) return;
           if (_mapController != null) {
             _addMarkers(filtered);
+            if (newSearch) {
+              _fitCameraTo(filtered);
+              // 검색 직후 결과 리스트가 보이도록 시트 펼침.
+              if (_sheetController.isAttached) {
+                _sheetController.animateTo(
+                  0.5,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOut,
+                );
+              }
+            }
           } else {
             _pendingClubs = filtered;
           }
         });
       }
-    });
+    }
 
     return Scaffold(
       backgroundColor: VybeColors.background,
@@ -410,13 +474,45 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen> {
   }
 
   Widget _buildTopOverlay() {
+    final keyword = ref.watch(nearbySearchResultProvider)?.keyword;
     return SafeArea(
       child: NearbyGnb(
-        onSearchTap: () {
-          // TODO: 검색 화면 이동
+        searchKeyword: keyword,
+        onClearSearch: keyword == null ? null : _clearSearch,
+        onSearchTap: _openSearch,
+      ),
+    );
+  }
+
+  void _openSearch() {
+    final uid = ref.read(currentUidProvider);
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 280),
+        reverseTransitionDuration: const Duration(milliseconds: 240),
+        pageBuilder: (_, __, ___) => SearchScreen(
+          showBackButton: true,
+          // 지도 모드: 검색 제출 시 결과를 핀으로 표시.
+          onMapResult: (q) => ref
+              .read(nearbySearchResultProvider.notifier)
+              .search(q, userId: uid),
+        ),
+        transitionsBuilder: (_, anim, __, child) {
+          final curved = CurvedAnimation(
+            parent: anim,
+            curve: Curves.easeOutCubic,
+            reverseCurve: Curves.easeInCubic,
+          );
+          return FadeTransition(opacity: curved, child: child);
         },
       ),
     );
+  }
+
+  // 검색 모드 해제 → geo 핀 복귀.
+  void _clearSearch() {
+    _selectedClubId = null;
+    ref.read(nearbySearchResultProvider.notifier).clear();
   }
 
   // 내 위치로 카메라 이동 FAB (디자인: MapControls)
@@ -452,6 +548,31 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  // 검색 결과 핀들이 모두 보이도록 카메라 맞춤.
+  Future<void> _fitCameraTo(List<ClubModel> clubs) async {
+    if (_mapController == null || clubs.isEmpty) return;
+    if (clubs.length == 1) {
+      await _mapController!.updateCamera(
+        NCameraUpdate.withParams(
+          target: NLatLng(clubs.first.lat, clubs.first.lng),
+          zoom: 15,
+        ),
+      );
+      return;
+    }
+    final lats = clubs.map((c) => c.lat);
+    final lngs = clubs.map((c) => c.lng);
+    final bounds = NLatLngBounds(
+      southWest: NLatLng(lats.reduce((a, b) => a < b ? a : b),
+          lngs.reduce((a, b) => a < b ? a : b)),
+      northEast: NLatLng(lats.reduce((a, b) => a > b ? a : b),
+          lngs.reduce((a, b) => a > b ? a : b)),
+    );
+    await _mapController!.updateCamera(
+      NCameraUpdate.fitBounds(bounds, padding: EdgeInsets.all(64.r)),
     );
   }
 
@@ -524,6 +645,8 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen> {
   Future<void> _onReSearch() async {
     if (_mapController == null) return;
     setState(() => _showReSearch = false);
+    // 검색 모드 해제 (geo 재조회로 복귀).
+    ref.read(nearbySearchResultProvider.notifier).clear();
     // 지역 선택 해제 (새 영역 조회).
     ref.read(selectedAreaProvider.notifier).select(null);
 

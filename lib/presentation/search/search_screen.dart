@@ -38,7 +38,19 @@ class SearchScreen extends ConsumerStatefulWidget {
   /// null이면 내부에서 생성.
   final FocusNode? focusNode;
 
-  const SearchScreen({super.key, this.focusNode});
+  /// true이면 검색창 왼쪽에 뒤로가기 화살표 노출 (push로 띄운 경우, 예: 주변 페이지).
+  final bool showBackButton;
+
+  /// 지도 모드: 값이 있으면 검색 제출 시 결과 화면으로 push하지 않고
+  /// 이 콜백(검색어)을 호출한 뒤 pop한다 (주변 지도에 핀으로 표시).
+  final ValueChanged<String>? onMapResult;
+
+  const SearchScreen({
+    super.key,
+    this.focusNode,
+    this.showBackButton = false,
+    this.onMapResult,
+  });
 
   @override
   ConsumerState<SearchScreen> createState() => _SearchScreenState();
@@ -91,7 +103,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
     return Scaffold(
       backgroundColor: VybeColors.background,
-      body: SafeArea(
+      body: GestureDetector(
+        // 검색창 밖 탭 시 키보드 닫기
+        onTap: () => FocusScope.of(context).unfocus(),
+        behavior: HitTestBehavior.translucent,
+        child: SafeArea(
         bottom: false,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -99,9 +115,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             SearchInputBar(
               controller: _controller,
               focusNode: _focusNode,
-              autofocus: true,
+              autofocus: false,
               onChanged: _onQueryChanged,
               onSubmitted: _navigateToResult,
+              onBack: widget.showBackButton
+                  ? () => Navigator.of(context).pop()
+                  : null,
             ),
             Expanded(
               child: _query.trim().length >= _kMinChars
@@ -111,12 +130,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           ],
         ),
       ),
+      ),
     );
   }
 
   void _navigateToResult(String query) {
     final q = query.trim();
     if (q.isEmpty) return;
+    // 지도 모드: 결과를 핀으로 띄우기 위해 콜백 호출 후 pop.
+    if (widget.onMapResult != null) {
+      _focusNode.unfocus();
+      widget.onMapResult!(q);
+      Navigator.of(context).pop();
+      return;
+    }
     Navigator.of(context)
         .push(_fadeRoute(SearchResultScreen(query: q)))
         .then((_) => _restoreQuery(q));
@@ -124,6 +151,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   // 클럽 제안 탭 → 해당 클럽 상세로. 돌아오면 입력 상태 그대로 복원.
   void _openClub(String clubId) {
+    // 지도 모드: 클럽 제안 탭 → 그 클럽명으로 검색해 핀 표시.
+    if (widget.onMapResult != null) {
+      final clubs = ref.read(searchSuggestionViewModelProvider).value ?? const [];
+      final matches = clubs.where((c) => c.clubId == clubId);
+      _navigateToResult(matches.isEmpty ? _query.trim() : matches.first.name);
+      return;
+    }
     final q = _query.trim();
     Navigator.of(context)
         .push(_fadeRoute(ClubDetailScreen(clubId: clubId)))
@@ -295,9 +329,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   // ── 인기 검색어 ──
 
   Widget _buildTrendingSearches() {
-    final left = _trendItems.sublist(0, 5);
-    final right = _trendItems.sublist(5, 10);
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -320,34 +351,25 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: Column(
-                children: List.generate(
-                  left.length,
-                  (i) => Padding(
-                    padding: EdgeInsets.only(
-                        bottom: i < left.length - 1 ? 16.h : 0),
-                    child: TrendRow(item: left[i]),
-                  ),
-                ),
-              ),
-            ),
+            Expanded(child: _trendColumn(_trendItems.sublist(0, 5))),
             SizedBox(width: 24.w),
-            Expanded(
-              child: Column(
-                children: List.generate(
-                  right.length,
-                  (i) => Padding(
-                    padding: EdgeInsets.only(
-                        bottom: i < right.length - 1 ? 16.h : 0),
-                    child: TrendRow(item: right[i]),
-                  ),
-                ),
-              ),
-            ),
+            Expanded(child: _trendColumn(_trendItems.sublist(5, 10))),
           ],
         ),
       ],
+    );
+  }
+
+  // 인기 검색어 한 컬럼 (행 사이 16.h 간격, 마지막 행 제외).
+  Widget _trendColumn(List<TrendItem> items) {
+    return Column(
+      children: List.generate(
+        items.length,
+        (i) => Padding(
+          padding: EdgeInsets.only(bottom: i < items.length - 1 ? 16.h : 0),
+          child: TrendRow(item: items[i]),
+        ),
+      ),
     );
   }
 }

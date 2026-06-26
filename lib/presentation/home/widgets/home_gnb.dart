@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:vybe/presentation/notifications/notification_screen.dart';
 
 class HomeGnb extends StatelessWidget {
   final VoidCallback? onSearchTap;
@@ -34,7 +35,11 @@ class HomeGnb extends StatelessWidget {
               ),
               SizedBox(width: 12.w),
               GestureDetector(
-                onTap: () {},
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const NotificationScreen(),
+                  ),
+                ),
                 child: SvgPicture.asset(
                   'assets/icons/home_screen/notification.svg',
                   width: 24.r,

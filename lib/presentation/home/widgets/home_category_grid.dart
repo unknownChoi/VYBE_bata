@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vybe/design_system/colors.dart';
+import 'package:vybe/presentation/recommend/vybe_recommend_screen.dart';
 
 const _borderGradient = LinearGradient(
   begin: Alignment.topLeft,
@@ -71,12 +72,12 @@ class HomeCategoryGrid extends StatelessWidget {
         spacing: 24.w,
         runSpacing: 24.h,
         alignment: WrapAlignment.center,
-        children: _categories.map(_buildItem).toList(),
+        children: _categories.map((c) => _buildItem(context, c)).toList(),
       ),
     );
   }
 
-  Widget _buildItem(CategoryItem item) {
+  Widget _buildItem(BuildContext context, CategoryItem item) {
     final isVybe = item.label == 'VYBE 추천';
 
     final iconInner = Container(
@@ -118,7 +119,16 @@ class HomeCategoryGrid extends StatelessWidget {
             child: iconInner,
           );
 
-    return SizedBox(
+    return GestureDetector(
+      onTap: isVybe
+          ? () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const VybeRecommendScreen(),
+                ),
+              )
+          : null,
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
       width: 60.w,
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -137,6 +147,7 @@ class HomeCategoryGrid extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }

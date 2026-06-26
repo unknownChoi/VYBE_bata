@@ -29,24 +29,24 @@ class FirebaseSearchHistoryDataSource {
       service: 'Firestore(users/$userId/searchHistory)',
       purpose: '검색어 "$keyword" 저장 (중복 제거 후 추가)',
     );
-    final existing = await _firestore
+    final collection = _firestore
         .collection('users')
         .doc(userId)
-        .collection('searchHistory')
-        .where('keyword', isEqualTo: keyword)
-        .get();
+        .collection('searchHistory');
+    final existing =
+        await collection.where('keyword', isEqualTo: keyword).get();
+
+    // 중복 제거 + 신규 추가를 단일 batch로 (순차 await 제거).
+    final batch = _firestore.batch();
     for (final doc in existing.docs) {
-      await doc.reference.delete();
+      batch.delete(doc.reference);
     }
-    await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('searchHistory')
-        .add({
+    batch.set(collection.doc(), {
       'userId': userId,
       'keyword': keyword,
       'createdAt': FieldValue.serverTimestamp(),
     });
+    await batch.commit();
   }
 
   Future<void> deleteSearchHistory(String userId, String historyId) async {
@@ -74,8 +74,13 @@ class FirebaseSearchHistoryDataSource {
         .doc(userId)
         .collection('searchHistory')
         .get();
+    if (snapshot.docs.isEmpty) return;
+
+    // 순차 await 대신 단일 batch 삭제 (getSearchHistory limit 20 → 500 제한 내).
+    final batch = _firestore.batch();
     for (final doc in snapshot.docs) {
-      await doc.reference.delete();
+      batch.delete(doc.reference);
     }
+    await batch.commit();
   }
 }

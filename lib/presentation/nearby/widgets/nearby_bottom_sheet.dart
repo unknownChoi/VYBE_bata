@@ -9,6 +9,7 @@ import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 import 'package:vybe/presentation/clubs/club_detail_screen.dart';
 import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
 import 'package:vybe/presentation/nearby/viewmodels/nearby_viewmodel.dart';
+import 'package:vybe/presentation/nearby/viewmodels/nearby_search_provider.dart';
 import 'package:vybe/presentation/nearby/widgets/club_nearby_list_item.dart';
 import 'package:vybe/presentation/search/viewmodels/club_filter_viewmodel.dart';
 import 'package:vybe/presentation/search/widgets/filter_chip_bar.dart';
@@ -20,7 +21,11 @@ class NearbyBottomSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final clubsAsync = ref.watch(nearbyViewModelProvider);
+    // 검색 모드면 검색결과를 소스로 사용 (geo 대신).
+    final searchResult = ref.watch(nearbySearchResultProvider);
+    final clubsAsync = searchResult != null
+        ? AsyncValue.data(searchResult.clubs)
+        : ref.watch(nearbyViewModelProvider);
     final activeFilters = ref.watch(clubFilterViewModelProvider);
     final sort = ref.watch(clubSortViewModelProvider);
     // 거리순 기준 = 내 위치(지도 내 위치 마커와 동일 좌표).
@@ -42,7 +47,8 @@ class NearbyBottomSheet extends ConsumerWidget {
 
     // 지역 선택 → 칩 필터(찜 포함) → 정렬 순으로 적용.
     final filteredAsync = clubsAsync.whenData((clubs) {
-      var filtered = selectedArea == null
+      // 검색 모드에선 지역(area) 필터 무시 (검색결과 그대로).
+      var filtered = (selectedArea == null || searchResult != null)
           ? clubs
           : clubs.where((c) => c.area == selectedArea).toList();
       if (activeFilters.isNotEmpty) {
@@ -75,6 +81,7 @@ class NearbyBottomSheet extends ConsumerWidget {
                 _SheetHeader(
                   count: filteredAsync.asData?.value.length ?? 0,
                   area: selectedArea,
+                  searchKeyword: searchResult?.keyword,
                   loading: filteredAsync.isLoading,
                 ),
                 const FilterChipBar(hasBackground: true, showFavorite: true),
@@ -86,7 +93,11 @@ class NearbyBottomSheet extends ConsumerWidget {
             data: (clubs) => clubs.isEmpty
                 ? _centerSliver(
                     Text(
-                      activeFilters.isEmpty ? '주변에 클럽이 없어요' : '조건에 맞는 클럽이 없어요',
+                      searchResult != null
+                          ? '검색 결과가 없어요'
+                          : activeFilters.isEmpty
+                              ? '주변에 클럽이 없어요'
+                              : '조건에 맞는 클럽이 없어요',
                       style: VybeTypography.body2
                           .copyWith(color: VybeColors.gray500),
                     ),
@@ -144,9 +155,15 @@ class NearbyBottomSheet extends ConsumerWidget {
 class _SheetHeader extends StatelessWidget {
   final int count;
   final String? area;
+  final String? searchKeyword;
   final bool loading;
 
-  const _SheetHeader({required this.count, this.area, this.loading = false});
+  const _SheetHeader({
+    required this.count,
+    this.area,
+    this.searchKeyword,
+    this.loading = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -154,11 +171,16 @@ class _SheetHeader extends StatelessWidget {
       color: Colors.white,
       fontWeight: FontWeight.w600,
     );
+    final label = searchKeyword != null
+        ? "'$searchKeyword' 검색 결과 "
+        : area == null
+            ? '내 주변 클럽 '
+            : '$area 클럽 ';
     return Padding(
       padding: EdgeInsets.fromLTRB(24.w, 4.h, 24.w, 12.h),
       child: Row(
         children: [
-          Text(area == null ? '내 주변 클럽 ' : '$area 클럽 ', style: labelStyle),
+          Text(label, style: labelStyle),
           // 로딩 중엔 카운트 자리에 shimmer.
           loading
               ? VybeSkel(width: 20.w, height: 15.h, radius: 4)

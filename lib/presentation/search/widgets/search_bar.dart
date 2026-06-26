@@ -13,6 +13,9 @@ class SearchInputBar extends StatelessWidget {
   /// true이면 등장 시 자동 포커스 → 키보드 즉시 노출
   final bool autofocus;
 
+  /// null이 아니면 검색창 왼쪽에 뒤로가기 화살표 노출 (push로 띄운 경우).
+  final VoidCallback? onBack;
+
   const SearchInputBar({
     super.key,
     this.controller,
@@ -20,13 +23,35 @@ class SearchInputBar extends StatelessWidget {
     this.onChanged,
     this.onSubmitted,
     this.autofocus = false,
+    this.onBack,
   });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 10.h),
-      child: Container(
+      child: Row(
+        children: [
+          if (onBack != null) ...[
+            GestureDetector(
+              onTap: onBack,
+              behavior: HitTestBehavior.opaque,
+              child: SvgPicture.asset(
+                'assets/icons/common/arrow_back.svg',
+                width: 24.r,
+                height: 24.r,
+              ),
+            ),
+            SizedBox(width: 12.w),
+          ],
+          Expanded(child: _buildField()),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildField() {
+    return Container(
         height: 44.h,
         decoration: BoxDecoration(
           color: VybeColors.gray800,
@@ -68,7 +93,6 @@ class SearchInputBar extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
+      );
   }
 }
