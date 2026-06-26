@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollDirection;
+import 'package:flutter/services.dart' show SystemChannels;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -29,7 +30,6 @@ class _TabNavigator extends StatelessWidget {
 
 Widget _nearbyBuilder(BuildContext _) => const NearbyScreen();
 Widget _savedBuilder(BuildContext _) => const SavedScreen();
-Widget _searchBuilder(BuildContext _) => const SearchScreen();
 Widget _myPageBuilder(BuildContext _) => const MyPageScreen();
 
 /// PageView로 탭 전환 시 화면 밖 페이지(중첩 Navigator 상태)를 살려둔다.
@@ -61,9 +61,14 @@ class MainScaffold extends ConsumerStatefulWidget {
 }
 
 class _MainScaffoldState extends ConsumerState<MainScaffold> {
+  // 검색 탭 인덱스.
+  static const int _searchTabIndex = 3;
+
   int _currentIndex = 0;
   late final PageController _pageController;
   late final List<Widget> _screens;
+  // 검색 탭 재진입 시 키보드를 다시 띄우기 위해 여기서 소유.
+  final FocusNode _searchFocusNode = FocusNode();
 
   bool _onScroll(UserScrollNotification n) {
     // PageView의 가로 스크롤은 무시 — nav 표시는 세로 스크롤로만 제어.
@@ -106,6 +111,28 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
     setState(() => _currentIndex = index);
     // 탭 전환 시 축소된 nav를 원래 크기로 복원.
     ref.read(navBarVisibilityProvider.notifier).expand();
+    // 검색 탭 진입 시 키보드 자동 노출 (KeepAlive라 autofocus는 최초 1회뿐).
+    if (index == _searchTabIndex) {
+      _focusSearch();
+    } else {
+      // 다른 탭으로 나가면 검색 키보드 내림.
+      _searchFocusNode.unfocus();
+    }
+  }
+
+  // 검색 탭이 활성 focus scope가 된 뒤 포커스 + 키보드 강제 노출.
+  // PageView 페이지가 스크롤 중 빌드되면 autofocus/requestFocus가 무시될 수 있어
+  // 애니메이션(300ms) 종료 후 한 번 더 시도하고, 이미 포커스 상태여도
+  // TextInput.show로 키보드를 다시 띄운다.
+  void _focusSearch() {
+    void run() {
+      if (!mounted || _currentIndex != _searchTabIndex) return;
+      _searchFocusNode.requestFocus();
+      SystemChannels.textInput.invokeMethod('TextInput.show');
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => run());
+    Future.delayed(const Duration(milliseconds: 350), run);
   }
 
   @override
@@ -120,7 +147,11 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
       ),
       const _KeepAlivePage(child: _TabNavigator(builder: _nearbyBuilder)),
       const _KeepAlivePage(child: _TabNavigator(builder: _savedBuilder)),
-      const _KeepAlivePage(child: _TabNavigator(builder: _searchBuilder)),
+      _KeepAlivePage(
+        child: _TabNavigator(
+          builder: (_) => SearchScreen(focusNode: _searchFocusNode),
+        ),
+      ),
       const _KeepAlivePage(child: _TabNavigator(builder: _myPageBuilder)),
     ];
   }
@@ -128,6 +159,7 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
   @override
   void dispose() {
     _pageController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 

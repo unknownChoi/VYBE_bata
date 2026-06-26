@@ -1,22 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:vybe/data/models/folder_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/clubs/club_detail_screen.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
-import 'package:vybe/presentation/main_scaffold/nav_bar_visibility_provider.dart';
 import 'package:vybe/presentation/saved/viewmodels/saved_viewmodel.dart';
 
 // ============================================================
 // 찜한 클럽 화면 (saved.html 디자인 기반)
 //
-// favorites + folders(users/{uid}/folders) Firestore 연동.
-// 그룹 생성/이동/삭제, 정렬, 리스트↔그리드 뷰 지원.
+// favorites Firestore 연동. 정렬, 리스트↔그리드 뷰 지원.
 // ============================================================
-
-const List<String> _kGroupEmojis = ['✨', '🎉', '💜', '📍', '🔥', '🍸', '🎧', '⭐'];
 
 enum _SortOption { recent, rating, name, open }
 
@@ -57,16 +52,11 @@ class SavedScreen extends ConsumerStatefulWidget {
 }
 
 class _SavedScreenState extends ConsumerState<SavedScreen> {
-  // 'all' 또는 folderId
-  String _folderKey = 'all';
   bool _isGrid = false;
   _SortOption _sort = _SortOption.recent;
 
-  List<SavedEntry> _applyFilterSort(List<SavedEntry> all) {
-    final base = _folderKey == 'all'
-        ? all
-        : all.where((e) => e.folderId == _folderKey).toList();
-    final list = List.of(base);
+  List<SavedEntry> _applySort(List<SavedEntry> all) {
+    final list = List.of(all);
     switch (_sort) {
       case _SortOption.rating:
         list.sort((a, b) => b.club.rating.compareTo(a.club.rating));
@@ -87,76 +77,9 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
     return list;
   }
 
-  Future<void> _createGroup(int order) async {
-    // 시트 올라올 때 하단 nav 완전 숨김.
-    ref.read(navBarHiddenProvider.notifier).hide();
-    final result = await showModalBottomSheet<(String, String)>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (_) => const _CreateGroupSheet(),
-    );
-    // 시트 닫히면 nav 다시 표시.
-    ref.read(navBarHiddenProvider.notifier).show();
-    if (result == null) return;
-    final id = await ref
-        .read(savedActionsProvider.notifier)
-        .createFolder(result.$1, result.$2, order);
-    if (id != null && mounted) setState(() => _folderKey = id);
-  }
-
-  Future<void> _moveToFolder(SavedEntry entry, List<FolderModel> folders) async {
-    final selected = await showModalBottomSheet<String?>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (_) => _MoveSheet(folders: folders, currentFolderId: entry.folderId),
-    );
-    // _MoveSheet는 미선택 시 sentinel 'cancel'을 pop 안함(null로 닫힘) 구분 위해
-    // 아래 처리: null = 닫기만, 그 외 값은 '' (전체)/folderId.
-    if (selected == null) return;
-    await ref
-        .read(savedActionsProvider.notifier)
-        .moveToFolder(entry.clubId, selected.isEmpty ? null : selected);
-  }
-
-  Future<void> _confirmDeleteFolder(FolderModel folder) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: VybeColors.gray900,
-        title: Text('그룹 삭제',
-            style: VybeTypography.heading4.copyWith(color: Colors.white)),
-        content: Text(
-          "'${folder.name}' 그룹을 삭제할까요?\n찜은 유지되고 전체에서 볼 수 있어요.",
-          style: VybeTypography.body4.copyWith(color: VybeColors.gray400),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text('취소',
-                style: VybeTypography.button2.copyWith(color: VybeColors.gray400)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text('삭제',
-                style: VybeTypography.button2.copyWith(color: VybeColors.accentRed500)),
-          ),
-        ],
-      ),
-    );
-    if (ok == true) {
-      await ref.read(savedActionsProvider.notifier).deleteFolder(folder.folderId);
-      if (mounted && _folderKey == folder.folderId) {
-        setState(() => _folderKey = 'all');
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final savedAsync = ref.watch(savedClubsProvider);
-    final foldersAsync = ref.watch(savedFoldersProvider);
     final topInset = MediaQuery.of(context).padding.top;
     const bottomPad = 100.0;
 
@@ -184,47 +107,31 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
               child: const _EmptyState(),
             );
           }
-          final folders = foldersAsync.value ?? const <FolderModel>[];
           final openCount = all.where((e) => e.isOpen).length;
-          final filtered = _applyFilterSort(all);
-
-          int countOf(String key) => key == 'all'
-              ? all.length
-              : all.where((e) => e.folderId == key).length;
+          final sorted = _applySort(all);
 
           return ListView(
             padding: EdgeInsets.only(top: topInset),
             children: [
               _StatsBar(count: all.length, openCount: openCount),
-              _FolderTabs(
-                folders: folders,
-                activeKey: _folderKey,
-                countOf: countOf,
-                onChange: (k) => setState(() => _folderKey = k),
-                onAdd: () => _createGroup(folders.length),
-                onLongPress: _confirmDeleteFolder,
-              ),
+              SizedBox(height: 8.h),
               _ToolBar(
                 isGrid: _isGrid,
                 sort: _sort,
                 onView: (g) => setState(() => _isGrid = g),
                 onSort: (s) => setState(() => _sort = s),
               ),
-              if (filtered.isEmpty)
-                const _FolderEmpty()
-              else if (_isGrid)
+              if (_isGrid)
                 _GridList(
-                  entries: filtered,
+                  entries: sorted,
                   onUnsave: (id) =>
                       ref.read(savedActionsProvider.notifier).unsave(id),
-                  onMove: (e) => _moveToFolder(e, folders),
                 )
               else
                 _CardList(
-                  entries: filtered,
+                  entries: sorted,
                   onUnsave: (id) =>
                       ref.read(savedActionsProvider.notifier).unsave(id),
-                  onMove: (e) => _moveToFolder(e, folders),
                 ),
               SizedBox(height: bottomPad.h),
             ],
@@ -295,148 +202,6 @@ class _StatsBar extends StatelessWidget {
             ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ============ 폴더(그룹) 칩 ============
-
-class _FolderTabs extends StatelessWidget {
-  final List<FolderModel> folders;
-  final String activeKey;
-  final int Function(String key) countOf;
-  final ValueChanged<String> onChange;
-  final VoidCallback onAdd;
-  final ValueChanged<FolderModel> onLongPress;
-
-  const _FolderTabs({
-    required this.folders,
-    required this.activeKey,
-    required this.countOf,
-    required this.onChange,
-    required this.onAdd,
-    required this.onLongPress,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 16.h),
-      child: Row(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _FolderChip(
-                    label: '전체',
-                    count: countOf('all'),
-                    selected: activeKey == 'all',
-                    onTap: () => onChange('all'),
-                  ),
-                  SizedBox(width: 6.w),
-                  for (final f in folders) ...[
-                    _FolderChip(
-                      label: f.name,
-                      emoji: f.emoji.isEmpty ? null : f.emoji,
-                      count: countOf(f.folderId),
-                      selected: f.folderId == activeKey,
-                      onTap: () => onChange(f.folderId),
-                      onLongPress: () => onLongPress(f),
-                    ),
-                    SizedBox(width: 6.w),
-                  ],
-                ],
-              ),
-            ),
-          ),
-          SizedBox(width: 8.w),
-          GestureDetector(
-            onTap: onAdd,
-            child: Container(
-              height: 34.h,
-              padding: EdgeInsets.symmetric(horizontal: 13.w),
-              decoration: BoxDecoration(
-                color: VybeColors.mainPurple500.withValues(alpha: 0.16),
-                borderRadius: BorderRadius.circular(999.r),
-                border: Border.all(color: VybeColors.mainPurple700),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.add, size: 14.r, color: Colors.white),
-                  SizedBox(width: 4.w),
-                  Text(
-                    '그룹',
-                    style: VybeTypography.button2
-                        .copyWith(color: Colors.white, fontWeight: FontWeight.w600),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FolderChip extends StatelessWidget {
-  final String label;
-  final String? emoji;
-  final int count;
-  final bool selected;
-  final VoidCallback onTap;
-  final VoidCallback? onLongPress;
-
-  const _FolderChip({
-    required this.label,
-    this.emoji,
-    required this.count,
-    required this.selected,
-    required this.onTap,
-    this.onLongPress,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      onLongPress: onLongPress,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
-        decoration: BoxDecoration(
-          color: selected ? VybeColors.mainPurple700 : VybeColors.gray900,
-          borderRadius: BorderRadius.circular(999.r),
-          border: selected ? null : Border.all(color: VybeColors.gray800),
-        ),
-        child: Row(
-          children: [
-            if (emoji != null) ...[
-              Text(emoji!, style: TextStyle(fontSize: 13.sp)),
-              SizedBox(width: 6.w),
-            ],
-            Text(
-              label,
-              style: VybeTypography.button2.copyWith(
-                color: selected ? Colors.white : VybeColors.gray300,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-              ),
-            ),
-            SizedBox(width: 6.w),
-            Text(
-              '$count',
-              style: VybeTypography.caption.copyWith(
-                color: selected
-                    ? Colors.white.withValues(alpha: 0.7)
-                    : VybeColors.gray500,
-                fontWeight: FontWeight.w500,
-                height: 14 / 12,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -574,16 +339,13 @@ class _ToolBar extends StatelessWidget {
 class _CardList extends StatelessWidget {
   final List<SavedEntry> entries;
   final ValueChanged<String> onUnsave;
-  final ValueChanged<SavedEntry> onMove;
-  const _CardList(
-      {required this.entries, required this.onUnsave, required this.onMove});
+  const _CardList({required this.entries, required this.onUnsave});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        for (final e in entries)
-          _ListCard(entry: e, onUnsave: onUnsave, onMove: onMove)
+        for (final e in entries) _ListCard(entry: e, onUnsave: onUnsave)
       ],
     );
   }
@@ -592,16 +354,13 @@ class _CardList extends StatelessWidget {
 class _ListCard extends StatelessWidget {
   final SavedEntry entry;
   final ValueChanged<String> onUnsave;
-  final ValueChanged<SavedEntry> onMove;
-  const _ListCard(
-      {required this.entry, required this.onUnsave, required this.onMove});
+  const _ListCard({required this.entry, required this.onUnsave});
 
   @override
   Widget build(BuildContext context) {
     final club = entry.club;
     return GestureDetector(
       onTap: () => _openClubDetail(context, club.clubId),
-      onLongPress: () => onMove(entry),
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 14.h),
         decoration: BoxDecoration(
@@ -735,9 +494,7 @@ class _ListCard extends StatelessWidget {
 class _GridList extends StatelessWidget {
   final List<SavedEntry> entries;
   final ValueChanged<String> onUnsave;
-  final ValueChanged<SavedEntry> onMove;
-  const _GridList(
-      {required this.entries, required this.onUnsave, required this.onMove});
+  const _GridList({required this.entries, required this.onUnsave});
 
   @override
   Widget build(BuildContext context) {
@@ -754,7 +511,7 @@ class _GridList extends StatelessWidget {
           childAspectRatio: 0.78,
         ),
         itemBuilder: (_, i) =>
-            _GridCard(entry: entries[i], onUnsave: onUnsave, onMove: onMove),
+            _GridCard(entry: entries[i], onUnsave: onUnsave),
       ),
     );
   }
@@ -763,16 +520,13 @@ class _GridList extends StatelessWidget {
 class _GridCard extends StatelessWidget {
   final SavedEntry entry;
   final ValueChanged<String> onUnsave;
-  final ValueChanged<SavedEntry> onMove;
-  const _GridCard(
-      {required this.entry, required this.onUnsave, required this.onMove});
+  const _GridCard({required this.entry, required this.onUnsave});
 
   @override
   Widget build(BuildContext context) {
     final club = entry.club;
     return GestureDetector(
       onTap: () => _openClubDetail(context, club.clubId),
-      onLongPress: () => onMove(entry),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -991,36 +745,6 @@ class _TagBadge extends StatelessWidget {
   }
 }
 
-// ============ 폴더 비었을 때 ============
-
-class _FolderEmpty extends StatelessWidget {
-  const _FolderEmpty();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 60.h, horizontal: 24.w),
-      child: Column(
-        children: [
-          Text('📂', style: TextStyle(fontSize: 28.sp)),
-          SizedBox(height: 6.h),
-          Text(
-            '이 그룹에는 아직 찜이 없어요',
-            style: VybeTypography.body3
-                .copyWith(color: VybeColors.gray300, fontWeight: FontWeight.w600),
-          ),
-          SizedBox(height: 6.h),
-          Text(
-            '카드를 길게 눌러 이 그룹으로 옮겨보세요',
-            style: VybeTypography.caption
-                .copyWith(color: VybeColors.gray500, height: 16 / 12),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 // ============ 전체 비었을 때 ============
 
 class _EmptyState extends StatelessWidget {
@@ -1047,293 +771,6 @@ class _EmptyState extends StatelessWidget {
               textAlign: TextAlign.center,
               style: VybeTypography.body4
                   .copyWith(color: VybeColors.gray500, height: 20 / 14),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ============ 그룹 이동 바텀시트 ============
-
-class _MoveSheet extends StatelessWidget {
-  final List<FolderModel> folders;
-  final String? currentFolderId;
-  const _MoveSheet({required this.folders, required this.currentFolderId});
-
-  @override
-  Widget build(BuildContext context) {
-    Widget tile({
-      required String label,
-      String? emoji,
-      required bool selected,
-      required String value, // '' = 전체
-    }) {
-      return GestureDetector(
-        onTap: () => Navigator.pop(context, value),
-        child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
-          margin: EdgeInsets.only(bottom: 8.h),
-          decoration: BoxDecoration(
-            color: selected
-                ? VybeColors.mainPurple500.withValues(alpha: 0.16)
-                : VybeColors.gray800,
-            borderRadius: BorderRadius.circular(12.r),
-          ),
-          child: Row(
-            children: [
-              if (emoji != null) ...[
-                Text(emoji, style: TextStyle(fontSize: 18.sp)),
-                SizedBox(width: 10.w),
-              ],
-              Expanded(
-                child: Text(
-                  label,
-                  style: VybeTypography.body3.copyWith(
-                    color: selected ? Colors.white : VybeColors.gray200,
-                    fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                  ),
-                ),
-              ),
-              if (selected)
-                Icon(Icons.check, size: 18.r, color: VybeColors.mainPurple500),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-        color: VybeColors.gray900,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
-        border: Border.all(color: VybeColors.gray800),
-      ),
-      padding: EdgeInsets.fromLTRB(24.w, 10.h, 24.w, 28.h),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 40.w,
-              height: 4.h,
-              margin: EdgeInsets.only(bottom: 16.h),
-              decoration: BoxDecoration(
-                color: VybeColors.gray700,
-                borderRadius: BorderRadius.circular(99.r),
-              ),
-            ),
-          ),
-          Text(
-            '그룹으로 이동',
-            style: VybeTypography.heading4
-                .copyWith(color: Colors.white, fontWeight: FontWeight.w700),
-          ),
-          SizedBox(height: 16.h),
-          tile(label: '전체 (그룹 없음)', selected: currentFolderId == null, value: ''),
-          for (final f in folders)
-            tile(
-              label: f.name,
-              emoji: f.emoji.isEmpty ? null : f.emoji,
-              selected: f.folderId == currentFolderId,
-              value: f.folderId,
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-// ============ 그룹 만들기 바텀시트 ============
-
-class _CreateGroupSheet extends StatefulWidget {
-  const _CreateGroupSheet();
-
-  @override
-  State<_CreateGroupSheet> createState() => _CreateGroupSheetState();
-}
-
-class _CreateGroupSheetState extends State<_CreateGroupSheet> {
-  final _controller = TextEditingController();
-  String _emoji = '✨';
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _submit() {
-    final name = _controller.text.trim();
-    if (name.isEmpty) return;
-    Navigator.of(context).pop((name, _emoji));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-    return Padding(
-      padding: EdgeInsets.only(bottom: bottomInset),
-      child: Container(
-        decoration: BoxDecoration(
-          color: VybeColors.gray900,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
-          border: Border.all(color: VybeColors.gray800),
-        ),
-        padding: EdgeInsets.fromLTRB(24.w, 10.h, 24.w, 28.h),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40.w,
-                height: 4.h,
-                margin: EdgeInsets.only(bottom: 16.h),
-                decoration: BoxDecoration(
-                  color: VybeColors.gray700,
-                  borderRadius: BorderRadius.circular(99.r),
-                ),
-              ),
-            ),
-            Text(
-              '그룹 만들기',
-              style: VybeTypography.heading4
-                  .copyWith(color: Colors.white, fontWeight: FontWeight.w700),
-            ),
-            SizedBox(height: 4.h),
-            Text(
-              '찜한 클럽을 모아둘 그룹 이름을 입력하세요.',
-              style: VybeTypography.body4.copyWith(color: VybeColors.gray500),
-            ),
-            SizedBox(height: 20.h),
-            SizedBox(
-              height: 44.r,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: _kGroupEmojis.length,
-                separatorBuilder: (_, __) => SizedBox(width: 8.w),
-                itemBuilder: (_, i) {
-                  final e = _kGroupEmojis[i];
-                  final on = e == _emoji;
-                  return GestureDetector(
-                    onTap: () => setState(() => _emoji = e),
-                    child: Container(
-                      width: 44.r,
-                      height: 44.r,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: on
-                            ? VybeColors.mainPurple500.withValues(alpha: 0.18)
-                            : VybeColors.gray800,
-                        borderRadius: BorderRadius.circular(12.r),
-                        border: Border.all(
-                          color:
-                              on ? VybeColors.mainPurple500 : Colors.transparent,
-                          width: 1.5,
-                        ),
-                      ),
-                      child: Text(e, style: TextStyle(fontSize: 20.sp)),
-                    ),
-                  );
-                },
-              ),
-            ),
-            SizedBox(height: 16.h),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
-              decoration: BoxDecoration(
-                color: VybeColors.gray800,
-                borderRadius: BorderRadius.circular(14.r),
-                border: Border.all(
-                  color: _controller.text.isNotEmpty
-                      ? VybeColors.mainPurple500
-                      : VybeColors.gray800,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Text(_emoji, style: TextStyle(fontSize: 18.sp)),
-                  SizedBox(width: 10.w),
-                  Expanded(
-                    child: TextField(
-                      controller: _controller,
-                      autofocus: true,
-                      maxLength: 20,
-                      cursorColor: VybeColors.mainPurple500,
-                      onChanged: (_) => setState(() {}),
-                      onSubmitted: (_) => _submit(),
-                      style: VybeTypography.body3.copyWith(color: Colors.white),
-                      decoration: InputDecoration(
-                        counterText: '',
-                        isDense: true,
-                        border: InputBorder.none,
-                        hintText: '그룹 이름 입력',
-                        hintStyle: VybeTypography.body3
-                            .copyWith(color: VybeColors.gray600),
-                      ),
-                    ),
-                  ),
-                  Text(
-                    '${_controller.text.length}/20',
-                    style: VybeTypography.caption
-                        .copyWith(color: VybeColors.gray600, height: 14 / 12),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(height: 22.h),
-            Row(
-              children: [
-                Expanded(
-                  flex: 10,
-                  child: GestureDetector(
-                    onTap: () => Navigator.of(context).pop(),
-                    child: Container(
-                      height: 50.h,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: VybeColors.gray800,
-                        borderRadius: BorderRadius.circular(14.r),
-                      ),
-                      child: Text(
-                        '취소',
-                        style: VybeTypography.button1.copyWith(
-                            color: VybeColors.gray200,
-                            fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(width: 10.w),
-                Expanded(
-                  flex: 14,
-                  child: GestureDetector(
-                    onTap: _submit,
-                    child: Container(
-                      height: 50.h,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: _controller.text.trim().isNotEmpty
-                            ? VybeColors.mainPurple500
-                            : VybeColors.mainPurpleDisabled,
-                        borderRadius: BorderRadius.circular(14.r),
-                      ),
-                      child: Text(
-                        '만들기',
-                        style: VybeTypography.button1.copyWith(
-                          color: _controller.text.trim().isNotEmpty
-                              ? Colors.white
-                              : VybeColors.gray600,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
             ),
           ],
         ),

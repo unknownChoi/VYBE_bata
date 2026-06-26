@@ -151,22 +151,39 @@ class FirebaseClubDataSource {
     return result;
   }
 
+  /// searchTokens(접두사 토큰 배열, Cloud Function이 생성) 기반 후보 검색.
+  /// 전체 fetch 없이 arrayContainsAny로 토큰 일치 후보만 가져온다(관련도 정렬은 호출측).
   Future<List<ClubModel>> searchClubs(String keyword) async {
+    final tokens = _queryTokens(keyword);
+    if (tokens.isEmpty) return const [];
+
     logFirebaseAccess(
       file: 'firebase_club_datasource.dart',
-      service: 'Firestore(clubs) [where isActive=true]',
+      service: 'Firestore(clubs) [searchTokens arrayContainsAny]',
       purpose: '클럽 검색 (keyword: $keyword)',
     );
     final snapshot = await _firestore
         .collection('clubs')
-        .where('isActive', isEqualTo: true)
+        .where('searchTokens', arrayContainsAny: tokens)
+        .limit(50)
         .get();
-    final lower = keyword.toLowerCase();
     return snapshot.docs
         .map(ClubModel.fromFirestore)
-        .where((c) =>
-            c.name.toLowerCase().contains(lower) ||
-            c.tags.any((t) => t.toLowerCase().contains(lower)))
+        .where((c) => c.isActive)
         .toList();
+  }
+
+  /// 검색어 → arrayContainsAny용 토큰(최대 10개). 단어 + 공백제거 통째.
+  /// 저장 토큰이 접두사 집합이라 부분 입력도 일치한다.
+  List<String> _queryTokens(String raw) {
+    final q = raw.toLowerCase().trim();
+    if (q.isEmpty) return const [];
+    final set = <String>{};
+    final noSpace = q.replaceAll(RegExp(r'\s+'), '');
+    if (noSpace.isNotEmpty) set.add(noSpace);
+    for (final w in q.split(RegExp(r'\s+'))) {
+      if (w.isNotEmpty) set.add(w);
+    }
+    return set.take(10).toList();
   }
 }

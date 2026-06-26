@@ -22,12 +22,6 @@ service cloud.firestore {
         allow read, create, delete: if request.auth != null
           && request.auth.uid == uid;
       }
-
-      // users/{uid}/folders/{folderId} — 찜 그룹(폴더)
-      match /folders/{folderId} {
-        allow read, create, update, delete: if request.auth != null
-          && request.auth.uid == uid;
-      }
     }
 
     // clubs/{clubId}
@@ -97,12 +91,6 @@ service cloud.firestore {
 
       allow create: if request.auth != null
         && request.resource.data.userId == request.auth.uid;
-
-      // 그룹(folderId) 변경용 — userId/clubId/createdAt 변경 불가
-      allow update: if request.auth != null
-        && resource.data.userId == request.auth.uid
-        && !request.resource.data.diff(resource.data).affectedKeys()
-            .hasAny(['userId', 'clubId', 'createdAt']);
 
       allow delete: if request.auth != null
         && resource.data.userId == request.auth.uid;

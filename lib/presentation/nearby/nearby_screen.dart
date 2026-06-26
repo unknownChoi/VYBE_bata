@@ -374,12 +374,8 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen> {
         }
       },
       onCameraIdle: () async {
-        // 현재 지도 줌 → 비율(%) 출력. 네이버 지도 zoom 범위 0~21 기준.
         final pos = await _mapController?.getCameraPosition();
         if (pos != null) {
-          final percent = (pos.zoom / 21 * 100).toStringAsFixed(1);
-          debugPrint('[지도 줌] ${pos.zoom.toStringAsFixed(2)} ($percent%)');
-
           // 줌 임계값 교차 시 마커 모드 전환 후 재렌더.
           final newRegionMode = pos.zoom <= _kRegionZoomThreshold;
           if (newRegionMode != _regionMode) {

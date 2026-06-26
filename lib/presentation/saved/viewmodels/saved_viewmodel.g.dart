@@ -52,60 +52,14 @@ final class SavedClubsProvider
 
 String _$savedClubsHash() => r'f485400baa63766708c2dac5b5217f95b366f963';
 
-/// 사용자 찜 그룹 목록.
-
-@ProviderFor(savedFolders)
-final savedFoldersProvider = SavedFoldersProvider._();
-
-/// 사용자 찜 그룹 목록.
-
-final class SavedFoldersProvider
-    extends
-        $FunctionalProvider<
-          AsyncValue<List<FolderModel>>,
-          List<FolderModel>,
-          Stream<List<FolderModel>>
-        >
-    with
-        $FutureModifier<List<FolderModel>>,
-        $StreamProvider<List<FolderModel>> {
-  /// 사용자 찜 그룹 목록.
-  SavedFoldersProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'savedFoldersProvider',
-        isAutoDispose: true,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
-
-  @override
-  String debugGetCreateSourceHash() => _$savedFoldersHash();
-
-  @$internal
-  @override
-  $StreamProviderElement<List<FolderModel>> $createElement(
-    $ProviderPointer pointer,
-  ) => $StreamProviderElement(pointer);
-
-  @override
-  Stream<List<FolderModel>> create(Ref ref) {
-    return savedFolders(ref);
-  }
-}
-
-String _$savedFoldersHash() => r'71dd26150421091bdbe16c5471590a30a1d0c239';
-
-/// 찜 화면 동작(그룹 생성/삭제, 찜 해제, 그룹 이동).
+/// 찜 화면 동작(찜 해제).
 
 @ProviderFor(SavedActions)
 final savedActionsProvider = SavedActionsProvider._();
 
-/// 찜 화면 동작(그룹 생성/삭제, 찜 해제, 그룹 이동).
+/// 찜 화면 동작(찜 해제).
 final class SavedActionsProvider extends $NotifierProvider<SavedActions, void> {
-  /// 찜 화면 동작(그룹 생성/삭제, 찜 해제, 그룹 이동).
+  /// 찜 화면 동작(찜 해제).
   SavedActionsProvider._()
     : super(
         from: null,
@@ -133,9 +87,9 @@ final class SavedActionsProvider extends $NotifierProvider<SavedActions, void> {
   }
 }
 
-String _$savedActionsHash() => r'c72fa98d8d7bf39dc22f56d2cb33a8f3368e09e5';
+String _$savedActionsHash() => r'7507dee736b581a0a0b6c455cb7de0217b8858aa';
 
-/// 찜 화면 동작(그룹 생성/삭제, 찜 해제, 그룹 이동).
+/// 찜 화면 동작(찜 해제).
 
 abstract class _$SavedActions extends $Notifier<void> {
   void build();

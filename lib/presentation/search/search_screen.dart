@@ -51,7 +51,11 @@ const _trendItems = [
 ];
 
 class SearchScreen extends ConsumerStatefulWidget {
-  const SearchScreen({super.key});
+  /// 외부(MainScaffold)에서 탭 재진입 시 포커스를 주기 위해 주입.
+  /// null이면 내부에서 생성.
+  final FocusNode? focusNode;
+
+  const SearchScreen({super.key, this.focusNode});
 
   @override
   ConsumerState<SearchScreen> createState() => _SearchScreenState();
@@ -66,13 +70,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   void initState() {
     super.initState();
     _controller = TextEditingController();
-    _focusNode = FocusNode();
+    _focusNode = widget.focusNode ?? FocusNode();
   }
 
   @override
   void dispose() {
     _controller.dispose();
-    _focusNode.dispose();
+    // 외부 주입 FocusNode는 소유자(MainScaffold)가 dispose.
+    if (widget.focusNode == null) _focusNode.dispose();
     super.dispose();
   }
 
@@ -100,6 +105,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             SearchInputBar(
               controller: _controller,
               focusNode: _focusNode,
+              autofocus: true,
               onChanged: (value) => setState(() => _query = value),
               onSubmitted: _navigateToResult,
             ),

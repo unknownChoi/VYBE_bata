@@ -11,7 +11,6 @@ abstract class FavoriteModel with _$FavoriteModel {
     required String favoriteId,
     required String userId,
     required String clubId,
-    String? folderId,
     required DateTime createdAt,
   }) = _FavoriteModel;
 
@@ -21,7 +20,6 @@ abstract class FavoriteModel with _$FavoriteModel {
       favoriteId: doc.id,
       userId: data['userId'] as String? ?? '',
       clubId: data['clubId'] as String? ?? '',
-      folderId: data['folderId'] as String?,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
@@ -29,7 +27,6 @@ abstract class FavoriteModel with _$FavoriteModel {
   Map<String, dynamic> toFirestore() => {
         'userId': userId,
         'clubId': clubId,
-        if (folderId != null) 'folderId': folderId,
         'createdAt': FieldValue.serverTimestamp(),
       };
 }

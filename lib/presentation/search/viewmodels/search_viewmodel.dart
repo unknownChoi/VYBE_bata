@@ -3,6 +3,7 @@ import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/data/models/search_history_model.dart';
 import 'package:vybe/data/repositories/club_repository_impl.dart';
 import 'package:vybe/data/repositories/search_history_repository_impl.dart';
+import 'package:vybe/presentation/search/data/club_ranker.dart';
 
 part 'search_viewmodel.g.dart';
 
@@ -23,8 +24,10 @@ class SearchViewModel extends _$SearchViewModel {
     }
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      final results =
+      final candidates =
           await ref.read(clubRepositoryProvider).searchClubs(keyword);
+      // 서버 토큰 필터 후보를 관련도 점수로 정렬.
+      final results = rankClubs(candidates, keyword);
       if (userId != null) {
         await ref
             .read(searchHistoryRepositoryProvider)

@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vybe — Firebase 서버 구조 정리본</title>
+<style>
+  :root {
+    --bg: #0f0f1a;
+    --panel: #16162a;
+    --panel2: #1c1c34;
+    --border: #2a2a45;
+    --purple: #8b5cf6;
+    --purple-light: #a78bfa;
+    --lime: #a3e635;
+    --text: #e4e4f0;
+    --muted: #9494b8;
+    --code-bg: #0b0b16;
+    --green: #34d399;
+    --red: #f87171;
+    --amber: #fbbf24;
+    --blue: #60a5fa;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    font-size: 14px;
+  }
+  .layout { display: flex; max-width: 1400px; margin: 0 auto; }
+
+  /* Sidebar */
+  nav.toc {
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+    width: 260px;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 28px 18px;
+    border-right: 1px solid var(--border);
+    background: var(--panel);
+    flex-shrink: 0;
+  }
+  nav.toc .brand {
+    font-size: 22px;
+    font-weight: 800;
+    background: linear-gradient(90deg, var(--purple-light), var(--lime));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 4px;
+  }
+  nav.toc .brand-sub { font-size: 11px; color: var(--muted); margin-bottom: 22px; letter-spacing: .5px; }
+  nav.toc a {
+    display: block;
+    color: var(--muted);
+    text-decoration: none;
+    padding: 6px 10px;
+    border-radius: 7px;
+    font-size: 13px;
+    transition: all .15s;
+    border-left: 2px solid transparent;
+  }
+  nav.toc a:hover { color: var(--text); background: var(--panel2); }
+  nav.toc a.group { margin-top: 14px; font-weight: 700; color: var(--purple-light); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; pointer-events: none; padding-left: 4px; }
+  nav.toc a.sub { padding-left: 22px; font-size: 12.5px; }
+
+  /* Main */
+  main { flex: 1; padding: 36px 44px 120px; min-width: 0; }
+  header.page-head { margin-bottom: 40px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+  header.page-head h1 { font-size: 30px; margin: 0 0 8px; }
+  header.page-head p { color: var(--muted); margin: 4px 0; }
+  .badges { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .badge {
+    font-size: 12px; padding: 4px 11px; border-radius: 20px;
+    background: var(--panel2); border: 1px solid var(--border); color: var(--purple-light);
+  }
+
+  section { margin-bottom: 56px; scroll-margin-top: 20px; }
+  h2 {
+    font-size: 22px; margin: 0 0 18px; padding-bottom: 10px;
+    border-bottom: 2px solid var(--purple);
+    display: inline-block;
+  }
+  h3 { font-size: 17px; margin: 30px 0 12px; color: var(--purple-light); }
+  h4 { font-size: 14px; margin: 20px 0 8px; color: var(--lime); font-family: "SF Mono", Menlo, monospace; }
+
+  p { margin: 10px 0; }
+  .note {
+    background: var(--panel2);
+    border-left: 3px solid var(--amber);
+    padding: 10px 16px;
+    border-radius: 0 8px 8px 0;
+    margin: 14px 0;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .note strong { color: var(--amber); }
+  .danger { border-left-color: var(--red); }
+  .danger strong { color: var(--red); }
+  .ok { border-left-color: var(--green); }
+  .ok strong { color: var(--green); }
+
+  code {
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    background: var(--code-bg);
+    padding: 2px 6px;
+    border-radius: 5px;
+    font-size: 12.5px;
+    color: var(--lime);
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    overflow-x: auto;
+    font-size: 12.5px;
+    line-height: 1.55;
+  }
+  pre code { background: none; padding: 0; color: var(--text); }
+  .cmt { color: #6b7280; }
+  .kw { color: var(--purple-light); }
+  .str { color: var(--lime); }
+  .typ { color: var(--blue); }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 13px;
+    background: var(--panel);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  th, td { padding: 10px 13px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { background: var(--panel2); color: var(--purple-light); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
+  tr:last-child td { border-bottom: none; }
+  td code { white-space: nowrap; }
+
+  .field-name { color: var(--lime); font-family: "SF Mono", Menlo, monospace; white-space: nowrap; }
+  .ftype { color: var(--blue); font-family: "SF Mono", Menlo, monospace; font-size: 12px; white-space: nowrap; }
+
+  .pill { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 600; }
+  .pill.auto { background: rgba(251,191,36,.15); color: var(--amber); }
+  .pill.pk { background: rgba(139,92,246,.2); color: var(--purple-light); }
+  .pill.fk { background: rgba(96,165,250,.15); color: var(--blue); }
+  .pill.legacy { background: rgba(148,148,184,.15); color: var(--muted); }
+
+  .flow {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 22px;
+    font-family: "SF Mono", Menlo, monospace;
+    font-size: 13px;
+    line-height: 1.9;
+  }
+  .layer-table td:first-child { font-family: "SF Mono", Menlo, monospace; color: var(--lime); }
+
+  .tree {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    font-family: "SF Mono", Menlo, monospace;
+    font-size: 12.5px;
+    line-height: 1.7;
+    overflow-x: auto;
+    white-space: pre;
+    color: var(--text);
+  }
+  .yes { color: var(--green); font-weight: 700; }
+  .no { color: var(--red); font-weight: 700; }
+  a.anchor-link { color: var(--purple-light); text-decoration: none; }
+  a.anchor-link:hover { text-decoration: underline; }
+  footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--border); color: var(--muted); font-size: 12px; }
+
+  /* Floating print button */
+  .print-btn {
+    position: fixed;
+    right: 28px;
+    bottom: 28px;
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 13px 22px;
+    border: none;
+    border-radius: 30px;
+    background: linear-gradient(90deg, var(--purple), var(--purple-light));
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 6px 22px rgba(139,92,246,.45);
+    transition: transform .12s, box-shadow .12s;
+    font-family: inherit;
+  }
+  .print-btn:hover { transform: translateY(-2px); box-shadow: 0 9px 28px rgba(139,92,246,.6); }
+  .print-btn:active { transform: translateY(0); }
+  .print-btn svg { width: 18px; height: 18px; }
+
+  /* ===================== A4 PRINT ===================== */
+  @page {
+    size: A4;
+    margin: 14mm 12mm;
+  }
+  @media print {
+    /* 다크 → 화이트 변환, 잉크 절약 + 가독성 */
+    :root {
+      --bg: #fff; --panel: #fff; --panel2: #f4f4f8; --border: #d0d0dc;
+      --text: #1a1a2e; --muted: #555; --code-bg: #f4f4f8;
+      --purple: #6d28d9; --purple-light: #6d28d9; --lime: #166534;
+    }
+    html, body { background: #fff !important; color: #000 !important; }
+    body { font-size: 10.5pt; }
+
+    /* 화면 전용 요소 숨김 */
+    nav.toc, .print-btn { display: none !important; }
+    .layout { display: block; max-width: 100%; }
+    main { padding: 0; }
+
+    /* 색 텍스트 강제 인쇄 (브라우저 기본 색 제거 방지) */
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+    a { color: #1a1a2e !important; text-decoration: none; }
+
+    /* 코드/트리 박스 인쇄용 라이트 */
+    pre, .tree, .flow, code {
+      background: #f4f4f8 !important;
+      border-color: #d0d0dc !important;
+      color: #1a1a2e !important;
+    }
+    pre code, .tree, .flow { color: #1a1a2e !important; }
+    code { color: #166534 !important; }
+    .cmt { color: #888 !important; }
+    .kw { color: #6d28d9 !important; }
+    .str, .field-name { color: #166534 !important; }
+    .typ, .ftype { color: #1d4ed8 !important; }
+
+    /* 테이블 인쇄 */
+    table { box-shadow: none; border: 1px solid #d0d0dc; }
+    th { background: #ece9f8 !important; color: #4c1d95 !important; }
+    td, th { border-color: #d0d0dc !important; }
+
+    h1, h2, h3, h4 { color: #1a1a2e !important; }
+    h2 { border-bottom-color: #6d28d9 !important; }
+    h3 { color: #6d28d9 !important; }
+    h4 { color: #166534 !important; }
+
+    /* 페이지 나눔 제어 */
+    section { margin-bottom: 22px; }
+    /* 작은 섹션만 통째로 보호 — 큰 섹션(clubs 등)은 자연 분할 허용 */
+    #overview, #users, #club-info, #club-menus, #club-photos,
+    #favorites, #search-history, #functions-notes, #rules-storage, #rules-admin {
+      page-break-inside: avoid; break-inside: avoid;
+    }
+    h2 { page-break-after: avoid; break-after: avoid; }
+    h3, h4 { page-break-after: avoid; break-after: avoid; }
+    /* 표/코드 자체는 분할 허용(헤딩 바로 아래 붙도록) — 행 단위만 보호 */
+    pre, .tree, .flow, .note { page-break-inside: avoid; break-inside: avoid; }
+    tr { page-break-inside: avoid; break-inside: avoid; }
+    thead { display: table-header-group; }  /* 분할 시 헤더 반복 */
+    header.page-head { page-break-after: avoid; }
+
+    /* 큰 섹션은 강제 새 페이지 시작 */
+    #firestore, #functions-http, #storage, #rules-firestore, #env {
+      page-break-before: always; break-before: page;
+    }
+
+    .badge { border-color: #d0d0dc !important; color: #4c1d95 !important; }
+    .note { background: #f4f4f8 !important; color: #444 !important; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+<nav class="toc">
+  <div class="brand">vybe</div>
+  <div class="brand-sub">FIREBASE SERVER STRUCTURE</div>
+
+  <a class="group">개요</a>
+  <a href="#overview">프로젝트 개요</a>
+  <a href="#architecture">아키텍처 / 레이어 규칙</a>
+  <a href="#auth-flow">인증 플로우</a>
+
+  <a class="group">Firestore</a>
+  <a href="#firestore" class="sub">컬렉션 전체 맵</a>
+  <a href="#users" class="sub">users</a>
+  <a href="#clubs" class="sub">clubs</a>
+  <a href="#club-info" class="sub">clubs/info</a>
+  <a href="#club-menus" class="sub">clubs/menus</a>
+  <a href="#club-photos" class="sub">clubs/photos</a>
+  <a href="#club-reviews" class="sub">clubs/reviews</a>
+  <a href="#favorites" class="sub">favorites</a>
+  <a href="#search-history" class="sub">searchHistory</a>
+  <a href="#banners" class="sub">banners</a>
+
+  <a class="group">Cloud Functions</a>
+  <a href="#functions-http" class="sub">HTTP onCall (6)</a>
+  <a href="#functions-trigger" class="sub">자동 트리거 (6)</a>
+  <a href="#functions-notes" class="sub">구현 주의사항</a>
+
+  <a class="group">Storage</a>
+  <a href="#storage" class="sub">경로 구조</a>
+
+  <a class="group">Security Rules</a>
+  <a href="#rules-firestore" class="sub">Firestore Rules</a>
+  <a href="#rules-storage" class="sub">Storage Rules</a>
+  <a href="#rules-admin" class="sub">어드민 권한</a>
+
+  <a class="group">환경</a>
+  <a href="#env" class="sub">환경변수 / 키</a>
+  <a href="#commands" class="sub">배포 명령어</a>
+</nav>
+
+<main>
+<header class="page-head">
+  <h1>vybe — Firebase 서버 구조 정리본</h1>
+  <p>지도 기반 나이트클럽 탐색 Flutter 앱의 백엔드(Firebase) 전체 구조 상세 문서.</p>
+  <p style="font-size:13px;">출처: <code>CLAUDE.md</code> · 생성일 2026-06-26</p>
+  <div class="badges">
+    <span class="badge">Firestore</span>
+    <span class="badge">Auth</span>
+    <span class="badge">Storage</span>
+    <span class="badge">Cloud Functions ×13</span>
+    <span class="badge">Security Rules</span>
+    <span class="badge">MVVM + Riverpod</span>
+  </div>
+</header>
+
+<!-- ========================= OVERVIEW ========================= -->
+<section id="overview">
+  <h2>프로젝트 개요</h2>
+  <table>
+    <tr><th>항목</th><th>내용</th></tr>
+    <tr><td>플랫폼</td><td>Android · iOS</td></tr>
+    <tr><td>언어 / 프레임워크</td><td>Dart (SDK ^3.9.2) · Flutter v3.18.0+</td></tr>
+    <tr><td>백엔드</td><td>Firebase — Firestore · Auth · Storage · Cloud Functions</td></tr>
+    <tr><td>상태관리</td><td><code>flutter_riverpod</code> ^3.0 (AsyncNotifier / Notifier)</td></tr>
+    <tr><td>지도</td><td><code>flutter_naver_map</code> + <code>geoflutterfire_plus</code> (geohash GeoQuery)</td></tr>
+    <tr><td>로그인</td><td>네이버 · 카카오 · 전화번호(본인인증) · Apple(이후)</td></tr>
+  </table>
+  <div class="note"><strong>핵심 규칙:</strong> Firebase 관련 코드는 반드시 <code>data/datasources/remote/</code> 에만 작성. <code>presentation/</code> · <code>domain/</code> 레이어에서 Firebase SDK 직접 import 절대 금지.</div>
+</section>
+
+<!-- ========================= ARCHITECTURE ========================= -->
+<section id="architecture">
+  <h2>아키텍처 / 레이어 규칙</h2>
+  <div class="flow">
+    View (Widget) <span class="kw">→</span> ViewModel (Notifier) <span class="kw">→</span> Repository <span class="kw">→</span> DataSource (Firebase)
+  </div>
+
+  <h3>레이어별 Firebase 허용 범위</h3>
+  <table class="layer-table">
+    <tr><th>레이어</th><th>Firebase import</th><th>설명</th></tr>
+    <tr><td>presentation/</td><td><span class="no">❌ 절대 금지</span></td><td>Firebase SDK 직접 접근 불가</td></tr>
+    <tr><td>domain/</td><td><span class="no">❌ 절대 금지</span></td><td>순수 Dart 인터페이스만</td></tr>
+    <tr><td>data/repositories/</td><td><span class="no">❌ 금지</span></td><td>datasource 타입 참조만 허용</td></tr>
+    <tr><td>data/datasources/remote/</td><td><span class="yes">✅ 허용</span></td><td>Firebase 코드는 오직 여기에만</td></tr>
+  </table>
+
+  <h3>datasource 파일 (remote/)</h3>
+  <div class="tree">data/datasources/remote/
+├── firebase_auth_datasource.dart
+├── firebase_user_datasource.dart
+├── firebase_storage_datasource.dart
+├── firebase_club_datasource.dart
+├── firebase_search_history_datasource.dart
+├── firebase_review_datasource.dart
+├── firebase_favorite_datasource.dart
+└── firebase_banner_datasource.dart</div>
+  <div class="note">파일명 패턴: <code>firebase_{domain}_datasource.dart</code> · 클래스명 패턴: <code>Firebase{Domain}DataSource</code></div>
+
+  <h3>새 Firebase 기능 추가 작업 순서</h3>
+  <div class="flow">
+    1. <span class="str">data/datasources/remote/</span>firebase_{domain}_datasource.dart 에 메서드 추가<br>
+    2. <span class="str">domain/repositories/</span>{domain}_repository.dart 에 인터페이스 추가<br>
+    3. <span class="str">data/repositories/</span>{domain}_repository_impl.dart 에 구현체 추가<br>
+    4. presentation 에서는 repositoryProvider / viewModelProvider 만 참조
+  </div>
+
+  <h3>필수 규칙</h3>
+  <div class="note ok"><strong>현재 uid 접근:</strong> presentation 에서 uid 필요 시 반드시 <code>currentUidProvider</code> 사용. <code>FirebaseAuth.instance.currentUser</code> 직접 접근 금지.</div>
+  <pre><code><span class="cmt">// ✅ 올바른 방법</span>
+<span class="kw">import</span> <span class="str">'package:vybe/core/providers/auth_providers.dart'</span>;
+<span class="kw">final</span> uid = ref.watch(currentUidProvider); <span class="cmt">// String? (null = 비로그인)</span></code></pre>
+
+  <div class="note ok"><strong>접근 로깅:</strong> 모든 datasource 메서드에서 Firebase 호출 전 반드시 <code>logFirebaseAccess()</code> 호출.</div>
+  <pre><code><span class="kw">import</span> <span class="str">'package:vybe/core/utils/firebase_logger.dart'</span>;
+
+logFirebaseAccess(
+  file: <span class="str">'firebase_{domain}_datasource.dart'</span>,
+  service: <span class="str">'Firestore(컬렉션/경로)'</span>,
+  purpose: <span class="str">'데이터 사용 목적 설명'</span>,
+);</code></pre>
+</section>
+
+<!-- ========================= AUTH FLOW ========================= -->
+<section id="auth-flow">
+  <h2>인증 플로우</h2>
+  <h3>로그인 방식별 UID 형식</h3>
+  <table>
+    <tr><th>방식</th><th>처리</th><th>Firebase UID 형식</th><th>시점</th></tr>
+    <tr><td>카카오</td><td>Cloud Functions(<code>kakaoLogin</code>) → Custom Token</td><td><code>kakao:{kakaoId}</code></td><td>베타</td></tr>
+    <tr><td>네이버</td><td>Cloud Functions(<code>naverLogin</code>) → Custom Token</td><td><code>naver:{naverId}</code></td><td>베타</td></tr>
+    <tr><td>전화번호</td><td>Cloud Functions(<code>phoneLogin</code>) → Custom Token</td><td><code>phone:{phone}</code></td><td>베타</td></tr>
+    <tr><td>본인인증</td><td><code>verifyIdentity</code> → 신규 유저 등록</td><td>Firebase 자동 생성</td><td>베타</td></tr>
+    <tr><td>Apple</td><td>Firebase Auth 직접 처리</td><td>Firebase 자동 생성</td><td>이후</td></tr>
+  </table>
+
+  <h3>전체 흐름</h3>
+  <div class="flow">
+    1. 소셜 로그인 SDK <span class="kw">→</span> accessToken / identityToken 발급<br>
+    2. 네이버/카카오: Cloud Functions <span class="kw">→</span> Custom Token 발급 &nbsp;|&nbsp; Apple: Firebase Auth 직접<br>
+    3. <code>FirebaseAuth.signInWithCustomToken()</code> <span class="kw">→</span> Firebase UID 발급<br>
+    4. Firestore <code>users/{uid}</code> 존재 확인<br>
+    &nbsp;&nbsp;&nbsp;• 신규 → 본인인증(<code>verifyIdentity</code>) → 프로필 입력 → <code>users/{uid}</code> 생성 → 홈<br>
+    &nbsp;&nbsp;&nbsp;• 기존 → 홈
+  </div>
+
+  <h3>핵심 규칙</h3>
+  <ul>
+    <li>accessToken 은 매번 달라지나 네이버ID 불변 → 항상 같은 Firebase UID 생성</li>
+    <li>본인인증은 로그인 방식이 아닌 <strong>신원 확인 수단</strong></li>
+    <li><code>phone</code> 필드로 중복 가입 방지 (같은 전화번호 재가입 불가)</li>
+    <li><code>isVerified: false</code> 로 초기 생성 → 본인인증 완료 시 <code>true</code> 로 업데이트</li>
+  </ul>
+
+  <h4>Flutter 네이버 로그인 코드 패턴</h4>
+  <pre><code><span class="cmt">// 1. 네이버 로그인 → accessToken</span>
+<span class="kw">final</span> NaverLoginResult result = <span class="kw">await</span> FlutterNaverLogin.logIn();
+<span class="kw">final</span> String accessToken = result.accessToken.token;
+
+<span class="cmt">// 2. Cloud Functions 호출 → Custom Token</span>
+<span class="kw">final</span> callable = FirebaseFunctions.instance.httpsCallable(<span class="str">'naverLogin'</span>);
+<span class="kw">final</span> response = <span class="kw">await</span> callable.call({<span class="str">'accessToken'</span>: accessToken});
+<span class="kw">final</span> String customToken = response.data[<span class="str">'customToken'</span>];
+<span class="kw">final</span> bool isNewUser = response.data[<span class="str">'isNewUser'</span>];
+
+<span class="cmt">// 3. Firebase 로그인</span>
+<span class="kw">await</span> FirebaseAuth.instance.signInWithCustomToken(customToken);
+
+<span class="cmt">// 4. 신규/기존 분기</span>
+<span class="kw">if</span> (isNewUser) { <span class="cmt">/* 본인인증 화면 */</span> } <span class="kw">else</span> { <span class="cmt">/* 홈 화면 */</span> }</code></pre>
+</section>
+
+<!-- ========================= FIRESTORE MAP ========================= -->
+<section id="firestore">
+  <h2>Firestore — 컬렉션 전체 맵</h2>
+  <div class="tree">📁 users/{uid}                                <span class="cmt"># 사용자 프로필</span>
+   └── 📁 searchHistory/{historyId}            <span class="cmt"># 검색 기록</span>
+
+📁 clubs/{clubId}                             <span class="cmt"># 클럽 (메인)</span>
+   ├── 📁 info/{clubId}                        <span class="cmt"># 부가 정보 (지하철·오픈챗·유의사항)</span>
+   ├── 📁 menus/{menuId}                       <span class="cmt"># 메뉴</span>
+   ├── 📁 photos/{photoId}                     <span class="cmt"># 사진탭 (카테고리별)</span>
+   └── 📁 reviews/{reviewId}                   <span class="cmt"># 인앱 리뷰</span>
+
+📁 favorites/{favoriteId}                     <span class="cmt"># 찜 (top-level)</span>
+
+📁 banners/{bannerId}                         <span class="cmt"># 홈 배너</span></div>
+  <div class="note"><strong>자동 집계 필드:</strong> <code>favoriteCount</code> · <code>ratingSum</code> · <code>reviewCount</code> · <code>rating</code> 는 Cloud Functions 트리거로만 갱신. 클라이언트 직접 수정 금지.</div>
+</section>
+
+<!-- users -->
+<section id="users">
+  <h2>📁 users/{uid}</h2>
+  <table>
+    <tr><th>필드</th><th>타입</th><th>설명</th></tr>
+    <tr><td class="field-name">uid</td><td class="ftype">string</td><td>Firebase Auth UID <span class="pill pk">PK</span></td></tr>
+    <tr><td class="field-name">name</td><td class="ftype">string</td><td>사용자 실명</td></tr>
+    <tr><td class="field-name">phone</td><td class="ftype">string</td><td>본인인증 완료된 전화번호 (중복 가입 방지 기준)</td></tr>
+    <tr><td class="field-name">birthDate</td><td class="ftype">string</td><td>생년월일 YYYYMMDD</td></tr>
+    <tr><td class="field-name">profileImageUrl</td><td class="ftype">string</td><td>Storage 프로필 이미지 URL</td></tr>
+    <tr><td class="field-name">provider</td><td class="ftype">string</td><td>"naver" | "apple"</td></tr>
+    <tr><td class="field-name">isVerified</td><td class="ftype">boolean</td><td>본인인증 완료 여부 (초기값 false)</td></tr>
+    <tr><td class="field-name">createdAt</td><td class="ftype">timestamp</td><td>생성 시각</td></tr>
+    <tr><td class="field-name">updatedAt</td><td class="ftype">timestamp</td><td>수정 시각</td></tr>
+  </table>
+</section>
+
+<!-- clubs -->
+<section id="clubs">
+  <h2>📁 clubs/{clubId}</h2>
+  <table>
+    <tr><th>필드</th><th>타입</th><th>설명</th></tr>
+    <tr><td class="field-name">clubId</td><td class="ftype">string</td><td>= 문서 ID <span class="pill pk">PK</span> (필드로는 저장 안 됨, doc.id 사용)</td></tr>
+    <tr><td class="field-name">name</td><td class="ftype">string</td><td>클럽 이름</td></tr>
+    <tr><td class="field-name">description</td><td class="ftype">string</td><td>클럽 소개글</td></tr>
+    <tr><td class="field-name">address</td><td class="ftype">string</td><td>주소</td></tr>
+    <tr><td class="field-name">area</td><td class="ftype">string</td><td>지역 (예: "홍대", "강남", "이태원")</td></tr>
+    <tr><td class="field-name">phone</td><td class="ftype">string</td><td>연락처</td></tr>
+    <tr><td class="field-name">instagramUrl</td><td class="ftype">string</td><td>인스타그램 URL</td></tr>
+    <tr><td class="field-name">location</td><td class="ftype">object</td><td><code>{ lat, lng, geohash }</code> — geohash 는 GeoQuery용, location 맵 <strong>안에</strong> 포함 (최상위 아님). 쿼리 시 <code>'location.geohash'</code> 경로 사용</td></tr>
+    <tr><td class="field-name">genre</td><td class="ftype">string</td><td>주요 장르 (예: "힙합", "테크노", "팝")</td></tr>
+    <tr><td class="field-name">rating</td><td class="ftype">double</td><td>평점 = ratingSum / reviewCount <span class="pill auto">자동</span></td></tr>
+    <tr><td class="field-name">ratingSum</td><td class="ftype">number</td><td>별점 합계 <span class="pill auto">자동</span></td></tr>
+    <tr><td class="field-name">reviewCount</td><td class="ftype">number</td><td>리뷰 수 <span class="pill auto">자동</span></td></tr>
+    <tr><td class="field-name">operatingHours</td><td class="ftype">object</td><td>요일별 영업시간 <code>{ mon..sun }</code>, 각 요일 <code>{ isOpen, open?, close? }</code>. 예: <code>{ isOpen: true, open: "22:00", close: "06:00" }</code>, 휴무일 <code>{ isOpen: false }</code></td></tr>
+    <tr><td class="field-name">closeTime</td><td class="ftype">string</td><td><span class="pill legacy">레거시</span> 단일 마감시각. 영업시간 표시는 operatingHours 기준 — 신규 사용 금지</td></tr>
+    <tr><td class="field-name">entryFeeMin</td><td class="ftype">number</td><td>입장료 최소 (원, 0이면 무료)</td></tr>
+    <tr><td class="field-name">entryFeeMax</td><td class="ftype">number</td><td>입장료 최대 (원)</td></tr>
+    <tr><td class="field-name">heroImageUrls</td><td class="ftype">array</td><td>상단 슬라이더 이미지 URL (상세 히어로)</td></tr>
+    <tr><td class="field-name">imageUrls</td><td class="ftype">array</td><td>갤러리(사진탭) 이미지 URL</td></tr>
+    <tr><td class="field-name">menuBoardUrls</td><td class="ftype">array</td><td>메뉴판 이미지 URL</td></tr>
+    <tr><td class="field-name">thumbnailUrl</td><td class="ftype">string</td><td>리스트 대표 이미지 URL</td></tr>
+    <tr><td class="field-name">tags</td><td class="ftype">array</td><td>태그 목록</td></tr>
+    <tr><td class="field-name">favoriteCount</td><td class="ftype">number</td><td>찜 수 <span class="pill auto">자동</span></td></tr>
+    <tr><td class="field-name">isActive</td><td class="ftype">boolean</td><td>false면 앱에 노출 안 됨</td></tr>
+    <tr><td class="field-name">isVybeRecommended</td><td class="ftype">boolean</td><td>vybe 추천 여부</td></tr>
+    <tr><td class="field-name">createdAt</td><td class="ftype">timestamp</td><td>생성 시각</td></tr>
+    <tr><td class="field-name">updatedAt</td><td class="ftype">timestamp</td><td>수정 시각</td></tr>
+  </table>
+</section>
+
+<!-- club info -->
+<section id="club-info">
+  <h2>📁 clubs/{clubId}/info/{clubId}</h2>
+  <table>
+    <tr><th>필드</th><th>타입</th><th>설명</th></tr>
+    <tr><td class="field-name">nearbySubways</td><td class="ftype">array</td><td>주변 지하철역 <code>[{ stationName, distanceM, lines:string[] }]</code>. lines = 호선 목록 (예: <code>["9호선"]</code>) — SubwayLineBadge 표시용</td></tr>
+    <tr><td class="field-name">openChatUrl</td><td class="ftype">string</td><td>카카오 오픈채팅방 URL</td></tr>
+    <tr><td class="field-name">cautions</td><td class="ftype">array</td><td>유의사항 목록 (string[])</td></tr>
+    <tr><td class="field-name">updatedAt</td><td class="ftype">timestamp</td><td>수정 시각</td></tr>
+  </table>
+</section>
+
+<!-- club menus -->
+<section id="club-menus">
+  <h2>📁 clubs/{clubId}/menus/{menuId}</h2>
+  <table>
+    <tr><th>필드</th><th>타입</th><th>설명</th></tr>
+    <tr><td class="field-name">menuId</td><td class="ftype">string</td><td><span class="pill pk">PK</span></td></tr>
+    <tr><td class="field-name">clubId</td><td class="ftype">string</td><td><span class="pill fk">FK → clubs</span></td></tr>
+    <tr><td class="field-name">name</td><td class="ftype">string</td><td>메뉴명</td></tr>
+    <tr><td class="field-name">description</td><td class="ftype">string</td><td>설명</td></tr>
+    <tr><td class="field-name">price</td><td class="ftype">number</td><td>가격 (원)</td></tr>
+    <tr><td class="field-name">imageUrl</td><td class="ftype">string</td><td>메뉴 이미지 URL</td></tr>
+    <tr><td class="field-name">category</td><td class="ftype">string</td><td>카테고리 (주류, 음식 등)</td></tr>
+    <tr><td class="field-name">isAvailable</td><td class="ftype">boolean</td><td>판매 여부</td></tr>
+    <tr><td class="field-name">isFeatured</td><td class="ftype">boolean</td><td>대표 메뉴 여부</td></tr>
+    <tr><td class="field-name">createdAt</td><td class="ftype">timestamp</td><td>생성 시각</td></tr>
+  </table>
+</section>
+
+<!-- club photos -->
+<section id="club-photos">
+  <h2>📁 clubs/{clubId}/photos/{photoId}</h2>
+  <table>
+    <tr><th>필드</th><th>타입</th><th>설명</th></tr>
+    <tr><td class="field-name">photoId</td><td class="ftype">string</td><td><span class="pill pk">PK</span> (Firestore 자동 생성)</td></tr>
+    <tr><td class="field-name">clubId</td><td class="ftype">string</td><td><span class="pill fk">FK → clubs</span></td></tr>
+    <tr><td class="field-name">userId</td><td class="ftype">string</td><td>올린 사람 uid (seed 데이터는 "seed")</td></tr>
+    <tr><td class="field-name">url</td><td class="ftype">string</td><td>Storage 다운로드 URL</td></tr>
+    <tr><td class="field-name">category</td><td class="ftype">string</td><td>"venue"(업체) | "food"(음식) | "inside"(내부). PhotoCategory enum — Firestore엔 영문키, UI는 한글 라벨 매핑</td></tr>
+    <tr><td class="field-name">createdAt</td><td class="ftype">timestamp</td><td>사진탭은 createdAt desc 정렬 → index 0이 최신</td></tr>
+  </table>
+  <div class="note">사진탭(detail_gallery_tab) 카테고리 필터의 데이터 소스. 칩별 count는 메모리 집계. 기존 <code>clubs.imageUrls</code> 배열을 마이그레이션(<code>scripts/seed_photos.js</code>)해 생성 — 카테고리는 round-robin 임의 배정(실제 분류 아님).</div>
+</section>
+
+<!-- club reviews -->
+<section id="club-reviews">
+  <h2>📁 clubs/{clubId}/reviews/{reviewId}</h2>
+  <table>
+    <tr><th>필드</th><th>타입</th><th>설명</th></tr>
+    <tr><td class="field-name">reviewId</td><td class="ftype">string</td><td><span class="pill pk">PK</span></td></tr>
+    <tr><td class="field-name">clubId</td><td class="ftype">string</td><td><span class="pill fk">FK → clubs</span></td></tr>
+    <tr><td class="field-name">userId</td><td class="ftype">string</td><td><span class="pill fk">FK → users</span></td></tr>
+    <tr><td class="field-name">userName</td><td class="ftype">string</td><td>표시 이름 (임시 — 추후 users/{uid} 조회로 대체)</td></tr>
+    <tr><td class="field-name">rating</td><td class="ftype">number</td><td>별점 1~5</td></tr>
+    <tr><td class="field-name">content</td><td class="ftype">string</td><td>리뷰 텍스트</td></tr>
+    <tr><td class="field-name">imageUrls</td><td class="ftype">array</td><td>첨부 이미지 URL 목록</td></tr>
+    <tr><td class="field-name">createdAt</td><td class="ftype">timestamp</td><td>생성 시각</td></tr>
+    <tr><td class="field-name">updatedAt</td><td class="ftype">timestamp</td><td>수정 시각</td></tr>
+  </table>
+  <div class="note"><strong>리뷰 CUD 시</strong> <code>onReviewCreated/Updated/Deleted</code> 트리거가 clubs 의 ratingSum·reviewCount·rating 자동 갱신.</div>
+</section>
+
+<!-- favorites -->
+<section id="favorites">
+  <h2>📁 favorites/{favoriteId} <span style="font-size:13px;color:var(--muted);">(top-level)</span></h2>
+  <table>
+    <tr><th>필드</th><th>타입</th><th>설명</th></tr>
+    <tr><td class="field-name">favoriteId</td><td class="ftype">string</td><td><span class="pill pk">PK</span></td></tr>
+    <tr><td class="field-name">userId</td><td class="ftype">string</td><td><span class="pill fk">FK → users</span></td></tr>
+    <tr><td class="field-name">clubId</td><td class="ftype">string</td><td><span class="pill fk">FK → clubs</span> (favoriteCount 자동 연동)</td></tr>
+    <tr><td class="field-name">createdAt</td><td class="ftype">timestamp</td><td>생성 시각</td></tr>
+  </table>
+  <div class="note"><strong>생성/삭제 시</strong> <code>onFavoriteCreated/Deleted</code> 트리거가 clubs.favoriteCount ±1.</div>
+</section>
+
+<!-- search history -->
+<section id="search-history">
+  <h2>📁 users/{uid}/searchHistory/{historyId}</h2>
+  <table>
+    <tr><th>필드</th><th>타입</th><th>설명</th></tr>
+    <tr><td class="field-name">historyId</td><td class="ftype">string</td><td><span class="pill pk">PK</span></td></tr>
+    <tr><td class="field-name">userId</td><td class="ftype">string</td><td><span class="pill fk">FK → users</span></td></tr>
+    <tr><td class="field-name">keyword</td><td class="ftype">string</td><td>검색어</td></tr>
+    <tr><td class="field-name">createdAt</td><td class="ftype">timestamp</td><td>생성 시각</td></tr>
+  </table>
+</section>
+
+<!-- banners -->
+<section id="banners">
+  <h2>📁 banners/{bannerId}</h2>
+  <table>
+    <tr><th>필드</th><th>타입</th><th>설명</th></tr>
+    <tr><td class="field-name">bannerId</td><td class="ftype">string</td><td><span class="pill pk">PK</span> (= doc.id fallback)</td></tr>
+    <tr><td class="field-name">imageUrl</td><td class="ftype">string</td><td>배너 이미지 URL</td></tr>
+    <tr><td class="field-name">linkType</td><td class="ftype">string</td><td>링크 종류 (예: "club", "url")</td></tr>
+    <tr><td class="field-name">linkValue</td><td class="ftype">string</td><td>링크 대상 값</td></tr>
+    <tr><td class="field-name">order</td><td class="ftype">number</td><td>정렬 순서 (오름차순)</td></tr>
+    <tr><td class="field-name">isActive</td><td class="ftype">boolean</td><td>노출 여부</td></tr>
+    <tr><td class="field-name">startAt</td><td class="ftype">timestamp</td><td>노출 시작</td></tr>
+    <tr><td class="field-name">endAt</td><td class="ftype">timestamp</td><td>노출 종료</td></tr>
+    <tr><td class="field-name">createdAt</td><td class="ftype">timestamp</td><td>생성 시각</td></tr>
+  </table>
+  <div class="note">홈 배너 데이터 소스. <code>getActiveBanners()</code>는 <code>isActive=true</code> 쿼리 후 클라이언트에서 <code>startAt &lt; now &lt; endAt</code> 필터 + <code>order</code> 정렬.</div>
+</section>
+
+<!-- ========================= CLOUD FUNCTIONS ========================= -->
+<section id="functions-http">
+  <h2>Cloud Functions <span style="font-size:14px;color:var(--muted);">— 총 13개 (TypeScript)</span></h2>
+  <p>구조: <code>functions/src/auth/</code> (7) · <code>favorites/</code> (2) · <code>reviews/</code> (3) + <code>index.ts</code>. Firebase 서버 로직은 모두 Cloud Functions으로 처리.</p>
+
+  <h3>HTTP 요청 함수 — <code>https.onCall</code> (앱 직접 호출)</h3>
+  <table>
+    <tr><th>함수명</th><th>입력</th><th>출력</th><th>역할</th></tr>
+    <tr><td class="field-name">naverLogin</td><td><code>{ accessToken }</code></td><td><code>{ customToken, isNewUser }</code></td><td>네이버 accessToken → Custom Token (<code>naver:{naverId}</code>)</td></tr>
+    <tr><td class="field-name">kakaoLogin</td><td><code>{ accessToken }</code></td><td><code>{ customToken, isNewUser }</code></td><td>카카오 accessToken → Custom Token (<code>kakao:{kakaoId}</code>)</td></tr>
+    <tr><td class="field-name">phoneLogin</td><td><code>{ phone }</code></td><td><code>{ customToken, isNewUser }</code></td><td>전화번호 기반 Custom Token (<code>phone:{phone}</code>)</td></tr>
+    <tr><td class="field-name">checkPhoneDuplicate</td><td><code>{ phone }</code></td><td><code>{ isDuplicate }</code></td><td>users phone 중복 체크 (가입 전 검사)</td></tr>
+    <tr><td class="field-name">verifyIdentity</td><td><code>{ impUid }</code></td><td><code>{ verified }</code></td><td>본인인증 결과 검증 → phone/birthDate Firestore 저장</td></tr>
+    <tr><td class="field-name">deleteUser</td><td>Auth 헤더</td><td><code>{ success }</code></td><td>회원탈퇴 (Auth + Firestore + Storage 일괄 삭제)</td></tr>
+  </table>
+</section>
+
+<section id="functions-trigger">
+  <h3>자동 트리거 함수</h3>
+  <table>
+    <tr><th>함수명</th><th>트리거</th><th>역할</th></tr>
+    <tr><td class="field-name">onUserCreated</td><td>Auth 신규 유저 생성</td><td>users/{uid} 문서 자동 생성 (provider, isVerified:false, createdAt). 이미 존재하면 덮어쓰지 않음</td></tr>
+    <tr><td class="field-name">onFavoriteCreated</td><td>favorites/{id} 생성</td><td>clubs.favoriteCount += 1 (<code>FieldValue.increment</code>)</td></tr>
+    <tr><td class="field-name">onFavoriteDeleted</td><td>favorites/{id} 삭제</td><td>clubs.favoriteCount -= 1 (0 미만 방지)</td></tr>
+    <tr><td class="field-name">onReviewCreated</td><td>reviews/{id} 생성</td><td>ratingSum += rating, reviewCount += 1, rating = ratingSum/reviewCount</td></tr>
+    <tr><td class="field-name">onReviewDeleted</td><td>reviews/{id} 삭제</td><td>ratingSum -= rating, reviewCount -= 1, count&gt;0 재계산 / 0이면 rating=0</td></tr>
+    <tr><td class="field-name">onReviewUpdated</td><td>reviews/{id} 수정</td><td>ratingSum += (new - old), rating = ratingSum/reviewCount</td></tr>
+  </table>
+</section>
+
+<section id="functions-notes">
+  <h3>구현 시 주의사항</h3>
+  <div class="note danger">
+    <strong>자동 집계 필드 직접 수정 금지</strong> — <code>favoriteCount</code> · <code>ratingSum</code> · <code>reviewCount</code> · <code>rating</code> 은 반드시 Cloud Functions으로만 업데이트.
+  </div>
+  <ul>
+    <li><code>ratingSum</code> / <code>reviewCount</code> 증감은 <code>FieldValue.increment()</code> 사용 (동시 요청 정합성)</li>
+    <li><code>rating</code> 은 트랜잭션으로 <code>ratingSum / reviewCount</code> 계산 후 저장</li>
+    <li><code>onReviewDeleted</code> 에서 reviewCount 가 0이 되면 <code>rating = 0</code> 처리</li>
+    <li><code>deleteUser</code> 는 Admin SDK로만 처리 (클라이언트 직접 삭제 불가)</li>
+    <li>네이버 UID 형식: <code>naver:{naverId}</code></li>
+    <li><code>onUserCreated</code> 는 문서가 이미 존재하면 덮어쓰지 말 것 (중복 실행 방어)</li>
+  </ul>
+</section>
+
+<!-- ========================= STORAGE ========================= -->
+<section id="storage">
+  <h2>Firebase Storage — 경로 구조</h2>
+  <p>실제 구조 (더 베이스 <code>62VaHypRMWcCySNQZEaa</code> 기준). 확장자는 원본 따라 <code>.jpg</code>/<code>.png</code>/<code>.jpeg</code> 혼재.</p>
+  <div class="tree">clubs/{clubId}/thumbnail.jpeg               <span class="cmt">// 클럽 대표 이미지 (1장, 리스트 썸네일)</span>
+clubs/{clubId}/gallery/{n}.{jpg|png}        <span class="cmt">// 갤러리 이미지 (1.jpg, 2.png, … 순번)</span>
+                                            <span class="cmt">//   → heroImageUrls·imageUrls 둘 다 이 폴더 참조</span>
+clubs/{clubId}/menus/{menuId}.{jpg|png}     <span class="cmt">// 개별 메뉴 이미지</span>
+clubs/{clubId}/menus/boards/board_{n}.png   <span class="cmt">// 메뉴판 이미지 (menuBoardUrls)</span>
+reviews/{clubId}/{reviewId}/{filename}      <span class="cmt">// 리뷰 첨부 이미지</span>
+users/{uid}/profile.jpg                     <span class="cmt">// 프로필 이미지 (덮어쓰기)</span></div>
+  <div class="note"><strong>URL 토큰 차이:</strong> <code>thumbnail</code> 은 다운로드 토큰(<code>?alt=media&amp;token=…</code>) 포함, <code>gallery</code>/<code>menus</code> 는 토큰 없이 <code>?alt=media</code> 만 → Storage 규칙 <code>clubs/** read: if true</code>(공개 읽기)에 의존.</div>
+  <div class="note"><strong>사진탭 photos 서브컬렉션:</strong> 현재 seed 데이터는 기존 <code>gallery/</code> URL 재활용(별도 업로드 없음). 추후 유저 업로드 기능 추가 시 권장 경로 <code>clubs/{clubId}/photos/{photoId}.{ext}</code>.</div>
+</section>
+
+<!-- ========================= RULES ========================= -->
+<section id="rules-firestore">
+  <h2>Security Rules — Firestore</h2>
+  <table>
+    <tr><th>컬렉션</th><th>읽기</th><th>쓰기</th></tr>
+    <tr><td><code>users/{uid}</code></td><td>본인만</td><td>본인만 (uid / provider / createdAt 수정 불가)</td></tr>
+    <tr><td><code>clubs/{clubId}</code></td><td>누구나 (isActive=true만)</td><td>어드민만</td></tr>
+    <tr><td><code>clubs/.../info</code>, <code>menus</code></td><td>누구나</td><td>어드민만</td></tr>
+    <tr><td><code>clubs/.../photos</code></td><td>누구나</td><td>생성: 로그인 유저(본인 userId) / 삭제: 본인 또는 어드민</td></tr>
+    <tr><td><code>clubs/.../reviews</code></td><td>누구나</td><td>생성: 로그인 유저 / 수정·삭제: 본인 또는 어드민</td></tr>
+    <tr><td><code>favorites</code></td><td>본인만</td><td>생성·삭제: 본인만</td></tr>
+    <tr><td><code>users/.../searchHistory</code></td><td>본인만</td><td>본인만</td></tr>
+  </table>
+</section>
+
+<section id="rules-storage">
+  <h2>Security Rules — Storage</h2>
+  <table>
+    <tr><th>경로</th><th>읽기</th><th>쓰기</th></tr>
+    <tr><td><code>clubs/**</code></td><td>누구나</td><td>어드민만, 10MB 이하, 이미지만</td></tr>
+    <tr><td><code>reviews/**</code></td><td>누구나</td><td>로그인 유저, 10MB 이하, 이미지만</td></tr>
+    <tr><td><code>users/{uid}/**</code></td><td>누구나</td><td>본인만, 5MB 이하, 이미지만</td></tr>
+  </table>
+</section>
+
+<section id="rules-admin">
+  <h2>어드민 권한 설정</h2>
+  <pre><code><span class="cmt">// Admin SDK로 Custom Claim 부여</span>
+admin.auth().setCustomUserClaims(uid, { admin: <span class="kw">true</span> })
+
+<span class="cmt">// Rules에서 확인</span>
+request.auth.token.admin == <span class="kw">true</span></code></pre>
+</section>
+
+<!-- ========================= ENV ========================= -->
+<section id="env">
+  <h2>환경변수 / 키 관리 (dotenv)</h2>
+  <p>API 키는 <code>.env</code> 파일로 관리하며 절대 git에 커밋하지 않는다. <code>.env.example</code> 은 키 이름만 포함하여 커밋.</p>
+
+  <h4>Flutter — 프로젝트 루트 <code>.env</code></h4>
+  <pre><code>KAKAO_NATIVE_APP_KEY=your_key_here     <span class="cmt"># main.dart: KakaoSdk.init</span>
+NAVER_MAP_CLIENT_ID=your_id_here       <span class="cmt"># main.dart: 네이버 지도 초기화</span></code></pre>
+
+  <h4>Cloud Functions — <code>functions/.env</code></h4>
+  <pre><code>KAKAO_ADMIN_KEY=your_key_here
+NAVER_CLIENT_ID=your_id_here
+NAVER_CLIENT_SECRET=your_secret_here</code></pre>
+
+  <div class="note"><strong>main.dart 초기화 순서:</strong> <code>dotenv.load</code> → <code>Firebase.initializeApp</code> → <code>KakaoSdk.init</code> → 네이버 지도(<code>NAVER_MAP_CLIENT_ID</code>). 네이버 <strong>로그인</strong> secret(<code>NAVER_CLIENT_ID</code>/<code>NAVER_CLIENT_SECRET</code>)은 Cloud Functions 에서만 사용.</div>
+</section>
+
+<section id="commands">
+  <h2>배포 명령어</h2>
+  <pre><code><span class="cmt"># Cloud Functions 배포</span>
+firebase deploy --only functions
+firebase deploy --only functions:naverLogin  <span class="cmt"># 특정 함수만</span>
+
+<span class="cmt"># 코드 생성 (Freezed, Riverpod)</span>
+flutter pub run build_runner build --delete-conflicting-outputs</code></pre>
+</section>
+
+<footer>
+  vybe Firebase 서버 구조 정리본 · <code>CLAUDE.md</code> 기반 자동 생성 · 2026-06-26<br>
+  ⚠️ 자동 집계 필드(favoriteCount / ratingSum / reviewCount / rating)는 Cloud Functions 트리거로만 갱신됨.
+</footer>
+
+</main>
+</div>
+
+<button class="print-btn" onclick="window.print()" title="A4로 인쇄 / PDF 저장">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="6 9 6 2 18 2 18 9"></polyline>
+    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+    <rect x="6" y="14" width="12" height="8"></rect>
+  </svg>
+  A4 인쇄 / PDF 저장
+</button>
+</body>
+</html>

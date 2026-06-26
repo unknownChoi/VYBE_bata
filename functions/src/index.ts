@@ -14,3 +14,4 @@ export {onFavoriteDeleted} from "./favorites/on_favorite_deleted";
 export {onReviewCreated} from "./reviews/on_review_created";
 export {onReviewDeleted} from "./reviews/on_review_deleted";
 export {onReviewUpdated} from "./reviews/on_review_updated";
+export {onClubWritten} from "./search/on_club_written";

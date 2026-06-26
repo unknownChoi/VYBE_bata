@@ -861,8 +861,8 @@ class DetailInfoSkeleton extends StatelessWidget {
 
 // ── 찜 탭 스켈레톤 ───────────────────────────────────────────────
 //
-// SavedScreen 로딩 중 표시. 통계 바 + 그룹 칩 + 툴바 + 리스트 카드 골격.
-// 실제 레이아웃(_StatsBar / _FolderTabs / _ToolBar / _ListCard)과 패딩 동일.
+// SavedScreen 로딩 중 표시. 통계 바 + 툴바 + 리스트 카드 골격.
+// 실제 레이아웃(_StatsBar / _ToolBar / _ListCard)과 패딩 동일.
 
 class _SavedListItemSkeleton extends StatelessWidget {
   const _SavedListItemSkeleton();
@@ -919,18 +919,7 @@ class SavedSkeleton extends StatelessWidget {
             ],
           ),
         ),
-        // 그룹 칩
-        Padding(
-          padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 16.h),
-          child: Row(
-            children: [
-              ...[52, 64, 80, 56].map((w) => Padding(
-                    padding: EdgeInsets.only(right: 6.w),
-                    child: VybeSkel(width: w.w, height: 34.h, radius: 99),
-                  )),
-            ],
-          ),
-        ),
+        SizedBox(height: 8.h),
         // 툴바 (정렬 + 뷰 전환)
         Padding(
           padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 16.h),

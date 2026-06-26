@@ -1,37 +1,52 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
-import 'package:vybe/presentation/search/data/dummy_clubs.dart';
+import 'package:vybe/presentation/clubs/club_detail_screen.dart';
+import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 
 class ClubListItem extends StatelessWidget {
-  final DummyClub club;
+  final ClubModel club;
 
   const ClubListItem({super.key, required this.club});
 
+  bool get _isOpen => club.operatingHours.today.isCurrentlyOpen;
+  String? get _closeTime => club.operatingHours.today.close;
+
+  void _openDetail(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => ClubDetailScreen(clubId: club.clubId)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: VybeColors.gray900, width: 1),
+    return GestureDetector(
+      onTap: () => _openDetail(context),
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        decoration: const BoxDecoration(
+          border: Border(
+            bottom: BorderSide(color: VybeColors.gray900, width: 1),
+          ),
         ),
-      ),
-      padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 24.h),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildNameRow(),
-          SizedBox(height: 8.h),
-          _buildRatingTagRow(),
-          SizedBox(height: 8.h),
-          _buildImage(),
-          SizedBox(height: 8.h),
-          _buildAddressRow(),
-          SizedBox(height: 8.h),
-          _buildBusinessRow(),
-        ],
+        padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 24.h),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildNameRow(),
+            SizedBox(height: 8.h),
+            _buildRatingTagRow(),
+            SizedBox(height: 8.h),
+            _buildImage(),
+            SizedBox(height: 8.h),
+            _buildAddressRow(),
+            SizedBox(height: 8.h),
+            _buildBusinessRow(),
+          ],
+        ),
       ),
     );
   }
@@ -107,11 +122,7 @@ class ClubListItem extends StatelessWidget {
         SizedBox(width: 8.w),
         Text(club.area, style: tagStyle),
         SizedBox(width: 4.w),
-        Container(
-          width: 1,
-          height: 12.h,
-          color: VybeColors.gray700,
-        ),
+        Container(width: 1, height: 12.h, color: VybeColors.gray700),
         SizedBox(width: 4.w),
         Text(club.genre, style: tagStyle),
       ],
@@ -129,10 +140,18 @@ class ClubListItem extends StatelessWidget {
               width: double.infinity,
               height: 152.h,
               decoration: BoxDecoration(
+                color: VybeColors.gray900,
                 borderRadius: BorderRadius.circular(12.r),
                 border: Border.all(color: VybeColors.gray900, width: 1),
               ),
-              child: Image.asset(club.imagePath, fit: BoxFit.cover),
+              child: club.thumbnailUrl.isEmpty
+                  ? null
+                  : SkeletonImage(
+                      url: club.thumbnailUrl,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: 152.h,
+                    ),
             ),
           ),
           Positioned(
@@ -172,9 +191,13 @@ class ClubListItem extends StatelessWidget {
           ),
         ),
         SizedBox(width: 6.w),
-        Text(
-          club.address,
-          style: VybeTypography.caption.copyWith(color: VybeColors.gray400),
+        Flexible(
+          child: Text(
+            club.address,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: VybeTypography.caption.copyWith(color: VybeColors.gray400),
+          ),
         ),
       ],
     );
@@ -197,8 +220,8 @@ class ClubListItem extends StatelessWidget {
           ),
         ),
         SizedBox(width: 6.w),
-        Text(club.isOpen ? '영업중' : '영업종료', style: infoStyle),
-        if (club.isOpen) ...[
+        Text(_isOpen ? '영업중' : '영업종료', style: infoStyle),
+        if (_isOpen && _closeTime != null) ...[
           SizedBox(width: 4.w),
           Container(
             width: 2.r,
@@ -209,7 +232,7 @@ class ClubListItem extends StatelessWidget {
             ),
           ),
           SizedBox(width: 4.w),
-          Text('${club.closeTime}에 영업 종료', style: infoStyle),
+          Text('$_closeTime에 영업 종료', style: infoStyle),
         ],
         SizedBox(width: 24.w),
         SvgPicture.asset(

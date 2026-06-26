@@ -20,6 +20,9 @@ class VybeCertificateInput extends StatefulWidget {
   final String? errorText;
   final bool enabled;
 
+  /// true이면 등장 시 자동 포커스 → 키보드 즉시 노출
+  final bool autofocus;
+
   const VybeCertificateInput({
     super.key,
     this.length = 6,
@@ -27,6 +30,7 @@ class VybeCertificateInput extends StatefulWidget {
     this.onCompleted,
     this.errorText,
     this.enabled = true,
+    this.autofocus = false,
   });
 
   @override
@@ -80,6 +84,7 @@ class _VybeCertificateInputState extends State<VybeCertificateInput> {
                 child: TextField(
                   controller: _controller,
                   focusNode: _focusNode,
+                  autofocus: widget.autofocus,
                   keyboardType: TextInputType.number,
                   maxLength: widget.length,
                   enabled: widget.enabled,

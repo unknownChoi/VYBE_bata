@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'dart:ui';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -11,6 +14,18 @@ import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // flutter_naver_map 마커 이미지(NOverlayImage.fromWidget)가 임시파일을
+  // 생성/정리하는 과정에서, 이미 삭제된 temp 디렉토리를 다시 지우려다 던지는
+  // 무해한 비동기 FileSystemException(_Directory._delete)을 삼킨다.
+  // 앱 동작엔 영향 없고 콘솔만 오염시키므로 이 케이스만 처리 완료로 표시.
+  PlatformDispatcher.instance.onError = (error, stack) {
+    if (error is FileSystemException &&
+        error.message.toLowerCase().contains('delet')) {
+      return true; // 처리됨 — 크래시/에러 로그 방지
+    }
+    return false; // 그 외 에러는 기본 처리(로그/리포트)
+  };
 
   // 환경변수 로드
   await dotenv.load(fileName: '.env');

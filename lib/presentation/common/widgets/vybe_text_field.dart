@@ -33,6 +33,9 @@ class VybeTextField extends StatefulWidget {
   final FocusNode? focusNode;
   final VoidCallback? onClear;
 
+  /// true이면 위젯 등장 시 자동 포커스 → 키보드 즉시 노출
+  final bool autofocus;
+
   const VybeTextField({
     super.key,
     this.hint,
@@ -46,6 +49,7 @@ class VybeTextField extends StatefulWidget {
     this.enabled = true,
     this.focusNode,
     this.onClear,
+    this.autofocus = false,
   });
 
   @override
@@ -122,6 +126,7 @@ class _VybeTextFieldState extends State<VybeTextField> {
                 child: TextField(
                   controller: widget.controller,
                   focusNode: _focusNode,
+                  autofocus: widget.autofocus,
                   obscureText: widget.obscureText,
                   keyboardType: widget.keyboardType,
                   inputFormatters: widget.inputFormatters,

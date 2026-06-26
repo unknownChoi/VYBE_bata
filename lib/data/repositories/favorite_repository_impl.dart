@@ -23,18 +23,10 @@ class FavoriteRepositoryImpl implements FavoriteRepository {
       _dataSource.isFavorite(userId, clubId);
 
   @override
-  Future<void> addFavorite(String userId, String clubId, {String? folderId}) =>
-      _dataSource.addFavorite(userId, clubId, folderId: folderId);
+  Future<void> addFavorite(String userId, String clubId) =>
+      _dataSource.addFavorite(userId, clubId);
 
   @override
   Future<void> removeFavorite(String userId, String clubId) =>
       _dataSource.removeFavorite(userId, clubId);
-
-  @override
-  Future<void> moveFavoriteToFolder(
-    String userId,
-    String clubId,
-    String? folderId,
-  ) =>
-      _dataSource.moveFavoriteToFolder(userId, clubId, folderId);
 }

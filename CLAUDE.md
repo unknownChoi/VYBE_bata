@@ -53,10 +53,9 @@ View (Widget) → ViewModel (Notifier) → Repository → DataSource (Firebase)
 │   │   │       ├── firebase_search_history_datasource.dart
 │   │   │       ├── firebase_review_datasource.dart
 │   │   │       ├── firebase_favorite_datasource.dart
-│   │   │       ├── firebase_folder_datasource.dart  # 찜 그룹(users/{uid}/folders)
 │   │   │       └── firebase_banner_datasource.dart
 │   │   ├── models/      # Freezed 모델 (user, club, club_info, menu, photo,
-│   │   │                #   review, favorite, folder, banner, search_history, operating_hours)
+│   │   │                #   review, favorite, banner, search_history, operating_hours)
 │   │   └── repositories/# domain 인터페이스 구현체 (*_repository_impl.dart, Riverpod provider 포함)
 │   ├── domain/
 │   │   └── repositories/    # repository 인터페이스 (Firebase 의존 금지)
@@ -65,7 +64,7 @@ View (Widget) → ViewModel (Notifier) → Repository → DataSource (Firebase)
 │   │   ├── main_scaffold/   # 루트 IndexedStack + 하단 탭바
 │   │   ├── home/            # 홈
 │   │   ├── nearby/          # 내 주변 (지도 기반)
-│   │   ├── saved/           # 찜 (favorites + 그룹/폴더, viewmodels/)
+│   │   ├── saved/           # 찜 (favorites, viewmodels/)
 │   │   ├── pass_wallet/     # 패스/지갑 (플레이스홀더, 현재 탭에서 미연결)
 │   │   ├── search/          # 검색
 │   │   ├── clubs/           # 클럽 상세 (tabs/, widgets/, viewmodels/)
@@ -282,8 +281,7 @@ ElevatedButton(onPressed: () {}, child: Text('로그인'))
 - `MainScaffold` 5탭 (홈 / 주변 / 찜 / 검색 / 내 정보)
 - 홈 (배너·추천), 내 주변 (네이버 지도 + geohash), 검색 화면
 - 클럽 상세 (정보·메뉴·사진·리뷰 탭, 찜, 스켈레톤 로딩)
-- **찜 탭 (`saved/`) — favorites 실연동 + 그룹(폴더) 풀구현**
-  (그룹 생성/이동/삭제, 정렬, 리스트↔그리드, 카드 롱프레스 이동·칩 롱프레스 삭제)
+- **찜 탭 (`saved/`) — favorites 실연동** (정렬, 리스트↔그리드 뷰, 찜 해제)
 
 ### 미구현 / 진행 중 ✗
 - 패스·지갑 탭 (`pass_wallet_screen.dart` 플레이스홀더 — 현재 탭 슬롯엔 미연결)
@@ -478,6 +476,10 @@ menuBoardUrls       : array     // 메뉴판 이미지 URL 목록
 thumbnailUrl        : string    // 리스트 대표 이미지 URL
 tags                : array     // 태그 목록
 favoriteCount       : number    // 찜 수 (Cloud Functions 자동 업데이트, 직접 수정 금지)
+searchTokens        : array     // 검색용 접두사 토큰(name/area/genre/tags 분해).
+                                //   onClubWritten 트리거가 자동 생성 — 직접 수정 금지.
+                                //   앱은 arrayContainsAny로 후보 검색 후 클라에서 관련도 정렬
+                                //   (firebase_club_datasource.searchClubs + club_ranker.dart)
 isActive            : boolean   // false면 앱에 노출 안 됨
 isVybeRecommended   : boolean   // vybe 추천 여부
 createdAt           : timestamp
@@ -538,22 +540,8 @@ updatedAt       : timestamp
 favoriteId      : string    // PK
 userId          : string    // FK → users
 clubId          : string    // FK → clubs (favoriteCount 자동 연동)
-folderId        : string?   // FK → users/{uid}/folders. null/없으면 '전체'(그룹 미지정)
-                            //   그룹 이동은 moveFavoriteToFolder()로 update (folderId만 변경)
 createdAt       : timestamp
 ```
-
-#### users/{uid}/folders/{folderId}
-```
-folderId        : string    // PK (= doc.id)
-name            : string    // 그룹 이름
-emoji           : string    // 그룹 이모지 (없으면 '')
-order           : number    // 정렬 순서 (생성 시 기존 그룹 수로 부여)
-createdAt       : timestamp
-```
-> 찜 그룹(컬렉션) 데이터 소스. 찜 화면(`saved/`)의 그룹 칩. `firebase_folder_datasource`가
-> `order` asc로 watch. 그룹 삭제 시 favorites의 folderId는 그대로 남아 '전체'에서만 노출됨
-> (멤버십 정리 안 함 — 고아 folderId 허용). favoriteCount/별점류와 달리 클라이언트에서 직접 CRUD.
 
 #### users/{uid}/searchHistory/{historyId}
 ```
@@ -582,8 +570,8 @@ createdAt       : timestamp
 
 ### Cloud Functions 목록
 
-총 **13개** 함수 (`functions/src/index.ts` export 기준). Firebase 관련 서버 로직은 모두 Cloud Functions으로 처리.
-구조: `functions/src/auth/` (7) · `favorites/` (2) · `reviews/` (3) + `index.ts`.
+총 **14개** 함수 (`functions/src/index.ts` export 기준). Firebase 관련 서버 로직은 모두 Cloud Functions으로 처리.
+구조: `functions/src/auth/` (7) · `favorites/` (2) · `reviews/` (3) · `search/` (1) + `index.ts`.
 
 #### HTTP 요청 함수 (앱에서 직접 호출, `https.onCall`)
 
@@ -606,6 +594,7 @@ createdAt       : timestamp
 | `onReviewCreated` | clubs/{clubId}/reviews/{reviewId} 생성 시 | ratingSum += rating, reviewCount += 1, rating = ratingSum / reviewCount |
 | `onReviewDeleted` | clubs/{clubId}/reviews/{reviewId} 삭제 시 | ratingSum -= rating, reviewCount -= 1, reviewCount > 0이면 rating 재계산, 0이면 rating = 0 |
 | `onReviewUpdated` | clubs/{clubId}/reviews/{reviewId} 수정 시 | ratingSum += (newRating - oldRating), rating = ratingSum / reviewCount |
+| `onClubWritten` | clubs/{clubId} 생성·수정 시 | name/area/genre/tags → searchTokens(접두사 토큰) 자동 생성. 동일하면 skip(무한루프 방지) |
 
 #### 구현 시 주의사항
 - `favoriteCount`, `ratingSum`, `reviewCount`, `rating` 은 반드시 Cloud Functions으로만 업데이트 (직접 수정 금지)
@@ -628,9 +617,8 @@ createdAt       : timestamp
 | `clubs/.../info`, `menus` | 누구나 | 어드민만 |
 | `clubs/.../photos` | 누구나 | 생성: 로그인 유저(본인 userId) / 삭제: 본인 또는 어드민 |
 | `clubs/.../reviews` | 누구나 | 생성: 로그인 유저 / 수정·삭제: 본인 또는 어드민 |
-| `favorites` | 본인만 | 생성·삭제: 본인만 / 수정: 본인만 (userId·clubId·createdAt 변경 불가, folderId만) |
+| `favorites` | 본인만 | 생성·삭제: 본인만 |
 | `users/.../searchHistory` | 본인만 | 본인만 |
-| `users/.../folders` | 본인만 | 본인만 (read·create·update·delete) |
 
 #### Storage Rules 요약
 | 경로 | 읽기 | 쓰기 |

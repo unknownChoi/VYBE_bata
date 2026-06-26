@@ -10,12 +10,16 @@ class SearchInputBar extends StatelessWidget {
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
 
+  /// true이면 등장 시 자동 포커스 → 키보드 즉시 노출
+  final bool autofocus;
+
   const SearchInputBar({
     super.key,
     this.controller,
     this.focusNode,
     this.onChanged,
     this.onSubmitted,
+    this.autofocus = false,
   });
 
   @override
@@ -35,6 +39,7 @@ class SearchInputBar extends StatelessWidget {
               child: TextField(
                 controller: controller,
                 focusNode: focusNode,
+                autofocus: autofocus,
                 style:
                     VybeTypography.body4.copyWith(color: VybeColors.gray200),
                 onChanged: onChanged,

@@ -2,10 +2,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:vybe/core/providers/auth_providers.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/data/models/favorite_model.dart';
-import 'package:vybe/data/models/folder_model.dart';
 import 'package:vybe/data/repositories/club_repository_impl.dart';
 import 'package:vybe/data/repositories/favorite_repository_impl.dart';
-import 'package:vybe/data/repositories/folder_repository_impl.dart';
 
 part 'saved_viewmodel.g.dart';
 
@@ -17,7 +15,6 @@ class SavedEntry {
   const SavedEntry({required this.club, required this.favorite});
 
   String get clubId => club.clubId;
-  String? get folderId => favorite.folderId;
   DateTime get savedAt => favorite.createdAt;
 
   bool get isOpen => club.operatingHours.today.isCurrentlyOpen;
@@ -69,15 +66,7 @@ Stream<List<SavedEntry>> savedClubs(Ref ref) {
   });
 }
 
-/// 사용자 찜 그룹 목록.
-@riverpod
-Stream<List<FolderModel>> savedFolders(Ref ref) {
-  final uid = ref.watch(currentUidProvider);
-  if (uid == null) return Stream.value(const []);
-  return ref.watch(folderRepositoryProvider).watchFolders(uid);
-}
-
-/// 찜 화면 동작(그룹 생성/삭제, 찜 해제, 그룹 이동).
+/// 찜 화면 동작(찜 해제).
 @riverpod
 class SavedActions extends _$SavedActions {
   @override
@@ -85,31 +74,9 @@ class SavedActions extends _$SavedActions {
 
   String? get _uid => ref.read(currentUidProvider);
 
-  Future<String?> createFolder(String name, String emoji, int order) async {
-    final uid = _uid;
-    if (uid == null) return null;
-    return ref
-        .read(folderRepositoryProvider)
-        .addFolder(uid, name: name, emoji: emoji, order: order);
-  }
-
-  Future<void> deleteFolder(String folderId) async {
-    final uid = _uid;
-    if (uid == null) return;
-    await ref.read(folderRepositoryProvider).deleteFolder(uid, folderId);
-  }
-
   Future<void> unsave(String clubId) async {
     final uid = _uid;
     if (uid == null) return;
     await ref.read(favoriteRepositoryProvider).removeFavorite(uid, clubId);
-  }
-
-  Future<void> moveToFolder(String clubId, String? folderId) async {
-    final uid = _uid;
-    if (uid == null) return;
-    await ref
-        .read(favoriteRepositoryProvider)
-        .moveFavoriteToFolder(uid, clubId, folderId);
   }
 }

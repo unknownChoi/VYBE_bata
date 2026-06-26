@@ -1,23 +1,40 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:vybe/core/providers/auth_providers.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
-import 'package:vybe/presentation/search/data/club_search.dart';
-import 'package:vybe/presentation/search/data/dummy_clubs.dart';
+import 'package:vybe/presentation/search/viewmodels/search_viewmodel.dart';
 import 'package:vybe/presentation/search/widgets/club_list_item.dart';
 import 'package:vybe/presentation/search/widgets/filter_chip_bar.dart';
 import 'package:vybe/presentation/search/widgets/result_gnb.dart';
 
-class SearchResultScreen extends StatelessWidget {
+class SearchResultScreen extends ConsumerStatefulWidget {
   final String query;
 
   const SearchResultScreen({super.key, required this.query});
 
   @override
+  ConsumerState<SearchResultScreen> createState() => _SearchResultScreenState();
+}
+
+class _SearchResultScreenState extends ConsumerState<SearchResultScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // 진입 즉시 검색 실행 (+ 검색 기록 저장).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final uid = ref.read(currentUidProvider);
+      ref
+          .read(searchViewModelProvider.notifier)
+          .search(widget.query, userId: uid);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // 테스트용: 가상 데이터(dummyClubs)에 검색 알고리즘 적용.
-    final results = searchDummyClubs(dummyClubs, query);
+    final resultsAsync = ref.watch(searchViewModelProvider);
 
     return Scaffold(
       backgroundColor: VybeColors.background,
@@ -26,17 +43,25 @@ class SearchResultScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ResultGnb(query: query),
+            ResultGnb(query: widget.query),
             _buildLocationRow(),
             const FilterChipBar(),
             Expanded(
-              child: results.isEmpty
-                  ? _buildEmpty()
-                  : ListView.builder(
-                      padding: EdgeInsets.zero,
-                      itemCount: results.length,
-                      itemBuilder: (_, i) => ClubListItem(club: results[i]),
-                    ),
+              child: resultsAsync.when(
+                loading: () => const Center(
+                  child: CircularProgressIndicator(
+                    color: VybeColors.mainPurple500,
+                  ),
+                ),
+                error: (_, __) => _buildMessage('검색 중 오류가 발생했어요'),
+                data: (results) => results.isEmpty
+                    ? _buildMessage("'${widget.query}' 검색 결과가 없어요")
+                    : ListView.builder(
+                        padding: EdgeInsets.zero,
+                        itemCount: results.length,
+                        itemBuilder: (_, i) => ClubListItem(club: results[i]),
+                      ),
+              ),
             ),
           ],
         ),
@@ -44,12 +69,12 @@ class SearchResultScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildEmpty() {
+  Widget _buildMessage(String text) {
     return Center(
       child: Padding(
         padding: EdgeInsets.only(bottom: 80.h),
         child: Text(
-          "'$query' 검색 결과가 없어요",
+          text,
           style: VybeTypography.body3.copyWith(color: VybeColors.gray500),
         ),
       ),
