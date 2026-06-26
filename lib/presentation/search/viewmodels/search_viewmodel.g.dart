@@ -90,7 +90,7 @@ final class SearchHistoryFamily extends $Family
 final searchViewModelProvider = SearchViewModelProvider._();
 
 final class SearchViewModelProvider
-    extends $NotifierProvider<SearchViewModel, AsyncValue<List<ClubModel>>> {
+    extends $NotifierProvider<SearchViewModel, AsyncValue<SearchResults>> {
   SearchViewModelProvider._()
     : super(
         from: null,
@@ -110,33 +110,28 @@ final class SearchViewModelProvider
   SearchViewModel create() => SearchViewModel();
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(AsyncValue<List<ClubModel>> value) {
+  Override overrideWithValue(AsyncValue<SearchResults> value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<AsyncValue<List<ClubModel>>>(value),
+      providerOverride: $SyncValueProvider<AsyncValue<SearchResults>>(value),
     );
   }
 }
 
-String _$searchViewModelHash() => r'7769da4444db8923ba07d5e1adf15e7cc556b70e';
+String _$searchViewModelHash() => r'58a6a66e07791ef9d260143a98942eb8285b0796';
 
-abstract class _$SearchViewModel
-    extends $Notifier<AsyncValue<List<ClubModel>>> {
-  AsyncValue<List<ClubModel>> build();
+abstract class _$SearchViewModel extends $Notifier<AsyncValue<SearchResults>> {
+  AsyncValue<SearchResults> build();
   @$mustCallSuper
   @override
   void runBuild() {
     final ref =
-        this.ref
-            as $Ref<AsyncValue<List<ClubModel>>, AsyncValue<List<ClubModel>>>;
+        this.ref as $Ref<AsyncValue<SearchResults>, AsyncValue<SearchResults>>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<
-                AsyncValue<List<ClubModel>>,
-                AsyncValue<List<ClubModel>>
-              >,
-              AsyncValue<List<ClubModel>>,
+              AnyNotifier<AsyncValue<SearchResults>, AsyncValue<SearchResults>>,
+              AsyncValue<SearchResults>,
               Object?,
               Object?
             >;

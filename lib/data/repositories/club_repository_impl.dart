@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:vybe/data/datasources/remote/firebase_club_datasource.dart';
 import 'package:vybe/data/models/club_info_model.dart';
@@ -48,6 +49,20 @@ class ClubRepositoryImpl implements ClubRepository {
       _dataSource.getClubsNearby(lat, lng, radiusKm);
 
   @override
-  Future<List<ClubModel>> searchClubs(String keyword) =>
-      _dataSource.searchClubs(keyword);
+  Future<ClubSearchPage> searchClubsPage(
+    String keyword, {
+    Object? cursor,
+    int pageSize = 10,
+  }) async {
+    final page = await _dataSource.searchClubsPage(
+      keyword,
+      startAfter: cursor as DocumentSnapshot?,
+      pageSize: pageSize,
+    );
+    return ClubSearchPage(
+      clubs: page.clubs,
+      cursor: page.lastDoc,
+      hasMore: page.hasMore,
+    );
+  }
 }

@@ -23,13 +23,21 @@ class _SearchResultScreenState extends ConsumerState<SearchResultScreen> {
   @override
   void initState() {
     super.initState();
-    // 진입 즉시 검색 실행 (+ 검색 기록 저장).
+    // 진입 즉시 첫 페이지 검색 (+ 검색 기록 저장).
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final uid = ref.read(currentUidProvider);
       ref
           .read(searchViewModelProvider.notifier)
           .search(widget.query, userId: uid);
     });
+  }
+
+  // 바닥 근처 스크롤 시 다음 페이지(10개) 서버에서 추가 로드.
+  bool _onScroll(ScrollNotification n) {
+    if (n.metrics.pixels >= n.metrics.maxScrollExtent - 200) {
+      ref.read(searchViewModelProvider.notifier).loadMore();
+    }
+    return false;
   }
 
   @override
@@ -53,14 +61,34 @@ class _SearchResultScreenState extends ConsumerState<SearchResultScreen> {
                     color: VybeColors.mainPurple500,
                   ),
                 ),
-                error: (_, __) => _buildMessage('검색 중 오류가 발생했어요'),
-                data: (results) => results.isEmpty
-                    ? _buildMessage("'${widget.query}' 검색 결과가 없어요")
-                    : ListView.builder(
-                        padding: EdgeInsets.zero,
-                        itemCount: results.length,
-                        itemBuilder: (_, i) => ClubListItem(club: results[i]),
-                      ),
+                error: (e, _) => _buildMessage('검색 중 오류가 발생했어요\n\n$e'),
+                data: (results) {
+                  final clubs = results.clubs;
+                  if (clubs.isEmpty) {
+                    return _buildMessage("'${widget.query}' 검색 결과가 없어요");
+                  }
+                  final showSpinner = results.hasMore || results.loadingMore;
+                  return NotificationListener<ScrollNotification>(
+                    onNotification: _onScroll,
+                    child: ListView.builder(
+                      padding: EdgeInsets.zero,
+                      itemCount: clubs.length + (showSpinner ? 1 : 0),
+                      itemBuilder: (_, i) {
+                        if (i >= clubs.length) {
+                          return Padding(
+                            padding: EdgeInsets.symmetric(vertical: 20.h),
+                            child: const Center(
+                              child: CircularProgressIndicator(
+                                color: VybeColors.mainPurple500,
+                              ),
+                            ),
+                          );
+                        }
+                        return ClubListItem(club: clubs[i]);
+                      },
+                    ),
+                  );
+                },
               ),
             ),
           ],

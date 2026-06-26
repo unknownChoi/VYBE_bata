@@ -478,8 +478,10 @@ tags                : array     // 태그 목록
 favoriteCount       : number    // 찜 수 (Cloud Functions 자동 업데이트, 직접 수정 금지)
 searchTokens        : array     // 검색용 접두사 토큰(name/area/genre/tags 분해).
                                 //   onClubWritten 트리거가 자동 생성 — 직접 수정 금지.
-                                //   앱은 arrayContainsAny로 후보 검색 후 클라에서 관련도 정렬
-                                //   (firebase_club_datasource.searchClubs + club_ranker.dart)
+                                //   앱 검색: isActive=true + searchTokens arrayContainsAny
+                                //   + orderBy(rating desc) + startAfter 서버 페이지네이션(10개씩).
+                                //   firebase_club_datasource.searchClubsPage (본 만큼만 read).
+                                //   ⚠ 평점순 고정 — 관련도(점수) 정렬 아님(B안 한계).
 isActive            : boolean   // false면 앱에 노출 안 됨
 isVybeRecommended   : boolean   // vybe 추천 여부
 createdAt           : timestamp

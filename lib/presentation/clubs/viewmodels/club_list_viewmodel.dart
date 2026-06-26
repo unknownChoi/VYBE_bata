@@ -9,23 +9,3 @@ part 'club_list_viewmodel.g.dart';
 Stream<List<ClubModel>> clubList(Ref ref) {
   return ref.watch(clubRepositoryProvider).watchActiveClubs();
 }
-
-/// 키워드 검색
-@riverpod
-class ClubSearchViewModel extends _$ClubSearchViewModel {
-  @override
-  AsyncValue<List<ClubModel>> build() => const AsyncData([]);
-
-  Future<void> search(String keyword) async {
-    if (keyword.trim().isEmpty) {
-      state = const AsyncData([]);
-      return;
-    }
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(
-      () => ref.read(clubRepositoryProvider).searchClubs(keyword),
-    );
-  }
-
-  void clear() => state = const AsyncData([]);
-}

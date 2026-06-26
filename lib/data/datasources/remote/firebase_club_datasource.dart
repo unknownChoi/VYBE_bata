@@ -151,26 +151,41 @@ class FirebaseClubDataSource {
     return result;
   }
 
-  /// searchTokens(접두사 토큰 배열, Cloud Function이 생성) 기반 후보 검색.
-  /// 전체 fetch 없이 arrayContainsAny로 토큰 일치 후보만 가져온다(관련도 정렬은 호출측).
-  Future<List<ClubModel>> searchClubs(String keyword) async {
+  /// searchTokens(접두사 토큰, Cloud Function 생성) 기반 검색 — 평점순 + 서버 페이지네이션.
+  /// [startAfter]가 있으면 그 문서 다음부터(다음 페이지). 본 만큼만 read.
+  Future<({List<ClubModel> clubs, DocumentSnapshot? lastDoc, bool hasMore})>
+      searchClubsPage(
+    String keyword, {
+    DocumentSnapshot? startAfter,
+    int pageSize = 10,
+  }) async {
     final tokens = _queryTokens(keyword);
-    if (tokens.isEmpty) return const [];
+    if (tokens.isEmpty) {
+      return (clubs: <ClubModel>[], lastDoc: null, hasMore: false);
+    }
 
     logFirebaseAccess(
       file: 'firebase_club_datasource.dart',
-      service: 'Firestore(clubs) [searchTokens arrayContainsAny]',
-      purpose: '클럽 검색 (keyword: $keyword)',
+      service: 'Firestore(clubs) [isActive + searchTokens any, orderBy rating]',
+      purpose: '클럽 검색 (keyword: $keyword, page: ${startAfter == null ? 1 : "next"})',
     );
-    final snapshot = await _firestore
+    // clubs read 규칙(isActive==true) 충족 위해 isActive 필터 필수 + 평점 정렬.
+    // → isActive + searchTokens(array) + rating 복합 인덱스 필요.
+    Query<Map<String, dynamic>> query = _firestore
         .collection('clubs')
+        .where('isActive', isEqualTo: true)
         .where('searchTokens', arrayContainsAny: tokens)
-        .limit(50)
-        .get();
-    return snapshot.docs
-        .map(ClubModel.fromFirestore)
-        .where((c) => c.isActive)
-        .toList();
+        .orderBy('rating', descending: true)
+        .limit(pageSize);
+    if (startAfter != null) query = query.startAfterDocument(startAfter);
+
+    final snapshot = await query.get();
+    final docs = snapshot.docs;
+    return (
+      clubs: docs.map(ClubModel.fromFirestore).toList(),
+      lastDoc: docs.isEmpty ? null : docs.last,
+      hasMore: docs.length == pageSize,
+    );
   }
 
   /// 검색어 → arrayContainsAny용 토큰(최대 10개). 단어 + 공백제거 통째.
