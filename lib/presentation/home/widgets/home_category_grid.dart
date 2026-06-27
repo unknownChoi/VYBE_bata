@@ -68,12 +68,37 @@ class HomeCategoryGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 24.h),
-      child: Wrap(
-        spacing: 24.w,
-        runSpacing: 24.h,
-        alignment: WrapAlignment.center,
-        children: _categories.map((c) => _buildItem(context, c)).toList(),
+      padding: EdgeInsets.fromLTRB(16.w, 24.h, 16.w, 12.h),
+      child: Stack(
+        children: [
+          // 그리드 뒤 은은한 브랜드 글로우
+          Positioned.fill(
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    center: const Alignment(-0.75, -0.6),
+                    radius: 0.9,
+                    colors: [
+                      VybeColors.mainPurple500.withValues(alpha: 0.16),
+                      Colors.transparent,
+                    ],
+                    stops: const [0.0, 0.7],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          GridView.count(
+            crossAxisCount: 4,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 18.h,
+            crossAxisSpacing: 8.w,
+            childAspectRatio: 0.8,
+            children: _categories.map((c) => _buildItem(context, c)).toList(),
+          ),
+        ],
       ),
     );
   }
@@ -84,42 +109,64 @@ class HomeCategoryGrid extends StatelessWidget {
 
     final iconInner = Container(
       decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0x16FFFFFF), Color(0x05FFFFFF)],
+        ),
         color: VybeColors.gray900,
-        borderRadius: BorderRadius.circular(isVybe ? 11.r : 12.r),
+        borderRadius: BorderRadius.circular(isVybe ? 16.5.r : 18.r),
+        border: isVybe ? null : Border.all(color: VybeColors.gray800),
       ),
-      child: Center(
-        child: SvgPicture.asset(
-          item.icon,
-          width: 40.r,
-          height: 40.r,
-          colorFilter: const ColorFilter.mode(
-            Colors.white,
-            BlendMode.srcIn,
-          ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(isVybe ? 16.5.r : 18.r),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // 아이콘 상단 보라 스팟 글로우
+            Positioned(
+              top: -14.h,
+              child: Container(
+                width: 44.w,
+                height: 30.h,
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    colors: [
+                      VybeColors.mainPurple500.withValues(alpha: 0.35),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            SvgPicture.asset(
+              item.icon,
+              width: 34.r,
+              height: 34.r,
+              colorFilter: const ColorFilter.mode(
+                Colors.white,
+                BlendMode.srcIn,
+              ),
+            ),
+          ],
         ),
       ),
     );
 
-    final iconBox = isVybe
-        ? Container(
-            width: 60.w,
-            height: 60.h,
-            decoration: BoxDecoration(
-              gradient: _borderGradient,
-              borderRadius: BorderRadius.circular(12.r),
-            ),
-            padding: const EdgeInsets.all(1),
-            child: iconInner,
-          )
-        : Container(
-            width: 60.w,
-            height: 60.h,
-            decoration: BoxDecoration(
-              color: VybeColors.gray900,
-              borderRadius: BorderRadius.circular(12.r),
-            ),
-            child: iconInner,
-          );
+    final iconBox = SizedBox(
+      width: 62.w,
+      height: 62.h,
+      child: isVybe
+          ? Container(
+              decoration: BoxDecoration(
+                gradient: _borderGradient,
+                borderRadius: BorderRadius.circular(18.r),
+              ),
+              padding: const EdgeInsets.all(1.5),
+              child: iconInner,
+            )
+          : iconInner,
+    );
 
     return GestureDetector(
       onTap: isVybe
@@ -136,26 +183,24 @@ class HomeCategoryGrid extends StatelessWidget {
                   )
               : null,
       behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-      width: 60.w,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           iconBox,
-          SizedBox(height: 4.h),
+          SizedBox(height: 8.h),
           Text(
             item.label,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: 'Pretendard',
               fontSize: 12.sp,
+              height: 14 / 12,
               fontWeight: FontWeight.w600,
               color: VybeColors.gray200,
               letterSpacing: 12 * -0.025,
             ),
           ),
         ],
-      ),
       ),
     );
   }

@@ -147,63 +147,97 @@ class _HotPlacesScreenState extends State<HotPlacesScreen> {
     final total = ranked.length;
     // 플로팅 바텀 nav(MainScaffold) 가림 방지용 하단 여백.
     final bottomPad = MediaQuery.of(context).padding.bottom + 90.h;
+    final top = MediaQuery.of(context).padding.top;
 
     return Scaffold(
       backgroundColor: VybeColors.background,
-      body: Column(
-        children: [
-          _Header(scrolled: _scrolled),
-          Expanded(
-            child: _loading
-                ? const _Skeleton()
-                : Stack(
-                    children: [
-                      // intro→filter→podium 뒤 연속 그라데이션 백드롭.
-                      Positioned(
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        height: 560.h,
-                        child: const IgnorePointer(child: _Backdrop()),
-                      ),
-                      ListView(
-                        controller: _scroll,
-                        padding: EdgeInsets.only(bottom: bottomPad),
-                        children: [
-                          _Intro(area: _area),
-                          _AreaFilter(
-                            active: _area,
-                            scrolled: _scrolled,
-                            onChange: (a) => setState(() => _area = a),
+      // SizedBox.expand로 Stack을 화면 전체로 강제 → 백드롭이 다이나믹 아일랜드
+      // (상태바) 영역까지 채워지고 본문이 그 밑으로 흐름. (vybe 추천 페이지와 동일)
+      body: SizedBox.expand(
+        child: Stack(
+          children: [
+            // intro→filter→podium 뒤 연속 그라데이션 백드롭 — 상태바까지 채움.
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 560.h + top,
+              child: const IgnorePointer(child: _Backdrop()),
+            ),
+            Positioned.fill(
+              child: _loading
+                  ? Padding(
+                      padding: EdgeInsets.only(top: top + 52.h),
+                      child: const _Skeleton(),
+                    )
+                  : ListView(
+                      controller: _scroll,
+                      padding: EdgeInsets.only(top: top + 52.h, bottom: bottomPad),
+                      children: [
+                        _Intro(area: _area),
+                        _AreaFilter(
+                          active: _area,
+                          scrolled: _scrolled,
+                          onChange: (a) => setState(() => _area = a),
+                        ),
+                        if (_area == '전체')
+                          _Podium(
+                            clubs: ranked.take(3).toList(),
+                            saved: _saved,
+                            onSave: _toggleSave,
                           ),
-                          if (_area == '전체')
-                            _Podium(
-                              clubs: ranked.take(3).toList(),
-                              saved: _saved,
-                              onSave: _toggleSave,
+                        _SectionHeader(area: _area, near: near, total: total),
+                        if (near && list.isEmpty)
+                          Padding(
+                            padding: EdgeInsets.symmetric(vertical: 60.h, horizontal: 24.w),
+                            child: Text(
+                              '반경 2km 안에 집계된 핫플이 아직 없어요',
+                              textAlign: TextAlign.center,
+                              style: VybeTypography.body4.copyWith(color: VybeColors.gray500),
                             ),
-                          _SectionHeader(area: _area, near: near, total: total),
-                          if (near && list.isEmpty)
-                            Padding(
-                              padding: EdgeInsets.symmetric(vertical: 60.h, horizontal: 24.w),
-                              child: Text(
-                                '반경 2km 안에 집계된 핫플이 아직 없어요',
-                                textAlign: TextAlign.center,
-                                style: VybeTypography.body4.copyWith(color: VybeColors.gray500),
-                              ),
-                            )
-                          else
-                            ...list.map((c) => _ListRow(
-                                  club: c,
-                                  near: near,
-                                  saved: _saved.contains(c.id),
-                                  onSave: _toggleSave,
-                                )),
-                          _Footer(),
-                        ],
-                      ),
-                    ],
-                  ),
+                          )
+                        else
+                          ...list.map((c) => _ListRow(
+                                club: c,
+                                near: near,
+                                saved: _saved.contains(c.id),
+                                onSave: _toggleSave,
+                              )),
+                        _Footer(),
+                      ],
+                    ),
+            ),
+            // 상단 투명 헤더 오버레이 (뒤로가기 버튼).
+            const Positioned(top: 0, left: 0, right: 0, child: _Header()),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── 헤더 (투명 오버레이, 뒤로가기 버튼) ──
+class _Header extends StatelessWidget {
+  const _Header();
+
+  @override
+  Widget build(BuildContext context) {
+    final top = MediaQuery.of(context).padding.top;
+    return Container(
+      height: top + 52.h,
+      padding: EdgeInsets.only(top: top, left: 8.w, right: 8.w),
+      color: Colors.transparent,
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () => Navigator.of(context).maybePop(),
+            behavior: HitTestBehavior.opaque,
+            child: SizedBox(
+              width: 44.w,
+              height: 44.h,
+              child: Icon(Icons.arrow_back_ios_new_rounded,
+                  size: 21.r, color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -243,66 +277,6 @@ class _Backdrop extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-// ── 헤더 ──
-class _Header extends StatelessWidget {
-  final bool scrolled;
-  const _Header({required this.scrolled});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 52.h + MediaQuery.of(context).padding.top,
-      padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top, left: 8.w, right: 8.w),
-      decoration: BoxDecoration(
-        color: VybeColors.background.withValues(alpha: 0.9),
-        border: Border(
-          bottom: BorderSide(
-            color: scrolled ? VybeColors.gray900 : Colors.transparent,
-          ),
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          _IconBtn(
-            onTap: () => Navigator.of(context).maybePop(),
-            child: Icon(Icons.arrow_back_ios_new, size: 22.r, color: Colors.white),
-          ),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const _Flame(size: 16),
-              SizedBox(width: 6.w),
-              Text(
-                '핫플레이스',
-                style: VybeTypography.button1.copyWith(fontWeight: FontWeight.w700, color: Colors.white),
-              ),
-            ],
-          ),
-          _IconBtn(
-            onTap: () {},
-            child: Icon(Icons.search, size: 22.r, color: Colors.white),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _IconBtn extends StatelessWidget {
-  final Widget child;
-  final VoidCallback onTap;
-  const _IconBtn({required this.child, required this.onTap});
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: SizedBox(width: 44.w, height: 44.h, child: Center(child: child)),
     );
   }
 }
