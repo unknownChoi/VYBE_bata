@@ -67,6 +67,9 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
   int _currentIndex = 0;
   late final PageController _pageController;
   late final List<Widget> _screens;
+  // 한 번이라도 방문한 탭만 빌드 → 미방문 탭은 데이터 접근 안 함.
+  // 홈(0)은 초기 화면이라 처음부터 방문 처리.
+  final Set<int> _visited = {0};
   // 검색 탭 재진입 시 키보드를 다시 띄우기 위해 여기서 소유.
   final FocusNode _searchFocusNode = FocusNode();
 
@@ -97,18 +100,19 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
     return false;
   }
 
-  // 탭 클릭: 해당 페이지로 애니메이션 이동.
+  // 탭 클릭: 해당 페이지로 즉시 이동.
+  // animateToPage는 사이 페이지(주변·찜 등)를 스크롤하며 빌드 → 불필요한
+  // 데이터 접근이 발생하므로 jumpToPage로 중간 페이지를 건너뛴다.
   void _goToTab(int index) {
-    _pageController.animateToPage(
-      index,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOutCubic,
-    );
+    _pageController.jumpToPage(index);
   }
 
   // 스와이프/이동으로 페이지가 바뀐 시점 처리.
   void _onPageChanged(int index) {
-    setState(() => _currentIndex = index);
+    setState(() {
+      _currentIndex = index;
+      _visited.add(index);
+    });
     // 현재 탭 기록 (주변 지도 마커 렌더 가드용).
     ref.read(currentTabIndexProvider.notifier).set(index);
     // 탭 전환 시 축소된 nav를 원래 크기로 복원.
@@ -191,7 +195,14 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
                   onPageChanged: _onPageChanged,
                   // 주변 탭의 지도는 forceGesture로 팬을 선점하고, 시트 영역에선
                   // 이 PageView가 가로 스와이프를 받아 탭 전환된다.
-                  children: _screens,
+                  // 미방문 탭은 빈 위젯으로 두어 데이터 접근을 막고,
+                  // 방문 후에는 KeepAlive로 살아남는다.
+                  children: List.generate(
+                    _screens.length,
+                    (i) => _visited.contains(i)
+                        ? _screens[i]
+                        : const SizedBox.shrink(),
+                  ),
                 ),
               ),
             ),

@@ -1,9 +1,13 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vybe/core/providers/auth_providers.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/domain/repositories/vybe_recommendation_repository.dart';
+import 'package:vybe/presentation/clubs/club_detail_screen.dart';
+import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
+import 'package:vybe/presentation/recommend/viewmodels/vybe_recommend_viewmodel.dart';
 
 // ── 추천 기준 칩 ──
 class _Criterion {
@@ -21,9 +25,38 @@ const _criteria = [
   _Criterion('재방문율', Icons.repeat_rounded, Color(0xFFFF4D8D)),
 ];
 
-// ── 추천 클럽 (백엔드 연동 전 프레젠테이션 모델) ──
+// 이미지 없을 때 쓰는 그라데이션 폴백 팔레트 (rank 순으로 배정).
+const _bgPalette = <List<Color>>[
+  [Color(0xFF2B1655), Color(0xFF7731FE), Color(0xFFFF4D8D)],
+  [Color(0xFF06FFA5), Color(0xFF3A86FF)],
+  [Color(0xFF2B6BFF), Color(0xFF7731FE)],
+  [Color(0xFFFB5607), Color(0xFFFFBE0B)],
+  [Color(0xFF2A2D34), Color(0xFF6C757D)],
+];
+
+// 썸네일 URL 있으면 이미지, 없거나 로드 실패면 그라데이션 폴백.
+Widget _imageOrGradient(String url, List<Color> bg) {
+  final fallback = DecoratedBox(
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: bg,
+      ),
+    ),
+  );
+  if (url.isEmpty) return fallback;
+  return Image.network(
+    url,
+    fit: BoxFit.cover,
+    errorBuilder: (_, __, ___) => fallback,
+  );
+}
+
+// ── 추천 클럽 프레젠테이션 어댑터 ──
+// VybeRecommendedClub(도메인) → 위젯이 쓰는 평면 모델로 변환.
 class _RecClub {
-  final int id;
+  final String id; // = clubId
   final int? rank; // null = featured(1위)
   final String name;
   final String area;
@@ -32,7 +65,7 @@ class _RecClub {
   final int reviews;
   final int match;
   final bool open;
-  final String? hours;
+  final String imageUrl; // 비면 bg 그라데이션 폴백
   final List<Color> bg;
   final List<String> tags;
   final String reason;
@@ -47,92 +80,70 @@ class _RecClub {
     this.reviews = 0,
     required this.match,
     required this.open,
-    this.hours,
+    required this.imageUrl,
     required this.bg,
     required this.tags,
     required this.reason,
   });
+
+  factory _RecClub.from(VybeRecommendedClub r, {required bool featured}) {
+    final club = r.club;
+    return _RecClub(
+      id: club.clubId,
+      rank: featured ? null : r.rank,
+      name: club.name,
+      area: club.area,
+      genre: club.genre,
+      rating: club.rating,
+      reviews: club.reviewCount,
+      match: r.match,
+      open: r.isOpen,
+      imageUrl: club.thumbnailUrl,
+      bg: _bgPalette[(r.rank - 1).clamp(0, _bgPalette.length - 1)],
+      tags: r.tags,
+      reason: r.reason,
+    );
+  }
 }
 
-const _featured = _RecClub(
-  id: 1, name: '어썸레드', area: '홍대', genre: '힙합 클럽',
-  rating: 4.76, reviews: 1284, match: 98, open: true,
-  hours: '오늘 22:00 오픈 · 05:00 종료',
-  bg: [Color(0xFF2B1655), Color(0xFF7731FE), Color(0xFFFF4D8D)],
-  tags: ['#사운드맛집', '#힙합성지', '#첫방문추천'],
-  reason: '탄탄한 힙합 라인업과 압도적인 사운드 시스템. 처음 클럽을 찾는다면 가장 먼저 추천하는 곳이에요.',
-);
-
-const _ranked = <_RecClub>[
-  _RecClub(
-    id: 2, rank: 2, name: '버뮤다', area: '홍대', genre: '힙합 클럽',
-    rating: 4.62, match: 95, open: true,
-    bg: [Color(0xFF06FFA5), Color(0xFF3A86FF)],
-    tags: ['#무드맛집', '#새벽감성'],
-    reason: '감각적인 조명과 여유로운 플로어. 늦은 밤 무드가 일품이에요.',
-  ),
-  _RecClub(
-    id: 3, rank: 3, name: 'OCTAGON', area: '강남', genre: 'EDM 클럽',
-    rating: 4.80, match: 93, open: false,
-    bg: [Color(0xFF2B6BFF), Color(0xFF7731FE)],
-    tags: ['#EDM성지', '#게스트DJ'],
-    reason: '세계적 규모의 EDM 스테이지. 화려한 게스트 라인업이 강점.',
-  ),
-  _RecClub(
-    id: 4, rank: 4, name: '인클', area: '홍대', genre: '힙합 클럽',
-    rating: 4.70, match: 91, open: true,
-    bg: [Color(0xFFFB5607), Color(0xFFFFBE0B)],
-    tags: ['#새벽까지', '#단골만족'],
-    reason: '새벽까지 이어지는 에너지. 단골 만족도가 가장 높은 곳.',
-  ),
-  _RecClub(
-    id: 5, rank: 5, name: '벨로주', area: '홍대', genre: '재즈 클럽',
-    rating: 4.51, match: 88, open: true,
-    bg: [Color(0xFF2A2D34), Color(0xFF6C757D)],
-    tags: ['#라이브재즈', '#대화하기좋은'],
-    reason: '라이브 재즈와 차분한 무드. 대화하며 즐기기 좋아요.',
-  ),
-];
-
-class VybeRecommendScreen extends StatefulWidget {
+class VybeRecommendScreen extends ConsumerStatefulWidget {
   const VybeRecommendScreen({super.key});
 
   @override
-  State<VybeRecommendScreen> createState() => _VybeRecommendScreenState();
+  ConsumerState<VybeRecommendScreen> createState() =>
+      _VybeRecommendScreenState();
 }
 
-class _VybeRecommendScreenState extends State<VybeRecommendScreen> {
-  bool _loading = true;
-  bool _scrolled = false;
-  final Set<int> _saved = {1};
-  final ScrollController _scroll = ScrollController();
-  Timer? _loadTimer;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadTimer = Timer(const Duration(milliseconds: 1300), () {
-      if (mounted) setState(() => _loading = false);
-    });
-    _scroll.addListener(() {
-      final s = _scroll.offset > 40;
-      if (s != _scrolled) setState(() => _scrolled = s);
-    });
+class _VybeRecommendScreenState extends ConsumerState<VybeRecommendScreen> {
+  // 찜 토글 — favorites 실연동(스트림 + 낙관적 오버라이드, 다른 화면과 동일 패턴).
+  void _toggleFavorite(String clubId, bool currentIsFav) {
+    final uid = ref.read(currentUidProvider);
+    if (uid == null) return; // 비로그인 — 추후 로그인 유도 처리
+    ref
+        .read(favoriteViewModelProvider.notifier)
+        .toggleFavorite(uid, clubId, currentIsFav);
   }
 
-  @override
-  void dispose() {
-    _loadTimer?.cancel();
-    _scroll.dispose();
-    super.dispose();
+  // 클럽 상세 페이지 이동 (다른 화면과 동일 패턴).
+  void _openDetail(String clubId) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => ClubDetailScreen(clubId: clubId)),
+    );
   }
-
-  void _toggleSave(int id) => setState(() {
-        _saved.contains(id) ? _saved.remove(id) : _saved.add(id);
-      });
 
   @override
   Widget build(BuildContext context) {
+    final asyncRecs = ref.watch(vybeRecommendViewModelProvider);
+
+    // 찜 상태(스트림 + 낙관적 오버라이드 머지) — search_result_screen과 동일.
+    final uid = ref.watch(currentUidProvider);
+    final streamFavIds = uid != null
+        ? ref.watch(favoritedClubIdsProvider(uid)).asData?.value ?? <String>{}
+        : <String>{};
+    final optimistic = ref.watch(favoriteViewModelProvider);
+    final favoritedIds = Set<String>.from(streamFavIds)
+      ..addAll(optimistic.entries.where((e) => e.value).map((e) => e.key))
+      ..removeAll(optimistic.entries.where((e) => !e.value).map((e) => e.key));
     return Scaffold(
       backgroundColor: VybeColors.background,
       // SizedBox.expand로 Stack을 화면 전체로 강제 → Positioned.fill 본문이
@@ -140,76 +151,102 @@ class _VybeRecommendScreenState extends State<VybeRecommendScreen> {
       body: SizedBox.expand(
         child: Stack(
           children: [
-            Positioned.fill(
-              child: _loading
-                  ? const _Skeleton()
-                  : ListView(
-                      controller: _scroll,
-                      padding: EdgeInsets.zero,
-                      children: [
-                        _Intro(),
-                        _Featured(
-                          club: _featured,
-                          saved: _saved.contains(_featured.id),
-                          onSave: () => _toggleSave(_featured.id),
-                        ),
-                        _RankedSection(
-                          clubs: _ranked,
-                          savedIds: _saved,
-                          onSave: _toggleSave,
-                        ),
-                        _FooterNote(),
-                        SizedBox(height: 28.h),
+            // 상단 그라데이션 배경 — ListView 뒤에 깔려 인트로부터 클럽 섹션까지
+            // 끊김 없이 흐르다 하단에서 배경색(0x00101013)으로 페이드되어
+            // 평면 배경과의 경계가 보이지 않음.
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 820.h,
+              child: const IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Color(0x4D7731FE),
+                        Color(0x0DB5FF60),
+                        Color(0x00101013),
                       ],
+                      stops: [0.0, 0.45, 1.0],
                     ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned.fill(
+              child: asyncRecs.when(
+                loading: () => const _Skeleton(),
+                error: (_, __) => const _ErrorView(),
+                data: (recs) => _body(recs, favoritedIds),
+              ),
             ),
             Positioned(
               top: 0,
               left: 0,
               right: 0,
-              child: _Header(scrolled: _scrolled),
+              child: _Header(),
             ),
           ],
         ),
       ),
     );
   }
+
+  Widget _body(List<VybeRecommendedClub> recs, Set<String> favoritedIds) {
+    if (recs.isEmpty) return const _EmptyView();
+
+    final featured = _RecClub.from(recs.first, featured: true);
+    final ranked =
+        recs.skip(1).map((r) => _RecClub.from(r, featured: false)).toList();
+
+    return ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        _Intro(),
+        _Featured(
+          club: featured,
+          saved: favoritedIds.contains(featured.id),
+          onSave: () => _toggleFavorite(
+            featured.id,
+            favoritedIds.contains(featured.id),
+          ),
+          onOpen: () => _openDetail(featured.id),
+        ),
+        if (ranked.isNotEmpty)
+          _RankedSection(
+            clubs: ranked,
+            savedIds: favoritedIds,
+            onSave: (id) => _toggleFavorite(id, favoritedIds.contains(id)),
+            onOpen: _openDetail,
+          ),
+        _FooterNote(),
+        SizedBox(height: 28.h),
+      ],
+    );
+  }
 }
 
 // ── 헤더 (스크롤 시 타이틀+배경 등장) ──
 class _Header extends StatelessWidget {
-  final bool scrolled;
-  const _Header({required this.scrolled});
+  const _Header();
 
   @override
   Widget build(BuildContext context) {
     final top = MediaQuery.of(context).padding.top;
+    // 스크롤해도 배경/타이틀 등장 안 함 — 항상 투명, 버튼만 노출.
     return Container(
       height: top + 52.h,
       padding: EdgeInsets.only(top: top, left: 8.w, right: 8.w),
-      decoration: BoxDecoration(
-        color: scrolled
-            ? VybeColors.background.withValues(alpha: 0.9)
-            : Colors.transparent,
-        border: Border(
-          bottom: BorderSide(
-            color: scrolled ? VybeColors.gray900 : Colors.transparent,
-          ),
-        ),
-      ),
+      color: Colors.transparent,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           _iconBtn(
             Icons.arrow_back_ios_new_rounded,
             () => Navigator.of(context).maybePop(),
-          ),
-          AnimatedOpacity(
-            opacity: scrolled ? 1 : 0,
-            duration: const Duration(milliseconds: 200),
-            child: Text('VYBE 추천',
-                style: VybeTypography.button1
-                    .copyWith(color: Colors.white, fontWeight: FontWeight.w700)),
           ),
           _iconBtn(Icons.share_outlined, () {}),
         ],
@@ -235,16 +272,10 @@ class _Intro extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final top = MediaQuery.of(context).padding.top;
-    return Container(
+    // 그라데이션은 화면 전체 배경 레이어가 담당 (build의 Stack 참조).
+    // 인트로는 패딩만 — 자체 그라데이션 제거해 클럽 섹션과 자연스럽게 이어짐.
+    return Padding(
       padding: EdgeInsets.fromLTRB(24.w, top + 60.h, 24.w, 26.h),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0x4D7731FE), Color(0x00101013), Color(0x14B5FF60)],
-          stops: [0.0, 0.55, 1.0],
-        ),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -271,12 +302,28 @@ class _Intro extends StatelessWidget {
             ),
           ),
           SizedBox(height: 16.h),
-          Text('오늘 밤, 실패 없는\n클럽만 골랐어요',
+          Text.rich(
+            TextSpan(
               style: VybeTypography.heading2.copyWith(
                 fontSize: 30.sp,
                 height: 36 / 30,
                 color: Colors.white,
-              )),
+              ),
+              children: const [
+                TextSpan(text: '오늘 밤, '),
+                // 브랜드 라임 (녹색).
+                TextSpan(
+                    text: '실패 없는',
+                    style: TextStyle(color: VybeColors.mainLime500)),
+                TextSpan(text: '\n'),
+                // 브랜드 퍼플.
+                TextSpan(
+                    text: '클럽',
+                    style: TextStyle(color: VybeColors.mainPurple500)),
+                TextSpan(text: '만 골랐어요'),
+              ],
+            ),
+          ),
           SizedBox(height: 10.h),
           Text('최근 방문자 리뷰와 분위기 데이터를 분석해\nvybe가 직접 큐레이션한 추천 리스트예요.',
               style: VybeTypography.body3
@@ -331,14 +378,21 @@ class _Featured extends StatelessWidget {
   final _RecClub club;
   final bool saved;
   final VoidCallback onSave;
+  final VoidCallback onOpen;
   const _Featured(
-      {required this.club, required this.saved, required this.onSave});
+      {required this.club,
+      required this.saved,
+      required this.onSave,
+      required this.onOpen});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 4.h),
-      child: Container(
+      child: GestureDetector(
+        onTap: onOpen,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           color: VybeColors.gray900,
@@ -352,6 +406,7 @@ class _Featured extends StatelessWidget {
           ],
         ),
       ),
+      ),
     );
   }
 
@@ -361,15 +416,7 @@ class _Featured extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: club.bg,
-              ),
-            ),
-          ),
+          _imageOrGradient(club.imageUrl, club.bg),
           // 하단 어둡게 (텍스트 가독성).
           const DecoratedBox(
             decoration: BoxDecoration(
@@ -584,10 +631,14 @@ class _Featured extends StatelessWidget {
 // ── 순위 섹션 ──
 class _RankedSection extends StatelessWidget {
   final List<_RecClub> clubs;
-  final Set<int> savedIds;
-  final ValueChanged<int> onSave;
+  final Set<String> savedIds;
+  final ValueChanged<String> onSave;
+  final ValueChanged<String> onOpen;
   const _RankedSection(
-      {required this.clubs, required this.savedIds, required this.onSave});
+      {required this.clubs,
+      required this.savedIds,
+      required this.onSave,
+      required this.onOpen});
 
   @override
   Widget build(BuildContext context) {
@@ -617,6 +668,7 @@ class _RankedSection extends StatelessWidget {
             club: c,
             saved: savedIds.contains(c.id),
             onSave: () => onSave(c.id),
+            onOpen: () => onOpen(c.id),
           ),
       ],
     );
@@ -628,12 +680,19 @@ class _RankRow extends StatelessWidget {
   final _RecClub club;
   final bool saved;
   final VoidCallback onSave;
+  final VoidCallback onOpen;
   const _RankRow(
-      {required this.club, required this.saved, required this.onSave});
+      {required this.club,
+      required this.saved,
+      required this.onSave,
+      required this.onOpen});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GestureDetector(
+      onTap: onOpen,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: VybeColors.gray900)),
       ),
@@ -664,6 +723,7 @@ class _RankRow extends StatelessWidget {
           Expanded(child: _content()),
         ],
       ),
+      ),
     );
   }
 
@@ -673,15 +733,19 @@ class _RankRow extends StatelessWidget {
       height: 84.r,
       child: Stack(
         children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12.r),
+            child: SizedBox(
+              width: 84.r,
+              height: 84.r,
+              child: _imageOrGradient(club.imageUrl, club.bg),
+            ),
+          ),
+          // 보더 오버레이.
           Container(
             width: 84.r,
             height: 84.r,
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: club.bg,
-              ),
               borderRadius: BorderRadius.circular(12.r),
               border: Border.all(color: VybeColors.gray900),
             ),
@@ -812,6 +876,55 @@ class _FooterNote extends StatelessWidget {
                     .copyWith(height: 17 / 12, color: VybeColors.gray400)),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ── 빈 상태 ──
+class _EmptyView extends StatelessWidget {
+  const _EmptyView();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 40.w),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.auto_awesome, size: 36.r, color: VybeColors.gray700),
+            SizedBox(height: 14.h),
+            Text('이번 주 추천이 아직 준비 중이에요',
+                textAlign: TextAlign.center,
+                style: VybeTypography.body3.copyWith(color: VybeColors.gray400)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── 에러 상태 ──
+class _ErrorView extends StatelessWidget {
+  const _ErrorView();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 40.w),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.error_outline_rounded,
+                size: 36.r, color: VybeColors.gray700),
+            SizedBox(height: 14.h),
+            Text('추천을 불러오지 못했어요',
+                textAlign: TextAlign.center,
+                style: VybeTypography.body3.copyWith(color: VybeColors.gray400)),
+          ],
+        ),
       ),
     );
   }

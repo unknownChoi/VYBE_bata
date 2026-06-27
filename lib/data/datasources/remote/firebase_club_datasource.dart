@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:vybe/core/utils/firebase_logger.dart';
 import 'package:vybe/core/utils/geohash_utils.dart';
@@ -46,6 +48,27 @@ class FirebaseClubDataSource {
     final doc = await _firestore.collection('clubs').doc(clubId).get();
     if (!doc.exists) return null;
     return ClubModel.fromFirestore(doc);
+  }
+
+  /// 여러 클럽을 ID 목록으로 일괄 조회(whereIn 10개 청크).
+  /// vybe 추천 등 clubId 참조 컬렉션과 조인할 때 사용.
+  Future<List<ClubModel>> getClubsByIds(List<String> ids) async {
+    if (ids.isEmpty) return [];
+    logFirebaseAccess(
+      file: 'firebase_club_datasource.dart',
+      service: 'Firestore(clubs) [whereIn documentId, ${ids.length}개]',
+      purpose: '클럽 ID 목록 일괄 조회(추천 조인용)',
+    );
+    final result = <ClubModel>[];
+    for (var i = 0; i < ids.length; i += 10) {
+      final chunk = ids.sublist(i, math.min(i + 10, ids.length));
+      final snapshot = await _firestore
+          .collection('clubs')
+          .where(FieldPath.documentId, whereIn: chunk)
+          .get();
+      result.addAll(snapshot.docs.map(ClubModel.fromFirestore));
+    }
+    return result;
   }
 
   Future<ClubInfoModel?> getClubInfo(String clubId) async {
