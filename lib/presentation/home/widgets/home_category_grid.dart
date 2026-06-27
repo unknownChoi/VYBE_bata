@@ -68,7 +68,7 @@ class HomeCategoryGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(16.w, 24.h, 16.w, 12.h),
+      padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 12.h),
       child: Stack(
         children: [
           // 그리드 뒤 은은한 브랜드 글로우

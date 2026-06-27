@@ -17,7 +17,7 @@ import 'package:vybe/presentation/search/widgets/search_suggestion_item.dart';
 import 'package:vybe/presentation/search/widgets/trend_row.dart';
 
 // ── 인기 해시태그 더미 데이터 ──
-const _popularHashtags = ['힙합', '무료입장', 'EDM', '홍대'];
+const _popularHashtags = ['힙합', '무료입장', 'EDM', '홍대', '이태원', '테크노', '서비스음료', 'K-POP'];
 
 // ── 인기 검색어 더미 데이터 ──
 const _trendItems = [
@@ -103,33 +103,41 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
     return Scaffold(
       backgroundColor: VybeColors.background,
-      body: GestureDetector(
-        // 검색창 밖 탭 시 키보드 닫기
-        onTap: () => FocusScope.of(context).unfocus(),
-        behavior: HitTestBehavior.translucent,
-        child: SafeArea(
-        bottom: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SearchInputBar(
-              controller: _controller,
-              focusNode: _focusNode,
-              autofocus: false,
-              onChanged: _onQueryChanged,
-              onSubmitted: _navigateToResult,
-              onBack: widget.showBackButton
-                  ? () => Navigator.of(context).pop()
-                  : null,
+      body: Stack(
+        children: [
+          // 앰비언트 클럽 조명 백드롭
+          const Positioned.fill(
+            child: IgnorePointer(child: _AmbientBackdrop()),
+          ),
+          GestureDetector(
+            // 검색창 밖 탭 시 키보드 닫기
+            onTap: () => FocusScope.of(context).unfocus(),
+            behavior: HitTestBehavior.translucent,
+            child: SafeArea(
+              bottom: false,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SearchInputBar(
+                    controller: _controller,
+                    focusNode: _focusNode,
+                    autofocus: false,
+                    onChanged: _onQueryChanged,
+                    onSubmitted: _navigateToResult,
+                    onBack: widget.showBackButton
+                        ? () => Navigator.of(context).pop()
+                        : null,
+                  ),
+                  Expanded(
+                    child: _query.trim().length >= _kMinChars
+                        ? _buildSuggestionList()
+                        : _buildDefaultContent(historyAsync),
+                  ),
+                ],
+              ),
             ),
-            Expanded(
-              child: _query.trim().length >= _kMinChars
-                  ? _buildSuggestionList()
-                  : _buildDefaultContent(historyAsync),
-            ),
-          ],
-        ),
-      ),
+          ),
+        ],
       ),
     );
   }
@@ -213,18 +221,51 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   Widget _buildDefaultContent(AsyncValue<List<SearchHistoryModel>>? historyAsync) {
     return SingleChildScrollView(
       child: Padding(
-        padding: EdgeInsets.fromLTRB(24.w, 24.h, 24.w, 0),
+        padding: EdgeInsets.fromLTRB(24.w, 8.h, 24.w, 0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildRecentKeywords(historyAsync),
-            SizedBox(height: 44.h),
+            SizedBox(height: 30.h),
             _buildPopularHashtags(),
-            SizedBox(height: 44.h),
+            SizedBox(height: 30.h),
             _buildTrendingSearches(),
-            SizedBox(height: 32.h),
+            SizedBox(height: 28.h),
           ],
         ),
+      ),
+    );
+  }
+
+  // ── 섹션 헤더 (아이콘 + 타이틀 + 우측) ──
+  Widget _sectionHead({
+    required Widget icon,
+    required String title,
+    Widget? right,
+  }) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 16.h),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              icon,
+              SizedBox(width: 7.w),
+              Text(
+                title,
+                style: TextStyle(
+                  fontFamily: 'Pretendard',
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                  letterSpacing: 18 * -0.025,
+                ),
+              ),
+            ],
+          ),
+          if (right != null) right,
+        ],
       ),
     );
   }
@@ -239,32 +280,26 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              '최근 검색어',
-              style: VybeTypography.heading4
-                  .copyWith(color: VybeColors.gray200),
-            ),
-            historyAsync.maybeWhen(
-              data: (list) => list.isEmpty
-                  ? const SizedBox.shrink()
-                  : GestureDetector(
-                      onTap: () => ref
-                          .read(searchViewModelProvider.notifier)
-                          .clearHistory(uid),
-                      child: Text(
-                        '전체 삭제',
-                        style: VybeTypography.caption
-                            .copyWith(color: VybeColors.gray200),
-                      ),
+        _sectionHead(
+          icon: Icon(Icons.access_time_rounded,
+              size: 15.r, color: VybeColors.gray300),
+          title: '최근 검색어',
+          right: historyAsync.maybeWhen(
+            data: (list) => list.isEmpty
+                ? null
+                : GestureDetector(
+                    onTap: () => ref
+                        .read(searchViewModelProvider.notifier)
+                        .clearHistory(uid),
+                    child: Text(
+                      '전체 삭제',
+                      style: VybeTypography.caption
+                          .copyWith(color: VybeColors.gray500),
                     ),
-              orElse: () => const SizedBox.shrink(),
-            ),
-          ],
+                  ),
+            orElse: () => null,
+          ),
         ),
-        SizedBox(height: 24.h),
         historyAsync.when(
           loading: () => const Center(
             child: SizedBox(
@@ -279,10 +314,15 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           error: (_, __) => const SizedBox.shrink(),
           data: (list) {
             if (list.isEmpty) {
-              return Text(
-                '최근 검색어가 없습니다',
-                style: VybeTypography.body4
-                    .copyWith(color: VybeColors.gray600),
+              return Padding(
+                padding: EdgeInsets.symmetric(vertical: 20.h),
+                child: Center(
+                  child: Text(
+                    '최근 검색 기록이 없어요',
+                    style: VybeTypography.body4
+                        .copyWith(color: VybeColors.gray600),
+                  ),
+                ),
               );
             }
             return Wrap(
@@ -304,71 +344,145 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     );
   }
 
-  // ── 인기 해시태그 추천 ──
+  // ── 인기 해시태그 ──
 
   Widget _buildPopularHashtags() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          '인기 해시태그 추천',
-          style: VybeTypography.heading4.copyWith(color: VybeColors.gray200),
+        _sectionHead(
+          icon: Text(
+            '#',
+            style: TextStyle(
+              fontFamily: 'Pretendard',
+              fontSize: 17.sp,
+              fontWeight: FontWeight.w800,
+              color: VybeColors.mainLime700,
+            ),
+          ),
+          title: '인기 해시태그',
         ),
-        SizedBox(height: 24.h),
         Wrap(
           spacing: 8.w,
           runSpacing: 8.h,
           children: _popularHashtags
-              .map((tag) => HashtagChip(label: tag))
+              .map((tag) => HashtagChip(
+                    label: tag,
+                    onTap: () => _navigateToResult(tag),
+                  ))
               .toList(),
         ),
       ],
     );
   }
 
-  // ── 인기 검색어 ──
+  // ── 실시간 인기 검색어 ──
 
   Widget _buildTrendingSearches() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              '인기 검색어',
-              style: VybeTypography.heading4
-                  .copyWith(color: VybeColors.gray200),
-            ),
-            Text(
-              '05.18 20:00 기준',
-              style: VybeTypography.caption
-                  .copyWith(color: VybeColors.gray200),
-            ),
-          ],
+        _sectionHead(
+          icon: Icon(Icons.local_fire_department_rounded,
+              size: 16.r, color: VybeColors.mainLime500),
+          title: '실시간 인기 검색어',
+          right: Text(
+            '06.27 22:00 기준',
+            style: VybeTypography.caption.copyWith(color: VybeColors.gray600),
+          ),
         ),
-        SizedBox(height: 24.h),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(child: _trendColumn(_trendItems.sublist(0, 5))),
-            SizedBox(width: 24.w),
-            Expanded(child: _trendColumn(_trendItems.sublist(5, 10))),
-          ],
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 6.h),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.white.withValues(alpha: 0.05),
+                Colors.white.withValues(alpha: 0.015),
+              ],
+            ),
+            border: Border.all(color: VybeColors.gray800),
+            borderRadius: BorderRadius.circular(18.r),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: _trendColumn(_trendItems.sublist(0, 5))),
+              Container(
+                width: 1,
+                margin: EdgeInsets.symmetric(vertical: 6.h),
+                color: VybeColors.gray800,
+              ),
+              Expanded(child: _trendColumn(_trendItems.sublist(5, 10))),
+            ],
+          ),
         ),
       ],
     );
   }
 
-  // 인기 검색어 한 컬럼 (행 사이 16.h 간격, 마지막 행 제외).
   Widget _trendColumn(List<TrendItem> items) {
     return Column(
-      children: List.generate(
-        items.length,
-        (i) => Padding(
-          padding: EdgeInsets.only(bottom: i < items.length - 1 ? 16.h : 0),
-          child: TrendRow(item: items[i]),
+      children: items
+          .map((it) => TrendRow(
+                item: it,
+                onTap: () => _navigateToResult(it.keyword),
+              ))
+          .toList(),
+    );
+  }
+}
+
+class _AmbientBackdrop extends StatelessWidget {
+  const _AmbientBackdrop();
+
+  @override
+  Widget build(BuildContext context) {
+    return const DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF120F1A), Color(0xFF101013), Color(0xFF0E0D12)],
+          stops: [0.0, 0.30, 1.0],
         ),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 420,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment(-0.9, -1),
+                  radius: 1.4,
+                  colors: [Color(0x8A7731FE), Color(0x00000000)],
+                  stops: [0.0, 0.78],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 420,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment(1, -0.9),
+                  radius: 1.4,
+                  colors: [Color(0x4DB5FF60), Color(0x00000000)],
+                  stops: [0.0, 0.8],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

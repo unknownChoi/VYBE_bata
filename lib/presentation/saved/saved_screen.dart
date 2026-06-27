@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/clubs/club_detail_screen.dart';
+import 'package:vybe/presentation/common/widgets/ambient_backdrop.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 import 'package:vybe/presentation/saved/viewmodels/saved_viewmodel.dart';
 
@@ -85,7 +86,23 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
 
     return Scaffold(
       backgroundColor: VybeColors.background,
-      body: savedAsync.when(
+      body: Stack(
+        children: [
+          const Positioned.fill(
+            child: IgnorePointer(child: AmbientBackdrop()),
+          ),
+          Positioned.fill(child: _buildContent(savedAsync, topInset, bottomPad)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContent(
+    AsyncValue<List<SavedEntry>> savedAsync,
+    double topInset,
+    double bottomPad,
+  ) {
+    return savedAsync.when(
         loading: () => ListView(
           padding: EdgeInsets.only(top: topInset),
           physics: const NeverScrollableScrollPhysics(),
@@ -137,7 +154,6 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
             ],
           );
         },
-      ),
     );
   }
 }

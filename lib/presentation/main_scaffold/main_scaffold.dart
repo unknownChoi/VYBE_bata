@@ -141,6 +141,25 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
     Future.delayed(const Duration(milliseconds: 350), run);
   }
 
+  // 홈 검색 버튼 → 주변 페이지와 동일한 fade 오버레이로 검색화면 열기.
+  void _openHomeSearch(BuildContext ctx) {
+    Navigator.of(ctx).push(
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 280),
+        reverseTransitionDuration: const Duration(milliseconds: 240),
+        pageBuilder: (_, __, ___) => const SearchScreen(showBackButton: true),
+        transitionsBuilder: (_, anim, __, child) {
+          final curved = CurvedAnimation(
+            parent: anim,
+            curve: Curves.easeOutCubic,
+            reverseCurve: Curves.easeInCubic,
+          );
+          return FadeTransition(opacity: curved, child: child);
+        },
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -148,7 +167,7 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
     _screens = [
       _KeepAlivePage(
         child: _TabNavigator(
-          builder: (_) => HomeScreen(onSearchTap: () => _goToTab(3)),
+          builder: (ctx) => HomeScreen(onSearchTap: () => _openHomeSearch(ctx)),
         ),
       ),
       const _KeepAlivePage(child: _TabNavigator(builder: _nearbyBuilder)),

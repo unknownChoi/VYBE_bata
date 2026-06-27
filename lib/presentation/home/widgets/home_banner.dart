@@ -69,6 +69,7 @@ class _BannerCarouselState extends State<_BannerCarousel> {
           height: 200.h,
           child: PageView.builder(
             controller: _controller,
+            physics: const BouncingScrollPhysics(),
             itemCount: widget.banners.length,
             onPageChanged: (i) => setState(() => _index = i),
             itemBuilder: (_, i) => Padding(

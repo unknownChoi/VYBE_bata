@@ -22,40 +22,56 @@ class TrendItem {
 
 class TrendRow extends StatelessWidget {
   final TrendItem item;
+  final VoidCallback? onTap;
 
-  const TrendRow({super.key, required this.item});
+  const TrendRow({super.key, required this.item, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final rankColor =
-        item.rank <= 2 ? VybeColors.mainLime700 : VybeColors.gray200;
+    final top = item.rank <= 3;
+    final rankColor = top ? VybeColors.mainLime500 : VybeColors.gray500;
 
-    return Row(
-      children: [
-        SizedBox(
-          width: 18.w,
-          child: Text(
-            '${item.rank}',
-            style: TextStyle(
-              fontFamily: 'Pretendard',
-              fontWeight: FontWeight.w600,
-              fontSize: 16.sp,
-              height: 20 / 16,
-              letterSpacing: 16 * -0.025,
-              color: rankColor,
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 9.h, horizontal: 6.w),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 20.w,
+              child: Text(
+                '${item.rank}',
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                softWrap: false,
+                overflow: TextOverflow.visible,
+                style: TextStyle(
+                  fontFamily: 'Pretendard',
+                  fontWeight: FontWeight.w800,
+                  fontSize: 15.sp,
+                  height: 18 / 15,
+                  letterSpacing: 15 * -0.025,
+                  color: rankColor,
+                ),
+              ),
             ),
-          ),
+            SizedBox(width: 10.w),
+            Expanded(
+              child: Text(
+                item.keyword,
+                style: VybeTypography.body3.copyWith(
+                  color: VybeColors.gray100,
+                  fontWeight: FontWeight.w500,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            SizedBox(width: 6.w),
+            _buildStatus(),
+          ],
         ),
-        SizedBox(width: 8.w),
-        Expanded(
-          child: Text(
-            item.keyword,
-            style: VybeTypography.body3.copyWith(color: VybeColors.gray200),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        _buildStatus(),
-      ],
+      ),
     );
   }
 

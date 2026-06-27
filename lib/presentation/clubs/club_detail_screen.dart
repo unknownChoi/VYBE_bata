@@ -19,7 +19,15 @@ class ClubDetailScreen extends ConsumerStatefulWidget {
   final String clubId;
   // 바텀시트(주변 페이지)로 띄울 때 닫기 동작 주입. null이면 Navigator.maybePop.
   final VoidCallback? onClose;
-  const ClubDetailScreen({super.key, required this.clubId, this.onClose});
+  // 바텀시트(DraggableScrollableSheet)에 넣을 때 시트의 scrollController 주입.
+  // NestedScrollView outer에 연결돼 시트 드래그가 native로 동작. null이면 자체 스크롤.
+  final ScrollController? scrollController;
+  const ClubDetailScreen({
+    super.key,
+    required this.clubId,
+    this.onClose,
+    this.scrollController,
+  });
 
   @override
   ConsumerState<ClubDetailScreen> createState() => _ClubDetailScreenState();
@@ -56,6 +64,7 @@ class _ClubDetailScreenState extends ConsumerState<ClubDetailScreen>
     return Scaffold(
       backgroundColor: VybeColors.background,
       body: NestedScrollView(
+        controller: widget.scrollController,
         physics: const ClampingScrollPhysics(),
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
           SliverToBoxAdapter(

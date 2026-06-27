@@ -4,7 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 
-class SearchInputBar extends StatelessWidget {
+class SearchInputBar extends StatefulWidget {
   final TextEditingController? controller;
   final FocusNode? focusNode;
   final ValueChanged<String>? onChanged;
@@ -27,22 +27,67 @@ class SearchInputBar extends StatelessWidget {
   });
 
   @override
+  State<SearchInputBar> createState() => _SearchInputBarState();
+}
+
+class _SearchInputBarState extends State<SearchInputBar> {
+  bool _focused = false;
+  bool _hasText = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.focusNode?.addListener(_onFocusChange);
+    widget.controller?.addListener(_onTextChange);
+    _hasText = (widget.controller?.text ?? '').isNotEmpty;
+  }
+
+  @override
+  void dispose() {
+    widget.focusNode?.removeListener(_onFocusChange);
+    widget.controller?.removeListener(_onTextChange);
+    super.dispose();
+  }
+
+  void _onFocusChange() {
+    final f = widget.focusNode?.hasFocus ?? false;
+    if (f != _focused) setState(() => _focused = f);
+  }
+
+  void _onTextChange() {
+    final h = (widget.controller?.text ?? '').isNotEmpty;
+    if (h != _hasText) setState(() => _hasText = h);
+  }
+
+  void _clear() {
+    widget.controller?.clear();
+    widget.onChanged?.call('');
+    widget.focusNode?.requestFocus();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 10.h),
+      padding: EdgeInsets.fromLTRB(16.w, 6.h, 16.w, 12.h),
       child: Row(
         children: [
-          if (onBack != null) ...[
+          if (widget.onBack != null) ...[
             GestureDetector(
-              onTap: onBack,
+              onTap: widget.onBack,
               behavior: HitTestBehavior.opaque,
-              child: SvgPicture.asset(
-                'assets/icons/common/arrow_back.svg',
-                width: 24.r,
-                height: 24.r,
+              child: SizedBox(
+                width: 30.w,
+                height: 30.h,
+                child: Center(
+                  child: SvgPicture.asset(
+                    'assets/icons/common/arrow_back.svg',
+                    width: 24.r,
+                    height: 24.r,
+                  ),
+                ),
               ),
             ),
-            SizedBox(width: 12.w),
+            SizedBox(width: 10.w),
           ],
           Expanded(child: _buildField()),
         ],
@@ -51,48 +96,77 @@ class SearchInputBar extends StatelessWidget {
   }
 
   Widget _buildField() {
-    return Container(
-        height: 44.h,
-        decoration: BoxDecoration(
-          color: VybeColors.gray800,
-          borderRadius: BorderRadius.circular(999.r),
+    final accent = _focused ? VybeColors.mainLime500 : VybeColors.gray400;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      decoration: BoxDecoration(
+        color: VybeColors.gray800,
+        borderRadius: BorderRadius.circular(999.r),
+        border: Border.all(
+          color: _focused ? VybeColors.mainLime500 : Colors.transparent,
+          width: 1.5,
         ),
-        padding: EdgeInsets.symmetric(horizontal: 16.w),
-        child: Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: controller,
-                focusNode: focusNode,
-                autofocus: autofocus,
-                style:
-                    VybeTypography.body4.copyWith(color: VybeColors.gray200),
-                onChanged: onChanged,
-                onSubmitted: onSubmitted,
-                decoration: InputDecoration(
-                  hintText: '클럽, 지역, 장르 검색',
-                  hintStyle: VybeTypography.body4
-                      .copyWith(color: VybeColors.gray600),
-                  border: InputBorder.none,
-                  isDense: true,
-                  contentPadding: EdgeInsets.zero,
+        boxShadow: _focused
+            ? [
+                BoxShadow(
+                  color: VybeColors.mainLime500.withValues(alpha: 0.12),
+                  blurRadius: 0,
+                  spreadRadius: 4,
+                ),
+              ]
+            : null,
+      ),
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 11.h),
+      child: Row(
+        children: [
+          SvgPicture.asset(
+            'assets/icons/common/search.svg',
+            width: 18.r,
+            height: 18.r,
+            colorFilter: ColorFilter.mode(accent, BlendMode.srcIn),
+          ),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: TextField(
+              controller: widget.controller,
+              focusNode: widget.focusNode,
+              autofocus: widget.autofocus,
+              cursorColor: VybeColors.mainLime500,
+              style: VybeTypography.body3.copyWith(color: Colors.white),
+              onChanged: widget.onChanged,
+              onSubmitted: widget.onSubmitted,
+              decoration: InputDecoration(
+                hintText: '지역 / 클럽 이름 검색',
+                hintStyle:
+                    VybeTypography.body3.copyWith(color: VybeColors.gray500),
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+          ),
+          if (_hasText) ...[
+            SizedBox(width: 8.w),
+            GestureDetector(
+              onTap: _clear,
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                width: 18.r,
+                height: 18.r,
+                decoration: const BoxDecoration(
+                  color: VybeColors.gray700,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.close_rounded,
+                  size: 12.r,
+                  color: VybeColors.gray300,
                 ),
               ),
             ),
-            GestureDetector(
-              onTap: () {
-                final query = controller?.text ?? '';
-                onSubmitted?.call(query);
-              },
-              behavior: HitTestBehavior.opaque,
-              child: SvgPicture.asset(
-                'assets/icons/common/search.svg',
-                width: 18.r,
-                height: 18.r,
-              ),
-            ),
           ],
-        ),
-      );
+        ],
+      ),
+    );
   }
 }

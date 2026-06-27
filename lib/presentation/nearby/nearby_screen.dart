@@ -7,7 +7,6 @@ import 'package:vybe/core/providers/location_providers.dart';
 import 'package:vybe/core/utils/geohash_utils.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/design_system/colors.dart';
-import 'package:vybe/presentation/clubs/club_detail_screen.dart';
 import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
 import 'package:vybe/presentation/common/widgets/vybe_map_pin.dart';
 import 'package:vybe/presentation/nearby/viewmodels/nearby_viewmodel.dart';
@@ -16,6 +15,7 @@ import 'package:vybe/presentation/search/search_screen.dart';
 import 'package:vybe/presentation/search/viewmodels/club_filter_viewmodel.dart';
 import 'package:vybe/presentation/main_scaffold/nav_bar_visibility_provider.dart';
 import 'package:vybe/presentation/nearby/widgets/nearby_bottom_sheet.dart';
+import 'package:vybe/presentation/nearby/widgets/nearby_detail_sheet.dart';
 import 'package:vybe/presentation/nearby/widgets/nearby_gnb.dart';
 
 class NearbyScreen extends ConsumerStatefulWidget {
@@ -123,48 +123,17 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
       }
     }
 
-    // 클럽 리스트 시트를 최소로 내리고 상세 시트를 띄움.
-    if (_sheetController.isAttached) {
-      _sheetController.animateTo(
-        0.2,
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOut,
-      );
-    }
     // 선택 핀이 카메라 중앙에 오도록 이동.
     await _mapController?.updateCamera(
       NCameraUpdate.scrollAndZoomTo(target: NLatLng(club.lat, club.lng)),
     );
     if (!mounted) return;
+    // 기존 클럽 리스트 시트 안에 상세를 그대로 표시 + 시트를 펼침.
+    // 상세 패널 표시 (지도 위 커스텀 드래그 패널이 절반 높이로 슬라이드 인).
     setState(() => _detailClub = club);
-    await _showDetailSheet(club);
   }
 
-  // 상세 페이지를 모달 바텀시트로 그대로 띄운다.
-  Future<void> _showDetailSheet(ClubModel club) async {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final topPadding = MediaQuery.of(context).padding.top;
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: const Color(0x8C000000),
-      builder: (ctx) => SizedBox(
-        height: screenHeight - topPadding - 8.h,
-        child: ClipRRect(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28.r)),
-          child: ClubDetailScreen(
-            clubId: club.clubId,
-            onClose: () => Navigator.of(ctx).pop(),
-          ),
-        ),
-      ),
-    );
-    // 시트 닫힘 → 선택 핀 복원.
-    await _closeDetail();
-  }
-
-  // 상세 시트 닫기 → 선택 핀 보라로 복원.
+  // 상세 패널이 닫힌(슬라이드 아웃) 뒤 → 선택 핀 보라로 복원 + 상태 정리.
   Future<void> _closeDetail() async {
     final closed = _detailClub;
     if (mounted) setState(() => _detailClub = null);
@@ -418,6 +387,16 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
               _buildLocateButton(),
               _buildReSearchButton(),
               _buildBottomSheet(),
+              // 핀 탭 상세 패널 — 리스트 시트 위에 오버레이.
+              if (_detailClub != null)
+                Positioned.fill(
+                  child: NearbyDetailSheet(
+                    // clubId가 바뀌면 패널 상태 초기화(슬라이드 인 재생).
+                    key: ValueKey(_detailClub!.clubId),
+                    clubId: _detailClub!.clubId,
+                    onClosed: _closeDetail,
+                  ),
+                ),
             ],
           );
         },
@@ -636,9 +615,8 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
       maxChildSize: 0.85,
       snap: true,
       snapSizes: const [0.2, 0.5, 0.85],
-      builder: (_, scrollController) => NearbyBottomSheet(
-        scrollController: scrollController,
-      ),
+      builder: (_, scrollController) =>
+          NearbyBottomSheet(scrollController: scrollController),
     );
   }
 
