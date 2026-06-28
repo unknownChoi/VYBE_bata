@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
 
 // 핫플레이스 — 실시간 방문자/혼잡도 기반 클럽 랭킹.
 // claude.ai/design hot_places.html 디자인을 하드코딩 프론트로 구현.
@@ -225,19 +226,17 @@ class _Header extends StatelessWidget {
     final top = MediaQuery.of(context).padding.top;
     return Container(
       height: top + 52.h,
-      padding: EdgeInsets.only(top: top, left: 8.w, right: 8.w),
+      padding: EdgeInsets.only(top: top, left: 16.w, right: 16.w),
       color: Colors.transparent,
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          GestureDetector(
+          VybeGlassButton(
             onTap: () => Navigator.of(context).maybePop(),
-            behavior: HitTestBehavior.opaque,
-            child: SizedBox(
-              width: 44.w,
-              height: 44.h,
-              child: Icon(Icons.arrow_back_ios_new_rounded,
-                  size: 21.r, color: Colors.white),
-            ),
+          ),
+          VybeGlassButton(
+            icon: Icons.share_outlined,
+            onTap: () {},
           ),
         ],
       ),

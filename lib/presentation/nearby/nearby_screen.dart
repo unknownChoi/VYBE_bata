@@ -137,6 +137,8 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
   Future<void> _closeDetail() async {
     final closed = _detailClub;
     if (mounted) setState(() => _detailClub = null);
+    // 패널 닫힘 → 하단 nav 원래 크기로 복원.
+    ref.read(navBarVisibilityProvider.notifier).expand();
     if (closed != null && _selectedClubId == closed.clubId) {
       _selectedClubId = null;
       final marker = _clubMarkers[closed.clubId];

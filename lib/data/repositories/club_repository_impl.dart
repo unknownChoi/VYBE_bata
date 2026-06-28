@@ -22,6 +22,10 @@ class ClubRepositoryImpl implements ClubRepository {
   Future<List<ClubModel>> getActiveClubs() => _dataSource.getActiveClubs();
 
   @override
+  Future<List<ClubModel>> getServiceDrinkClubs() =>
+      _dataSource.getServiceDrinkClubs();
+
+  @override
   Stream<List<ClubModel>> watchActiveClubs() => _dataSource.watchActiveClubs();
 
   @override

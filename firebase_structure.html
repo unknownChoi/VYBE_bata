@@ -302,6 +302,7 @@
   <a href="#favorites" class="sub">favorites</a>
   <a href="#search-history" class="sub">searchHistory</a>
   <a href="#banners" class="sub">banners</a>
+  <a href="#vybe-recommendations" class="sub">vybeRecommendations</a>
 
   <a class="group">Cloud Functions</a>
   <a href="#functions-http" class="sub">HTTP onCall (6)</a>
@@ -469,7 +470,9 @@ logFirebaseAccess(
 
 📁 favorites/{favoriteId}                     <span class="cmt"># 찜 (top-level)</span>
 
-📁 banners/{bannerId}                         <span class="cmt"># 홈 배너</span></div>
+📁 banners/{bannerId}                         <span class="cmt"># 홈 배너</span>
+
+📁 vybeRecommendations/{recId}                <span class="cmt"># VYBE 추천 페이지 큐레이션 (clubs 조인)</span></div>
   <div class="note"><strong>자동 집계 필드:</strong> <code>favoriteCount</code> · <code>ratingSum</code> · <code>reviewCount</code> · <code>rating</code> 는 Cloud Functions 트리거로만 갱신. 클라이언트 직접 수정 금지.</div>
 </section>
 
@@ -520,6 +523,7 @@ logFirebaseAccess(
     <tr><td class="field-name">searchTokens</td><td class="ftype">array</td><td>검색용 접두사 토큰(name/area/genre/tags 분해) <span class="pill auto">자동</span> — <code>onClubWritten</code> 트리거 생성. 앱 검색의 <code>arrayContainsAny</code> 대상</td></tr>
     <tr><td class="field-name">isActive</td><td class="ftype">boolean</td><td>false면 앱에 노출 안 됨</td></tr>
     <tr><td class="field-name">isVybeRecommended</td><td class="ftype">boolean</td><td>vybe 추천 여부</td></tr>
+    <tr><td class="field-name">serviceDrink</td><td class="ftype">object</td><td>무료 서비스 음료 정보 — <code>{ isOffered, comment, drinks }</code><br><code>isOffered</code>: 제공 여부(필터/노출 기준, 미제공이면 생략 or false) · <code>comment</code>: 코멘트(예: "1인 음료 무제한", "테이블당 맥주 6병") · <code>drinks</code>: 종류 배열 ["양주","샴페인","칵테일","맥주","와인"]. <strong>서비스 음료 페이지</strong> 데이터 소스 (isOffered=true 필터 + drinks 종류 필터)</td></tr>
     <tr><td class="field-name">createdAt</td><td class="ftype">timestamp</td><td>생성 시각</td></tr>
     <tr><td class="field-name">updatedAt</td><td class="ftype">timestamp</td><td>수정 시각</td></tr>
   </table>
@@ -629,6 +633,24 @@ logFirebaseAccess(
     <tr><td class="field-name">createdAt</td><td class="ftype">timestamp</td><td>생성 시각</td></tr>
   </table>
   <div class="note">홈 배너 데이터 소스. <code>getActiveBanners()</code>는 <code>isActive=true</code> 쿼리 후 클라이언트에서 <code>startAt &lt; now &lt; endAt</code> 필터 + <code>order</code> 정렬.</div>
+</section>
+
+<!-- vybeRecommendations -->
+<section id="vybe-recommendations">
+  <h2>📁 vybeRecommendations/{recId}</h2>
+  <table>
+    <tr><th>필드</th><th>타입</th><th>설명</th></tr>
+    <tr><td class="field-name">recId</td><td class="ftype">string</td><td><span class="pill pk">PK</span> (= doc.id fallback)</td></tr>
+    <tr><td class="field-name">clubId</td><td class="ftype">string</td><td><span class="pill fk">FK → clubs</span> 클럽 기본 정보(이름·평점·영업시간 등)는 clubId로 clubs에서 조인</td></tr>
+    <tr><td class="field-name">rank</td><td class="ftype">number</td><td>추천 순위 (1 = featured / NO.1 PICK 히어로, 나머지는 순위 리스트)</td></tr>
+    <tr><td class="field-name">match</td><td class="ftype">number</td><td>VYBE 매치 % (큐레이션 적합도)</td></tr>
+    <tr><td class="field-name">reason</td><td class="ftype">string</td><td>큐레이터 노트 (추천 사유)</td></tr>
+    <tr><td class="field-name">tags</td><td class="ftype">array</td><td>큐레이션 태그 override (비면 club.tags 사용)</td></tr>
+    <tr><td class="field-name">weekOf</td><td class="ftype">timestamp</td><td>주간 식별 (매주 화요일 업데이트)</td></tr>
+    <tr><td class="field-name">isActive</td><td class="ftype">boolean</td><td>노출 여부</td></tr>
+    <tr><td class="field-name">createdAt</td><td class="ftype">timestamp</td><td>생성 시각</td></tr>
+  </table>
+  <div class="note">VYBE 추천 페이지 데이터 소스. <code>firebase_vybe_recommendation_datasource.getActiveRecommendations()</code> 는 <code>isActive=true</code> + <code>orderBy(rank)</code> 쿼리. clubs 컬렉션을 참조하고 페이지 전용 에디토리얼 필드(rank·match·reason·tags)만 보관 — 클럽 기본 정보는 clubId로 조인.</div>
 </section>
 
 <!-- ========================= CLOUD FUNCTIONS ========================= -->

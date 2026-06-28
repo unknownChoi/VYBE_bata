@@ -21,6 +21,7 @@ class ClubSearchPage {
 
 abstract class ClubRepository {
   Future<List<ClubModel>> getActiveClubs();
+  Future<List<ClubModel>> getServiceDrinkClubs();
   Stream<List<ClubModel>> watchActiveClubs();
   Future<ClubModel?> getClub(String clubId);
   Future<ClubInfoModel?> getClubInfo(String clubId);

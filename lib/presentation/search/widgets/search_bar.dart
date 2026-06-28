@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
 
 class SearchInputBar extends StatefulWidget {
   final TextEditingController? controller;
@@ -72,22 +73,13 @@ class _SearchInputBarState extends State<SearchInputBar> {
       child: Row(
         children: [
           if (widget.onBack != null) ...[
-            GestureDetector(
-              onTap: widget.onBack,
-              behavior: HitTestBehavior.opaque,
-              child: SizedBox(
-                width: 30.w,
-                height: 30.h,
-                child: Center(
-                  child: SvgPicture.asset(
-                    'assets/icons/common/arrow_back.svg',
-                    width: 24.r,
-                    height: 24.r,
-                  ),
-                ),
-              ),
+            VybeGlassButton(
+              onTap: widget.onBack!,
+              size: 34,
+              iconSize: 18,
+              hitSize: 38,
             ),
-            SizedBox(width: 10.w),
+            SizedBox(width: 8.w),
           ],
           Expanded(child: _buildField()),
         ],

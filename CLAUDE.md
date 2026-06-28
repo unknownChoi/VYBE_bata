@@ -484,6 +484,12 @@ searchTokens        : array     // 검색용 접두사 토큰(name/area/genre/ta
                                 //   ⚠ 평점순 고정 — 관련도(점수) 정렬 아님(B안 한계).
 isActive            : boolean   // false면 앱에 노출 안 됨
 isVybeRecommended   : boolean   // vybe 추천 여부
+serviceDrink        : object    // 무료 서비스 음료 정보 (서비스 음료 페이지 데이터 소스)
+                                //   { isOffered: boolean, comment: string, drinks: string[] }
+                                //   isOffered : 제공 여부 (필터/노출 기준). 미제공이면 필드 생략 or false
+                                //   comment   : 제공 코멘트 (예: "1인 음료 무제한", "테이블당 맥주 6병")
+                                //   drinks    : 음료 종류 ["양주","샴페인","칵테일","맥주","와인"]
+                                //   서비스 음료 페이지: isOffered=true 필터 + drinks로 종류 필터
 createdAt           : timestamp
 updatedAt           : timestamp
 ```
@@ -567,6 +573,25 @@ createdAt       : timestamp
 ```
 > 홈 배너 데이터 소스. `firebase_banner_datasource.getActiveBanners()`는
 > `isActive=true` 쿼리 후 클라이언트에서 `startAt < now < endAt` 필터 + `order` 정렬.
+
+#### vybeRecommendations/{recId}
+```
+recId           : string    // PK (= doc.id fallback)
+clubId          : string    // FK → clubs. 클럽 기본 정보(이름·평점·영업시간 등)는
+                            //   clubId로 clubs에서 조인해 사용 (여기엔 에디토리얼 필드만)
+rank            : number    // 추천 순위. 1 = featured(NO.1 PICK 히어로), 나머지는 순위 리스트
+match           : number    // VYBE 매치 % (큐레이션 적합도)
+reason          : string    // 큐레이터 노트 (추천 사유)
+tags            : array     // 큐레이션 태그 override (비면 club.tags 사용)
+weekOf          : timestamp // 주간 식별 (매주 화요일 업데이트)
+isActive        : boolean   // 노출 여부
+createdAt       : timestamp
+```
+> VYBE 추천 페이지 데이터 소스.
+> `firebase_vybe_recommendation_datasource.getActiveRecommendations()`는
+> `isActive=true` + `orderBy(rank)` 쿼리. clubs 컬렉션을 참조하고 페이지 전용
+> 에디토리얼 필드(rank·match·reason·tags)만 보관 — 클럽 기본 정보는 clubId로 조인.
+> 첫 항목(rank 1) = featured 히어로, 나머지 = 순위 리스트.
 
 ---
 

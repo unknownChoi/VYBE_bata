@@ -26,6 +26,22 @@ class FirebaseClubDataSource {
     return snapshot.docs.map(ClubModel.fromFirestore).toList();
   }
 
+  /// 서비스 음료(무료) 제공 클럽 목록. 서비스 음료 페이지 데이터 소스.
+  Future<List<ClubModel>> getServiceDrinkClubs() async {
+    logFirebaseAccess(
+      file: 'firebase_club_datasource.dart',
+      service:
+          'Firestore(clubs) [where isActive=true, serviceDrink.isOffered=true]',
+      purpose: '서비스 음료 제공 클럽 목록 조회',
+    );
+    final snapshot = await _firestore
+        .collection('clubs')
+        .where('isActive', isEqualTo: true)
+        .where('serviceDrink.isOffered', isEqualTo: true)
+        .get();
+    return snapshot.docs.map(ClubModel.fromFirestore).toList();
+  }
+
   Stream<List<ClubModel>> watchActiveClubs() {
     logFirebaseAccess(
       file: 'firebase_club_datasource.dart',

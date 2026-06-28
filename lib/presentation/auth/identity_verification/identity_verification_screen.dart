@@ -10,7 +10,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/auth/certification_number/certification_number_screen.dart';
@@ -23,6 +22,7 @@ import 'package:vybe/presentation/auth/widgets/fade_slide_in.dart';
 import 'package:vybe/presentation/auth/widgets/phone_formatter.dart';
 import 'package:vybe/presentation/auth/widgets/terms_agreement_sheet.dart';
 import 'package:vybe/presentation/common/widgets/vybe_button.dart';
+import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
 import 'package:vybe/presentation/common/widgets/vybe_loading_overlay.dart';
 import 'package:vybe/presentation/common/widgets/vybe_page_title.dart';
 import 'package:vybe/presentation/common/widgets/vybe_status_message.dart';
@@ -144,13 +144,13 @@ class _IdentityVerificationScreenState extends ConsumerState<IdentityVerificatio
         backgroundColor: VybeColors.background,
         elevation: 0,
         scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: SvgPicture.asset(
-            'assets/icons/common/arrow_back.svg',
-            width: 24.r,
-            height: 24.r,
+        leading: Center(
+          child: VybeGlassButton(
+            onTap: () => Navigator.pop(context),
+            size: 34,
+            iconSize: 18,
+            hitSize: 40,
           ),
-          onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           '본인 인증',

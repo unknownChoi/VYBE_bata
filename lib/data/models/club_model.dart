@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:vybe/data/models/operating_hours.dart';
+import 'package:vybe/data/models/service_drink.dart';
 
 part 'club_model.freezed.dart';
 
@@ -34,6 +35,7 @@ abstract class ClubModel with _$ClubModel {
     required bool isActive,
     required bool isVybeRecommended,
     @Default(false) bool isNonSmoking,
+    @Default(ServiceDrink.none) ServiceDrink serviceDrink,
     required DateTime createdAt,
     required DateTime updatedAt,
   }) = _ClubModel;
@@ -70,6 +72,8 @@ abstract class ClubModel with _$ClubModel {
       isActive: data['isActive'] as bool? ?? false,
       isVybeRecommended: data['isVybeRecommended'] as bool? ?? false,
       isNonSmoking: data['isNonSmoking'] as bool? ?? false,
+      serviceDrink: ServiceDrink.fromMap(
+          data['serviceDrink'] as Map<String, dynamic>?),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );

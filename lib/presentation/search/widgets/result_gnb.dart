@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
 
 /// 검색 결과 상단 바. 검색창을 탭하면 검색 입력 화면(최근 검색어)으로 돌아간다.
 class ResultGnb extends StatelessWidget {
@@ -18,16 +19,13 @@ class ResultGnb extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 10.h),
       child: Row(
         children: [
-          GestureDetector(
+          VybeGlassButton(
             onTap: back,
-            behavior: HitTestBehavior.opaque,
-            child: SvgPicture.asset(
-              'assets/icons/common/arrow_back.svg',
-              width: 24.r,
-              height: 24.r,
-            ),
+            size: 34,
+            iconSize: 18,
+            hitSize: 38,
           ),
-          SizedBox(width: 12.w),
+          SizedBox(width: 8.w),
           Expanded(
             child: GestureDetector(
               onTap: back,

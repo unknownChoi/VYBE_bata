@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
 
 /// conditions.txt 전체 내용
 const _kConditionsText =
@@ -40,13 +40,13 @@ class TermsDetailScreen extends StatelessWidget {
         backgroundColor: VybeColors.background,
         elevation: 0,
         scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: SvgPicture.asset(
-            'assets/icons/common/arrow_back.svg',
-            width: 24.r,
-            height: 24.r,
+        leading: Center(
+          child: VybeGlassButton(
+            onTap: () => Navigator.pop(context),
+            size: 34,
+            iconSize: 18,
+            hitSize: 40,
           ),
-          onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           title,

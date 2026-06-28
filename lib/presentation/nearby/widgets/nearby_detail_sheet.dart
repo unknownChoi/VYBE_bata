@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/club_detail_screen.dart';
+import 'package:vybe/presentation/main_scaffold/nav_bar_visibility_provider.dart';
 
 /// 주변 페이지 지도 위에 띄우는 클럽 상세 패널.
 ///
-/// DraggableScrollableSheet + NestedScrollView 조합이 스크롤-리사이즈 연동이
-/// 안 되는 문제를 피해, Container 기반 커스텀 드래그 패널로 구현한다.
+/// Container 기반 커스텀 드래그 패널 + 콘텐츠 스크롤 연동:
 /// - 핀 탭 시 절반 높이로 슬라이드 인
-/// - 상단 핸들(여백) 드래그 → 절반↔full 사이 크기 조정, 충분히 내리면 닫힘
-/// - 상세 본문(ClubDetailScreen)은 자체 스크롤로 독립 동작
-class NearbyDetailSheet extends StatefulWidget {
+/// - 상단 핸들 드래그 → 절반↔full, 충분히 내리면 닫힘
+/// - 시트가 full이 아닐 때 본문을 아래로 스크롤하면 시트가 맨 위(full)로 올라옴
+/// - 시트가 full일 때 본문 최상단에서 더 위로 당기면 시트가 절반으로 내려감
+/// - 시트가 올라오면 하단 nav 바가 축소됨
+class NearbyDetailSheet extends ConsumerStatefulWidget {
   final String clubId;
   // 패널이 완전히 닫힌(슬라이드 아웃) 뒤 호출 — 핀 복원/상태 정리용.
   final VoidCallback? onClosed;
@@ -22,14 +25,15 @@ class NearbyDetailSheet extends StatefulWidget {
   });
 
   @override
-  State<NearbyDetailSheet> createState() => _NearbyDetailSheetState();
+  ConsumerState<NearbyDetailSheet> createState() => _NearbyDetailSheetState();
 }
 
-class _NearbyDetailSheetState extends State<NearbyDetailSheet> {
+class _NearbyDetailSheetState extends ConsumerState<NearbyDetailSheet> {
   static const double _half = 0.5;
   static const double _full = 1.0;
   // 이 비율 아래로 내리면 닫기.
   static const double _dismissBelow = 0.34;
+  static const double _eps = 0.01;
   static const Duration _snapDur = Duration(milliseconds: 240);
 
   // 화면 높이 대비 패널 높이 비율.
@@ -46,29 +50,59 @@ class _NearbyDetailSheetState extends State<NearbyDetailSheet> {
     });
   }
 
-  void _onDragUpdate(DragUpdateDetails d) {
-    if (_maxH == 0) return;
-    setState(() {
-      _dragging = true;
-      _frac = (_frac - d.delta.dy / _maxH).clamp(0.0, 1.0);
-    });
+  // 시트 올라오면 nav 축소, 절반 이하면 원래대로.
+  void _syncNav() {
+    final n = ref.read(navBarVisibilityProvider.notifier);
+    if (_frac > _half + _eps) {
+      n.collapse();
+    } else {
+      n.expand();
+    }
   }
 
-  void _onDragEnd(DragEndDetails d) {
+  void _setFrac(double f) {
+    if ((f - _frac).abs() < 0.0001) return;
+    setState(() => _frac = f);
+    _syncNav();
+  }
+
+  void _onHandleDragUpdate(DragUpdateDetails d) {
+    if (_maxH == 0) return;
+    _dragging = true;
+    _setFrac((_frac - d.delta.dy / _maxH).clamp(0.0, 1.0));
+  }
+
+  void _onHandleDragEnd(DragEndDetails d) {
     _dragging = false;
     if (_frac < _dismissBelow) {
       _close();
       return;
     }
-    // 가까운 스냅 지점(절반/full)으로.
-    final target =
-        (_full - _frac).abs() < (_frac - _half).abs() ? _full : _half;
-    setState(() => _frac = target);
+    _setFrac((_full - _frac).abs() < (_frac - _half).abs() ? _full : _half);
+  }
+
+  // 본문 스크롤 → 시트 크기 연동.
+  bool _onScroll(ScrollNotification n) {
+    // 시트가 full이 아닐 때 아래로 스크롤(콘텐츠가 위로) → 시트 full로.
+    if (_frac < _full - _eps &&
+        n is ScrollUpdateNotification &&
+        (n.scrollDelta ?? 0) > 0) {
+      _setFrac(_full);
+      return false;
+    }
+    // 시트 full + 최상단에서 더 위로 당김(overscroll top) → 절반으로 내림.
+    if (_frac >= _full - _eps &&
+        n is OverscrollNotification &&
+        n.overscroll < 0) {
+      _setFrac(_half);
+      return false;
+    }
+    return false;
   }
 
   // 슬라이드 아웃 후 onClosed 호출.
   void _close() {
-    setState(() => _frac = 0);
+    _setFrac(0);
     Future.delayed(_snapDur, () {
       if (mounted) widget.onClosed?.call();
     });
@@ -102,8 +136,8 @@ class _NearbyDetailSheetState extends State<NearbyDetailSheet> {
                 // 상단 핸들 영역(여백) — 잡고 드래그로 크기 조정/닫기.
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
-                  onVerticalDragUpdate: _onDragUpdate,
-                  onVerticalDragEnd: _onDragEnd,
+                  onVerticalDragUpdate: _onHandleDragUpdate,
+                  onVerticalDragEnd: _onHandleDragEnd,
                   child: SizedBox(
                     width: double.infinity,
                     child: Padding(
@@ -122,9 +156,12 @@ class _NearbyDetailSheetState extends State<NearbyDetailSheet> {
                   ),
                 ),
                 Expanded(
-                  child: ClubDetailScreen(
-                    clubId: widget.clubId,
-                    onClose: _close,
+                  child: NotificationListener<ScrollNotification>(
+                    onNotification: _onScroll,
+                    child: ClubDetailScreen(
+                      clubId: widget.clubId,
+                      onClose: _close,
+                    ),
                   ),
                 ),
               ],

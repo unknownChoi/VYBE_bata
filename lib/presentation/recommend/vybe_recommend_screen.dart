@@ -6,6 +6,7 @@ import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/domain/repositories/vybe_recommendation_repository.dart';
 import 'package:vybe/presentation/clubs/club_detail_screen.dart';
+import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
 import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
 import 'package:vybe/presentation/recommend/viewmodels/vybe_recommend_viewmodel.dart';
 
@@ -239,7 +240,7 @@ class _Header extends StatelessWidget {
     // 스크롤해도 배경/타이틀 등장 안 함 — 항상 투명, 버튼만 노출.
     return Container(
       height: top + 52.h,
-      padding: EdgeInsets.only(top: top, left: 8.w, right: 8.w),
+      padding: EdgeInsets.only(top: top, left: 16.w, right: 16.w),
       color: Colors.transparent,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -255,15 +256,7 @@ class _Header extends StatelessWidget {
   }
 
   Widget _iconBtn(IconData icon, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: 44.w,
-        height: 44.h,
-        child: Icon(icon, size: 21.r, color: Colors.white),
-      ),
-    );
+    return VybeGlassButton(icon: icon, onTap: onTap);
   }
 }
 

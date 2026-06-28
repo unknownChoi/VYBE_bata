@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vybe/design_system/colors.dart';
+import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
 import 'package:vybe/presentation/notifications/notification_screen.dart';
 
 class HomeGnb extends StatelessWidget {
@@ -43,40 +44,32 @@ class HomeGnb extends StatelessWidget {
               ),
               Row(
                 children: [
-                  _IconBtn(
-                    onTap: onSearchTap,
-                    child: SvgPicture.asset(
-                      'assets/icons/home_screen/search.svg',
-                      width: 24.r,
-                      height: 24.r,
-                      colorFilter: const ColorFilter.mode(
-                        Colors.white,
-                        BlendMode.srcIn,
-                      ),
-                    ),
+                  VybeGlassButton(
+                    icon: Icons.search_rounded,
+                    onTap: onSearchTap ?? () {},
+                    size: 36,
+                    iconSize: 20,
+                    hitSize: 40,
                   ),
                   SizedBox(width: 4.w),
-                  _IconBtn(
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const NotificationScreen(),
-                      ),
-                    ),
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        SvgPicture.asset(
-                          'assets/icons/home_screen/notification.svg',
-                          width: 24.r,
-                          height: 24.r,
-                          colorFilter: const ColorFilter.mode(
-                            Colors.white,
-                            BlendMode.srcIn,
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      VybeGlassButton(
+                        icon: Icons.notifications_none_rounded,
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const NotificationScreen(),
                           ),
                         ),
-                        Positioned(
-                          top: 1.r,
-                          right: 1.r,
+                        size: 36,
+                        iconSize: 20,
+                        hitSize: 40,
+                      ),
+                      Positioned(
+                        top: 8.r,
+                        right: 8.r,
+                        child: IgnorePointer(
                           child: Container(
                             width: 7.r,
                             height: 7.r,
@@ -90,8 +83,8 @@ class HomeGnb extends StatelessWidget {
                             ),
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -103,21 +96,3 @@ class HomeGnb extends StatelessWidget {
   }
 }
 
-class _IconBtn extends StatelessWidget {
-  final Widget child;
-  final VoidCallback? onTap;
-  const _IconBtn({required this.child, this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: 40.w,
-        height: 40.h,
-        child: Center(child: child),
-      ),
-    );
-  }
-}

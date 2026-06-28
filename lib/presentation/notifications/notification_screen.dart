@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
 
 // ── 알림 종류 ──
 enum NotiType { reservation, club, promo, activity, review, friend, notice }
@@ -301,15 +302,11 @@ class _Header extends StatelessWidget {
         children: [
           Row(
             children: [
-              GestureDetector(
+              VybeGlassButton(
                 onTap: () => Navigator.of(context).maybePop(),
-                behavior: HitTestBehavior.opaque,
-                child: SizedBox(
-                  width: 40.w,
-                  height: 40.h,
-                  child: Icon(Icons.arrow_back_ios_new_rounded,
-                      size: 20.r, color: Colors.white),
-                ),
+                size: 34,
+                iconSize: 18,
+                hitSize: 40,
               ),
               Text('알림',
                   style: VybeTypography.heading4

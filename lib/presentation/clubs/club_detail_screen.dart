@@ -13,6 +13,7 @@ import 'package:vybe/presentation/clubs/tabs/detail_review_tab.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
 import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
 import 'package:vybe/presentation/clubs/widgets/club_section_divider.dart';
+import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 
 class ClubDetailScreen extends ConsumerStatefulWidget {
@@ -303,7 +304,7 @@ class _HeroState extends ConsumerState<_Hero> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _iconButton(Icons.chevron_left_rounded, widget.onBack),
+                    VybeGlassButton(onTap: widget.onBack),
                     Row(
                       children: [
                         _iconButton(Icons.ios_share_rounded, () {}),

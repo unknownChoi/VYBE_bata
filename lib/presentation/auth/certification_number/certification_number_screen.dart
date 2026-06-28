@@ -19,6 +19,7 @@ import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/auth/signup_success/signup_success_screen.dart';
 import 'package:vybe/presentation/auth/viewmodels/auth_viewmodel.dart';
 import 'package:vybe/presentation/auth/widgets/otp_cell.dart';
+import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
 import 'package:vybe/presentation/common/widgets/vybe_loading_overlay.dart';
 
 part 'certification_number_logic.dart';
@@ -113,13 +114,13 @@ class _CertificationNumberScreenState extends ConsumerState<CertificationNumberS
         backgroundColor: VybeColors.background,
         elevation: 0,
         scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: SvgPicture.asset(
-            'assets/icons/common/arrow_back.svg',
-            width: 24.r,
-            height: 24.r,
+        leading: Center(
+          child: VybeGlassButton(
+            onTap: () => Navigator.pop(context),
+            size: 34,
+            iconSize: 18,
+            hitSize: 40,
           ),
-          onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           '본인 인증',

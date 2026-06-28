@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vybe/design_system/colors.dart';
+import 'package:vybe/presentation/free_entry/free_entry_screen.dart';
 import 'package:vybe/presentation/hot_places/hot_places_screen.dart';
 import 'package:vybe/presentation/recommend/vybe_recommend_screen.dart';
+import 'package:vybe/presentation/service_drinks/service_drinks_screen.dart';
 
 const _borderGradient = LinearGradient(
   begin: Alignment.topLeft,
@@ -106,6 +108,8 @@ class HomeCategoryGrid extends StatelessWidget {
   Widget _buildItem(BuildContext context, CategoryItem item) {
     final isVybe = item.label == 'VYBE 추천';
     final isHot = item.label == '핫플레이스';
+    final isDrink = item.label == '서비스 음료';
+    final isFree = item.label == '입장료 무료';
 
     final iconInner = Container(
       decoration: BoxDecoration(
@@ -181,7 +185,19 @@ class HomeCategoryGrid extends StatelessWidget {
                       builder: (_) => const HotPlacesScreen(),
                     ),
                   )
-              : null,
+              : isDrink
+                  ? () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const ServiceDrinksScreen(),
+                        ),
+                      )
+                  : isFree
+                      ? () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const FreeEntryScreen(),
+                            ),
+                          )
+                      : null,
       behavior: HitTestBehavior.opaque,
       child: Column(
         mainAxisSize: MainAxisSize.min,
