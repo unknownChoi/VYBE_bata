@@ -42,6 +42,21 @@ class FirebaseClubDataSource {
     return snapshot.docs.map(ClubModel.fromFirestore).toList();
   }
 
+  /// 입장비 무료(entryFeeMin=0) 클럽 목록. 입장비 무료 페이지 데이터 소스.
+  Future<List<ClubModel>> getFreeEntryClubs() async {
+    logFirebaseAccess(
+      file: 'firebase_club_datasource.dart',
+      service: 'Firestore(clubs) [where isActive=true, entryFeeMin=0]',
+      purpose: '입장비 무료 클럽 목록 조회',
+    );
+    final snapshot = await _firestore
+        .collection('clubs')
+        .where('isActive', isEqualTo: true)
+        .where('entryFeeMin', isEqualTo: 0)
+        .get();
+    return snapshot.docs.map(ClubModel.fromFirestore).toList();
+  }
+
   Stream<List<ClubModel>> watchActiveClubs() {
     logFirebaseAccess(
       file: 'firebase_club_datasource.dart',

@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -16,6 +19,10 @@ import 'package:vybe/presentation/service_drinks/viewmodels/service_drinks_viewm
 // ClubModel에 perk/제공음료 필드가 없어 현재는 더미 데이터. 추후 스키마 확장 시 연동.
 const _drink = Color(0xFF38D6EC); // 서비스음료 액센트 (cyan)
 const _drinkInk = Color(0xFF042027); // cyan 위 어두운 텍스트
+
+// 위치 칩 애니메이션 시간 — 홈(home_location_greeting)과 동일 패턴.
+const _kShrinkDuration = Duration(milliseconds: 320); // 칩 원형 축소
+const _kSearchDuration = Duration(milliseconds: 1600); // 핀 플립 노출 구간
 
 const _types = ['전체', '양주', '샴페인', '칵테일', '맥주', '와인'];
 
@@ -134,18 +141,46 @@ class ServiceDrinksScreen extends ConsumerStatefulWidget {
       _ServiceDrinksScreenState();
 }
 
-class _ServiceDrinksScreenState extends ConsumerState<ServiceDrinksScreen> {
+class _ServiceDrinksScreenState extends ConsumerState<ServiceDrinksScreen>
+    with SingleTickerProviderStateMixin {
   String _type = '전체';
   String _loc = '홍대';
   String _sort = '거리순';
   bool _locLoading = false;
 
-  // 위치 칩 탭 → 로딩 애니메이션 후 내 위치 인식 (홈스크린과 동일 패턴).
+  // 지도 핀 3D 플립 컨트롤러 (Y축 회전 반복) — 홈과 동일.
+  late final AnimationController _flip;
+
+  @override
+  void initState() {
+    super.initState();
+    _flip = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
+  }
+
+  @override
+  void dispose() {
+    _flip.dispose();
+    super.dispose();
+  }
+
+  // 위치 칩 탭 → 칩 원형 축소 후 핀 플립 → 내 위치 인식 (홈스크린과 동일 패턴).
   Future<void> _onLocationTap() async {
     if (_locLoading) return;
     setState(() => _locLoading = true);
-    await Future.delayed(const Duration(milliseconds: 1500));
+
+    // 칩이 원형으로 줄어드는 애니메이션 완료 후 핀 플립 시작.
+    await Future.delayed(_kShrinkDuration);
     if (!mounted) return;
+    _flip.repeat();
+
+    await Future.delayed(_kSearchDuration);
+    if (!mounted) return;
+
+    _flip.stop();
+    _flip.reset();
     setState(() {
       _locLoading = false;
       _loc = '홍대';
@@ -212,6 +247,7 @@ class _ServiceDrinksScreenState extends ConsumerState<ServiceDrinksScreen> {
                   loc: _loc,
                   sort: _sort,
                   locLoading: _locLoading,
+                  flip: _flip,
                   onLocTap: _onLocationTap,
                   onSort: (s) => setState(() => _sort = s),
                 ),
@@ -453,12 +489,14 @@ class _LocationBar extends StatelessWidget {
   final String loc;
   final String sort;
   final bool locLoading;
+  final Animation<double> flip;
   final VoidCallback onLocTap;
   final ValueChanged<String> onSort;
   const _LocationBar({
     required this.loc,
     required this.sort,
     required this.locLoading,
+    required this.flip,
     required this.onLocTap,
     required this.onSort,
   });
@@ -470,38 +508,42 @@ class _LocationBar extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // 내 위치 — 탭하면 로딩 후 내 위치 인식 (chevron 없음).
+          // 내 위치 — 탭하면 칩 원형 축소 + 핀 플립 후 내 위치 인식 (홈과 동일).
           GestureDetector(
             onTap: onLocTap,
             behavior: HitTestBehavior.opaque,
-            child: Container(
-              padding: EdgeInsets.fromLTRB(10.w, 6.h, 12.w, 6.h),
+            child: AnimatedContainer(
+              duration: _kShrinkDuration,
+              curve: Curves.easeInOut,
+              // 로딩 중엔 사방 동일 패딩 → 핀을 감싸는 원형.
+              padding: locLoading
+                  ? EdgeInsets.all(7.r)
+                  : EdgeInsets.fromLTRB(10.w, 6.h, 12.w, 6.h),
               decoration: BoxDecoration(
                 color: _drink.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(999.r),
                 border: Border.all(color: _drink.withValues(alpha: 0.34)),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.place_rounded, size: 12.r, color: _drink),
-                  SizedBox(width: 5.w),
-                  if (locLoading)
-                    SizedBox(
-                      width: 13.r,
-                      height: 13.r,
-                      child: const CircularProgressIndicator(
-                          strokeWidth: 1.6, color: _drink),
-                    )
-                  else
-                    Text(
-                      loc,
-                      style: VybeTypography.caption.copyWith(
-                          height: 14 / 12,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white),
-                    ),
-                ],
+              child: AnimatedSize(
+                duration: _kShrinkDuration,
+                curve: Curves.easeInOut,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _PinFlip(animation: flip),
+                    // 로딩 중엔 텍스트 제거 → 너비 축소.
+                    if (!locLoading) ...[
+                      SizedBox(width: 5.w),
+                      Text(
+                        loc,
+                        style: VybeTypography.caption.copyWith(
+                            height: 14 / 12,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white),
+                      ),
+                    ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -536,6 +578,44 @@ class _LocationBar extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// 지도 핀 3D 플립 — Y축 회전 (홈 home_location_greeting과 동일 패턴).
+// 앞면 cyan, 뒷면 보라.
+class _PinFlip extends StatelessWidget {
+  final Animation<double> animation;
+  const _PinFlip({required this.animation});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (context, _) {
+        final angle = animation.value * 2 * math.pi; // 0 → 360도 반복
+        final isFront = math.cos(angle) >= 0;
+        final color = isFront ? _drink : VybeColors.mainPurple500;
+
+        return Transform(
+          alignment: Alignment.center,
+          // 원근감(3D) — setEntry(3,2,..)로 perspective 부여.
+          transform: Matrix4.identity()
+            ..setEntry(3, 2, 0.0015)
+            ..rotateY(angle),
+          child: Transform(
+            // 뒷면일 때 좌우 반전 보정(아이콘 거울상 방지).
+            alignment: Alignment.center,
+            transform: Matrix4.identity()..rotateY(isFront ? 0 : math.pi),
+            child: SvgPicture.asset(
+              'assets/icons/home_screen/loaction_pin.svg',
+              width: 13.r,
+              height: 13.r,
+              colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -814,15 +894,40 @@ class _DrinkCard extends StatelessWidget {
                 ),
               ),
             ),
-            // 하단 정보.
+            // 하단 정보 — 유체 글래스 바 (full bleed, 사진 위 블러로 가독성 확보).
+            // 디자인(service_drinks.jsx): blur(18px) + 어두운 그라데이션 + 상단 1px 하이라이트.
             Positioned(
-              left: 16.w,
-              right: 16.w,
-              bottom: 14.h,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              // 상단 경계선 제거 + dstIn 마스크로 윗부분 페이드 → 사진과 자연스럽게 연결.
+              child: ShaderMask(
+                blendMode: BlendMode.dstIn,
+                shaderCallback: (rect) => const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  // 위 35%까지 투명 → 불투명 (블러·스크림 경계 feather).
+                  colors: [Colors.transparent, Colors.white],
+                  stops: [0.0, 0.35],
+                ).createShader(rect),
+                child: ClipRect(
+                  child: BackdropFilter(
+                    // CSS blur(18px) ≈ sigma 9.
+                    filter: ui.ImageFilter.blur(sigmaX: 9, sigmaY: 9),
+                    child: Container(
+                      padding: EdgeInsets.fromLTRB(16.w, 34.h, 16.w, 22.h),
+                      decoration: const BoxDecoration(
+                        // rgba(16,16,21,0.82) → rgba(28,28,38,0) (bottom → top, 위로 투명).
+                        gradient: LinearGradient(
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
+                          colors: [Color(0xD1101015), Color(0x001C1C26)],
+                        ),
+                      ),
+                      child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
                     // vybe 아이콘은 이름 텍스트와 세로 중앙 정렬.
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
@@ -880,35 +985,13 @@ class _DrinkCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  SizedBox(height: 9.h),
-                  // 드링크 칩.
-                  Wrap(
-                    spacing: 6.w,
-                    runSpacing: 6.h,
-                    children: club.drinks
-                        .map((d) => Container(
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: 9.w, vertical: 4.h),
-                              decoration: BoxDecoration(
-                                color: _drink.withValues(alpha: 0.16),
-                                borderRadius: BorderRadius.circular(8.r),
-                                border: Border.all(
-                                    color: _drink.withValues(alpha: 0.34)),
-                              ),
-                              child: Text(
-                                d,
-                                style: VybeTypography.caption.copyWith(
-                                  fontSize: 11.sp,
-                                  fontWeight: FontWeight.w600,
-                                  color: _drink,
-                                ),
-                              ),
-                            ))
-                        .toList(),
+                      ],
+                    ),
+                    ),
+                    ),
                   ),
-                ],
+                ),
               ),
-            ),
           ],
         ),
       ),

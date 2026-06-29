@@ -112,7 +112,13 @@ class _FilterChipBarState extends ConsumerState<FilterChipBar> {
       child: Row(
         children: [
           _buildSortChip(),
-          SizedBox(width: 8.w),
+          // 정렬 칩과 필터 칩 구분선 (search_results_v2).
+          Container(
+            width: 1,
+            height: 22.h,
+            margin: EdgeInsets.symmetric(horizontal: 9.w),
+            color: VybeColors.gray800,
+          ),
           if (widget.showFavorite) ...[
             toggle(
               label: '찜',
@@ -183,11 +189,12 @@ class _FilterChipBarState extends ConsumerState<FilterChipBar> {
               Text(
                 kClubSortLabels[sort]!,
                 style: VybeTypography.caption.copyWith(
-                  color: isActive ? Colors.white : VybeColors.gray200,
-                  height: 14 / 12,
+                  color: Colors.white,
+                  height: 16 / 12,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-              SizedBox(width: 4.w),
+              SizedBox(width: 5.w),
               AnimatedRotation(
                 turns: _sortOpen ? 0.5 : 0,
                 duration: const Duration(milliseconds: 200),
@@ -210,7 +217,8 @@ class _FilterChipBarState extends ConsumerState<FilterChipBar> {
     required VoidCallback onTap,
     required IconData icon,
   }) {
-    final color = isActive ? Colors.white : VybeColors.gray200;
+    final labelColor = isActive ? Colors.white : VybeColors.gray300;
+    final iconColor = isActive ? Colors.white : VybeColors.gray400;
     return GestureDetector(
       onTap: onTap,
       child: _chipContainer(
@@ -218,11 +226,15 @@ class _FilterChipBarState extends ConsumerState<FilterChipBar> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 14.r, color: color),
-            SizedBox(width: 4.w),
+            Icon(icon, size: 14.r, color: iconColor),
+            SizedBox(width: 5.w),
             Text(
               label,
-              style: VybeTypography.caption.copyWith(color: color, height: 14 / 12),
+              style: VybeTypography.caption.copyWith(
+                color: labelColor,
+                height: 16 / 12,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+              ),
             ),
           ],
         ),
@@ -232,7 +244,9 @@ class _FilterChipBarState extends ConsumerState<FilterChipBar> {
 
   Widget _chipContainer({required bool isActive, required Widget child}) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 7.h),
+      height: 34.h,
+      alignment: Alignment.center,
+      padding: EdgeInsets.symmetric(horizontal: 13.w),
       decoration: BoxDecoration(
         color: isActive
             ? VybeColors.mainPurple700
@@ -240,10 +254,10 @@ class _FilterChipBarState extends ConsumerState<FilterChipBar> {
                 ? VybeColors.gray900
                 : Colors.transparent,
         border: Border.all(
-            color: isActive ? VybeColors.mainPurple700 : VybeColors.gray700,
+            color: isActive ? Colors.transparent : VybeColors.gray800,
             width: 1,
           ),
-        borderRadius: BorderRadius.circular(20.r),
+        borderRadius: BorderRadius.circular(999.r),
       ),
       child: child,
     );

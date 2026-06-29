@@ -490,6 +490,11 @@ serviceDrink        : object    // 무료 서비스 음료 정보 (서비스 음
                                 //   comment   : 제공 코멘트 (예: "1인 음료 무제한", "테이블당 맥주 6병")
                                 //   drinks    : 음료 종류 ["양주","샴페인","칵테일","맥주","와인"]
                                 //   서비스 음료 페이지: isOffered=true 필터 + drinks로 종류 필터
+freeEntryCondition  : string    // 입장비 무료 조건 코멘트 (입장비 무료 페이지 데이터 소스)
+                                //   예: "여성 무료입장", "새벽 2시까지 무료", "게스트리스트 등록 시 무료"
+                                //   입장비 무료(entryFeeMin=0) 클럽마다 서로 다른 코멘트. 빈 값이면 '입장비 무료' fallback
+                                //   seed_free_entry.js로 배정 (entryFeeMin=0 클럽 대상)
+                                //   입장비 무료 페이지: isActive=true + entryFeeMin=0 필터 (getFreeEntryClubs)
 createdAt           : timestamp
 updatedAt           : timestamp
 ```

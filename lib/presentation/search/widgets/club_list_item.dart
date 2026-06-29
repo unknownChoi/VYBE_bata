@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -7,6 +9,7 @@ import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/clubs/club_detail_screen.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 
+// 검색결과 카드 (search_results_v2 리뉴얼) — 이미지 중심 + 하단 유체 글래스 바.
 class ClubListItem extends StatelessWidget {
   final ClubModel club;
   final bool isFavorited;
@@ -22,6 +25,16 @@ class ClubListItem extends StatelessWidget {
   bool get _isOpen => club.operatingHours.today.isCurrentlyOpen;
   String? get _closeTime => club.operatingHours.today.close;
 
+  // clubId 해시 기반 일관 그라데이션 fallback (썸네일 없을 때).
+  static const _fallbackGradients = <List<Color>>[
+    [Color(0xFF2B6BFF), Color(0xFF7731FE)],
+    [Color(0xFFFF006E), Color(0xFF8338EC)],
+    [Color(0xFF06FFA5), Color(0xFF3A86FF)],
+    [Color(0xFFFB5607), Color(0xFFFFBE0B)],
+    [Color(0xFF6D4C91), Color(0xFF2A2D34)],
+    [Color(0xFF3A0CA3), Color(0xFF4361EE)],
+  ];
+
   void _openDetail(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => ClubDetailScreen(clubId: club.clubId)),
@@ -30,157 +43,324 @@ class ClubListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final grad =
+        _fallbackGradients[club.clubId.hashCode.abs() % _fallbackGradients.length];
     return GestureDetector(
       onTap: () => _openDetail(context),
       behavior: HitTestBehavior.opaque,
-      child: Container(
-        decoration: const BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: VybeColors.gray900, width: 1),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(24.w, 0, 24.w, 14.h),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(18.r),
+          child: Container(
+            height: 208.h,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: grad,
+              ),
+              border: Border.all(color: VybeColors.gray800),
+              borderRadius: BorderRadius.circular(18.r),
+            ),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                // 클럽 썸네일 (없으면 gradient만).
+                if (club.thumbnailUrl.isNotEmpty)
+                  Positioned.fill(
+                    child: SkeletonImage(
+                      url: club.thumbnailUrl,
+                      fit: BoxFit.cover,
+                      minSkeleton: const Duration(seconds: 1),
+                    ),
+                  ),
+                // 상단 우측 화이트 하이라이트 (radial).
+                const Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: RadialGradient(
+                        center: Alignment(0.4, -0.85),
+                        radius: 0.9,
+                        colors: [Color(0x2EFFFFFF), Color(0x00000000)],
+                        stops: [0.0, 0.55],
+                      ),
+                    ),
+                  ),
+                ),
+                if (club.isVybeRecommended) _buildRecommendRibbon(),
+                _buildStatusPill(),
+                _buildSaveButton(),
+                _buildGlassBar(),
+              ],
+            ),
           ),
         ),
-        padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 24.h),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      ),
+    );
+  }
+
+  // VYBE 추천 리본 (좌상단, 라임).
+  Widget _buildRecommendRibbon() {
+    return Positioned(
+      top: 12.h,
+      left: 12.w,
+      child: Container(
+        height: 32.r,
+        alignment: Alignment.center,
+        padding: EdgeInsets.symmetric(horizontal: 11.w),
+        decoration: BoxDecoration(
+          color: VybeColors.mainLime500,
+          borderRadius: BorderRadius.circular(10.r),
+          boxShadow: [
+            BoxShadow(
+              color: VybeColors.mainLime500.withValues(alpha: 0.3),
+              blurRadius: 18,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            _buildNameRow(),
-            SizedBox(height: 8.h),
-            _buildRatingTagRow(),
-            SizedBox(height: 8.h),
-            _buildImage(),
-            SizedBox(height: 8.h),
-            _buildAddressRow(),
-            SizedBox(height: 8.h),
-            _buildBusinessRow(),
+            SvgPicture.asset(
+              'assets/icons/common/club_card/vybe_recommend.svg',
+              width: 12.r,
+              height: 12.r,
+              colorFilter:
+                  const ColorFilter.mode(VybeColors.background, BlendMode.srcIn),
+            ),
+            SizedBox(width: 5.w),
+            Text(
+              'VYBE 추천',
+              style: VybeTypography.caption.copyWith(
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w800,
+                color: VybeColors.background,
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildNameRow() {
-    return Row(
-      children: [
-        Flexible(
-          child: Text(
-            club.name,
-            style: VybeTypography.heading4.copyWith(color: Colors.white),
-            overflow: TextOverflow.ellipsis,
+  // 영업 상태 pill (우상단, 찜 버튼 왼쪽).
+  Widget _buildStatusPill() {
+    return Positioned(
+      top: 12.h,
+      right: 52.w,
+      child: Container(
+        height: 32.r,
+        alignment: Alignment.center,
+        padding: EdgeInsets.symmetric(horizontal: 11.w),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.42),
+          borderRadius: BorderRadius.circular(99.r),
+          border: Border.all(
+            color: _isOpen
+                ? VybeColors.mainLime500.withValues(alpha: 0.45)
+                : VybeColors.gray700,
           ),
         ),
-        if (club.isVybeRecommended) ...[
-          SizedBox(width: 8.w),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SvgPicture.asset(
-                'assets/icons/common/club_card/vybe_recommend.svg',
-                width: 12.r,
-                height: 12.r,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 6.r,
+              height: 6.r,
+              decoration: BoxDecoration(
+                color: _isOpen ? VybeColors.mainLime500 : VybeColors.gray500,
+                shape: BoxShape.circle,
               ),
-              SizedBox(width: 2.w),
-              Text(
-                'VYBE 추천 클럽',
-                style: TextStyle(
-                  fontFamily: 'Pretendard',
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12.sp,
-                  height: 14 / 12,
-                  letterSpacing: 12 * -0.025,
-                  color: VybeColors.mainLime500,
+            ),
+            SizedBox(width: 5.w),
+            Text(
+              _isOpen ? '영업중' : '영업종료',
+              style: VybeTypography.caption.copyWith(
+                fontSize: 11.sp,
+                fontWeight: FontWeight.w700,
+                color: _isOpen ? VybeColors.mainLime500 : VybeColors.gray400,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSaveButton() {
+    return Positioned(
+      top: 12.h,
+      right: 12.w,
+      child: GestureDetector(
+        onTap: onFavoriteTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          width: 32.r,
+          height: 32.r,
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.42),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            isFavorited ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+            size: 17.r,
+            color: isFavorited ? VybeColors.mainPurple500 : Colors.white,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 하단 유체 글래스 바 — 블러 + 그라데이션, 상단 페이드로 사진과 자연 연결.
+  Widget _buildGlassBar() {
+    final free = club.entryFeeMin == 0;
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 0,
+      child: ShaderMask(
+        blendMode: BlendMode.dstIn,
+        shaderCallback: (rect) => const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.transparent, Colors.white],
+          stops: [0.0, 0.35],
+        ).createShader(rect),
+        child: ClipRect(
+          child: BackdropFilter(
+            filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+            child: Container(
+              padding: EdgeInsets.fromLTRB(16.w, 34.h, 16.w, 15.h),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [Color(0xD1101015), Color(0x001C1C26)],
                 ),
               ),
-            ],
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildRatingTagRow() {
-    final tagStyle = TextStyle(
-      fontFamily: 'Pretendard',
-      fontWeight: FontWeight.w400,
-      fontSize: 12.sp,
-      height: 14 / 12,
-      letterSpacing: 12 * -0.025,
-      color: VybeColors.gray500,
-    );
-
-    return Row(
-      children: [
-        SvgPicture.asset(
-          'assets/icons/common/club_card/star.svg',
-          width: 14.r,
-          height: 14.r,
-        ),
-        SizedBox(width: 4.w),
-        Text(
-          club.rating.toStringAsFixed(2),
-          style: TextStyle(
-            fontFamily: 'Pretendard',
-            fontWeight: FontWeight.w600,
-            fontSize: 12.sp,
-            height: 14 / 12,
-            letterSpacing: 12 * -0.025,
-            color: Colors.white,
-          ),
-        ),
-        SizedBox(width: 8.w),
-        Text(club.area, style: tagStyle),
-        SizedBox(width: 4.w),
-        Container(width: 1, height: 12.h, color: VybeColors.gray700),
-        SizedBox(width: 4.w),
-        Text(club.genre, style: tagStyle),
-      ],
-    );
-  }
-
-  Widget _buildImage() {
-    return SizedBox(
-      height: 152.h,
-      child: Stack(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12.r),
-            child: Container(
-              width: double.infinity,
-              height: 152.h,
-              decoration: BoxDecoration(
-                color: VybeColors.gray900,
-                borderRadius: BorderRadius.circular(12.r),
-                border: Border.all(color: VybeColors.gray900, width: 1),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 이름 + 평점 + 리뷰 수.
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          club.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: VybeTypography.heading4
+                              .copyWith(color: Colors.white, height: 1.0),
+                        ),
+                      ),
+                      SizedBox(width: 8.w),
+                      Icon(Icons.star_rounded,
+                          size: 12.r, color: VybeColors.mainLime500),
+                      SizedBox(width: 3.w),
+                      Text(
+                        club.rating.toStringAsFixed(2),
+                        style: VybeTypography.caption.copyWith(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white),
+                      ),
+                      SizedBox(width: 6.w),
+                      Text(
+                        '리뷰 ${club.reviewCount}',
+                        style: VybeTypography.caption.copyWith(
+                            fontSize: 12.sp, color: VybeColors.gray400),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 6.h),
+                  // 지역 · 장르 · 영업종료 시각.
+                  Row(
+                    children: [
+                      Icon(Icons.place_rounded,
+                          size: 11.r, color: VybeColors.gray300),
+                      SizedBox(width: 3.w),
+                      Text(
+                        club.area,
+                        style: VybeTypography.caption.copyWith(
+                            fontSize: 12.sp,
+                            height: 1.0,
+                            fontWeight: FontWeight.w600,
+                            color: VybeColors.gray300),
+                      ),
+                      _dot(),
+                      Text(
+                        club.genre,
+                        style: VybeTypography.caption.copyWith(
+                            fontSize: 12.sp, height: 1.0, color: VybeColors.gray400),
+                      ),
+                      if (_isOpen && _closeTime != null) ...[
+                        _dot(),
+                        Icon(Icons.access_time_rounded,
+                            size: 11.r, color: VybeColors.gray400),
+                        SizedBox(width: 3.w),
+                        Text(
+                          '$_closeTime 영업종료',
+                          style: VybeTypography.caption.copyWith(
+                              fontSize: 12.sp, height: 1.0, color: VybeColors.gray400),
+                        ),
+                      ],
+                    ],
+                  ),
+                  SizedBox(height: 8.h),
+                  // 입장료 칩 (무료면 라임).
+                  _buildFeeChip(free),
+                ],
               ),
-              child: club.thumbnailUrl.isEmpty
-                  ? null
-                  : SkeletonImage(
-                      url: club.thumbnailUrl,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      height: 152.h,
-                    ),
             ),
           ),
-          Positioned(
-            bottom: 8.h,
-            right: 8.w,
-            child: GestureDetector(
-              onTap: onFavoriteTap,
-              behavior: HitTestBehavior.opaque,
-              child: Container(
-                width: 40.r,
-                height: 40.r,
-                decoration: BoxDecoration(
-                  color: const Color(0xCC191919),
-                  borderRadius: BorderRadius.circular(20.r),
-                ),
-                padding: EdgeInsets.all(8.r),
-                child: Icon(
-                  isFavorited ? Icons.favorite : Icons.favorite_border,
-                  size: 24.r,
-                  color: isFavorited ? VybeColors.mainPurple500 : Colors.white,
-                ),
-              ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeeChip(bool free) {
+    final label = free
+        ? (club.entryFeeMax == 0
+            ? '입장료 무료'
+            : '입장료 0 ~ ${_formatPrice(club.entryFeeMax)}원')
+        : '입장료 ${_formatPrice(club.entryFeeMin)} ~ ${_formatPrice(club.entryFeeMax)}원';
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 9.w, vertical: 4.h),
+      decoration: BoxDecoration(
+        color: free
+            ? VybeColors.mainLime500.withValues(alpha: 0.14)
+            : Colors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8.r),
+        border: Border.all(
+          color: free
+              ? VybeColors.mainLime500.withValues(alpha: 0.3)
+              : Colors.white.withValues(alpha: 0.12),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SvgPicture.asset(
+            'assets/icons/common/club_card/won.svg',
+            width: 11.r,
+            height: 11.r,
+            colorFilter: ColorFilter.mode(
+              free ? VybeColors.mainLime500 : VybeColors.gray300,
+              BlendMode.srcIn,
+            ),
+          ),
+          SizedBox(width: 5.w),
+          Text(
+            label,
+            style: VybeTypography.caption.copyWith(
+              fontSize: 11.sp,
+              height: 1.0,
+              fontWeight: FontWeight.w700,
+              color: free ? VybeColors.mainLime500 : VybeColors.gray200,
             ),
           ),
         ],
@@ -188,77 +368,15 @@ class ClubListItem extends StatelessWidget {
     );
   }
 
-  Widget _buildAddressRow() {
-    return Row(
-      children: [
-        SizedBox(
-          width: 16.r,
-          child: Center(
-            child: SvgPicture.asset(
-              'assets/icons/common/club_card/location_pin.svg',
-              width: 14.r,
-              height: 14.r,
-            ),
-          ),
+  Widget _dot() => Padding(
+        padding: EdgeInsets.symmetric(horizontal: 6.w),
+        child: Container(
+          width: 2.r,
+          height: 2.r,
+          decoration: const BoxDecoration(
+              color: VybeColors.gray500, shape: BoxShape.circle),
         ),
-        SizedBox(width: 6.w),
-        Flexible(
-          child: Text(
-            club.address,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: VybeTypography.caption.copyWith(color: VybeColors.gray400),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildBusinessRow() {
-    final infoStyle =
-        VybeTypography.caption.copyWith(color: VybeColors.gray400);
-
-    return Row(
-      children: [
-        SizedBox(
-          width: 16.r,
-          child: Center(
-            child: SvgPicture.asset(
-              'assets/icons/common/club_card/time.svg',
-              width: 13.r,
-              height: 13.r,
-            ),
-          ),
-        ),
-        SizedBox(width: 6.w),
-        Text(_isOpen ? '영업중' : '영업종료', style: infoStyle),
-        if (_isOpen && _closeTime != null) ...[
-          SizedBox(width: 4.w),
-          Container(
-            width: 2.r,
-            height: 2.r,
-            decoration: const BoxDecoration(
-              color: VybeColors.gray700,
-              shape: BoxShape.circle,
-            ),
-          ),
-          SizedBox(width: 4.w),
-          Text('$_closeTime에 영업 종료', style: infoStyle),
-        ],
-        SizedBox(width: 24.w),
-        SvgPicture.asset(
-          'assets/icons/common/club_card/won.svg',
-          width: 16.r,
-          height: 16.r,
-        ),
-        SizedBox(width: 8.w),
-        Text(
-          '입장료 ${_formatPrice(club.entryFeeMin)} ~ ${_formatPrice(club.entryFeeMax)}원',
-          style: infoStyle,
-        ),
-      ],
-    );
-  }
+      );
 
   String _formatPrice(int price) {
     if (price == 0) return '0';

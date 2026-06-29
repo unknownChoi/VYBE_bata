@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vybe/core/providers/auth_providers.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
@@ -58,15 +57,32 @@ class _SearchResultScreenState extends ConsumerState<SearchResultScreen> {
       ..addAll(optimistic.entries.where((e) => e.value).map((e) => e.key))
       ..removeAll(optimistic.entries.where((e) => !e.value).map((e) => e.key));
 
+    // 메타 행에 표시할 (필터/정렬 적용 후) 결과 수. 로딩 중엔 null.
+    final int? count = resultsAsync.maybeWhen(
+      data: (results) {
+        final clubs = results.clubs
+            .where((c) =>
+                clubMatchesFilters(c, filters, favoritedIds: favoritedIds))
+            .toList();
+        return sortClubs(clubs, sort).length;
+      },
+      orElse: () => null,
+    );
+
     return Scaffold(
       backgroundColor: VybeColors.background,
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ResultGnb(query: widget.query),
-            _buildLocationRow(),
+      body: Stack(
+        children: [
+          const Positioned.fill(
+            child: IgnorePointer(child: _ResultBackdrop()),
+          ),
+          SafeArea(
+            bottom: false,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ResultGnb(query: widget.query),
+            _buildMetaRow(count),
             const FilterChipBar(),
             Expanded(
               child: resultsAsync.when(
@@ -113,7 +129,7 @@ class _SearchResultScreenState extends ConsumerState<SearchResultScreen> {
                   return NotificationListener<ScrollNotification>(
                     onNotification: _onScroll,
                     child: ListView.builder(
-                      padding: EdgeInsets.zero,
+                      padding: EdgeInsets.only(top: 4.h),
                       itemCount: clubs.length + (showSpinner ? 1 : 0),
                       itemBuilder: (_, i) {
                         if (i >= clubs.length) {
@@ -146,8 +162,10 @@ class _SearchResultScreenState extends ConsumerState<SearchResultScreen> {
                 },
               ),
             ),
-          ],
-        ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -165,20 +183,102 @@ class _SearchResultScreenState extends ConsumerState<SearchResultScreen> {
     );
   }
 
-  Widget _buildLocationRow() {
+  // 검색결과 수 + '내 주변 검색' 라임 pill (search_results_v2 MetaRow).
+  Widget _buildMetaRow(int? count) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 8.h),
+      padding: EdgeInsets.fromLTRB(24.w, 4.h, 24.w, 12.h),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.baseline,
+        textBaseline: TextBaseline.alphabetic,
         children: [
-          SvgPicture.asset(
-            'assets/icons/common/club_card/location_pin_sm.svg',
-            width: 16.r,
-            height: 16.r,
-          ),
-          SizedBox(width: 4.w),
           Text(
-            '내 주변 검색',
-            style: VybeTypography.body3.copyWith(color: VybeColors.gray200),
+            '검색결과',
+            style: VybeTypography.body3
+                .copyWith(color: Colors.white, fontWeight: FontWeight.w700),
+          ),
+          SizedBox(width: 6.w),
+          Text(
+            count?.toString() ?? '–',
+            style: VybeTypography.body3.copyWith(
+                color: VybeColors.mainLime500, fontWeight: FontWeight.w700),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// 검색결과 배경 — 보라/녹색 radial glow + 다크 베이스 (search_results_v2 backdrop).
+class _ResultBackdrop extends StatelessWidget {
+  const _ResultBackdrop();
+
+  static const _purple = Color(0xFF7731FE); // 119,49,254
+  static const _lime = Color(0xFFB5FF60); // 181,255,96
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      // linear-gradient(180deg, #14101f → #101013 → #0d0a0c).
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF14101F), Color(0xFF101013), Color(0xFF0D0A0C)],
+          stops: [0.0, 0.4, 1.0],
+        ),
+      ),
+      child: Stack(
+        children: [
+          // 좌상단 보라 glow.
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 240.h,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: const Alignment(-0.85, -1),
+                  radius: 1.1,
+                  colors: [_purple.withValues(alpha: 0.24), Colors.transparent],
+                  stops: const [0.0, 0.6],
+                ),
+              ),
+            ),
+          ),
+          // 우상단 라임 glow.
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 260.h,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: const Alignment(1, -0.92),
+                  radius: 1.0,
+                  colors: [_lime.withValues(alpha: 0.12), Colors.transparent],
+                  stops: const [0.0, 0.62],
+                ),
+              ),
+            ),
+          ),
+          // 우하단 보라 glow.
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 360.h,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: const Alignment(0.85, 1),
+                  radius: 1.1,
+                  colors: [_purple.withValues(alpha: 0.12), Colors.transparent],
+                  stops: const [0.0, 0.66],
+                ),
+              ),
+            ),
           ),
         ],
       ),

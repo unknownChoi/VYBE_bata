@@ -524,6 +524,7 @@ logFirebaseAccess(
     <tr><td class="field-name">isActive</td><td class="ftype">boolean</td><td>false면 앱에 노출 안 됨</td></tr>
     <tr><td class="field-name">isVybeRecommended</td><td class="ftype">boolean</td><td>vybe 추천 여부</td></tr>
     <tr><td class="field-name">serviceDrink</td><td class="ftype">object</td><td>무료 서비스 음료 정보 — <code>{ isOffered, comment, drinks }</code><br><code>isOffered</code>: 제공 여부(필터/노출 기준, 미제공이면 생략 or false) · <code>comment</code>: 코멘트(예: "1인 음료 무제한", "테이블당 맥주 6병") · <code>drinks</code>: 종류 배열 ["양주","샴페인","칵테일","맥주","와인"]. <strong>서비스 음료 페이지</strong> 데이터 소스 (isOffered=true 필터 + drinks 종류 필터)</td></tr>
+    <tr><td class="field-name">freeEntryCondition</td><td class="ftype">string</td><td>입장비 무료 조건 코멘트 (예: "여성 무료입장", "새벽 2시까지 무료", "게스트리스트 등록 시 무료"). 입장비 무료(entryFeeMin=0) 클럽마다 서로 다른 코멘트, 빈 값이면 '입장비 무료' fallback. <code>seed_free_entry.js</code>로 배정. <strong>입장비 무료 페이지</strong> 데이터 소스 (isActive=true + entryFeeMin=0 필터, getFreeEntryClubs)</td></tr>
     <tr><td class="field-name">createdAt</td><td class="ftype">timestamp</td><td>생성 시각</td></tr>
     <tr><td class="field-name">updatedAt</td><td class="ftype">timestamp</td><td>수정 시각</td></tr>
   </table>

@@ -36,6 +36,7 @@ abstract class ClubModel with _$ClubModel {
     required bool isVybeRecommended,
     @Default(false) bool isNonSmoking,
     @Default(ServiceDrink.none) ServiceDrink serviceDrink,
+    @Default('') String freeEntryCondition,
     required DateTime createdAt,
     required DateTime updatedAt,
   }) = _ClubModel;
@@ -74,6 +75,7 @@ abstract class ClubModel with _$ClubModel {
       isNonSmoking: data['isNonSmoking'] as bool? ?? false,
       serviceDrink: ServiceDrink.fromMap(
           data['serviceDrink'] as Map<String, dynamic>?),
+      freeEntryCondition: data['freeEntryCondition'] as String? ?? '',
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );

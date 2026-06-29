@@ -1,23 +1,37 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:vybe/core/providers/auth_providers.dart';
+import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/clubs/club_detail_screen.dart';
+import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
 import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
+import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
+import 'package:vybe/presentation/free_entry/viewmodels/free_entry_viewmodel.dart';
 
-// 입장비 무료 클럽 모음 — mock UI.
-// ClubModel에 입장료/무료입장 조건 필드가 없어 현재는 더미 데이터. 추후 스키마 확장 시 연동.
+// 입장비 무료(entryFeeMin=0) 클럽 모음 — clubs Firestore 실데이터.
+// 무료입장 조건 코멘트는 clubs.freeEntryCondition 필드(seed_free_entry.js로 배정).
 const _entry = Color(0xFFFF4D8D); // 무료입장 액센트 (hot pink)
 const _entryInk = Color(0xFF2A0712); // pink 위 어두운 텍스트
 
 const _regions = ['전체', '홍대', '강남', '이태원', '압구정', '건대'];
-const _locations = ['홍대입구역', '강남역', '이태원', '압구정로데오'];
 const _sorts = ['거리순', '평점순', '추천순'];
 
+// 홍대 기본 좌표 — 홈(home_location_greeting)·주변 페이지 최초 로딩 좌표와 동일.
+const _kHongdaeLat = 37.5572;
+const _kHongdaeLng = 126.9239;
+
+// 위치 칩 애니메이션 시간 — 서비스 음료(service_drinks)와 동일 패턴.
+const _kShrinkDuration = Duration(milliseconds: 320); // 칩 원형 축소
+const _kSearchDuration = Duration(milliseconds: 1600); // 핀 플립 노출 구간
+
 const _areaDist = <String, Map<String, double>>{
-  '홍대입구역': {'홍대': 0.4, '강남': 11.2, '이태원': 7.1, '압구정': 9.3, '건대': 12.8},
-  '강남역': {'홍대': 11.0, '강남': 0.5, '이태원': 4.8, '압구정': 2.9, '건대': 7.9},
-  '이태원': {'홍대': 7.0, '강남': 4.9, '이태원': 0.4, '압구정': 3.6, '건대': 8.8},
-  '압구정로데오': {'홍대': 9.1, '강남': 3.0, '이태원': 3.7, '압구정': 0.5, '건대': 6.2},
+  '홍대': {'홍대': 0.4, '강남': 11.2, '이태원': 7.1, '압구정': 9.3, '건대': 12.8},
 };
 
 double _distFor(_EntryClub c, String loc, int idx) {
@@ -37,18 +51,20 @@ String _won(int n) {
 }
 
 class _EntryClub {
+  final String id;
   final String name;
   final String area;
   final String genre;
   final double dist;
   final double rating;
-  final int cover; // 평소 입장료
-  final String cond; // 무료입장 조건
+  final int cover; // 평소 입장료 (entryFeeMax, 0이면 표시 안 함)
+  final String cond; // 무료입장 조건 (freeEntryCondition)
   final bool open;
-  final String hours;
+  final String thumbnailUrl;
   final List<Color> gradient;
 
   const _EntryClub({
+    required this.id,
     required this.name,
     required this.area,
     required this.genre,
@@ -57,11 +73,12 @@ class _EntryClub {
     required this.cover,
     required this.cond,
     required this.open,
-    required this.hours,
+    required this.thumbnailUrl,
     required this.gradient,
   });
 
   _EntryClub copyWithDist(double d) => _EntryClub(
+        id: id,
         name: name,
         area: area,
         genre: genre,
@@ -70,41 +87,101 @@ class _EntryClub {
         cover: cover,
         cond: cond,
         open: open,
-        hours: hours,
+        thumbnailUrl: thumbnailUrl,
         gradient: gradient,
       );
 }
 
-const _clubs = <_EntryClub>[
-  _EntryClub(name: '어썸레드', area: '홍대', genre: '힙합', dist: 0.4, rating: 4.58, cover: 20000, cond: '새벽 2시까지 무료', open: true, hours: '오늘 21:00 - 06:00', gradient: [Color(0xFF2B1655), Color(0xFFFF4D8D)]),
-  _EntryClub(name: '버뮤다', area: '홍대', genre: '힙합', dist: 0.7, rating: 4.49, cover: 15000, cond: '남녀 전원 무료', open: true, hours: '오늘 21:00 - 05:00', gradient: [Color(0xFF06FFA5), Color(0xFF3A86FF)]),
-  _EntryClub(name: 'OCTAGON', area: '강남', genre: 'EDM', dist: 5.2, rating: 4.82, cover: 40000, cond: '오픈~23시 무료입장', open: true, hours: '오늘 21:00 - 06:00', gradient: [Color(0xFF2B6BFF), Color(0xFF7731FE)]),
-  _EntryClub(name: '소다', area: '강남', genre: '하우스', dist: 5.4, rating: 4.55, cover: 25000, cond: '여성 무료입장', open: true, hours: '오늘 22:00 - 06:00', gradient: [Color(0xFF3A0CA3), Color(0xFF4361EE)]),
-  _EntryClub(name: '메이드', area: '이태원', genre: 'EDM', dist: 6.1, rating: 4.74, cover: 30000, cond: '자정 이전 무료', open: true, hours: '오늘 22:00 - 05:00', gradient: [Color(0xFFFF006E), Color(0xFF8338EC)]),
-  _EntryClub(name: '케이크샵', area: '이태원', genre: '테크노', dist: 6.3, rating: 4.40, cover: 25000, cond: '오픈 시간 무료', open: true, hours: '오늘 23:00 - 07:00', gradient: [Color(0xFF06FFA5), Color(0xFF1B9AAA)]),
-  _EntryClub(name: '글로우', area: '압구정', genre: 'EDM', dist: 4.2, rating: 4.61, cover: 30000, cond: '남녀 무료입장', open: true, hours: '오늘 21:00 - 05:00', gradient: [Color(0xFFF72585), Color(0xFFB5179E)]),
-  _EntryClub(name: '벨로주', area: '홍대', genre: '재즈', dist: 0.9, rating: 4.36, cover: 10000, cond: '상시 무료입장', open: true, hours: '오늘 20:00 - 02:00', gradient: [Color(0xFF6D4C91), Color(0xFF2A2D34)]),
-  _EntryClub(name: '인클', area: '홍대', genre: '힙합', dist: 0.5, rating: 4.44, cover: 15000, cond: '게스트리스트 무료', open: false, hours: '내일 21:00 오픈', gradient: [Color(0xFFFB5607), Color(0xFFFFBE0B)]),
-  _EntryClub(name: '하이브', area: '건대', genre: '힙합', dist: 3.1, rating: 4.31, cover: 15000, cond: '전원 무료입장', open: false, hours: '내일 21:00 오픈', gradient: [Color(0xFFFFBE0B), Color(0xFFFB5607)]),
+// 썸네일 없을 때 clubId 해시 기반 일관 그라데이션 fallback.
+const _fallbackGradients = <List<Color>>[
+  [Color(0xFF2B1655), Color(0xFFFF4D8D)],
+  [Color(0xFF06FFA5), Color(0xFF3A86FF)],
+  [Color(0xFF2B6BFF), Color(0xFF7731FE)],
+  [Color(0xFF3A0CA3), Color(0xFF4361EE)],
+  [Color(0xFFFF006E), Color(0xFF8338EC)],
+  [Color(0xFFF72585), Color(0xFFB5179E)],
+  [Color(0xFF06FFA5), Color(0xFF1B9AAA)],
+  [Color(0xFF6D4C91), Color(0xFF2A2D34)],
 ];
 
-class FreeEntryScreen extends StatefulWidget {
+// ClubModel → 카드 뷰모델. dist는 화면에서 _loc 기준으로 재계산.
+_EntryClub _fromClub(ClubModel c) {
+  final grad =
+      _fallbackGradients[c.clubId.hashCode.abs() % _fallbackGradients.length];
+  return _EntryClub(
+    id: c.clubId,
+    name: c.name,
+    area: c.area,
+    genre: c.genre,
+    dist: 0,
+    rating: c.rating,
+    cover: c.entryFeeMax,
+    cond: c.freeEntryCondition.isNotEmpty ? c.freeEntryCondition : '입장비 무료',
+    open: c.operatingHours.today.isCurrentlyOpen,
+    thumbnailUrl: c.thumbnailUrl,
+    gradient: grad,
+  );
+}
+
+class FreeEntryScreen extends ConsumerStatefulWidget {
   const FreeEntryScreen({super.key});
 
   @override
-  State<FreeEntryScreen> createState() => _FreeEntryScreenState();
+  ConsumerState<FreeEntryScreen> createState() => _FreeEntryScreenState();
 }
 
-class _FreeEntryScreenState extends State<FreeEntryScreen> {
+class _FreeEntryScreenState extends ConsumerState<FreeEntryScreen>
+    with SingleTickerProviderStateMixin {
   String _region = '전체';
-  String _loc = '홍대입구역';
+  String _loc = '홍대';
   String _sort = '거리순';
-  final Set<String> _saved = {'어썸레드'};
+  bool _locLoading = false;
 
-  List<_EntryClub> get _filtered {
+  // 지도 핀 3D 플립 컨트롤러 (Y축 회전 반복) — 서비스 음료와 동일.
+  late final AnimationController _flip;
+
+  @override
+  void initState() {
+    super.initState();
+    _flip = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
+  }
+
+  @override
+  void dispose() {
+    _flip.dispose();
+    super.dispose();
+  }
+
+  // 위치 칩 탭 → 칩 원형 축소 후 핀 플립 → 내 위치 인식 (서비스 음료와 동일 패턴).
+  Future<void> _onLocationTap() async {
+    if (_locLoading) return;
+    // 홍대 좌표로 인식 → 검색 로딩 시작. (홈·주변 페이지 최초 로딩 좌표와 동일)
+    debugPrint('위치 선택: 홍대 ($_kHongdaeLat, $_kHongdaeLng)');
+    setState(() => _locLoading = true);
+
+    await Future.delayed(_kShrinkDuration);
+    if (!mounted) return;
+    _flip.repeat();
+
+    await Future.delayed(_kSearchDuration);
+    if (!mounted) return;
+
+    _flip.stop();
+    _flip.reset();
+    setState(() {
+      _locLoading = false;
+      _loc = '홍대';
+    });
+  }
+
+  // source(실데이터) → 내 위치 기준 거리 재계산 → 지역 필터 → 정렬.
+  List<_EntryClub> _filtered(List<_EntryClub> source) {
     final mapped = <_EntryClub>[];
-    for (var i = 0; i < _clubs.length; i++) {
-      mapped.add(_clubs[i].copyWithDist(_distFor(_clubs[i], _loc, i)));
+    for (var i = 0; i < source.length; i++) {
+      mapped.add(source[i].copyWithDist(_distFor(source[i], _loc, i)));
     }
     final list = mapped
         .where((c) => _region == '전체' || c.area == _region)
@@ -120,16 +197,23 @@ class _FreeEntryScreenState extends State<FreeEntryScreen> {
     return list;
   }
 
-  void _toggleSave(String name) => setState(() {
-        _saved.contains(name) ? _saved.remove(name) : _saved.add(name);
-      });
-
   @override
   Widget build(BuildContext context) {
     final top = MediaQuery.of(context).padding.top;
     final bottomPad = MediaQuery.of(context).padding.bottom + 100.h;
-    final list = _filtered;
-    final openCount = list.where((c) => c.open).length;
+    final clubsAsync = ref.watch(freeEntryViewModelProvider);
+    final source = clubsAsync.asData?.value.map(_fromClub).toList() ?? [];
+    final list = _filtered(source);
+
+    // 찜 상태 (스트림 + 낙관적 오버라이드 머지) — 다른 화면과 동일 로직.
+    final uid = ref.watch(currentUidProvider);
+    final streamFavIds = uid != null
+        ? ref.watch(favoritedClubIdsProvider(uid)).asData?.value ?? <String>{}
+        : <String>{};
+    final optimistic = ref.watch(favoriteViewModelProvider);
+    final favoritedIds = Set<String>.from(streamFavIds)
+      ..addAll(optimistic.entries.where((e) => e.value).map((e) => e.key))
+      ..removeAll(optimistic.entries.where((e) => !e.value).map((e) => e.key));
 
     return Scaffold(
       backgroundColor: VybeColors.background,
@@ -146,11 +230,13 @@ class _FreeEntryScreenState extends State<FreeEntryScreen> {
             ListView(
               padding: EdgeInsets.only(top: top + 52.h, bottom: bottomPad),
               children: [
-                _Intro(count: openCount, loc: _loc),
+                _Intro(count: list.length, region: _region),
                 _LocationBar(
                   loc: _loc,
                   sort: _sort,
-                  onLoc: (l) => setState(() => _loc = l),
+                  locLoading: _locLoading,
+                  flip: _flip,
+                  onLocTap: _onLocationTap,
                   onSort: (s) => setState(() => _sort = s),
                 ),
                 _RegionFilter(
@@ -162,11 +248,41 @@ class _FreeEntryScreenState extends State<FreeEntryScreen> {
                       padding: EdgeInsets.fromLTRB(24.w, 0, 24.w, 14.h),
                       child: _EntryCard(
                         club: c,
-                        saved: _saved.contains(c.name),
-                        onSave: () => _toggleSave(c.name),
+                        saved: favoritedIds.contains(c.id),
+                        onSave: uid == null
+                            ? null
+                            : () => ref
+                                .read(favoriteViewModelProvider.notifier)
+                                .toggleFavorite(
+                                  uid,
+                                  c.id,
+                                  favoritedIds.contains(c.id),
+                                ),
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => ClubDetailScreen(clubId: c.id),
+                          ),
+                        ),
                       ),
                     )),
-                if (list.isEmpty)
+                if (clubsAsync.isLoading)
+                  ...List.generate(
+                    3,
+                    (_) => Padding(
+                      padding: EdgeInsets.fromLTRB(24.w, 0, 24.w, 14.h),
+                      child: VybeSkel(height: 208.h, radius: 18),
+                    ),
+                  )
+                else if (clubsAsync.hasError)
+                  Padding(
+                    padding: EdgeInsets.symmetric(vertical: 60.h, horizontal: 24.w),
+                    child: Text(
+                      '입장비 무료 클럽을 불러오지 못했어요',
+                      textAlign: TextAlign.center,
+                      style: VybeTypography.body4.copyWith(color: VybeColors.gray500),
+                    ),
+                  )
+                else if (list.isEmpty)
                   Padding(
                     padding: EdgeInsets.symmetric(vertical: 60.h, horizontal: 24.w),
                     child: Text(
@@ -272,31 +388,48 @@ class _Backdrop extends StatelessWidget {
 // ── 인트로 ──
 class _Intro extends StatelessWidget {
   final int count;
-  final String loc;
-  const _Intro({required this.count, required this.loc});
+  // 헤드라인 접두사. '전체' → '내 주변', 그 외 → 지역명(예: '홍대').
+  final String region;
+  const _Intro({required this.count, required this.region});
 
   @override
   Widget build(BuildContext context) {
+    final base = TextStyle(
+      fontFamily: 'Pretendard',
+      fontSize: 27.sp,
+      height: 33 / 27,
+      fontWeight: FontWeight.w700,
+      color: Colors.white,
+      letterSpacing: 27 * -0.025,
+    );
+    final prefix = region == '전체' ? '내 주변' : region;
     return Padding(
       padding: EdgeInsets.fromLTRB(24.w, 20.h, 24.w, 14.h),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text.rich(
-            TextSpan(
-              style: TextStyle(
-                fontFamily: 'Pretendard',
-                fontSize: 27.sp,
-                height: 33 / 27,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                letterSpacing: 27 * -0.025,
+          // 지역 변경 시 헤드라인 페이드+슬라이드 전환 (핫플레이스와 동일 패턴).
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 420),
+            transitionBuilder: (child, anim) => FadeTransition(
+              opacity: anim,
+              child: SlideTransition(
+                position: Tween(begin: const Offset(0, 0.3), end: Offset.zero)
+                    .animate(anim),
+                child: child,
               ),
-              children: const [
-                TextSpan(text: '내 주변 '),
-                TextSpan(text: '입장비 무료', style: TextStyle(color: _entry)),
-                TextSpan(text: '\n클럽 모아보기'),
-              ],
+            ),
+            child: Text.rich(
+              key: ValueKey(region),
+              TextSpan(
+                style: base,
+                children: [
+                  TextSpan(text: '$prefix '),
+                  const TextSpan(
+                      text: '입장비 무료', style: TextStyle(color: _entry)),
+                  const TextSpan(text: '\n클럽 모아보기'),
+                ],
+              ),
             ),
           ),
           SizedBox(height: 9.h),
@@ -336,7 +469,7 @@ class _Intro extends StatelessWidget {
                       .copyWith(color: VybeColors.gray400),
                   children: [
                     TextSpan(
-                        text: loc,
+                        text: prefix,
                         style: const TextStyle(
                             color: Colors.white, fontWeight: FontWeight.w700)),
                     const TextSpan(text: ' 근처 '),
@@ -359,12 +492,16 @@ class _Intro extends StatelessWidget {
 class _LocationBar extends StatelessWidget {
   final String loc;
   final String sort;
-  final ValueChanged<String> onLoc;
+  final bool locLoading;
+  final Animation<double> flip;
+  final VoidCallback onLocTap;
   final ValueChanged<String> onSort;
   const _LocationBar({
     required this.loc,
     required this.sort,
-    required this.onLoc,
+    required this.locLoading,
+    required this.flip,
+    required this.onLocTap,
     required this.onSort,
   });
 
@@ -375,34 +512,42 @@ class _LocationBar extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // 내 위치 (지도 핀 아이콘 + pink 틴트).
-          _Dropdown<String>(
-            value: loc,
-            items: _locations,
-            onSelected: onLoc,
-            child: Container(
-              padding: EdgeInsets.fromLTRB(10.w, 6.h, 12.w, 6.h),
+          // 내 위치 — 탭하면 칩 원형 축소 + 핀 플립 후 내 위치 인식 (서비스 음료와 동일).
+          GestureDetector(
+            onTap: onLocTap,
+            behavior: HitTestBehavior.opaque,
+            child: AnimatedContainer(
+              duration: _kShrinkDuration,
+              curve: Curves.easeInOut,
+              // 로딩 중엔 사방 동일 패딩 → 핀을 감싸는 원형.
+              padding: locLoading
+                  ? EdgeInsets.all(7.r)
+                  : EdgeInsets.fromLTRB(10.w, 6.h, 12.w, 6.h),
               decoration: BoxDecoration(
                 color: _entry.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(999.r),
                 border: Border.all(color: _entry.withValues(alpha: 0.34)),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.place_rounded, size: 13.r, color: _entry),
-                  SizedBox(width: 5.w),
-                  Text(
-                    loc,
-                    style: VybeTypography.caption.copyWith(
-                        height: 14 / 12,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white),
-                  ),
-                  SizedBox(width: 3.w),
-                  Icon(Icons.keyboard_arrow_down_rounded,
-                      size: 14.r, color: _entry),
-                ],
+              child: AnimatedSize(
+                duration: _kShrinkDuration,
+                curve: Curves.easeInOut,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _PinFlip(animation: flip),
+                    // 로딩 중엔 텍스트 제거 → 너비 축소.
+                    if (!locLoading) ...[
+                      SizedBox(width: 5.w),
+                      Text(
+                        loc,
+                        style: VybeTypography.caption.copyWith(
+                            height: 14 / 12,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white),
+                      ),
+                    ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -437,6 +582,44 @@ class _LocationBar extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// 지도 핀 3D 플립 — Y축 회전 (서비스 음료와 동일 패턴).
+// 앞면 pink, 뒷면 보라.
+class _PinFlip extends StatelessWidget {
+  final Animation<double> animation;
+  const _PinFlip({required this.animation});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (context, _) {
+        final angle = animation.value * 2 * math.pi; // 0 → 360도 반복
+        final isFront = math.cos(angle) >= 0;
+        final color = isFront ? _entry : VybeColors.mainPurple500;
+
+        return Transform(
+          alignment: Alignment.center,
+          // 원근감(3D) — setEntry(3,2,..)로 perspective 부여.
+          transform: Matrix4.identity()
+            ..setEntry(3, 2, 0.0015)
+            ..rotateY(angle),
+          child: Transform(
+            // 뒷면일 때 좌우 반전 보정(아이콘 거울상 방지).
+            alignment: Alignment.center,
+            transform: Matrix4.identity()..rotateY(isFront ? 0 : math.pi),
+            child: SvgPicture.asset(
+              'assets/icons/home_screen/loaction_pin.svg',
+              width: 13.r,
+              height: 13.r,
+              colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -523,7 +706,8 @@ class _RegionFilter extends StatelessWidget {
                 border: sel ? null : Border.all(color: VybeColors.gray800),
               ),
               child: Text(
-                r,
+                // '전체' 값은 필터 로직 유지, 표시만 '내 주변'.
+                r == '전체' ? '내 주변' : r,
                 style: VybeTypography.button2.copyWith(
                   fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
                   color: sel ? _entryInk : VybeColors.gray300,
@@ -541,43 +725,63 @@ class _RegionFilter extends StatelessWidget {
 class _EntryCard extends StatelessWidget {
   final _EntryClub club;
   final bool saved;
-  final VoidCallback onSave;
-  const _EntryCard({required this.club, required this.saved, required this.onSave});
+  final VoidCallback? onSave;
+  final VoidCallback onTap;
+  const _EntryCard({
+    required this.club,
+    required this.saved,
+    required this.onSave,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(18.r),
-      child: Container(
-        height: 208.h,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: club.gradient,
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18.r),
+        child: Container(
+          height: 208.h,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: club.gradient,
+            ),
+            border: Border.all(color: VybeColors.gray800),
+            borderRadius: BorderRadius.circular(18.r),
           ),
-          border: Border.all(color: VybeColors.gray800),
-          borderRadius: BorderRadius.circular(18.r),
-        ),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  colors: [Color(0xF50C0C0F), Color(0x400C0C0F), Colors.transparent],
-                  stops: [0.14, 0.56, 0.78],
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // 클럽 썸네일 (없으면 gradient만).
+              if (club.thumbnailUrl.isNotEmpty)
+                Positioned.fill(
+                  child: SkeletonImage(
+                    url: club.thumbnailUrl,
+                    fit: BoxFit.cover,
+                    minSkeleton: const Duration(seconds: 1),
+                  ),
+                ),
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [Color(0xF50C0C0F), Color(0x400C0C0F), Colors.transparent],
+                    stops: [0.14, 0.56, 0.78],
+                  ),
                 ),
               ),
-            ),
             // 무료입장 리본.
             Positioned(
-              top: 14.h,
-              left: 14.w,
+              top: 12.h,
+              left: 12.w,
               child: Container(
-                padding: EdgeInsets.fromLTRB(11.w, 8.h, 13.w, 8.h),
+                height: 32.r,
+                alignment: Alignment.center,
+                padding: EdgeInsets.symmetric(horizontal: 11.w),
                 decoration: BoxDecoration(
                   color: _entry,
                   borderRadius: BorderRadius.circular(12.r),
@@ -606,10 +810,12 @@ class _EntryCard extends StatelessWidget {
             ),
             // 영업 상태 pill.
             Positioned(
-              top: 16.h,
+              top: 12.h,
               right: 52.w,
               child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 9.w, vertical: 5.h),
+                height: 32.r,
+                alignment: Alignment.center,
+                padding: EdgeInsets.symmetric(horizontal: 11.w),
                 decoration: BoxDecoration(
                   color: Colors.black.withValues(alpha: 0.45),
                   borderRadius: BorderRadius.circular(99.r),
@@ -684,7 +890,7 @@ class _EntryCard extends StatelessWidget {
                       Text(
                         club.name,
                         style: VybeTypography.heading4
-                            .copyWith(color: Colors.white),
+                            .copyWith(color: Colors.white, height: 1.0),
                       ),
                       SizedBox(width: 8.w),
                       Icon(Icons.star_rounded,
@@ -699,7 +905,7 @@ class _EntryCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  SizedBox(height: 7.h),
+                  SizedBox(height: 6.h),
                   Row(
                     children: [
                       Icon(Icons.place_rounded,
@@ -709,6 +915,7 @@ class _EntryCard extends StatelessWidget {
                         '${club.area} · ${club.dist.toStringAsFixed(1)}km',
                         style: VybeTypography.caption.copyWith(
                             fontSize: 12.sp,
+                            height: 1.0,
                             fontWeight: FontWeight.w600,
                             color: VybeColors.gray300),
                       ),
@@ -716,7 +923,7 @@ class _EntryCard extends StatelessWidget {
                       Text(
                         club.genre,
                         style: VybeTypography.caption.copyWith(
-                            fontSize: 12.sp, color: VybeColors.gray400),
+                            fontSize: 12.sp, height: 1.0, color: VybeColors.gray400),
                       ),
                     ],
                   ),
@@ -780,6 +987,7 @@ class _EntryCard extends StatelessWidget {
               ),
             ),
           ],
+          ),
         ),
       ),
     );
