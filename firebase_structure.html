@@ -303,6 +303,7 @@
   <a href="#search-history" class="sub">searchHistory</a>
   <a href="#banners" class="sub">banners</a>
   <a href="#vybe-recommendations" class="sub">vybeRecommendations</a>
+  <a href="#performances" class="sub">performances</a>
 
   <a class="group">Cloud Functions</a>
   <a href="#functions-http" class="sub">HTTP onCall (6)</a>
@@ -472,7 +473,9 @@ logFirebaseAccess(
 
 📁 banners/{bannerId}                         <span class="cmt"># 홈 배너</span>
 
-📁 vybeRecommendations/{recId}                <span class="cmt"># VYBE 추천 페이지 큐레이션 (clubs 조인)</span></div>
+📁 vybeRecommendations/{recId}                <span class="cmt"># VYBE 추천 페이지 큐레이션 (clubs 조인)</span>
+
+📁 performances/{performanceId}              <span class="cmt"># 공연 일정 (장르 페이지 — 힙합 등, top-level, clubs 조인)</span></div>
   <div class="note"><strong>자동 집계 필드:</strong> <code>favoriteCount</code> · <code>ratingSum</code> · <code>reviewCount</code> · <code>rating</code> 는 Cloud Functions 트리거로만 갱신. 클라이언트 직접 수정 금지.</div>
 </section>
 
@@ -507,6 +510,7 @@ logFirebaseAccess(
     <tr><td class="field-name">instagramUrl</td><td class="ftype">string</td><td>인스타그램 URL</td></tr>
     <tr><td class="field-name">location</td><td class="ftype">object</td><td><code>{ lat, lng, geohash }</code> — geohash 는 GeoQuery용, location 맵 <strong>안에</strong> 포함 (최상위 아님). 쿼리 시 <code>'location.geohash'</code> 경로 사용</td></tr>
     <tr><td class="field-name">genre</td><td class="ftype">string</td><td>주요 장르 (예: "힙합", "테크노", "팝")</td></tr>
+    <tr><td class="field-name">genreStyles</td><td class="ftype">array</td><td>세부 장르 스타일 태그 (예: <code>["트랩","붐뱁","드릴","올드스쿨","R&amp;B"]</code>). <strong>장르 페이지(힙합 등)</strong> 포스터 카드 #태그 표시 + 추후 세부 필터용. 검색용 <code>searchTokens</code>(tags 파생)와는 별개 — 혼용 금지</td></tr>
     <tr><td class="field-name">rating</td><td class="ftype">double</td><td>평점 = ratingSum / reviewCount <span class="pill auto">자동</span></td></tr>
     <tr><td class="field-name">ratingSum</td><td class="ftype">number</td><td>별점 합계 <span class="pill auto">자동</span></td></tr>
     <tr><td class="field-name">reviewCount</td><td class="ftype">number</td><td>리뷰 수 <span class="pill auto">자동</span></td></tr>
@@ -652,6 +656,27 @@ logFirebaseAccess(
     <tr><td class="field-name">createdAt</td><td class="ftype">timestamp</td><td>생성 시각</td></tr>
   </table>
   <div class="note">VYBE 추천 페이지 데이터 소스. <code>firebase_vybe_recommendation_datasource.getActiveRecommendations()</code> 는 <code>isActive=true</code> + <code>orderBy(rank)</code> 쿼리. clubs 컬렉션을 참조하고 페이지 전용 에디토리얼 필드(rank·match·reason·tags)만 보관 — 클럽 기본 정보는 clubId로 조인.</div>
+</section>
+
+<!-- performances -->
+<section id="performances">
+  <h2>📁 performances/{performanceId} <span style="font-size:13px;color:var(--muted);">(top-level)</span></h2>
+  <table>
+    <tr><th>필드</th><th>타입</th><th>설명</th></tr>
+    <tr><td class="field-name">performanceId</td><td class="ftype">string</td><td><span class="pill pk">PK</span> (= doc.id)</td></tr>
+    <tr><td class="field-name">clubId</td><td class="ftype">string</td><td><span class="pill fk">FK → clubs</span> 클럽 기본정보(평점·영업·썸네일)는 clubId로 조인</td></tr>
+    <tr><td class="field-name">clubName</td><td class="ftype">string</td><td>비정규화 — rail/hero에서 조인 없이 표시</td></tr>
+    <tr><td class="field-name">clubArea</td><td class="ftype">string</td><td>비정규화 — 지역 표시/필터</td></tr>
+    <tr><td class="field-name">genre</td><td class="ftype">string</td><td>"힙합" 등 — 장르 페이지 공통 (EDM·K-POP 동일 구조 재사용)</td></tr>
+    <tr><td class="field-name">artistName</td><td class="ftype">string</td><td>헤드라이너/라인업 (예: "YANO"). 아티스트는 <strong>별도 컬렉션 없이 임베드</strong></td></tr>
+    <tr><td class="field-name">artistType</td><td class="ftype">string</td><td><code>"rapper" | "dj"</code> — rail 아이콘 Mic/Disc 분기</td></tr>
+    <tr><td class="field-name">startAt</td><td class="ftype">timestamp</td><td>공연 시작 시각 — 시간순 정렬 + "오늘 22:00 공연" 표시</td></tr>
+    <tr><td class="field-name">date</td><td class="ftype">string</td><td><code>"YYYYMMDD"</code> — 날짜 버킷 쿼리용 (<strong>멀티-날짜 저장 핵심</strong>)</td></tr>
+    <tr><td class="field-name">isFeatured</td><td class="ftype">boolean</td><td>true = Hero 캐러셀 노출 / false = rail만</td></tr>
+    <tr><td class="field-name">isActive</td><td class="ftype">boolean</td><td>노출 여부</td></tr>
+    <tr><td class="field-name">createdAt</td><td class="ftype">timestamp</td><td>생성 시각</td></tr>
+  </table>
+  <div class="note">장르 페이지(힙합 등) 공연 일정 데이터 소스. <strong>top-level</strong> 컬렉션 — DJ rail·hero가 "오늘 모든 힙합 클럽 공연을 시간순"으로 가져오는 크로스-클럽 쿼리이기 때문(서브컬렉션이면 collectionGroup 필요). 문서 1개 = (클럽 × 날짜 × 공연), 같은 클럽이 여러 날 공연하면 doc 여러 개 → 멀티-날짜 저장. 쿼리: <code>genre== + date==&lt;today&gt; + isActive==true orderBy(startAt asc)</code> → hero=isFeatured만 / rail=전체. 포스터 그리드의 live·lineup은 오늘 공연 목록을 clubId로 머지해 도출(클럽에 저장 안 함). 인덱스: <code>performances(genre, date, startAt)</code>. seed: <code>scripts/seed_performances.js</code>. 집계 없음 → Cloud Functions 트리거 불필요.</div>
 </section>
 
 <!-- ========================= CLOUD FUNCTIONS ========================= -->

@@ -32,6 +32,16 @@
         { "fieldPath": "isActive", "order": "ASCENDING" },
         { "fieldPath": "rank", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "performances",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "genre", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "ASCENDING" },
+        { "fieldPath": "isActive", "order": "ASCENDING" },
+        { "fieldPath": "startAt", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

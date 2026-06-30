@@ -214,7 +214,6 @@ class _ServiceDrinksScreenState extends ConsumerState<ServiceDrinksScreen>
     final clubsAsync = ref.watch(serviceDrinksViewModelProvider);
     final source = clubsAsync.asData?.value.map(_fromClub).toList() ?? [];
     final list = _filtered(source);
-    final openCount = list.where((c) => c.open).length;
 
     // 찜 상태 (스트림 + 낙관적 오버라이드 머지) — 다른 화면과 동일 로직.
     final uid = ref.watch(currentUidProvider);
@@ -242,7 +241,7 @@ class _ServiceDrinksScreenState extends ConsumerState<ServiceDrinksScreen>
             ListView(
               padding: EdgeInsets.only(top: top + 52.h, bottom: bottomPad),
               children: [
-                _Intro(count: openCount, loc: _loc),
+                _Intro(count: list.length, loc: _loc),
                 _LocationBar(
                   loc: _loc,
                   sort: _sort,

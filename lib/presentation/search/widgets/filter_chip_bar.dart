@@ -211,14 +211,14 @@ class _FilterChipBarState extends ConsumerState<FilterChipBar> {
     );
   }
 
+  // 입장비 무료 페이지 지역 칩(_RegionFilter) 스타일 pill + 아이콘.
   Widget _buildToggleChip({
     required String label,
     required bool isActive,
     required VoidCallback onTap,
     required IconData icon,
   }) {
-    final labelColor = isActive ? Colors.white : VybeColors.gray300;
-    final iconColor = isActive ? Colors.white : VybeColors.gray400;
+    final fg = isActive ? Colors.white : VybeColors.gray300;
     return GestureDetector(
       onTap: onTap,
       child: _chipContainer(
@@ -226,14 +226,13 @@ class _FilterChipBarState extends ConsumerState<FilterChipBar> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 14.r, color: iconColor),
+            Icon(icon, size: 14.r, color: fg),
             SizedBox(width: 5.w),
             Text(
               label,
-              style: VybeTypography.caption.copyWith(
-                color: labelColor,
-                height: 16 / 12,
-                fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+              style: VybeTypography.button2.copyWith(
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                color: fg,
               ),
             ),
           ],
@@ -246,17 +245,10 @@ class _FilterChipBarState extends ConsumerState<FilterChipBar> {
     return Container(
       height: 34.h,
       alignment: Alignment.center,
-      padding: EdgeInsets.symmetric(horizontal: 13.w),
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
       decoration: BoxDecoration(
-        color: isActive
-            ? VybeColors.mainPurple700
-            : widget.hasBackground
-                ? VybeColors.gray900
-                : Colors.transparent,
-        border: Border.all(
-            color: isActive ? Colors.transparent : VybeColors.gray800,
-            width: 1,
-          ),
+        color: isActive ? VybeColors.mainPurple700 : VybeColors.gray900,
+        border: isActive ? null : Border.all(color: VybeColors.gray800, width: 1),
         borderRadius: BorderRadius.circular(999.r),
       ),
       child: child,

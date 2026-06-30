@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/free_entry/free_entry_screen.dart';
+import 'package:vybe/presentation/hip_hop/hip_hop_screen.dart';
 import 'package:vybe/presentation/hot_places/hot_places_screen.dart';
 import 'package:vybe/presentation/recommend/vybe_recommend_screen.dart';
 import 'package:vybe/presentation/service_drinks/service_drinks_screen.dart';
@@ -110,6 +111,7 @@ class HomeCategoryGrid extends StatelessWidget {
     final isHot = item.label == '핫플레이스';
     final isDrink = item.label == '서비스 음료';
     final isFree = item.label == '입장료 무료';
+    final isHiphop = item.label == '힙합';
 
     final iconInner = Container(
       decoration: BoxDecoration(
@@ -197,7 +199,13 @@ class HomeCategoryGrid extends StatelessWidget {
                               builder: (_) => const FreeEntryScreen(),
                             ),
                           )
-                      : null,
+                      : isHiphop
+                          ? () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const HipHopScreen(),
+                                ),
+                              )
+                          : null,
       behavior: HitTestBehavior.opaque,
       child: Column(
         mainAxisSize: MainAxisSize.min,

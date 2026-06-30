@@ -458,6 +458,9 @@ location            : object    // { lat: double, lng: double, geohash: string }
                                 //   geohash는 GeoQuery용 — location 맵 안에 포함됨 (최상위 아님)
                                 //   쿼리 시 'location.geohash' 필드 경로 사용
 genre               : string    // 주요 장르 (예: "힙합", "테크노", "팝")
+genreStyles         : array     // 세부 장르 스타일 태그 (예: ["트랩","붐뱁","드릴","올드스쿨","R&B"])
+                                //   장르 페이지(힙합 등) 포스터 카드 #태그 표시 + 추후 세부 필터용
+                                //   검색용 searchTokens(tags 파생)와는 별개 — 혼용 금지
 rating              : double    // 평점 (ratingSum / reviewCount, Cloud Functions 자동 업데이트, 직접 수정 금지)
 ratingSum           : number    // 별점 합계 (Cloud Functions 자동 업데이트, 직접 수정 금지)
 reviewCount         : number    // 리뷰 수 (Cloud Functions 자동 업데이트, 직접 수정 금지)
@@ -597,6 +600,29 @@ createdAt       : timestamp
 > `isActive=true` + `orderBy(rank)` 쿼리. clubs 컬렉션을 참조하고 페이지 전용
 > 에디토리얼 필드(rank·match·reason·tags)만 보관 — 클럽 기본 정보는 clubId로 조인.
 > 첫 항목(rank 1) = featured 히어로, 나머지 = 순위 리스트.
+
+#### performances/{performanceId}
+```
+performanceId   : string    // PK (= doc.id)
+clubId          : string    // FK → clubs. 클럽 기본정보(평점·영업·썸네일)는 clubId로 조인
+clubName        : string    // 비정규화 — rail/hero에서 조인 없이 표시
+clubArea        : string    // 비정규화 — 지역 표시/필터
+genre           : string    // "힙합" 등 — 장르 페이지 공통 (EDM·K-POP 동일 구조 재사용)
+artistName      : string    // 헤드라이너/라인업 (예: "YANO"). 아티스트는 별도 컬렉션 없이 임베드
+artistType      : string    // "rapper" | "dj"  (rail 아이콘 Mic/Disc 분기)
+startAt         : timestamp // 공연 시작 시각 — 시간순 정렬 + "오늘 22:00 공연" 표시
+date            : string    // "YYYYMMDD" — 날짜 버킷 쿼리용 (멀티-날짜 저장 핵심)
+isFeatured      : boolean   // true = Hero 캐러셀 노출 / false = rail만
+isActive        : boolean   // 노출 여부
+createdAt       : timestamp
+```
+> 장르 페이지(힙합 등) 공연 일정 데이터 소스. **top-level** 컬렉션 — DJ rail·hero가
+> "오늘 모든 힙합 클럽 공연을 시간순"으로 가져오는 크로스-클럽 쿼리이기 때문(서브컬렉션이면 collectionGroup 필요).
+> 문서 1개 = (클럽 × 날짜 × 공연). 같은 클럽이 여러 날 공연하면 doc 여러 개(clubId 동일, date·startAt 상이) → 멀티-날짜 저장.
+> 쿼리: `genre== + date==<today YYYYMMDD> + isActive==true orderBy(startAt asc)` → hero=isFeatured만 / rail=전체.
+> 포스터 그리드의 live·lineup은 오늘 공연 목록을 clubId로 머지해 도출(클럽에 저장 안 함 — 날짜 지나면 자동 무효).
+> 인덱스: `performances(genre, date, startAt)`. seed: `scripts/seed_performances.js`.
+> ⚠ favoriteCount·rating 같은 집계 없음 → Cloud Functions 트리거 불필요(live/lineup은 클라 머지 계산).
 
 ---
 
