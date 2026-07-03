@@ -15,3 +15,4 @@ export {onReviewCreated} from "./reviews/on_review_created";
 export {onReviewDeleted} from "./reviews/on_review_deleted";
 export {onReviewUpdated} from "./reviews/on_review_updated";
 export {onClubWritten} from "./search/on_club_written";
+export {cleanupPastPerformances} from "./performances/cleanup_past_performances";

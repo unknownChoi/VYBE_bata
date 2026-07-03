@@ -628,8 +628,8 @@ createdAt       : timestamp
 
 ### Cloud Functions 목록
 
-총 **14개** 함수 (`functions/src/index.ts` export 기준). Firebase 관련 서버 로직은 모두 Cloud Functions으로 처리.
-구조: `functions/src/auth/` (7) · `favorites/` (2) · `reviews/` (3) · `search/` (1) + `index.ts`.
+총 **15개** 함수 (`functions/src/index.ts` export 기준). Firebase 관련 서버 로직은 모두 Cloud Functions으로 처리.
+구조: `functions/src/auth/` (7) · `favorites/` (2) · `reviews/` (3) · `search/` (1) · `performances/` (1) + `index.ts`.
 
 #### HTTP 요청 함수 (앱에서 직접 호출, `https.onCall`)
 
@@ -654,6 +654,14 @@ createdAt       : timestamp
 | `onReviewUpdated` | clubs/{clubId}/reviews/{reviewId} 수정 시 | ratingSum += (newRating - oldRating), rating = ratingSum / reviewCount |
 | `onClubWritten` | clubs/{clubId} 생성·수정 시 | name/area/genre/tags → searchTokens(접두사 토큰) 자동 생성. 동일하면 skip(무한루프 방지) |
 
+#### 스케줄 함수 (Cloud Scheduler + Pub/Sub, Blaze 필요)
+
+| 함수명 | 스케줄 | 역할 |
+|--------|--------|------|
+| `cleanupPastPerformances` | 매일 KST 04:00 | 종료된 공연 문서 삭제. `startAt < now - 8h`(PERFORMANCE_DURATION_HOURS)인 공연만 삭제 → 예정/진행 중(새벽) 공연 보존. 500개씩 배치 삭제 |
+
+> 새벽 공연 보호 로직: 공연은 `startAt`(Timestamp) 후 최대 8시간 진행으로 가정(클럽 마감 ~06:00). 8시간 안 지난 공연은 "진행 중"으로 보존 → 오늘 밤 새벽 공연/어제 이어진 공연 안전. 마감 더 늦으면 `PERFORMANCE_DURATION_HOURS` 상수만 조정.
+
 #### 구현 시 주의사항
 - `favoriteCount`, `ratingSum`, `reviewCount`, `rating` 은 반드시 Cloud Functions으로만 업데이트 (직접 수정 금지)
 - `ratingSum` / `reviewCount` 증감은 `FieldValue.increment()` 사용 (동시 요청 정합성 보장)
@@ -662,6 +670,7 @@ createdAt       : timestamp
 - `deleteUser` 는 Admin SDK로만 처리 (클라이언트에서 직접 삭제 불가)
 - 네이버 UID 형식: `naver:{naverId}`
 - `onUserCreated` 는 문서가 이미 존재하면 덮어쓰지 말 것 (중복 실행 방어)
+- `cleanupPastPerformances` 는 `date`(YYYYMMDD)가 아닌 `startAt`(Timestamp) 기준으로 삭제 — 새벽 공연 오삭제 방지. 스케줄 함수라 Blaze 요금제 필요
 
 ---
 

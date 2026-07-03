@@ -198,6 +198,12 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
 
   @override
   Widget build(BuildContext context) {
+    // 다른 화면발 탭 전환 요청 (예: 힙합 '지도에서 보기' → 주변 탭).
+    ref.listen<int?>(tabSwitchRequestProvider, (_, next) {
+      if (next == null) return;
+      _goToTab(next);
+      ref.read(tabSwitchRequestProvider.notifier).consume();
+    });
     return Scaffold(
       backgroundColor: VybeColors.background,
       // Liquid Glass 굴절은 바 뒤 콘텐츠가 비쳐야 하므로 bottomNavigationBar

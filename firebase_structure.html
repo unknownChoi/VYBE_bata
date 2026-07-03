@@ -308,6 +308,7 @@
   <a class="group">Cloud Functions</a>
   <a href="#functions-http" class="sub">HTTP onCall (6)</a>
   <a href="#functions-trigger" class="sub">자동 트리거 (7)</a>
+  <a href="#functions-trigger" class="sub">스케줄 (1)</a>
   <a href="#functions-notes" class="sub">구현 주의사항</a>
 
   <a class="group">검색</a>
@@ -335,7 +336,7 @@
     <span class="badge">Firestore</span>
     <span class="badge">Auth</span>
     <span class="badge">Storage</span>
-    <span class="badge">Cloud Functions ×14</span>
+    <span class="badge">Cloud Functions ×15</span>
     <span class="badge">Security Rules</span>
     <span class="badge">MVVM + Riverpod</span>
   </div>
@@ -681,8 +682,8 @@ logFirebaseAccess(
 
 <!-- ========================= CLOUD FUNCTIONS ========================= -->
 <section id="functions-http">
-  <h2>Cloud Functions <span style="font-size:14px;color:var(--muted);">— 총 14개 (TypeScript)</span></h2>
-  <p>구조: <code>functions/src/auth/</code> (7) · <code>favorites/</code> (2) · <code>reviews/</code> (3) · <code>search/</code> (1) + <code>index.ts</code>. Firebase 서버 로직은 모두 Cloud Functions으로 처리.</p>
+  <h2>Cloud Functions <span style="font-size:14px;color:var(--muted);">— 총 15개 (TypeScript)</span></h2>
+  <p>구조: <code>functions/src/auth/</code> (7) · <code>favorites/</code> (2) · <code>reviews/</code> (3) · <code>search/</code> (1) · <code>performances/</code> (1) + <code>index.ts</code>. Firebase 서버 로직은 모두 Cloud Functions으로 처리.</p>
 
   <h3>HTTP 요청 함수 — <code>https.onCall</code> (앱 직접 호출)</h3>
   <table>
@@ -708,6 +709,13 @@ logFirebaseAccess(
     <tr><td class="field-name">onReviewUpdated</td><td>reviews/{id} 수정</td><td>ratingSum += (new - old), rating = ratingSum/reviewCount</td></tr>
     <tr><td class="field-name">onClubWritten</td><td>clubs/{id} 생성·수정</td><td>name/area/genre/tags → searchTokens(접두사 토큰) 자동 생성. 동일하면 skip(무한루프 방지)</td></tr>
   </table>
+
+  <h3>스케줄 함수 <span style="font-size:13px;color:var(--muted);">— Cloud Scheduler + Pub/Sub (Blaze 필요)</span></h3>
+  <table>
+    <tr><th>함수명</th><th>스케줄</th><th>역할</th></tr>
+    <tr><td class="field-name">cleanupPastPerformances</td><td>매일 KST 04:00</td><td>종료된 공연 문서 삭제. <code>startAt &lt; now - 8h</code>(PERFORMANCE_DURATION_HOURS)인 공연만 삭제 → 예정·진행 중(새벽) 공연 보존. 500개씩 배치 삭제</td></tr>
+  </table>
+  <div class="note">공연은 <code>startAt</code>(Timestamp) 후 최대 8시간 진행으로 가정(클럽 마감 ~06:00). 8시간 안 지난 공연은 "진행 중"으로 보존 → 오늘 밤 새벽 공연/어제 이어진 공연 안전. <code>date</code>(YYYYMMDD)가 아닌 <code>startAt</code> 기준 삭제가 핵심. 마감 더 늦으면 <code>PERFORMANCE_DURATION_HOURS</code> 상수만 조정.</div>
 </section>
 
 <section id="functions-notes">
@@ -723,6 +731,7 @@ logFirebaseAccess(
     <li>네이버 UID 형식: <code>naver:{naverId}</code></li>
     <li><code>onUserCreated</code> 는 문서가 이미 존재하면 덮어쓰지 말 것 (중복 실행 방어)</li>
     <li><code>onClubWritten</code> 은 <code>searchTokens</code> 갱신이 다시 트리거를 호출 → 기존과 동일하면 즉시 종료(무한루프 방지)</li>
+    <li><code>cleanupPastPerformances</code> 는 <code>date</code>(YYYYMMDD)가 아닌 <code>startAt</code>(Timestamp) 기준 삭제 — 새벽 공연 오삭제 방지. 스케줄 함수라 Blaze 요금제 필요</li>
   </ul>
 </section>
 

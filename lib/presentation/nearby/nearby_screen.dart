@@ -29,6 +29,11 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
     with WidgetsBindingObserver {
   // 이 줌 이하로 축소되면 개별 핀 대신 지역(area)별 클러스터 동그라미 표시.
   static const double _kRegionZoomThreshold = 13.0;
+  // 대한민국 전체가 보이는 bounds (fitCountry 카메라용, 제주 포함).
+  static final NLatLngBounds _kKoreaBounds = NLatLngBounds(
+    southWest: const NLatLng(33.0, 124.6),
+    northEast: const NLatLng(38.7, 131.0),
+  );
   // 주변 탭 인덱스 (MainScaffold PageView 기준).
   static const int _kNearbyTabIndex = 1;
   // 화면 밖에서 마커 변경이 생겨 렌더를 보류한 상태 (다시 보일 때 렌더).
@@ -51,8 +56,13 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
   // 마커 재렌더 판단용 시그니처 (필터 결과 clubId 집합 + 클러스터 모드).
   String? _lastMarkerSig;
   NLatLng? _myPos;
-  // 직전 렌더한 검색어 (새 검색 감지 → 카메라 핀에 맞춤용). null=geo 모드.
-  String? _lastSearchKeyword;
+  // 직전 소비한 검색 요청 id (새 검색 감지 → 카메라 핀에 맞춤용). null=geo 모드.
+  // keyword 대신 requestId 비교 — 같은 키워드 재요청(힙합 '지도에서 보기' 등)도 fit.
+  int? _lastSearchReqId;
+  // 맵 준비 전 검색 진입 시 onMapReady에서 카메라 fit 하도록 보류 표시.
+  bool _pendingFitCamera = false;
+  // 보류된 fit이 대한민국 전체 보기인지 (fitCountry).
+  bool _pendingFitCountry = false;
 
   // 마커 이미지 캐시 — 매번 fromWidget 재생성하면 플러그인 이미지 캐시
   // 정리(Directory.delete) 로그가 반복돼 캐시해 재사용.
@@ -206,7 +216,9 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
 
     await _mapController!.clearOverlays();
     // 줌 임계값에 따라 지역 클러스터 / 개별 핀 분기.
-    if (_regionMode) {
+    // 검색(TOP 10 포함) 모드에서는 줌과 무관하게 항상 개별 핀 표시.
+    final searchActive = ref.read(nearbySearchResultProvider) != null;
+    if (_regionMode && !searchActive) {
       await _addRegionMarkers(clubs);
     } else {
       await _addClubMarkers(clubs);
@@ -339,13 +351,15 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
                   favoritedIds: favoritedIds))
               .toList();
       final searchKeyword = searchResult?.keyword;
-      // 새 검색이면 카메라를 결과 핀에 맞춤.
-      final newSearch =
-          searchKeyword != null && searchKeyword != _lastSearchKeyword;
-      _lastSearchKeyword = searchKeyword;
+      final searchReqId = searchResult?.requestId;
+      // 새 검색 요청이면 카메라를 결과 핀에 맞춤.
+      // (_lastSearchReqId 갱신은 활성 탭에서 실제 렌더할 때만 — 화면 밖 build가
+      //  값을 먼저 소비해 재진입 시 fit이 누락되는 것 방지)
+      final newSearch = searchReqId != null && searchReqId != _lastSearchReqId;
+      if (searchReqId == null) _lastSearchReqId = null;
 
       final sig =
-          '${searchKeyword ?? "geo"}|${filtered.map((c) => c.clubId).join(',')}|$_regionMode';
+          '${searchKeyword ?? "geo"}#${searchReqId ?? 0}|${filtered.map((c) => c.clubId).join(',')}|$_regionMode';
       final changed = sig != _lastMarkerSig;
       if (changed) {
         _lastMarkerSig = sig;
@@ -353,14 +367,17 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
         // 화면 밖이면 지금 렌더 금지 — 다시 보일 때 렌더하도록 표시.
         if (!isActive) _renderWhenVisible = true;
       }
+      final fitCountry = searchResult?.fitCountry ?? false;
       if (isActive && (changed || _renderWhenVisible)) {
         _renderWhenVisible = false;
+        _lastSearchReqId = searchReqId;
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
           if (_mapController != null) {
             _addMarkers(filtered);
             if (newSearch) {
-              _fitCameraTo(filtered);
+              // fitCountry(TOP 10 지도 보기)면 대한민국 전체, 아니면 핀 bounds.
+              fitCountry ? _fitCountryCamera() : _fitCameraTo(filtered);
               // 검색 직후 결과 리스트가 보이도록 시트 펼침.
               if (_sheetController.isAttached) {
                 _sheetController.animateTo(
@@ -372,6 +389,11 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
             }
           } else {
             _pendingClubs = filtered;
+            // 맵 준비 후 fit 하도록 보류 (첫 진입이 검색 모드인 경우).
+            if (newSearch) {
+              _pendingFitCamera = true;
+              _pendingFitCountry = fitCountry;
+            }
           }
         });
       }
@@ -423,8 +445,16 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
         _mapController = controller;
         if (_myPos != null) await _addMyLocationMarker(_myPos!);
         if (_pendingClubs.isNotEmpty) {
-          await _addMarkers(_pendingClubs);
+          final pending = _pendingClubs;
           _pendingClubs = [];
+          await _addMarkers(pending);
+          if (_pendingFitCamera) {
+            _pendingFitCamera = false;
+            _pendingFitCountry
+                ? await _fitCountryCamera()
+                : await _fitCameraTo(pending);
+            _pendingFitCountry = false;
+          }
         }
       },
       onCameraChange: (reason, animated) {
@@ -437,7 +467,10 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
         final pos = await _mapController?.getCameraPosition();
         if (pos != null) {
           // 줌 임계값 교차 시 마커 모드 전환 후 재렌더.
-          final newRegionMode = pos.zoom <= _kRegionZoomThreshold;
+          // 검색(TOP 10 포함) 모드에서는 줌 아웃해도 개별 핀 유지.
+          final searchActive = ref.read(nearbySearchResultProvider) != null;
+          final newRegionMode =
+              pos.zoom <= _kRegionZoomThreshold && !searchActive;
           if (newRegionMode != _regionMode) {
             _regionMode = newRegionMode;
             if (_lastRenderedClubs != null) {
@@ -529,6 +562,14 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
           ),
         ),
       ),
+    );
+  }
+
+  // 대한민국 전체가 보이도록 카메라 축소 (TOP 10 지도 보기).
+  Future<void> _fitCountryCamera() async {
+    if (_mapController == null) return;
+    await _mapController!.updateCamera(
+      NCameraUpdate.fitBounds(_kKoreaBounds, padding: const EdgeInsets.all(16)),
     );
   }
 

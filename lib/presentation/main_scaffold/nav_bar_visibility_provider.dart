@@ -51,3 +51,17 @@ class CurrentTabIndex extends Notifier<int> {
 
 final currentTabIndexProvider =
     NotifierProvider<CurrentTabIndex, int>(CurrentTabIndex.new);
+
+/// 다른 화면에서 탭 전환을 요청하는 채널 (예: 힙합 페이지 '지도에서 보기' → 주변 탭).
+/// MainScaffold가 listen해 PageView를 점프시킨 뒤 consume(null 복원)한다.
+class TabSwitchRequest extends Notifier<int?> {
+  @override
+  int? build() => null;
+
+  void request(int index) => state = index;
+
+  void consume() => state = null;
+}
+
+final tabSwitchRequestProvider =
+    NotifierProvider<TabSwitchRequest, int?>(TabSwitchRequest.new);
