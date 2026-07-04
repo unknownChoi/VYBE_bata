@@ -20,7 +20,7 @@ final class NearbySearchResultNotifierProvider
         argument: null,
         retry: null,
         name: r'nearbySearchResultProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -42,7 +42,7 @@ final class NearbySearchResultNotifierProvider
 }
 
 String _$nearbySearchResultNotifierHash() =>
-    r'bae97fcf9d796539a01f3a7dfe7a2418b1c08d94';
+    r'01a3f8481b4487ae9870fb1f90be1f22034f041c';
 
 abstract class _$NearbySearchResultNotifier
     extends $Notifier<NearbySearchResult?> {

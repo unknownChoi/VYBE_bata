@@ -1,13 +1,21 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vybe/data/models/club_model.dart';
+import 'package:vybe/data/models/performance_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/clubs/club_detail_screen.dart';
+import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
+import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
+import 'package:vybe/presentation/hip_hop/hip_hop_gradients.dart';
+import 'package:vybe/presentation/hip_hop/viewmodels/hip_hop_viewmodel.dart';
 
 // 오늘의 라인업 — 힙합 페이지 '오늘의 공연 아티스트' 전체 보기.
 // claude.ai/design today_lineup.html 디자인 기반. 수치는 디자인(393 기준) 값 그대로.
-// ⚠ 프론트 전용 더미 데이터 — 추후 performances 실데이터 연동 예정.
+// 데이터: hipHopViewModelProvider(오늘 performances + 힙합 클럽) 실연동.
 
 // hip-hop accent (gold)
 const Color _hip = Color(0xFFF5B82E);
@@ -16,12 +24,10 @@ const Color _bg = Color(0xFF0D0A0C);
 // DJ 타입 텍스트 (다크 위 가독 보라)
 const Color _djText = Color(0xFFB79CFF);
 
-// 데모 기준 현재 시각 23:15 (디자인과 동일) — 실데이터 연동 시 DateTime.now()로 교체.
-const int _kNowMin = 23 * 60 + 15;
-
-// ── 더미 모델 ──
+// 라인업 표시 모델.
 class _LineupItem {
   final String id;
+  final String clubId; // 상세 페이지 이동용
   final String dj;
   final String club;
   final String area;
@@ -31,6 +37,7 @@ class _LineupItem {
   final List<Color> bg;
   const _LineupItem({
     required this.id,
+    required this.clubId,
     required this.dj,
     required this.club,
     required this.area,
@@ -41,18 +48,19 @@ class _LineupItem {
   });
 }
 
-// 디자인 LINEUP 더미 그대로 (시간순).
-const _lineup = <_LineupItem>[
-  _LineupItem(id: 'reno', dj: 'RENO', club: '베이스먼트', area: '이태원', time: '21:00', isDj: true, genres: ['올드스쿨'], bg: [Color(0xFF5A3A1A), Color(0xFFF5B82E)]),
-  _LineupItem(id: 'yano', dj: 'YANO', club: '어썸레드', area: '홍대', time: '22:00', isDj: false, genres: ['트랩', '붐뱁'], bg: [Color(0xFF7731FE), Color(0xFFF5B82E)]),
-  _LineupItem(id: 'grim', dj: 'GRIM', club: '인클', area: '홍대', time: '23:00', isDj: true, genres: ['올드스쿨'], bg: [Color(0xFFFB5607), Color(0xFFFFBE0B)]),
-  _LineupItem(id: 'swerve', dj: 'SWERVE', club: '플로우', area: '강남', time: '23:30', isDj: false, genres: ['트랩', '드릴'], bg: [Color(0xFF2A1A3E), Color(0xFF7731FE)]),
-  _LineupItem(id: 'koda', dj: 'KODA', club: '부스트', area: '강남', time: '00:00', isDj: true, genres: ['트랩'], bg: [Color(0xFF3A0CA3), Color(0xFF4361EE)]),
-  _LineupItem(id: 'vice', dj: 'VICE', club: '몹', area: '압구정', time: '00:30', isDj: false, genres: ['드릴'], bg: [Color(0xFF4A1E1E), Color(0xFFF72585)]),
-  _LineupItem(id: 'echo', dj: 'ECHO', club: '사운즈', area: '이태원', time: '01:00', isDj: true, genres: ['R&B'], bg: [Color(0xFF1B3A3A), Color(0xFF2A9D8F)]),
-  _LineupItem(id: 'nova', dj: 'NOVA', club: '버뮤다', area: '홍대', time: '01:30', isDj: false, genres: ['R&B', '트랩'], bg: [Color(0xFF3A2F0A), Color(0xFFF5B82E)]),
-  _LineupItem(id: 'blaze', dj: 'BLAZE', club: '리얼', area: '건대', time: '02:00', isDj: false, genres: ['붐뱁'], bg: [Color(0xFF2A2410), Color(0xFFB5860B)]),
-];
+// 오늘 공연(performance) + 클럽 → 라인업 표시 모델.
+// genres = 클럽 세부 장르(genreStyles) 조인, bg = clubId 해시 그라데이션.
+_LineupItem _fromPerf(PerformanceModel p, ClubModel? club) => _LineupItem(
+  id: p.performanceId,
+  clubId: p.clubId,
+  dj: p.artistName,
+  club: p.clubName,
+  area: p.clubArea,
+  time: p.hhmm,
+  isDj: p.isDj,
+  genres: (club?.genreStyles ?? const []).take(2).toList(),
+  bg: hipGradFor(p.clubId),
+);
 
 // "HH:mm" → 분. 새벽(06시 미만)은 +24h 취급 (밤 영업 연속성).
 int _toMin(String t) {
@@ -63,13 +71,21 @@ int _toMin(String t) {
   return h * 60 + m;
 }
 
+// 현재 시각 → 분(밤 영업 연속성 동일 규칙).
+int _nowMin() {
+  final now = DateTime.now();
+  var h = now.hour;
+  if (h < 6) h += 24;
+  return h * 60 + now.minute;
+}
+
 enum _Status { past, now, up }
 
 // 시작 후 60분 지나면 past, 시작~60분은 now, 이전은 up.
-_Status _statusOf(String t) {
+_Status _statusOf(String t, int nowMin) {
   final m = _toMin(t);
-  if (m <= _kNowMin - 60) return _Status.past;
-  if (m <= _kNowMin) return _Status.now;
+  if (m <= nowMin - 60) return _Status.past;
+  if (m <= nowMin) return _Status.now;
   return _Status.up;
 }
 
@@ -86,38 +102,61 @@ _TypeMeta _metaOf(bool isDj) => isDj
     ? const _TypeMeta('DJ', _djText, Color(0x387731FE), Icons.album_outlined)
     : const _TypeMeta('래퍼', _hip, Color(0x29F5B82E), Icons.mic_none_rounded);
 
-class TodayLineupScreen extends StatefulWidget {
+// 클럽 상세 페이지 이동. clubId 없으면 무시.
+void _openClub(BuildContext context, String clubId) {
+  if (clubId.isEmpty) return;
+  Navigator.of(context).push(
+    MaterialPageRoute(builder: (_) => ClubDetailScreen(clubId: clubId)),
+  );
+}
+
+class TodayLineupScreen extends ConsumerStatefulWidget {
   const TodayLineupScreen({super.key});
 
   @override
-  State<TodayLineupScreen> createState() => _TodayLineupScreenState();
+  ConsumerState<TodayLineupScreen> createState() => _TodayLineupScreenState();
 }
 
-class _TodayLineupScreenState extends State<TodayLineupScreen> {
+class _TodayLineupScreenState extends ConsumerState<TodayLineupScreen> {
   String _type = 'all'; // all | rapper | dj
 
   @override
   Widget build(BuildContext context) {
     final bottomPad = MediaQuery.of(context).padding.bottom + 90.h;
 
+    final async = ref.watch(hipHopViewModelProvider);
+    final data = async.asData?.value;
+    final loading = async.isLoading && data == null;
+
+    // 오늘 공연(startAt 오름차순) → 클럽 조인 → 표시 모델.
+    final clubById = {
+      for (final c in data?.clubs ?? const <ClubModel>[]) c.clubId: c,
+    };
+    final lineup = [
+      for (final p in data?.performances ?? const <PerformanceModel>[])
+        _fromPerf(p, clubById[p.clubId]),
+    ];
+
+    final nowMin = _nowMin();
+
     final counts = {
-      'all': _lineup.length,
-      'rapper': _lineup.where((l) => !l.isDj).length,
-      'dj': _lineup.where((l) => l.isDj).length,
+      'all': lineup.length,
+      'rapper': lineup.where((l) => !l.isDj).length,
+      'dj': lineup.where((l) => l.isDj).length,
     };
     final list = _type == 'all'
-        ? _lineup
-        : _lineup.where((l) => (_type == 'dj') == l.isDj).toList();
+        ? lineup
+        : lineup.where((l) => (_type == 'dj') == l.isDj).toList();
     _LineupItem? nowItem;
-    for (final l in _lineup) {
-      if (_statusOf(l.time) == _Status.now) {
+    for (final l in lineup) {
+      if (_statusOf(l.time, nowMin) == _Status.now) {
         nowItem = l;
         break;
       }
     }
     _LineupItem? nextUp;
     for (final l in list) {
-      if (_statusOf(l.time) == _Status.up) {
+      if (_statusOf(l.time, nowMin) == _Status.up) {
         nextUp = l;
         break;
       }
@@ -125,108 +164,92 @@ class _TodayLineupScreenState extends State<TodayLineupScreen> {
 
     return Scaffold(
       backgroundColor: _bg,
-      body: Column(
+      body: Stack(
         children: [
-          const _Header(),
+          // 상단 골드/보라 백드롭 그라데이션
+          const Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 560,
+            child: IgnorePointer(child: HipBackdrop()),
+          ),
+          SafeArea(
+        bottom: false,
+        child: Column(
+        children: [
           Expanded(
             child: ListView(
-              padding: EdgeInsets.only(bottom: bottomPad),
-              children: [
-                _IntroMeta(total: _lineup.length),
-                if (nowItem != null) _NowBanner(item: nowItem),
-                SizedBox(height: 12.h),
-                _TypeFilter(
-                  active: _type,
-                  counts: counts,
-                  onChange: (t) => setState(() => _type = t),
-                ),
-                // 타임라인
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16.w),
-                  child: Column(
-                    children: [
-                      for (var i = 0; i < list.length; i++)
-                        _TimelineRow(
-                          item: list[i],
-                          isFirst: i == 0,
-                          isLast: i == list.length - 1,
-                          isNext: list[i].id == nextUp?.id,
+              padding: EdgeInsets.only(top: 44.h, bottom: bottomPad),
+              children: loading
+                  // 로딩 중: 전체 레이아웃(인트로·배너·필터·타임라인)을 shimmer로.
+                  // 실제 데이터 위젯을 빈 값(0팀·배너없음)으로 렌더하지 않도록 분기.
+                  ? const [_LineupSkeleton()]
+                  : [
+                      _IntroMeta(total: lineup.length),
+                      if (nowItem != null) _NowBanner(item: nowItem),
+                      SizedBox(height: 12.h),
+                      _TypeFilter(
+                        active: _type,
+                        counts: counts,
+                        onChange: (t) => setState(() => _type = t),
+                      ),
+                      // 타임라인
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16.w),
+                        child: Column(
+                          children: [
+                            for (var i = 0; i < list.length; i++)
+                              _TimelineRow(
+                                item: list[i],
+                                nowMin: nowMin,
+                                isFirst: i == 0,
+                                isLast: i == list.length - 1,
+                                isNext: list[i].id == nextUp?.id,
+                              ),
+                          ],
                         ),
+                      ),
+                      if (list.isEmpty)
+                        Padding(
+                          padding: EdgeInsets.symmetric(
+                              vertical: 50.h, horizontal: 24.w),
+                          child: Text(
+                            lineup.isEmpty
+                                ? '오늘 예정된 공연이 없어요'
+                                : '해당하는 공연이 없어요',
+                            textAlign: TextAlign.center,
+                            style: VybeTypography.body4
+                                .copyWith(color: VybeColors.gray500),
+                          ),
+                        ),
+                      // footer note
+                      Padding(
+                        padding: EdgeInsets.fromLTRB(24.w, 10.h, 24.w, 40.h),
+                        child: Text(
+                          '라인업은 당일 사정에 따라 변경될 수 있어요',
+                          textAlign: TextAlign.center,
+                          style: VybeTypography.caption.copyWith(
+                            fontSize: 11.sp,
+                            height: 16 / 11,
+                            color: VybeColors.gray600,
+                          ),
+                        ),
+                      ),
                     ],
-                  ),
-                ),
-                if (list.isEmpty)
-                  Padding(
-                    padding: EdgeInsets.symmetric(vertical: 50.h, horizontal: 24.w),
-                    child: Text(
-                      '해당하는 공연이 없어요',
-                      textAlign: TextAlign.center,
-                      style: VybeTypography.body4.copyWith(color: VybeColors.gray500),
-                    ),
-                  ),
-                // footer note
-                Padding(
-                  padding: EdgeInsets.fromLTRB(24.w, 10.h, 24.w, 40.h),
-                  child: Text(
-                    '라인업은 당일 사정에 따라 변경될 수 있어요',
-                    textAlign: TextAlign.center,
-                    style: VybeTypography.caption.copyWith(
-                      fontSize: 11.sp,
-                      height: 16 / 11,
-                      color: VybeColors.gray600,
-                    ),
-                  ),
-                ),
-              ],
             ),
           ),
         ],
       ),
-    );
-  }
-}
-
-// ── 헤더 ──
-class _Header extends StatelessWidget {
-  const _Header();
-
-  @override
-  Widget build(BuildContext context) {
-    final top = MediaQuery.of(context).padding.top;
-    return Container(
-      padding: EdgeInsets.only(top: top, left: 8.w, right: 8.w, bottom: 12.h),
-      decoration: const BoxDecoration(
-        color: _bg,
-        border: Border(bottom: BorderSide(color: VybeColors.gray900)),
       ),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () => Navigator.of(context).maybePop(),
-            behavior: HitTestBehavior.opaque,
-            child: SizedBox(
-              width: 44.r,
-              height: 44.r,
-              child: Icon(Icons.arrow_back_ios_new_rounded, size: 20.r, color: Colors.white),
+          // 리퀴드 글래스 뒤로가기 버튼 (오버레이)
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 4.h,
+            left: 8.w,
+            child: VybeGlassButton(
+              onTap: () => Navigator.of(context).maybePop(),
             ),
           ),
-          Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.mic_none_rounded, size: 16.r, color: _hip),
-                SizedBox(width: 6.w),
-                Text(
-                  '오늘의 라인업',
-                  style: VybeTypography.button1.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(width: 44.r, height: 44.r),
         ],
       ),
     );
@@ -244,6 +267,7 @@ class _IntroMeta extends StatelessWidget {
     const weekdays = ['월', '화', '수', '목', '금', '토', '일'];
     final dateText = '${now.month}월 ${now.day}일';
     final dayText = '(${weekdays[now.weekday - 1]})';
+    const areaText = '모든지역';
 
     return Padding(
       padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 12.h),
@@ -278,7 +302,9 @@ class _IntroMeta extends StatelessWidget {
               ),
               SizedBox(height: 4.h),
               Text(
-                '홍대 · 강남 · 압구정 · 이태원 · 건대',
+                areaText,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: VybeTypography.caption.copyWith(
                   height: 15 / 12,
                   color: VybeColors.gray500,
@@ -325,7 +351,10 @@ class _NowBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final meta = _metaOf(item.isDj);
-    return Container(
+    return GestureDetector(
+      onTap: () => _openClub(context, item.clubId),
+      behavior: HitTestBehavior.opaque,
+      child: Container(
       margin: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 6.h),
       padding: EdgeInsets.all(14.r),
       decoration: BoxDecoration(
@@ -434,6 +463,7 @@ class _NowBanner extends StatelessWidget {
           Icon(Icons.chevron_right_rounded, size: 18.r, color: _hip),
         ],
       ),
+      ),
     );
   }
 }
@@ -524,11 +554,13 @@ class _TypeFilter extends StatelessWidget {
 // ── 타임라인 행 ──
 class _TimelineRow extends StatelessWidget {
   final _LineupItem item;
+  final int nowMin;
   final bool isFirst;
   final bool isLast;
   final bool isNext;
   const _TimelineRow({
     required this.item,
+    required this.nowMin,
     required this.isFirst,
     required this.isLast,
     required this.isNext,
@@ -536,9 +568,9 @@ class _TimelineRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final st = _statusOf(item.time);
+    final st = _statusOf(item.time, nowMin);
     final meta = _metaOf(item.isDj);
-    final minsLeft = _toMin(item.time) - _kNowMin;
+    final minsLeft = _toMin(item.time) - nowMin;
 
     final timeColor = switch (st) {
       _Status.now => _hip,
@@ -613,6 +645,9 @@ class _TimelineRow extends StatelessWidget {
               padding: EdgeInsets.only(bottom: 14.h),
               child: Opacity(
                 opacity: st == _Status.past ? 0.5 : 1,
+                child: GestureDetector(
+                onTap: () => _openClub(context, item.clubId),
+                behavior: HitTestBehavior.opaque,
                 child: Container(
                   padding: EdgeInsets.all(12.r),
                   decoration: st == _Status.now
@@ -778,6 +813,7 @@ class _TimelineRow extends StatelessWidget {
                     ],
                   ),
                 ),
+                ),
               ),
             ),
           ),
@@ -801,6 +837,208 @@ class _TimelineRow extends StatelessWidget {
           fontWeight: weight,
           color: fg,
         ),
+      ),
+    );
+  }
+}
+
+// ── 로딩 스켈레톤 (디자인 today_lineup LineupSkeleton 기반) ──
+// 인트로 메타 · 지금 공연 배너 · 타입 필터 · 타임라인 5행을 전부 shimmer로.
+// 실제 레이아웃과 동일 구조라 로드 완료 시 자리 이동(레이아웃 점프)이 적다.
+class _LineupSkeleton extends StatelessWidget {
+  const _LineupSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 인트로 메타
+        Padding(
+          padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 12.h),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  VybeSkel(width: 130.w, height: 24.h, radius: 8),
+                  SizedBox(height: 8.h),
+                  VybeSkel(width: 180.w, height: 13.h),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  VybeSkel(width: 44.w, height: 20.h, radius: 6),
+                  SizedBox(height: 8.h),
+                  VybeSkel(width: 52.w, height: 12.h),
+                ],
+              ),
+            ],
+          ),
+        ),
+        // 지금 공연 배너
+        Container(
+          margin: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 6.h),
+          padding: EdgeInsets.all(14.r),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18.r),
+            border: Border.all(color: VybeColors.gray800),
+          ),
+          child: Row(
+            children: [
+              VybeSkel(width: 54.r, height: 54.r, radius: 99),
+              SizedBox(width: 13.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    VybeSkel(width: 90.w, height: 12.h),
+                    SizedBox(height: 9.h),
+                    VybeSkel(width: 150.w, height: 20.h, radius: 6),
+                    SizedBox(height: 9.h),
+                    VybeSkel(width: 120.w, height: 12.h),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: 12.h),
+        // 타입 필터
+        Padding(
+          padding: EdgeInsets.only(left: 16.w, right: 16.w, bottom: 14.h),
+          child: Row(
+            children: [
+              VybeSkel(width: 60.w, height: 34.h, radius: 999),
+              SizedBox(width: 8.w),
+              VybeSkel(width: 64.w, height: 34.h, radius: 999),
+              SizedBox(width: 8.w),
+              VybeSkel(width: 54.w, height: 34.h, radius: 999),
+              const Spacer(),
+              VybeSkel(width: 56.w, height: 14.h),
+            ],
+          ),
+        ),
+        // 타임라인 5행
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          child: Column(
+            children: [
+              for (var i = 0; i < 5; i++)
+                _TimelineRowSkeleton(isFirst: i == 0, isLast: i == 4),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── 타임라인 행 스켈레톤 (레일 구조 유지 + 카드 shimmer) ──
+class _TimelineRowSkeleton extends StatelessWidget {
+  final bool isFirst;
+  final bool isLast;
+  const _TimelineRowSkeleton({required this.isFirst, required this.isLast});
+
+  @override
+  Widget build(BuildContext context) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 시간
+          SizedBox(
+            width: 46.w,
+            child: Padding(
+              padding: EdgeInsets.only(top: 20.h, right: 4.w),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: VybeSkel(width: 34.w, height: 13.h),
+              ),
+            ),
+          ),
+          // 레일 (세로선 + 정적 점)
+          SizedBox(
+            width: 24.w,
+            child: Stack(
+              children: [
+                if (!isFirst)
+                  Positioned(
+                    left: 11.w,
+                    top: 0,
+                    height: 20.h,
+                    child: Container(width: 2.w, color: VybeColors.gray800),
+                  ),
+                if (!isLast)
+                  Positioned(
+                    left: 11.w,
+                    top: 32.h,
+                    bottom: 0,
+                    child: Container(width: 2.w, color: VybeColors.gray800),
+                  ),
+                Positioned(
+                  left: 6.w,
+                  top: 18.h,
+                  child: Container(
+                    width: 12.r,
+                    height: 12.r,
+                    decoration: const BoxDecoration(
+                      color: VybeColors.gray700,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // 카드
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(bottom: 14.h),
+              child: Container(
+                padding: EdgeInsets.all(12.r),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.03),
+                  borderRadius: BorderRadius.circular(16.r),
+                  border: Border.all(color: VybeColors.gray800),
+                ),
+                child: Row(
+                  children: [
+                    VybeSkel(width: 46.r, height: 46.r, radius: 99),
+                    SizedBox(width: 12.w),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          FractionallySizedBox(
+                            widthFactor: 0.46,
+                            child: VybeSkel(height: 16.h),
+                          ),
+                          SizedBox(height: 8.h),
+                          FractionallySizedBox(
+                            widthFactor: 0.62,
+                            child: VybeSkel(height: 12.h),
+                          ),
+                          SizedBox(height: 8.h),
+                          Row(
+                            children: [
+                              VybeSkel(width: 44.w, height: 16.h),
+                              SizedBox(width: 5.w),
+                              VybeSkel(width: 38.w, height: 16.h),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

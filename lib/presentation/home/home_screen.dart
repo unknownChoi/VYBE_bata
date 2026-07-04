@@ -31,9 +31,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body: Stack(
         children: [
           // 앰비언트 클럽 조명 백드롭 (스크롤 컨텐츠 뒤).
-          const Positioned.fill(
-            child: IgnorePointer(child: AmbientBackdrop()),
-          ),
+          const Positioned.fill(child: IgnorePointer(child: AmbientBackdrop())),
           // 스크롤 컨텐츠 — 상단 바 높이만큼 패딩.
           Positioned.fill(
             child: NotificationListener<ScrollNotification>(
@@ -64,7 +62,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             top: 0,
             left: 0,
             right: 0,
-            child: HomeGnb(scrolled: _scrolled, onSearchTap: widget.onSearchTap),
+            child: HomeGnb(
+              scrolled: _scrolled,
+              onSearchTap: widget.onSearchTap,
+            ),
           ),
         ],
       ),

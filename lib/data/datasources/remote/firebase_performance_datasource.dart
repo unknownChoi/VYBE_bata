@@ -14,7 +14,7 @@ class FirebasePerformanceDataSource {
     String genre = '힙합',
     String? date,
   }) async {
-    final bucket = date ?? _kstDateStr(DateTime.now());
+    final bucket = date ?? _nightBucket(DateTime.now());
     logFirebaseAccess(
       file: 'firebase_performance_datasource.dart',
       service:
@@ -35,10 +35,13 @@ class FirebasePerformanceDataSource {
         .toList();
   }
 
-  /// KST(UTC+9) 기준 YYYYMMDD. 자정 직후 새벽까지 같은 '오늘'로 보려면
-  /// 호출부에서 date를 직접 넘겨 처리(여기선 단순 KST 달력일).
-  String _kstDateStr(DateTime now) {
-    final k = now.toUtc().add(const Duration(hours: 9));
+  /// 오늘 '밤' 버킷(YYYYMMDD). performances.date 는 밤 시작일 기준이라
+  /// 새벽 공연(예 02:00)도 그 전날 date 로 저장됨(startAt만 +1일).
+  /// 따라서 KST 새벽(06시 미만)에는 전날을 밤 버킷으로 써야 진행 중인
+  /// 오늘밤 라인업이 유지됨(6시 이후 새 밤으로 롤오버).
+  String _nightBucket(DateTime now) {
+    var k = now.toUtc().add(const Duration(hours: 9));
+    if (k.hour < 6) k = k.subtract(const Duration(days: 1));
     final y = k.year.toString().padLeft(4, '0');
     final m = k.month.toString().padLeft(2, '0');
     final d = k.day.toString().padLeft(2, '0');

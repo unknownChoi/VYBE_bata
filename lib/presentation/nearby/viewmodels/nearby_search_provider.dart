@@ -24,7 +24,10 @@ class NearbySearchResult {
   });
 }
 
-@riverpod
+// keepAlive: 힙합 '지도에서 보기'는 주변 탭(NearbyScreen)이 아직 mount 안 된
+// 상태에서 state를 세팅한다. autoDispose면 watcher 없어 즉시 dispose→null 리셋되어
+// 첫 탭이 유실된다(두 번째만 동작). 검색 결과는 clear()로만 해제.
+@Riverpod(keepAlive: true)
 class NearbySearchResultNotifier extends _$NearbySearchResultNotifier {
   // 지도 핀용은 페이지네이션 없이 한 번에 넉넉히 가져온다.
   static const int _pageSize = 50;

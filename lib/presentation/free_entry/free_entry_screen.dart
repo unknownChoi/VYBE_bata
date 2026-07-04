@@ -10,6 +10,7 @@ import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/clubs/club_detail_screen.dart';
 import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
+import 'package:vybe/presentation/common/widgets/vybe_genre_backdrop.dart';
 import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 import 'package:vybe/presentation/free_entry/viewmodels/free_entry_viewmodel.dart';
@@ -336,51 +337,10 @@ class _Backdrop extends StatelessWidget {
   const _Backdrop();
   @override
   Widget build(BuildContext context) {
-    return const DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF17090F), Color(0xFF101013), Color(0xFF0D0A0C)],
-          stops: [0.0, 0.38, 1.0],
-        ),
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 420,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  center: Alignment(-0.85, -1),
-                  radius: 1.3,
-                  colors: [Color(0x6BFF4D8D), Color(0x00000000)],
-                  stops: [0.0, 0.62],
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 420,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  center: Alignment(1, -0.9),
-                  radius: 1.2,
-                  colors: [Color(0x4D7731FE), Color(0x00000000)],
-                  stops: [0.0, 0.62],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+    return const VybeGenreBackdrop(
+      baseColors: [Color(0xFF17090F), Color(0xFF101013), Color(0xFF0D0A0C)],
+      accent1: Color(0x6BFF4D8D),
+      accent2: Color(0x4D7731FE),
     );
   }
 }

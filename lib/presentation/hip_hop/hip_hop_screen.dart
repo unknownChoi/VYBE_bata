@@ -11,6 +11,7 @@ import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
+import 'package:vybe/presentation/hip_hop/hip_hop_gradients.dart';
 import 'package:vybe/presentation/hip_hop/today_lineup_screen.dart';
 import 'package:vybe/presentation/hip_hop/viewmodels/hip_hop_viewmodel.dart';
 import 'package:vybe/presentation/main_scaffold/nav_bar_visibility_provider.dart';
@@ -114,23 +115,6 @@ double _distanceKm(double lat, double lng) {
   return r * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
 }
 
-// 썸네일/포스터 배경 fallback — clubId 해시 기반 일관 그라데이션.
-const _fallbackGradients = <List<Color>>[
-  [Color(0xFF2B1655), Color(0xFF7731FE), Color(0xFFF5B82E)],
-  [Color(0xFFFB5607), Color(0xFFFFBE0B)],
-  [Color(0xFF2A1A3E), Color(0xFF7731FE)],
-  [Color(0xFF4A1E1E), Color(0xFFF72585)],
-  [Color(0xFF3A0CA3), Color(0xFF4361EE)],
-  [Color(0xFF3A2F0A), Color(0xFFF5B82E), Color(0xFFFB8500)],
-  [Color(0xFF5A3A1A), Color(0xFFF5B82E)],
-  [Color(0xFF1B3A3A), Color(0xFF2A9D8F)],
-  [Color(0xFFFFBE0B), Color(0xFFFB5607)],
-  [Color(0xFF2A2410), Color(0xFFB5860B)],
-];
-
-// clubId 해시 기반 일관 그라데이션.
-List<Color> _gradFor(String clubId) =>
-    _fallbackGradients[clubId.hashCode.abs() % _fallbackGradients.length];
 
 // ClubModel(+오늘 헤드라이너 공연) → 포스터 카드 뷰모델.
 _HipClub _fromClub(ClubModel c, PerformanceModel? headliner) {
@@ -149,7 +133,7 @@ _HipClub _fromClub(ClubModel c, PerformanceModel? headliner) {
     live: headliner != null,
     open: c.operatingHours.today.isCurrentlyOpen,
     thumbnailUrl: c.thumbnailUrl,
-    bg: _gradFor(c.clubId),
+    bg: hipGradFor(c.clubId),
   );
 }
 
@@ -164,7 +148,7 @@ _Hero _heroFromPerf(PerformanceModel p, ClubModel? club) {
     genre: club?.genre ?? p.genre,
     time: '오늘 ${p.hhmm} 공연',
     tag: '오늘밤 주목할 공연',
-    bg: _gradFor(p.clubId),
+    bg: hipGradFor(p.clubId),
   );
 }
 
@@ -175,7 +159,7 @@ _Dj _djFromPerf(PerformanceModel p, int idx) => _Dj(
   club: p.clubName,
   time: p.hhmm,
   isDj: p.isDj,
-  bg: _gradFor(p.clubId),
+  bg: hipGradFor(p.clubId),
 );
 
 const _areas = ['인기순', '홍대', '강남', '압구정', '이태원', '건대'];
@@ -265,6 +249,14 @@ class _HipHopScreenState extends ConsumerState<HipHopScreen> {
       body: SizedBox.expand(
         child: Stack(
           children: [
+            // 상단 골드/보라 백드롭 그라데이션
+            const Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 560,
+              child: IgnorePointer(child: HipBackdrop()),
+            ),
             Positioned.fill(
               child: ListView(
                 padding: EdgeInsets.only(bottom: bottomPad),

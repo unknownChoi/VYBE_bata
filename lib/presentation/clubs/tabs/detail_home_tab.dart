@@ -12,6 +12,7 @@ import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
 import 'package:vybe/presentation/clubs/widgets/club_section_divider.dart';
 import 'package:vybe/presentation/clubs/widgets/subway_line_badge.dart';
+import 'package:vybe/presentation/clubs/widgets/table_pricing_section.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 
 class DetailHomeTab extends ConsumerStatefulWidget {
@@ -46,6 +47,8 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
         clubAsync.isLoading
             ? const InfoSkeleton()
             : _buildInfoSection(clubAsync.value, clubInfoAsync.value),
+        const ClubSectionDivider(),
+        const TablePricingSection(),
         const ClubSectionDivider(),
         menusAsync.isLoading
             ? const MenuSkeleton()
