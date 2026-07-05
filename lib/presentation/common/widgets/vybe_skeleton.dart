@@ -288,6 +288,137 @@ class InfoSkeleton extends StatelessWidget {
   }
 }
 
+// 공연 일정 섹션 스켈레톤 — 헤더 + 캡션 + 날짜 카드 2개(날짜 타일 | 라인업 2행).
+// claude.ai/design club_detail app.jsx ScheduleSkeleton 기반.
+class ScheduleSkeleton extends StatelessWidget {
+  const ScheduleSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              VybeSkel(width: 88.w, height: 20.h),
+              VybeSkel(width: 56.w, height: 14.h),
+            ],
+          ),
+          SizedBox(height: 10.h),
+          VybeSkel(width: 200.w, height: 13.h),
+          SizedBox(height: 14.h),
+          for (var i = 0; i < 2; i++)
+            Padding(
+              padding: EdgeInsets.only(bottom: i == 0 ? 10.h : 0),
+              child: _dayCard(),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _dayCard() {
+    return Container(
+      padding: EdgeInsets.all(14.r),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14.r),
+        border: Border.all(color: VybeColors.gray800),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 날짜 타일
+          SizedBox(
+            width: 42.w,
+            child: Column(
+              children: [
+                VybeSkel(width: 22.w, height: 10.h),
+                SizedBox(height: 6.h),
+                VybeSkel(width: 26.w, height: 24.h),
+                SizedBox(height: 6.h),
+                VybeSkel(width: 16.w, height: 10.h),
+                SizedBox(height: 6.h),
+                VybeSkel(width: 32.w, height: 14.h, radius: 99),
+              ],
+            ),
+          ),
+          SizedBox(width: 12.w),
+          // 라인업 2행
+          Expanded(
+            child: Container(
+              padding: EdgeInsets.only(left: 14.w),
+              decoration: const BoxDecoration(
+                border: Border(
+                  left: BorderSide(color: VybeColors.gray900),
+                ),
+              ),
+              child: Column(
+                children: [
+                  for (var j = 0; j < 2; j++)
+                    Padding(
+                      padding: EdgeInsets.only(bottom: j == 0 ? 14.h : 0),
+                      child: Row(
+                        children: [
+                          VybeSkel(width: 34.r, height: 34.r, radius: 99),
+                          SizedBox(width: 10.w),
+                          VybeSkel(width: 110.w, height: 14.h),
+                          const Spacer(),
+                          VybeSkel(width: 32.w, height: 12.h),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// 테이블 가격 섹션 스켈레톤 — 헤더 + 플로어맵 + 범례 + 상세 카드.
+// claude.ai/design club_detail app.jsx TableSkeleton 기반.
+class TableSkeleton extends StatelessWidget {
+  const TableSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              VybeSkel(width: 88.w, height: 20.h),
+              VybeSkel(width: 56.w, height: 14.h),
+            ],
+          ),
+          SizedBox(height: 14.h),
+          VybeSkel(width: double.infinity, height: 384.h, radius: 16),
+          SizedBox(height: 12.h),
+          Row(
+            children: [
+              VybeSkel(width: 74.w, height: 14.h),
+              SizedBox(width: 16.w),
+              VybeSkel(width: 60.w, height: 14.h),
+              SizedBox(width: 16.w),
+              VybeSkel(width: 90.w, height: 14.h),
+            ],
+          ),
+          SizedBox(height: 14.h),
+          VybeSkel(width: double.infinity, height: 200.h, radius: 14),
+        ],
+      ),
+    );
+  }
+}
+
 class MenuSkeleton extends StatelessWidget {
   const MenuSkeleton({super.key});
 

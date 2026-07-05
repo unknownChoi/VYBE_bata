@@ -20,4 +20,10 @@ class _PerformanceRepositoryImpl implements PerformanceRepository {
     String? date,
   }) =>
       _dataSource.getTodayPerformances(genre: genre, date: date);
+
+  @override
+  Future<List<PerformanceModel>> getUpcomingPerformancesByClub(
+    String clubId,
+  ) =>
+      _dataSource.getUpcomingPerformancesByClub(clubId);
 }

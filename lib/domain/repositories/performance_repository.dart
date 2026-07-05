@@ -8,4 +8,7 @@ abstract interface class PerformanceRepository {
     String genre,
     String? date,
   });
+
+  /// 특정 클럽의 다가오는 공연 목록(시작시각 오름차순).
+  Future<List<PerformanceModel>> getUpcomingPerformancesByClub(String clubId);
 }

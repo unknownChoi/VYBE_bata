@@ -35,6 +35,30 @@ class FirebasePerformanceDataSource {
         .toList();
   }
 
+  /// 특정 클럽의 다가오는 공연(오늘 밤 이후) 시작시각 오름차순 조회.
+  /// (clubId, startAt) 복합 인덱스 사용. 과거 공연은 date(YYYYMMDD) 문자열
+  /// 비교로 클라에서 제외 — 오늘 밤 버킷 이상만 통과.
+  Future<List<PerformanceModel>> getUpcomingPerformancesByClub(
+    String clubId,
+  ) async {
+    final bucket = _nightBucket(DateTime.now());
+    logFirebaseAccess(
+      file: 'firebase_performance_datasource.dart',
+      service:
+          "Firestore(performances) [where clubId='$clubId', orderBy startAt]",
+      purpose: '클럽 상세 공연 일정 조회',
+    );
+    final snapshot = await _firestore
+        .collection('performances')
+        .where('clubId', isEqualTo: clubId)
+        .orderBy('startAt')
+        .get();
+    return snapshot.docs
+        .map(PerformanceModel.fromFirestore)
+        .where((p) => p.isActive && p.date.compareTo(bucket) >= 0)
+        .toList();
+  }
+
   /// 오늘 '밤' 버킷(YYYYMMDD). performances.date 는 밤 시작일 기준이라
   /// 새벽 공연(예 02:00)도 그 전날 date 로 저장됨(startAt만 +1일).
   /// 따라서 KST 새벽(06시 미만)에는 전날을 밤 버킷으로 써야 진행 중인

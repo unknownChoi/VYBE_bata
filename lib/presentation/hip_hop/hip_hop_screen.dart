@@ -9,6 +9,7 @@ import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/data/models/performance_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/clubs/club_detail_screen.dart';
 import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 import 'package:vybe/presentation/hip_hop/hip_hop_gradients.dart';
@@ -53,6 +54,7 @@ class _Hero {
 
 class _Dj {
   final int id;
+  final String clubId; // 탭 → 클럽 상세 이동용
   final String dj;
   final String club;
   final String time;
@@ -60,6 +62,7 @@ class _Dj {
   final List<Color> bg;
   const _Dj({
     required this.id,
+    required this.clubId,
     required this.dj,
     required this.club,
     required this.time,
@@ -115,7 +118,6 @@ double _distanceKm(double lat, double lng) {
   return r * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
 }
 
-
 // ClubModel(+오늘 헤드라이너 공연) → 포스터 카드 뷰모델.
 _HipClub _fromClub(ClubModel c, PerformanceModel? headliner) {
   return _HipClub(
@@ -155,6 +157,7 @@ _Hero _heroFromPerf(PerformanceModel p, ClubModel? club) {
 // 오늘 공연 → DJ rail(아티스트) 뷰모델.
 _Dj _djFromPerf(PerformanceModel p, int idx) => _Dj(
   id: idx,
+  clubId: p.clubId,
   dj: p.artistName,
   club: p.clubName,
   time: p.hhmm,
@@ -188,11 +191,12 @@ class _HipHopScreenState extends ConsumerState<HipHopScreen> {
 
   // '지도에서 보기' → TOP 10 클럽을 주변 탭 지도 핀으로 표시 + 탭 전환.
   void _showOnMap(List<_HipClub> grid, Map<String, ClubModel> clubById) {
-    final clubs =
-        grid.map((g) => clubById[g.id]).whereType<ClubModel>().toList();
+    final clubs = grid
+        .map((g) => clubById[g.id])
+        .whereType<ClubModel>()
+        .toList();
     if (clubs.isEmpty) return;
-    final keyword =
-        _area == '인기순' ? '힙합 인기 TOP 10' : '$_area 힙합 인기 TOP 10';
+    final keyword = _area == '인기순' ? '힙합 인기 TOP 10' : '$_area 힙합 인기 TOP 10';
     ref
         .read(nearbySearchResultProvider.notifier)
         .showClubs(keyword: keyword, clubs: clubs);
@@ -390,6 +394,13 @@ class _HipHopScreenState extends ConsumerState<HipHopScreen> {
                                 club: c,
                                 saved: _saved.contains(c.id),
                                 onSave: () => _toggleSave(c.id),
+                                // 카드 탭 → 클럽 상세.
+                                onTap: () => Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        ClubDetailScreen(clubId: c.id),
+                                  ),
+                                ),
                               ),
                             )
                             .toList(),
@@ -1039,95 +1050,102 @@ class _DjCircle extends StatelessWidget {
       end: Alignment.bottomRight,
       colors: d.bg,
     );
-    return SizedBox(
-      width: 76.w,
-      child: Column(
-        children: [
-          SizedBox(
-            width: 72.r,
-            height: 72.r,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                // 외곽 골드 링 + 내부 원.
-                Container(
-                  width: 72.r,
-                  height: 72.r,
-                  padding: EdgeInsets.all(2.r),
-                  decoration: BoxDecoration(
-                    gradient: grad,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: _hip, width: 2),
-                  ),
-                  child: Container(
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      // 아티스트 탭 → 해당 클럽 상세.
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => ClubDetailScreen(clubId: d.clubId)),
+      ),
+      child: SizedBox(
+        width: 76.w,
+        child: Column(
+          children: [
+            SizedBox(
+              width: 72.r,
+              height: 72.r,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  // 외곽 골드 링 + 내부 원.
+                  Container(
+                    width: 72.r,
+                    height: 72.r,
+                    padding: EdgeInsets.all(2.r),
                     decoration: BoxDecoration(
                       gradient: grad,
                       shape: BoxShape.circle,
+                      border: Border.all(color: _hip, width: 2),
                     ),
-                    alignment: Alignment.center,
-                    child: Icon(
-                      d.isDj ? Icons.album_outlined : Icons.mic_none_rounded,
-                      size: 24.r,
-                      color: Colors.white.withValues(alpha: 0.85),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: grad,
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(
+                        d.isDj ? Icons.album_outlined : Icons.mic_none_rounded,
+                        size: 24.r,
+                        color: Colors.white.withValues(alpha: 0.85),
+                      ),
                     ),
                   ),
-                ),
-                // 시간 배지.
-                Positioned(
-                  bottom: -3.h,
-                  left: 0,
-                  right: 0,
-                  child: Center(
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 7.w,
-                        vertical: 2.h,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _onHip,
-                        borderRadius: BorderRadius.circular(99.r),
-                        border: Border.all(color: _hip),
-                      ),
-                      child: Text(
-                        d.time,
-                        style: TextStyle(
-                          fontFamily: 'Pretendard',
-                          fontSize: 10.sp,
-                          height: 12 / 10,
-                          fontWeight: FontWeight.w800,
-                          color: _hip,
+                  // 시간 배지.
+                  Positioned(
+                    bottom: -3.h,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 7.w,
+                          vertical: 2.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _onHip,
+                          borderRadius: BorderRadius.circular(99.r),
+                          border: Border.all(color: _hip),
+                        ),
+                        child: Text(
+                          d.time,
+                          style: TextStyle(
+                            fontFamily: 'Pretendard',
+                            fontSize: 10.sp,
+                            height: 12 / 10,
+                            fontWeight: FontWeight.w800,
+                            color: _hip,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          SizedBox(height: 8.h),
-          Text(
-            d.dj,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: VybeTypography.caption.copyWith(
-              height: 14 / 12,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
+            SizedBox(height: 8.h),
+            Text(
+              d.dj,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: VybeTypography.caption.copyWith(
+                height: 14 / 12,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
             ),
-          ),
-          SizedBox(height: 2.h),
-          Text(
-            '${d.isDj ? 'DJ · ' : ''}${d.club}',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontFamily: 'Pretendard',
-              fontSize: 11.sp,
-              height: 13 / 11,
-              color: VybeColors.gray500,
+            SizedBox(height: 2.h),
+            Text(
+              '${d.isDj ? 'DJ · ' : ''}${d.club}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontFamily: 'Pretendard',
+                fontSize: 11.sp,
+                height: 13 / 11,
+                color: VybeColors.gray500,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1196,256 +1214,267 @@ class _PosterCard extends StatelessWidget {
   final _HipClub club;
   final bool saved;
   final VoidCallback onSave;
+  final VoidCallback onTap;
   const _PosterCard({
     required this.club,
     required this.saved,
     required this.onSave,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16.r),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: _slideGrad(club.bg),
-          border: Border.all(color: VybeColors.gray800),
-        ),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            // 클럽 썸네일(없으면 그라데이션만).
-            if (club.thumbnailUrl.isNotEmpty)
-              Positioned.fill(
-                child: SkeletonImage(
-                  url: club.thumbnailUrl,
-                  fit: BoxFit.cover,
-                  minSkeleton: const Duration(seconds: 1),
-                ),
-              ),
-            const Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: RadialGradient(
-                    center: Alignment(0.4, -0.76),
-                    radius: 0.9,
-                    colors: [Color(0x33FFFFFF), Color(0x00FFFFFF)],
-                    stops: [0.0, 0.55],
+    return GestureDetector(
+      onTap: onTap,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16.r),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: _slideGrad(club.bg),
+            border: Border.all(color: VybeColors.gray800),
+          ),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // 클럽 썸네일(없으면 그라데이션만).
+              if (club.thumbnailUrl.isNotEmpty)
+                Positioned.fill(
+                  child: SkeletonImage(
+                    url: club.thumbnailUrl,
+                    fit: BoxFit.cover,
+                    minSkeleton: const Duration(seconds: 1),
                   ),
                 ),
-              ),
-            ),
-            const Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [
-                      Color(0xF20A090B),
-                      Color(0x330A090B),
-                      Color(0x000A090B),
-                    ],
-                    stops: [0.16, 0.56, 0.80],
-                  ),
-                ),
-              ),
-            ),
-            // 영업 상태.
-            Positioned(
-              top: 11.h,
-              left: 11.w,
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.42),
-                  borderRadius: BorderRadius.circular(99.r),
-                  border: Border.all(
-                    color: club.open
-                        ? VybeColors.mainLime500.withValues(alpha: 0.5)
-                        : VybeColors.gray700,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 5.r,
-                      height: 5.r,
-                      decoration: BoxDecoration(
-                        color: club.open
-                            ? VybeColors.mainLime500
-                            : VybeColors.gray500,
-                        shape: BoxShape.circle,
-                      ),
+              const Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: RadialGradient(
+                      center: Alignment(0.4, -0.76),
+                      radius: 0.9,
+                      colors: [Color(0x33FFFFFF), Color(0x00FFFFFF)],
+                      stops: [0.0, 0.55],
                     ),
-                    SizedBox(width: 5.w),
-                    Text(
-                      club.open ? '영업중' : '영업종료',
-                      style: VybeTypography.caption.copyWith(
-                        fontSize: 10.sp,
-                        height: 11 / 10,
-                        fontWeight: FontWeight.w700,
-                        color: club.open
-                            ? VybeColors.mainLime500
-                            : VybeColors.gray400,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-            // 찜.
-            Positioned(
-              top: 8.h,
-              right: 8.w,
-              child: GestureDetector(
-                onTap: onSave,
-                behavior: HitTestBehavior.opaque,
+              const Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [
+                        Color(0xF20A090B),
+                        Color(0x330A090B),
+                        Color(0x000A090B),
+                      ],
+                      stops: [0.16, 0.56, 0.80],
+                    ),
+                  ),
+                ),
+              ),
+              // 영업 상태.
+              Positioned(
+                top: 11.h,
+                left: 11.w,
                 child: Container(
-                  width: 30.r,
-                  height: 30.r,
+                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.42),
-                    shape: BoxShape.circle,
+                    borderRadius: BorderRadius.circular(99.r),
+                    border: Border.all(
+                      color: club.open
+                          ? VybeColors.mainLime500.withValues(alpha: 0.5)
+                          : VybeColors.gray700,
+                    ),
                   ),
-                  child: Icon(
-                    saved
-                        ? Icons.favorite_rounded
-                        : Icons.favorite_border_rounded,
-                    size: 15.r,
-                    color: saved ? VybeColors.mainPurple500 : Colors.white,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 5.r,
+                        height: 5.r,
+                        decoration: BoxDecoration(
+                          color: club.open
+                              ? VybeColors.mainLime500
+                              : VybeColors.gray500,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      SizedBox(width: 5.w),
+                      Text(
+                        club.open ? '영업중' : '영업종료',
+                        style: VybeTypography.caption.copyWith(
+                          fontSize: 10.sp,
+                          height: 11 / 10,
+                          fontWeight: FontWeight.w700,
+                          color: club.open
+                              ? VybeColors.mainLime500
+                              : VybeColors.gray400,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            ),
-            // 본문.
-            Positioned(
-              left: 12.w,
-              right: 12.w,
-              bottom: 12.h,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (club.live) ...[
-                    Container(
-                      margin: EdgeInsets.only(bottom: 8.h),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 8.w,
-                        vertical: 3.h,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _hip.withValues(alpha: 0.18),
-                        borderRadius: BorderRadius.circular(7.r),
-                        border: Border.all(color: _hip.withValues(alpha: 0.36)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.mic_none_rounded, size: 11.r, color: _hip),
-                          SizedBox(width: 4.w),
-                          Text(
-                            '${club.lineup} LIVE',
-                            style: VybeTypography.caption.copyWith(
-                              fontSize: 10.sp,
-                              height: 11 / 10,
-                              fontWeight: FontWeight.w700,
+              // 찜.
+              Positioned(
+                top: 8.h,
+                right: 8.w,
+                child: GestureDetector(
+                  onTap: onSave,
+                  behavior: HitTestBehavior.opaque,
+                  child: Container(
+                    width: 30.r,
+                    height: 30.r,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.42),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      saved
+                          ? Icons.favorite_rounded
+                          : Icons.favorite_border_rounded,
+                      size: 15.r,
+                      color: saved ? VybeColors.mainPurple500 : Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              // 본문.
+              Positioned(
+                left: 12.w,
+                right: 12.w,
+                bottom: 12.h,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (club.live) ...[
+                      Container(
+                        margin: EdgeInsets.only(bottom: 8.h),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8.w,
+                          vertical: 3.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _hip.withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(7.r),
+                          border: Border.all(
+                            color: _hip.withValues(alpha: 0.36),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.mic_none_rounded,
+                              size: 11.r,
                               color: _hip,
                             ),
-                          ),
-                        ],
+                            SizedBox(width: 4.w),
+                            Text(
+                              '${club.lineup} LIVE',
+                              style: VybeTypography.caption.copyWith(
+                                fontSize: 10.sp,
+                                height: 11 / 10,
+                                fontWeight: FontWeight.w700,
+                                color: _hip,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          club.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontFamily: 'Pretendard',
-                            fontSize: 18.sp,
-                            height: 20 / 18,
+                    ],
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            club.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontFamily: 'Pretendard',
+                              fontSize: 18.sp,
+                              height: 20 / 18,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 6.w),
+                        Icon(
+                          Icons.star_rounded,
+                          size: 11.r,
+                          color: VybeColors.mainLime500,
+                        ),
+                        SizedBox(width: 2.w),
+                        Text(
+                          club.rating.toStringAsFixed(2),
+                          style: VybeTypography.caption.copyWith(
+                            fontSize: 11.sp,
+                            height: 12 / 11,
                             fontWeight: FontWeight.w700,
                             color: Colors.white,
                           ),
                         ),
-                      ),
-                      SizedBox(width: 6.w),
-                      Icon(
-                        Icons.star_rounded,
-                        size: 11.r,
-                        color: VybeColors.mainLime500,
-                      ),
-                      SizedBox(width: 2.w),
-                      Text(
-                        club.rating.toStringAsFixed(2),
-                        style: VybeTypography.caption.copyWith(
-                          fontSize: 11.sp,
-                          height: 12 / 11,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 5.h),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.place_rounded,
-                        size: 10.r,
-                        color: VybeColors.gray400,
-                      ),
-                      SizedBox(width: 4.w),
-                      Text(
-                        '${club.area} · ${club.dist.toStringAsFixed(1)}km',
-                        style: VybeTypography.caption.copyWith(
-                          fontSize: 11.sp,
-                          height: 12 / 11,
-                          fontWeight: FontWeight.w600,
+                      ],
+                    ),
+                    SizedBox(height: 5.h),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.place_rounded,
+                          size: 10.r,
                           color: VybeColors.gray400,
                         ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 8.h),
-                  Wrap(
-                    spacing: 5.w,
-                    runSpacing: 5.h,
-                    children: club.styles
-                        .map(
-                          (t) => Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 7.w,
-                              vertical: 1.h,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.09),
-                              borderRadius: BorderRadius.circular(6.r),
-                            ),
-                            child: Text(
-                              '#$t',
-                              style: VybeTypography.caption.copyWith(
-                                fontSize: 10.sp,
-                                height: 13 / 10,
-                                fontWeight: FontWeight.w600,
-                                color: VybeColors.gray300,
+                        SizedBox(width: 4.w),
+                        Text(
+                          '${club.area} · ${club.dist.toStringAsFixed(1)}km',
+                          style: VybeTypography.caption.copyWith(
+                            fontSize: 11.sp,
+                            height: 12 / 11,
+                            fontWeight: FontWeight.w600,
+                            color: VybeColors.gray400,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 8.h),
+                    Wrap(
+                      spacing: 5.w,
+                      runSpacing: 5.h,
+                      children: club.styles
+                          .map(
+                            (t) => Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 7.w,
+                                vertical: 1.h,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.09),
+                                borderRadius: BorderRadius.circular(6.r),
+                              ),
+                              child: Text(
+                                '#$t',
+                                style: VybeTypography.caption.copyWith(
+                                  fontSize: 10.sp,
+                                  height: 13 / 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: VybeColors.gray300,
+                                ),
                               ),
                             ),
-                          ),
-                        )
-                        .toList(),
-                  ),
-                ],
+                          )
+                          .toList(),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

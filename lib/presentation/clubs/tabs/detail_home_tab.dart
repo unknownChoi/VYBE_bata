@@ -11,6 +11,7 @@ import 'package:vybe/data/models/operating_hours.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
 import 'package:vybe/presentation/clubs/widgets/club_section_divider.dart';
+import 'package:vybe/presentation/clubs/widgets/performance_schedule_section.dart';
 import 'package:vybe/presentation/clubs/widgets/subway_line_badge.dart';
 import 'package:vybe/presentation/clubs/widgets/table_pricing_section.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
@@ -48,7 +49,15 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
             ? const InfoSkeleton()
             : _buildInfoSection(clubAsync.value, clubInfoAsync.value),
         const ClubSectionDivider(),
-        const TablePricingSection(),
+        PerformanceScheduleSection(
+          clubId: widget.clubId,
+          clubName: clubAsync.value?.name,
+          area: clubAsync.value?.area,
+        ),
+        const ClubSectionDivider(),
+        clubAsync.isLoading
+            ? const TableSkeleton()
+            : const TablePricingSection(),
         const ClubSectionDivider(),
         menusAsync.isLoading
             ? const MenuSkeleton()
