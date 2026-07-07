@@ -63,6 +63,7 @@ class _EntryClub {
   final bool open;
   final String thumbnailUrl;
   final List<Color> gradient;
+  final bool vybe; // isVybeRecommended — VYBE 추천 뱃지 노출
 
   const _EntryClub({
     required this.id,
@@ -76,6 +77,7 @@ class _EntryClub {
     required this.open,
     required this.thumbnailUrl,
     required this.gradient,
+    required this.vybe,
   });
 
   _EntryClub copyWithDist(double d) => _EntryClub(
@@ -90,6 +92,7 @@ class _EntryClub {
         open: open,
         thumbnailUrl: thumbnailUrl,
         gradient: gradient,
+        vybe: vybe,
       );
 }
 
@@ -121,6 +124,7 @@ _EntryClub _fromClub(ClubModel c) {
     open: c.operatingHours.today.isCurrentlyOpen,
     thumbnailUrl: c.thumbnailUrl,
     gradient: grad,
+    vybe: c.isVybeRecommended,
   );
 }
 
@@ -843,6 +847,40 @@ class _EntryCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // VYBE 추천 뱃지 (다른 페이지 클럽 카드와 동일 스타일).
+                  if (club.vybe) ...[
+                    Container(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 7.w, vertical: 2.h),
+                      decoration: BoxDecoration(
+                        color: VybeColors.mainLime500.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(999.r),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SvgPicture.asset(
+                            'assets/icons/common/club_card/vybe_recommend.svg',
+                            width: 12.r,
+                            height: 12.r,
+                          ),
+                          SizedBox(width: 3.w),
+                          Text(
+                            'VYBE 추천 클럽',
+                            style: TextStyle(
+                              fontFamily: 'Pretendard',
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12.sp,
+                              height: 14 / 12,
+                              letterSpacing: 12 * -0.025,
+                              color: VybeColors.mainLime500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: 7.h),
+                  ],
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.baseline,
                     textBaseline: TextBaseline.alphabetic,

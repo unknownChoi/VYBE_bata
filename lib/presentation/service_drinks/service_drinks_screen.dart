@@ -886,20 +886,43 @@ class _DrinkCard extends StatelessWidget {
                       child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // VYBE 추천 뱃지 (다른 페이지 클럽 카드와 동일 스타일).
+                        if (club.isVybeRecommended) ...[
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 7.w, vertical: 2.h),
+                            decoration: BoxDecoration(
+                              color: VybeColors.mainLime500
+                                  .withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(999.r),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SvgPicture.asset(
+                                  'assets/icons/common/club_card/vybe_recommend.svg',
+                                  width: 12.r,
+                                  height: 12.r,
+                                ),
+                                SizedBox(width: 3.w),
+                                Text(
+                                  'VYBE 추천 클럽',
+                                  style: TextStyle(
+                                    fontFamily: 'Pretendard',
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 12.sp,
+                                    height: 14 / 12,
+                                    letterSpacing: 12 * -0.025,
+                                    color: VybeColors.mainLime500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(height: 7.h),
+                        ],
+                        // 이름·별점·평점은 텍스트 baseline 정렬 유지.
                         Row(
-                    // vybe 아이콘은 이름 텍스트와 세로 중앙 정렬.
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      if (club.isVybeRecommended) ...[
-                        SvgPicture.asset(
-                          'assets/icons/common/club_card/vybe_recommend.svg',
-                          width: 15.r,
-                          height: 15.r,
-                        ),
-                        SizedBox(width: 5.w),
-                      ],
-                      // 이름·별점·평점은 텍스트 baseline 정렬 유지.
-                      Row(
                         crossAxisAlignment: CrossAxisAlignment.baseline,
                         textBaseline: TextBaseline.alphabetic,
                         children: [
@@ -921,8 +944,6 @@ class _DrinkCard extends StatelessWidget {
                           ),
                         ],
                       ),
-                    ],
-                  ),
                   SizedBox(height: 7.h),
                   Row(
                     children: [
