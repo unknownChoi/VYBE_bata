@@ -101,6 +101,7 @@ View (Widget) → ViewModel (Notifier) → Repository → DataSource (Firebase)
 | 반응형 | `flutter_screenutil` |
 | 네이버 로그인 | `flutter_naver_login` |
 | 카카오 로그인 | `kakao_flutter_sdk_user` |
+| 검색엔진 | `algoliasearch` (Algolia — Firebase Extension으로 clubs 자동 동기화) |
 | 환경변수 관리 | `flutter_dotenv` (Flutter) / `dotenv` (Cloud Functions) |
 
 > ⚠️ `go_router` / `google_maps_flutter` / `json_serializable` 미사용. 화면 전환은
@@ -148,6 +149,8 @@ API 키는 `.env` 파일로 관리하며 절대 git에 커밋하지 않는다.
 # .env (git 제외)
 KAKAO_NATIVE_APP_KEY=your_key_here     # main.dart: KakaoSdk.init
 NAVER_MAP_CLIENT_ID=your_id_here       # main.dart: 네이버 지도 초기화 (FlutterNaverMap)
+ALGOLIA_APP_ID=your_id_here            # algolia_club_search_datasource: 클럽 검색
+ALGOLIA_SEARCH_API_KEY=your_key_here   # 반드시 Search-Only 키 (Admin/Write 키 금지)
 ```
 
 > main.dart 초기화 순서: `dotenv.load` → `Firebase.initializeApp` → `KakaoSdk.init` → 네이버 지도(`NAVER_MAP_CLIENT_ID`).
@@ -173,6 +176,23 @@ KAKAO_ADMIN_KEY=your_key_here
 NAVER_CLIENT_ID=your_id_here
 NAVER_CLIENT_SECRET=your_secret_here
 ```
+
+## 클럽 검색 (Algolia)
+
+검색은 **Algolia**가 1순위, Firestore searchTokens는 fallback.
+
+```
+clubs 쓰기 → Firebase Extension(firestore-algolia-search) → Algolia `clubs` 인덱스 자동 동기화
+앱 검색   → algolia_club_search_datasource (Search-Only 키) → 관련도순 clubId 페이지
+          → clubId로 Firestore getClub 조인 (인덱스엔 표시용 일부 필드만)
+```
+
+- Extension 설정: Collection Path `clubs`, Index `clubs`, objectID = doc.id(= clubId),
+  Indexable Fields: name,area,genre,genreStyles,tags,address,rating,thumbnailUrl,entryFeeMin,isActive,favoriteCount
+- 진입점은 `ClubRepositoryImpl.searchClubsPage` 하나 — Algolia/Firestore 분기 내부 처리,
+  viewmodel/화면은 엔진 무관. cursor: Algolia=페이지 번호(int), fallback=DocumentSnapshot.
+- 쿼리 시 `filters: 'isActive:true'` + 조인 후 재확인 (동기화 지연 방어).
+- ⚠ 키 규칙: 앱에는 **Search-Only 키만**. Admin/Write 키는 Extension(서버)에서만 사용.
 
 ### .gitignore 규칙
 - `.env` — Flutter 키
@@ -485,10 +505,10 @@ tags                : array     // 태그 목록
 favoriteCount       : number    // 찜 수 (Cloud Functions 자동 업데이트, 직접 수정 금지)
 searchTokens        : array     // 검색용 접두사 토큰(name/area/genre/tags 분해).
                                 //   onClubWritten 트리거가 자동 생성 — 직접 수정 금지.
-                                //   앱 검색: isActive=true + searchTokens arrayContainsAny
-                                //   + orderBy(rating desc) + startAfter 서버 페이지네이션(10개씩).
-                                //   firebase_club_datasource.searchClubsPage (본 만큼만 read).
-                                //   ⚠ 평점순 고정 — 관련도(점수) 정렬 아님(B안 한계).
+                                //   ⚠ 현재 검색 1순위는 Algolia (아래 '클럽 검색' 참고) —
+                                //   searchTokens 검색은 .env에 Algolia 키 없을 때 fallback.
+                                //   fallback 쿼리: isActive=true + arrayContainsAny
+                                //   + orderBy(rating desc) (평점순 고정, 관련도 정렬 아님).
 isActive            : boolean   // false면 앱에 노출 안 됨
 isVybeRecommended   : boolean   // vybe 추천 여부
 serviceDrink        : object    // 무료 서비스 음료 정보 (서비스 음료 페이지 데이터 소스)
