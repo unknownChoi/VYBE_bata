@@ -77,6 +77,14 @@ service cloud.firestore {
       }
     }
 
+    // 컬렉션 그룹: reviews — 마이페이지 '내 리뷰 관리'의 크로스-클럽 조회용.
+    // collectionGroup 쿼리에는 중첩 match 규칙이 적용되지 않으므로 별도 허용.
+    // 본인 리뷰 읽기만 허용 (쓰기는 기존 clubs/.../reviews 규칙으로만).
+    match /{path=**}/reviews/{reviewId} {
+      allow read: if request.auth != null
+        && resource.data.userId == request.auth.uid;
+    }
+
     // banners/{bannerId}
     match /banners/{bannerId} {
       allow read: if true;

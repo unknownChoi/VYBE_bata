@@ -282,11 +282,15 @@ ElevatedButton(onPressed: () {}, child: Text('로그인'))
 - 홈 (배너·추천), 내 주변 (네이버 지도 + geohash), 검색 화면
 - 클럽 상세 (정보·메뉴·사진·리뷰 탭, 찜, 스켈레톤 로딩)
 - **찜 탭 (`saved/`) — favorites 실연동** (정렬, 리스트↔그리드 뷰, 찜 해제)
+- **마이페이지 (`my_page/`) — my.html 디자인 기반** (프로필 히어로, 리뷰/찜 통계,
+  내 리뷰 관리(collectionGroup 조회·삭제), 내 정보 수정(닉네임), 설정(로컬 토글 + 캐시 삭제 실동작), 로그아웃)
+  — 리뷰 수정·프로필 사진 변경·알림 화면은 준비 중 토스트 처리
 
 ### 미구현 / 진행 중 ✗
 - 패스·지갑 탭 (`pass_wallet_screen.dart` 플레이스홀더 — 현재 탭 슬롯엔 미연결)
 - 주변 페이지 ↔ 상세 페이지 연동 마무리 (최근 커밋 진행 중)
-- 마이페이지 / 프로필 세부 (리뷰 내역 등)
+- 마이페이지 세부 — 리뷰 수정, 프로필 사진 변경(image_picker), 알림 화면
+- reviews collectionGroup 인덱스·Rules 배포 (`firebase deploy --only firestore` — 미배포 시 내 리뷰 관리 동작 안 함)
 - Storage Security Rules 배포 검증 (Firestore Rules는 배포됨)
 - Apple 로그인 (이후 구현)
 
@@ -299,11 +303,11 @@ ElevatedButton(onPressed: () {}, child: Text('로그인'))
 ```
 1. 주변 ↔ 상세 페이지 연동 마무리 (진행 중)
         ↓
-2. 마이페이지 / 프로필 (리뷰 내역 화면)
+2. 마이페이지 잔여 작업 (리뷰 수정, 프로필 사진, 알림 화면)
         ↓
 3. 패스·지갑 탭 실제 구현 (탭 슬롯 재배치 포함)
         ↓
-4. Security Rules 배포 검증 + 본인인증(verifyIdentity) 실연동 점검
+4. Security Rules·인덱스 배포 검증(reviews collectionGroup 포함) + 본인인증(verifyIdentity) 실연동 점검
         ↓
 5. Apple 로그인 (이후)
 ```
@@ -550,6 +554,11 @@ imageUrls       : array     // 첨부 이미지 URL 목록
 createdAt       : timestamp
 updatedAt       : timestamp
 ```
+> 마이페이지 '내 리뷰 관리'는 `collectionGroup('reviews') where userId== orderBy(createdAt desc)`
+> 크로스-클럽 조회 사용 (`firebase_review_datasource.watchUserReviews`).
+> 인덱스: `reviews COLLECTION_GROUP (userId ASC, createdAt DESC)`.
+> Rules: collectionGroup 쿼리는 중첩 match가 안 먹혀 `match /{path=**}/reviews`로
+> 본인 리뷰 읽기만 별도 허용 (쓰기는 기존 clubs/.../reviews 규칙 그대로).
 
 #### favorites/{favoriteId}
 ```
@@ -684,6 +693,7 @@ createdAt       : timestamp
 | `clubs/.../info`, `menus` | 누구나 | 어드민만 |
 | `clubs/.../photos` | 누구나 | 생성: 로그인 유저(본인 userId) / 삭제: 본인 또는 어드민 |
 | `clubs/.../reviews` | 누구나 | 생성: 로그인 유저 / 수정·삭제: 본인 또는 어드민 |
+| `{path=**}/reviews` (collectionGroup) | 본인 리뷰만 | 불가 (마이페이지 내 리뷰 조회 전용) |
 | `favorites` | 본인만 | 생성·삭제: 본인만 |
 | `users/.../searchHistory` | 본인만 | 본인만 |
 

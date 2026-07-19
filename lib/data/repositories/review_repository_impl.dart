@@ -23,6 +23,10 @@ class ReviewRepositoryImpl implements ReviewRepository {
       _dataSource.watchReviews(clubId);
 
   @override
+  Stream<List<ReviewModel>> watchUserReviews(String userId) =>
+      _dataSource.watchUserReviews(userId);
+
+  @override
   Future<void> createReview(String clubId, ReviewModel review) =>
       _dataSource.createReview(clubId, review);
 

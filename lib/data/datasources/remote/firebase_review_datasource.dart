@@ -38,6 +38,23 @@ class FirebaseReviewDataSource {
         .map((s) => s.docs.map(ReviewModel.fromFirestore).toList());
   }
 
+  /// 유저가 작성한 모든 리뷰 (전 클럽 대상 collectionGroup 쿼리).
+  /// 마이페이지 '내 리뷰 관리' 데이터 소스.
+  /// 인덱스: reviews COLLECTION_GROUP (userId ASC, createdAt DESC) 필요.
+  Stream<List<ReviewModel>> watchUserReviews(String userId) {
+    logFirebaseAccess(
+      file: 'firebase_review_datasource.dart',
+      service: 'Firestore(collectionGroup:reviews) [Stream]',
+      purpose: '내가 작성한 리뷰 목록 실시간 구독 (마이페이지)',
+    );
+    return _firestore
+        .collectionGroup('reviews')
+        .where('userId', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((s) => s.docs.map(ReviewModel.fromFirestore).toList());
+  }
+
   Future<void> createReview(String clubId, ReviewModel review) async {
     logFirebaseAccess(
       file: 'firebase_review_datasource.dart',

@@ -4,11 +4,11 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/common/widgets/ambient_backdrop.dart';
 // 배너·주변 클럽 임시 제거 — 복구하려면 주석 해제.
-// import 'package:vybe/presentation/home/widgets/home_banner.dart';
+import 'package:vybe/presentation/home/widgets/home_banner.dart';
 import 'package:vybe/presentation/home/widgets/home_category_grid.dart';
 import 'package:vybe/presentation/home/widgets/home_gnb.dart';
 import 'package:vybe/presentation/home/widgets/home_location_greeting.dart';
-// import 'package:vybe/presentation/home/widgets/home_nearby_clubs.dart';
+import 'package:vybe/presentation/home/widgets/home_nearby_clubs.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   final VoidCallback? onSearchTap;
@@ -50,9 +50,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 children: const [
                   HomeLocationGreeting(),
                   // 배너·주변 클럽 임시 제거 — 복구하려면 주석 해제.
-                  // HomeBanner(),
+                  HomeBanner(),
                   HomeCategoryGrid(),
-                  // HomeNearbyClubs(),
+                  HomeNearbyClubs(),
                 ],
               ),
             ),
