@@ -38,14 +38,15 @@ class AlgoliaClubSearchDataSource {
     final client = _client;
     if (client == null) return (ids: <String>[], hasMore: false);
 
+    // isActive 필터는 여기서 걸지 않는다 — Algolia filters는 인덱스 설정
+    // attributesForFaceting에 선언된 속성만 동작(미선언 시 조용히 0건).
+    // 비활성 클럽은 Firestore 조인 후 isActive 재확인으로 제외된다.
     final response = await client.searchIndex(
       request: SearchForHits(
         indexName: _indexName,
         query: query,
         page: page,
         hitsPerPage: hitsPerPage,
-        // 비활성 클럽은 결과에서 제외 (Firestore read 규칙과 동일 기준).
-        filters: 'isActive:true',
         attributesToRetrieve: ['objectID'],
       ),
     );

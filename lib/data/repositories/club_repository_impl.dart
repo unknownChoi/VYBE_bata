@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:vybe/data/datasources/remote/algolia_club_search_datasource.dart';
 import 'package:vybe/data/datasources/remote/firebase_club_datasource.dart';
@@ -69,19 +68,9 @@ class ClubRepositoryImpl implements ClubRepository {
     Object? cursor,
     int pageSize = 10,
   }) async {
-    // Algolia 미설정(.env 키 없음) 시 기존 Firestore searchTokens 검색으로 fallback.
-    if (!_searchDataSource.isConfigured) {
-      final page = await _dataSource.searchClubsPage(
-        keyword,
-        startAfter: cursor as DocumentSnapshot?,
-        pageSize: pageSize,
-      );
-      return ClubSearchPage(
-        clubs: page.clubs,
-        cursor: page.lastDoc,
-        hasMore: page.hasMore,
-      );
-    }
+    // 검색 엔진은 Algolia 단일 경로 (Firestore searchTokens는 폐기됨).
+    // .env에 Algolia 키가 없으면 빈 결과 — 검색 사용하려면 키 필수.
+    if (!_searchDataSource.isConfigured) return ClubSearchPage.empty;
 
     // Algolia 관련도순 검색: cursor = 다음 페이지 번호(int, 0부터).
     final page = cursor as int? ?? 0;

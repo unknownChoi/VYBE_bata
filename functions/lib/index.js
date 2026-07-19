@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.cleanupPastPerformances = exports.onClubWritten = exports.onReviewUpdated = exports.onReviewDeleted = exports.onReviewCreated = exports.onFavoriteDeleted = exports.onFavoriteCreated = exports.deleteUser = exports.verifyIdentity = exports.kakaoLogin = exports.naverLogin = exports.phoneLogin = exports.checkPhoneDuplicate = exports.onUserCreated = void 0;
+exports.cleanupPastPerformances = exports.onReviewUpdated = exports.onReviewDeleted = exports.onReviewCreated = exports.onFavoriteDeleted = exports.onFavoriteCreated = exports.deleteUser = exports.verifyIdentity = exports.kakaoLogin = exports.naverLogin = exports.phoneLogin = exports.checkPhoneDuplicate = exports.onUserCreated = void 0;
 const admin = require("firebase-admin");
 admin.initializeApp();
 var on_user_created_1 = require("./auth/on_user_created");
@@ -27,8 +27,6 @@ var on_review_deleted_1 = require("./reviews/on_review_deleted");
 Object.defineProperty(exports, "onReviewDeleted", { enumerable: true, get: function () { return on_review_deleted_1.onReviewDeleted; } });
 var on_review_updated_1 = require("./reviews/on_review_updated");
 Object.defineProperty(exports, "onReviewUpdated", { enumerable: true, get: function () { return on_review_updated_1.onReviewUpdated; } });
-var on_club_written_1 = require("./search/on_club_written");
-Object.defineProperty(exports, "onClubWritten", { enumerable: true, get: function () { return on_club_written_1.onClubWritten; } });
 var cleanup_past_performances_1 = require("./performances/cleanup_past_performances");
 Object.defineProperty(exports, "cleanupPastPerformances", { enumerable: true, get: function () { return cleanup_past_performances_1.cleanupPastPerformances; } });
 //# sourceMappingURL=index.js.map

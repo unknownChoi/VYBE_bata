@@ -179,7 +179,8 @@ NAVER_CLIENT_SECRET=your_secret_here
 
 ## 클럽 검색 (Algolia)
 
-검색은 **Algolia**가 1순위, Firestore searchTokens는 fallback.
+검색은 **Algolia 단일 경로**. (구 Firestore searchTokens 검색은 폐기 —
+onClubWritten 트리거·searchTokens 필드·전용 인덱스 전부 삭제됨. 2026.07.19)
 
 ```
 clubs 쓰기 → Firebase Extension(firestore-algolia-search) → Algolia `clubs` 인덱스 자동 동기화
@@ -189,9 +190,11 @@ clubs 쓰기 → Firebase Extension(firestore-algolia-search) → Algolia `clubs
 
 - Extension 설정: Collection Path `clubs`, Index `clubs`, objectID = doc.id(= clubId),
   Indexable Fields: name,area,genre,genreStyles,tags,address,rating,thumbnailUrl,entryFeeMin,isActive,favoriteCount
-- 진입점은 `ClubRepositoryImpl.searchClubsPage` 하나 — Algolia/Firestore 분기 내부 처리,
-  viewmodel/화면은 엔진 무관. cursor: Algolia=페이지 번호(int), fallback=DocumentSnapshot.
-- 쿼리 시 `filters: 'isActive:true'` + 조인 후 재확인 (동기화 지연 방어).
+- 진입점은 `ClubRepositoryImpl.searchClubsPage` 하나 — viewmodel/화면은 엔진 무관.
+  cursor = Algolia 페이지 번호(int, 0부터).
+- 비활성 클럽 제외는 Firestore 조인 후 `isActive` 재확인으로 처리.
+  (Algolia `filters`는 attributesForFaceting 미선언 속성이면 조용히 0건 — 사용 금지)
+- ⚠ .env에 ALGOLIA 키 없으면 검색 결과 빈 값 (fallback 없음 — 키 필수).
 - ⚠ 키 규칙: 앱에는 **Search-Only 키만**. Admin/Write 키는 Extension(서버)에서만 사용.
 
 ### .gitignore 규칙
@@ -294,7 +297,7 @@ ElevatedButton(onPressed: () {}, child: Text('로그인'))
 - Firebase 초기화 (firebase_options.dart), dotenv/카카오/네이버지도 초기화
 - 인증 UI 화면 전체 (welcome, OTP, 본인인증, 약관, 가입완료)
 - 공통 위젯 (VybeButton, VybeTextField 등)
-- **Cloud Functions 13개 전부 구현** (auth 7 + favorites 2 + reviews 3 + index)
+- **Cloud Functions 13개 전부 구현** (auth 7 + favorites 2 + reviews 3 + performances 1)
 - **Flutter 데이터 레이어 전부 구현** — Freezed 모델 11종, datasource 9종,
   repository 인터페이스 8종 + impl 8종 (각 Riverpod provider 포함)
 - 인증 플로우 연결 (SDK → Functions → Firebase)
@@ -484,7 +487,7 @@ location            : object    // { lat: double, lng: double, geohash: string }
 genre               : string    // 주요 장르 (예: "힙합", "테크노", "팝")
 genreStyles         : array     // 세부 장르 스타일 태그 (예: ["트랩","붐뱁","드릴","올드스쿨","R&B"])
                                 //   장르 페이지(힙합 등) 포스터 카드 #태그 표시 + 추후 세부 필터용
-                                //   검색용 searchTokens(tags 파생)와는 별개 — 혼용 금지
+                                //   검색(Algolia 인덱스 필드)과는 별개 — 혼용 금지
 rating              : double    // 평점 (ratingSum / reviewCount, Cloud Functions 자동 업데이트, 직접 수정 금지)
 ratingSum           : number    // 별점 합계 (Cloud Functions 자동 업데이트, 직접 수정 금지)
 reviewCount         : number    // 리뷰 수 (Cloud Functions 자동 업데이트, 직접 수정 금지)
@@ -503,12 +506,6 @@ menuBoardUrls       : array     // 메뉴판 이미지 URL 목록
 thumbnailUrl        : string    // 리스트 대표 이미지 URL
 tags                : array     // 태그 목록
 favoriteCount       : number    // 찜 수 (Cloud Functions 자동 업데이트, 직접 수정 금지)
-searchTokens        : array     // 검색용 접두사 토큰(name/area/genre/tags 분해).
-                                //   onClubWritten 트리거가 자동 생성 — 직접 수정 금지.
-                                //   ⚠ 현재 검색 1순위는 Algolia (아래 '클럽 검색' 참고) —
-                                //   searchTokens 검색은 .env에 Algolia 키 없을 때 fallback.
-                                //   fallback 쿼리: isActive=true + arrayContainsAny
-                                //   + orderBy(rating desc) (평점순 고정, 관련도 정렬 아님).
 isActive            : boolean   // false면 앱에 노출 안 됨
 isVybeRecommended   : boolean   // vybe 추천 여부
 serviceDrink        : object    // 무료 서비스 음료 정보 (서비스 음료 페이지 데이터 소스)
@@ -657,8 +654,9 @@ createdAt       : timestamp
 
 ### Cloud Functions 목록
 
-총 **15개** 함수 (`functions/src/index.ts` export 기준). Firebase 관련 서버 로직은 모두 Cloud Functions으로 처리.
-구조: `functions/src/auth/` (7) · `favorites/` (2) · `reviews/` (3) · `search/` (1) · `performances/` (1) + `index.ts`.
+총 **13개** 함수 (`functions/src/index.ts` export 기준). Firebase 관련 서버 로직은 모두 Cloud Functions으로 처리.
+구조: `functions/src/auth/` (7) · `favorites/` (2) · `reviews/` (3) · `performances/` (1) + `index.ts`.
+(구 `search/onClubWritten`은 Algolia 전환으로 삭제 — 2026.07.19)
 
 #### HTTP 요청 함수 (앱에서 직접 호출, `https.onCall`)
 
@@ -681,7 +679,6 @@ createdAt       : timestamp
 | `onReviewCreated` | clubs/{clubId}/reviews/{reviewId} 생성 시 | ratingSum += rating, reviewCount += 1, rating = ratingSum / reviewCount |
 | `onReviewDeleted` | clubs/{clubId}/reviews/{reviewId} 삭제 시 | ratingSum -= rating, reviewCount -= 1, reviewCount > 0이면 rating 재계산, 0이면 rating = 0 |
 | `onReviewUpdated` | clubs/{clubId}/reviews/{reviewId} 수정 시 | ratingSum += (newRating - oldRating), rating = ratingSum / reviewCount |
-| `onClubWritten` | clubs/{clubId} 생성·수정 시 | name/area/genre/tags → searchTokens(접두사 토큰) 자동 생성. 동일하면 skip(무한루프 방지) |
 
 #### 스케줄 함수 (Cloud Scheduler + Pub/Sub, Blaze 필요)
 

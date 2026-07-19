@@ -2,8 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>FLTEnableImpeller</key>
-	<false/>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
@@ -24,10 +22,43 @@
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>kakaoa4622b45dcabee34b18ce65e4d972909</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>FLTEnableImpeller</key>
+	<false/>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>kakaokompassauth</string>
+		<string>storykompassauth</string>
+		<string>kakaolink</string>
+		<string>kakaotalk</string>
+		<string>kakaoopen</string>
+	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>주변 클럽을 탐색하기 위해 위치 정보를 사용합니다.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>주변 클럽을 탐색하기 위해 위치 정보를 사용합니다.</string>
+	<key>NidAppName</key>
+	<string>vybe</string>
+	<key>NidClientID</key>
+	<string>XFrHkC3O1gEKdyMLI1PN</string>
+	<key>NidClientSecret</key>
+	<string>v9DddSQthM</string>
+	<key>NidUrlScheme</key>
+	<string>com.example.vybe</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -51,45 +82,6 @@
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
-	<!-- 카카오 로그인 URL Scheme -->
-	<!-- kakaoKAKAO_NATIVE_APP_KEY 자리에 실제 키 입력 (예: kakao1a2b3c4d5e6f) -->
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>kakaoa4622b45dcabee34b18ce65e4d972909</string>
-			</array>
-		</dict>
-	</array>
-
-	<!-- 네이버 로그인 -->
-	<key>NidClientID</key>
-	<string>XFrHkC3O1gEKdyMLI1PN</string>
-	<key>NidClientSecret</key>
-	<string>v9DddSQthM</string>
-	<key>NidAppName</key>
-	<string>vybe</string>
-	<key>NidUrlScheme</key>
-	<string>com.example.vybe</string>
-
-	<!-- 카카오톡 앱 실행 허용 -->
-	<key>LSApplicationQueriesSchemes</key>
-	<array>
-		<string>kakaokompassauth</string>
-		<string>storykompassauth</string>
-		<string>kakaolink</string>
-		<string>kakaotalk</string>
-		<string>kakaoopen</string>
-	</array>
-
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>주변 클럽을 탐색하기 위해 위치 정보를 사용합니다.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>주변 클럽을 탐색하기 위해 위치 정보를 사용합니다.</string>
-
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
