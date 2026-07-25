@@ -126,9 +126,9 @@ mixin _CertificationNumberHandlerMixin on ConsumerState<CertificationNumberScree
           birthDate: widget.birthDate,
         );
         if (!mounted) return;
-        Navigator.of(context).pushAndRemoveUntil(
+        // 루트(AuthGate) 라우트는 남겨둔다 — 제거하면 로그인 상태 감시가 끊긴다.
+        Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const SignupSuccessScreen()),
-          (route) => false,
         );
       } catch (e) {
         if (!mounted) return;

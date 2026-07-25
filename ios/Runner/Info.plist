@@ -32,6 +32,16 @@
 				<string>kakaoa4622b45dcabee34b18ce65e4d972909</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>naver</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.justinchoi.vybe</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
@@ -44,6 +54,8 @@
 		<string>kakaolink</string>
 		<string>kakaotalk</string>
 		<string>kakaoopen</string>
+		<string>naversearchapp</string>
+		<string>naversearchthirdlogin</string>
 	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
@@ -58,7 +70,7 @@
 	<key>NidClientSecret</key>
 	<string>v9DddSQthM</string>
 	<key>NidUrlScheme</key>
-	<string>com.example.vybe</string>
+	<string>com.justinchoi.vybe</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

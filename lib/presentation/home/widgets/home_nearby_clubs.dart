@@ -115,21 +115,23 @@ class _ClubCard extends StatelessWidget {
           builder: (_) => ClubDetailScreen(clubId: club.clubId),
         ),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16.r),
-        child: Container(
-          width: 250.w,
-          height: 156.h,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: grad,
-            ),
-            border: Border.all(color: VybeColors.gray800),
-            borderRadius: BorderRadius.circular(16.r),
+      // ClipRRect로 감싸지 않고 Container 자체 클립 사용 —
+      // 바깥 클립이 코너 호에서 1px 테두리를 깎아 모서리가 안 보이던 문제 방지.
+      child: Container(
+        width: 250.w,
+        height: 156.h,
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: grad,
           ),
-          child: Stack(
+          // 카드 하단이 배경색과 거의 같아 라운딩이 안 보여 테두리를 한 단계 밝게.
+          border: Border.all(color: VybeColors.gray700),
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        child: Stack(
             fit: StackFit.expand,
             children: [
               if (club.thumbnailUrl.isNotEmpty)
@@ -223,7 +225,6 @@ class _ClubCard extends StatelessWidget {
               ),
             ],
           ),
-        ),
       ),
     );
   }

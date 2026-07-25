@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VYBE — 프로젝트 전체 플로우</title>
+<style>
+:root{
+  --bg:#0B0B12; --bg2:#12121C; --card:#171725; --card2:#1E1E2E;
+  --line:#2E2E42; --text:#EDEDF5; --muted:#9A9AB4; --dim:#6E6E8A;
+  --purple:#8B5CF6; --purple-d:#5B32C7; --lime:#C8FF3D; --cyan:#3DD9FF;
+  --orange:#FF9F45; --pink:#FF5C93; --green:#3DE08A;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; background:
+    radial-gradient(1000px 600px at 15% -10%, rgba(139,92,246,.16), transparent 60%),
+    radial-gradient(800px 500px at 90% 5%, rgba(61,217,255,.10), transparent 60%),
+    var(--bg);
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Segoe UI",Roboto,sans-serif;
+  line-height:1.5; -webkit-font-smoothing:antialiased;
+}
+a{color:inherit;text-decoration:none;}
+
+/* ---------- layout ---------- */
+.wrap{max-width:1280px;margin:0 auto;padding:0 24px 120px;}
+header.hero{padding:64px 0 40px;border-bottom:1px solid var(--line);margin-bottom:8px;}
+.badge{display:inline-block;font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--lime);border:1px solid rgba(200,255,61,.35);border-radius:999px;padding:5px 12px;margin-bottom:18px;}
+h1{font-size:clamp(30px,5vw,46px);margin:0 0 10px;letter-spacing:-.02em;font-weight:800;}
+h1 span{background:linear-gradient(92deg,var(--purple),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent;}
+.sub{color:var(--muted);font-size:15px;max-width:720px;}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px;}
+.meta span{font-size:12px;color:var(--muted);background:var(--card);border:1px solid var(--line);
+  border-radius:8px;padding:6px 11px;}
+
+nav.toc{position:sticky;top:0;z-index:20;background:rgba(11,11,18,.86);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);margin-bottom:44px;}
+nav.toc ul{display:flex;gap:4px;list-style:none;margin:0;padding:10px 0;overflow-x:auto;}
+nav.toc li a{white-space:nowrap;font-size:13px;color:var(--muted);padding:7px 12px;border-radius:8px;display:block;}
+nav.toc li a:hover{color:var(--text);background:var(--card2);}
+
+section{margin:0 0 72px;scroll-margin-top:70px;}
+.sec-head{display:flex;align-items:baseline;gap:12px;margin-bottom:8px;}
+.sec-num{font-size:12px;font-weight:700;color:var(--purple);letter-spacing:.1em;}
+h2{font-size:22px;margin:0;letter-spacing:-.01em;}
+.sec-desc{color:var(--muted);font-size:13.5px;margin:0 0 26px;}
+
+.panel{background:linear-gradient(180deg,var(--card),rgba(23,23,37,.55));
+  border:1px solid var(--line);border-radius:18px;padding:28px 24px;overflow-x:auto;}
+
+/* ---------- flow primitives ---------- */
+.col{display:flex;flex-direction:column;align-items:center;}
+.row{display:flex;gap:14px;align-items:stretch;justify-content:center;flex-wrap:wrap;}
+.node{background:var(--card2);border:1px solid var(--line);border-radius:12px;
+  padding:12px 16px;min-width:150px;text-align:center;position:relative;}
+.node .t{font-size:13.5px;font-weight:650;}
+.node .d{font-size:11.5px;color:var(--dim);margin-top:3px;line-height:1.45;}
+.node .f{font-size:10.5px;color:var(--muted);margin-top:6px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  background:rgba(255,255,255,.04);border-radius:5px;padding:2px 6px;display:inline-block;}
+
+.n-start{border-color:rgba(200,255,61,.5);background:linear-gradient(180deg,rgba(200,255,61,.12),var(--card2));}
+.n-ui{border-color:rgba(139,92,246,.45);background:linear-gradient(180deg,rgba(139,92,246,.13),var(--card2));}
+.n-vm{border-color:rgba(61,217,255,.4);background:linear-gradient(180deg,rgba(61,217,255,.10),var(--card2));}
+.n-repo{border-color:rgba(255,159,69,.4);background:linear-gradient(180deg,rgba(255,159,69,.10),var(--card2));}
+.n-ds{border-color:rgba(255,92,147,.4);background:linear-gradient(180deg,rgba(255,92,147,.10),var(--card2));}
+.n-fb{border-color:rgba(61,224,138,.4);background:linear-gradient(180deg,rgba(61,224,138,.10),var(--card2));}
+.n-dim{opacity:.55;border-style:dashed;}
+
+.arrow{width:2px;height:26px;background:linear-gradient(180deg,var(--line),var(--purple));position:relative;flex:none;}
+.arrow::after{content:"";position:absolute;left:50%;bottom:-1px;transform:translateX(-50%);
+  border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid var(--purple);}
+.arrow.lbl::before{content:attr(data-l);position:absolute;left:12px;top:50%;transform:translateY(-50%);
+  font-size:10.5px;color:var(--muted);white-space:nowrap;}
+.arrow.short{height:18px;}
+
+.fanout{display:flex;flex-direction:column;align-items:center;width:100%;}
+.fan-stem{width:2px;height:20px;background:var(--line);}
+.fan-bar{height:2px;background:var(--line);border-radius:2px;}
+.fan-legs{display:flex;justify-content:center;width:100%;}
+.leg{flex:1;display:flex;justify-content:center;}
+.leg .v{width:2px;height:18px;background:var(--line);position:relative;}
+.leg .v::after{content:"";position:absolute;left:50%;bottom:-1px;transform:translateX(-50%);
+  border-left:4px solid transparent;border-right:4px solid transparent;border-top:6px solid var(--line);}
+
+/* horizontal chain */
+.chain{display:flex;align-items:center;gap:0;flex-wrap:wrap;justify-content:center;}
+.harrow{width:34px;height:2px;background:var(--line);position:relative;flex:none;}
+.harrow::after{content:"";position:absolute;right:-1px;top:50%;transform:translateY(-50%);
+  border-top:5px solid transparent;border-bottom:5px solid transparent;border-left:7px solid var(--line);}
+.harrow[data-l]::before{content:attr(data-l);position:absolute;left:50%;top:-16px;transform:translateX(-50%);
+  font-size:10px;color:var(--dim);white-space:nowrap;}
+
+.diamond{background:linear-gradient(180deg,rgba(255,159,69,.16),var(--card2));
+  border:1px solid rgba(255,159,69,.5);border-radius:12px;padding:11px 20px;font-size:13px;font-weight:650;}
+
+/* tab tree */
+.tabs-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;}
+.tab-col{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:0;overflow:hidden;}
+.tab-col > .head{padding:12px 14px;font-size:13.5px;font-weight:700;border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:8px;background:rgba(139,92,246,.10);}
+.tab-col > .head .idx{font-size:10px;color:var(--dim);font-weight:600;}
+.tab-col ul{list-style:none;margin:0;padding:10px 12px 14px;}
+.tab-col li{position:relative;padding:6px 0 6px 16px;font-size:12.5px;color:var(--muted);}
+.tab-col li::before{content:"└";position:absolute;left:0;top:5px;color:var(--dim);font-size:11px;}
+.tab-col li b{color:var(--text);font-weight:600;}
+.tab-col li .sub2{display:block;font-size:11px;color:var(--dim);}
+.tab-col li ul{padding:4px 0 0 4px;}
+
+/* generic cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;}
+.card{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:16px;}
+.card h4{margin:0 0 8px;font-size:13.5px;display:flex;align-items:center;gap:8px;}
+.dot{width:8px;height:8px;border-radius:50%;flex:none;}
+.card ul{margin:0;padding-left:16px;}
+.card li{font-size:12px;color:var(--muted);margin:4px 0;}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;
+  background:rgba(255,255,255,.05);border-radius:4px;padding:1px 5px;color:var(--cyan);}
+
+table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:560px;}
+th{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);
+  padding:0 12px 10px;border-bottom:1px solid var(--line);font-weight:600;}
+td{padding:10px 12px;border-bottom:1px solid rgba(46,46,66,.6);color:var(--muted);vertical-align:top;}
+td b{color:var(--text);font-weight:600;}
+
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:22px;}
+.legend div{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--muted);}
+.sw{width:14px;height:14px;border-radius:4px;border:1px solid var(--line);}
+
+.note{margin-top:16px;font-size:12px;color:var(--dim);border-left:2px solid var(--purple);padding:2px 0 2px 12px;}
+.tag{display:inline-block;font-size:10px;padding:2px 7px;border-radius:999px;margin-left:6px;vertical-align:middle;}
+.tag.done{background:rgba(61,224,138,.14);color:var(--green);}
+.tag.todo{background:rgba(255,159,69,.14);color:var(--orange);}
+footer{border-top:1px solid var(--line);padding-top:22px;color:var(--dim);font-size:12px;}
+@media(max-width:640px){.wrap{padding:0 14px 80px}.panel{padding:20px 14px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="badge">Flutter · Riverpod · Firebase</div>
+  <h1><span>VYBE</span> 프로젝트 전체 플로우</h1>
+  <p class="sub">지도 기반 클럽 탐색 앱. 앱 부팅 → 인증 → 5탭 네비게이션 → MVVM 데이터 레이어 → Firebase / Algolia 까지 실제 코드 기준 흐름도.</p>
+  <div class="meta">
+    <span>Dart ^3.9.2 / Flutter 3.18+</span>
+    <span>MVVM + Riverpod 3.0</span>
+    <span>라우터 패키지 없음 · 탭별 중첩 Navigator</span>
+    <span>Cloud Functions 13개</span>
+    <span>Firestore 8 컬렉션</span>
+  </div>
+</header>
+
+<nav class="toc">
+  <ul>
+    <li><a href="#boot">1. 앱 부팅</a></li>
+    <li><a href="#auth">2. 인증 플로우</a></li>
+    <li><a href="#nav">3. 화면 네비게이션</a></li>
+    <li><a href="#mvvm">4. MVVM 데이터 흐름</a></li>
+    <li><a href="#search">5. 검색 (Algolia)</a></li>
+    <li><a href="#detail">6. 클럽 상세</a></li>
+    <li><a href="#nearby">7. 내 주변 (지도)</a></li>
+    <li><a href="#functions">8. Cloud Functions</a></li>
+    <li><a href="#data">9. Firestore / Storage</a></li>
+    <li><a href="#status">10. 구현 상태</a></li>
+  </ul>
+</nav>
+
+<!-- ============ 1 ============ -->
+<section id="boot">
+  <div class="sec-head"><span class="sec-num">01</span><h2>앱 부팅 시퀀스</h2></div>
+  <p class="sec-desc"><code>lib/main.dart</code> — 초기화 순서가 고정. dotenv 먼저 로드해야 나머지 SDK 키 주입 가능.</p>
+  <div class="panel">
+    <div class="col">
+      <div class="node n-start"><div class="t">main()</div><div class="d">WidgetsFlutterBinding.ensureInitialized</div></div>
+      <div class="arrow"></div>
+      <div class="node"><div class="t">PlatformDispatcher.onError 훅</div><div class="d">네이버맵 마커 temp 삭제 FileSystemException 무시</div></div>
+      <div class="arrow lbl" data-l="1"></div>
+      <div class="node n-fb"><div class="t">dotenv.load('.env')</div><div class="d">KAKAO_NATIVE_APP_KEY · NAVER_MAP_CLIENT_ID · ALGOLIA_*</div></div>
+      <div class="arrow lbl" data-l="2"></div>
+      <div class="node n-fb"><div class="t">Firebase.initializeApp</div><div class="f">firebase_options.dart</div></div>
+      <div class="arrow lbl" data-l="3"></div>
+      <div class="node n-fb"><div class="t">KakaoSdk.init</div><div class="d">nativeAppKey 주입</div></div>
+      <div class="arrow lbl" data-l="4"></div>
+      <div class="node n-fb"><div class="t">FlutterNaverMap().init</div><div class="d">clientId · onAuthFailed</div></div>
+      <div class="arrow lbl" data-l="5"></div>
+      <div class="node n-ui"><div class="t">runApp(ProviderScope)</div><div class="d">Riverpod 루트 스코프</div></div>
+      <div class="arrow"></div>
+      <div class="node n-ui"><div class="t">VybeApp → ScreenUtilInit</div><div class="d">designSize 393 × 852 (iPhone 15)</div></div>
+      <div class="arrow"></div>
+      <div class="node n-ui"><div class="t">MaterialApp(theme: AppTheme.dark)</div><div class="d">home: MainScaffold</div></div>
+    </div>
+    <div class="note">⚠ <code>.env</code> 없으면 <code>dotenv.env[...]!</code> null assertion 에서 즉시 크래시. ALGOLIA 키 없으면 검색만 빈 결과(fallback 없음).</div>
+  </div>
+</section>
+
+<!-- ============ 2 ============ -->
+<section id="auth">
+  <div class="sec-head"><span class="sec-num">02</span><h2>인증 플로우</h2></div>
+  <p class="sec-desc">소셜 SDK → Cloud Functions Custom Token → Firebase Auth. 신규/기존 유저 분기가 핵심.</p>
+  <div class="panel">
+    <div class="col" style="width:100%">
+      <div class="node n-ui"><div class="t">WelcomeScreen</div><div class="f">auth/welcome/welcome_screen.dart</div></div>
+      <div class="fanout">
+        <div class="fan-stem"></div>
+        <div class="fan-bar" style="width:66%"></div>
+        <div class="fan-legs" style="width:66%">
+          <div class="leg"><div class="v"></div></div>
+          <div class="leg"><div class="v"></div></div>
+          <div class="leg"><div class="v"></div></div>
+        </div>
+      </div>
+      <div class="row" style="width:100%">
+        <div class="node n-ui"><div class="t">카카오</div><div class="d">UserApi.instance.loginWithKakao</div></div>
+        <div class="node n-ui"><div class="t">네이버</div><div class="d">FlutterNaverLogin.logIn</div></div>
+        <div class="node n-ui n-dim"><div class="t">Apple</div><div class="d">이후 구현</div></div>
+      </div>
+      <div class="arrow lbl" data-l="accessToken"></div>
+      <div class="node n-vm"><div class="t">AuthViewModel</div><div class="d">kakaoLogin() / naverLogin() / phoneLogin()</div><div class="f">presentation/auth/viewmodels/auth_viewmodel.dart</div></div>
+      <div class="arrow"></div>
+      <div class="node n-repo"><div class="t">AuthRepository → FirebaseAuthDataSource</div><div class="d">httpsCallable 호출</div></div>
+      <div class="arrow"></div>
+      <div class="node n-fb"><div class="t">Cloud Functions</div><div class="d">naverLogin / kakaoLogin / phoneLogin</div><div class="f">→ { customToken, isNewUser }</div></div>
+      <div class="arrow"></div>
+      <div class="node n-fb"><div class="t">signInWithCustomToken</div><div class="d">UID = <code>naver:{id}</code> / <code>kakao:{id}</code> / <code>phone:{번호}</code></div></div>
+      <div class="arrow"></div>
+      <div class="diamond">isNewUser ?</div>
+      <div class="fanout">
+        <div class="fan-stem"></div>
+        <div class="fan-bar" style="width:56%"></div>
+        <div class="fan-legs" style="width:56%">
+          <div class="leg"><div class="v"></div></div>
+          <div class="leg"><div class="v"></div></div>
+        </div>
+      </div>
+      <div class="row" style="width:100%;align-items:flex-start">
+        <div class="col" style="flex:1;min-width:250px">
+          <div class="node n-ui" style="border-color:rgba(255,159,69,.5)"><div class="t">true — 신규 가입</div><div class="d">IdentityVerificationScreen</div><div class="f">이름·생년월일·통신사·전화번호 + 약관</div></div>
+          <div class="arrow short"></div>
+          <div class="node"><div class="t">checkPhoneDuplicate</div><div class="d">phone 중복 가입 차단</div></div>
+          <div class="arrow short"></div>
+          <div class="node n-ui"><div class="t">CertificationNumberScreen</div><div class="d">OTP 입력 → verifyIdentity</div></div>
+          <div class="arrow short"></div>
+          <div class="node"><div class="t">saveUserProfile</div><div class="d">users/{uid} 생성 · isVerified true</div></div>
+          <div class="arrow short"></div>
+          <div class="node n-ui"><div class="t">SignupSuccessScreen</div></div>
+        </div>
+        <div class="col" style="flex:1;min-width:250px">
+          <div class="node n-ui" style="border-color:rgba(61,224,138,.5)"><div class="t">false — 기존 유저</div><div class="d">finalizeLogin()</div></div>
+        </div>
+      </div>
+      <div class="arrow lbl" data-l="pushAndRemoveUntil"></div>
+      <div class="node n-start"><div class="t">MainScaffold (홈)</div></div>
+    </div>
+    <div class="note">현재 uid 접근은 항상 <code>currentUidProvider</code> (core/providers/auth_providers.dart). presentation 에서 <code>FirebaseAuth.instance</code> 직접 접근 금지.</div>
+  </div>
+</section>
+
+<!-- ============ 3 ============ -->
+<section id="nav">
+  <div class="sec-head"><span class="sec-num">03</span><h2>화면 네비게이션 구조</h2></div>
+  <p class="sec-desc">go_router 없음. <code>MainScaffold</code> = PageView 5탭 + 탭마다 독립 <code>_TabNavigator</code>. 상세 화면이 탭 안에서 push 되어 floating 바텀 nav 가 유지됨.</p>
+  <div class="panel">
+    <div class="col" style="margin-bottom:26px">
+      <div class="node n-start" style="min-width:320px">
+        <div class="t">MainScaffold</div>
+        <div class="d">PageView(controller) + _KeepAlivePage · Liquid Glass BottomNav</div>
+        <div class="f">방문한 탭만 build (_visited) · jumpToPage 로 중간 탭 스킵</div>
+      </div>
+      <div class="fanout">
+        <div class="fan-stem"></div>
+        <div class="fan-bar" style="width:88%"></div>
+        <div class="fan-legs" style="width:88%">
+          <div class="leg"><div class="v"></div></div><div class="leg"><div class="v"></div></div>
+          <div class="leg"><div class="v"></div></div><div class="leg"><div class="v"></div></div>
+          <div class="leg"><div class="v"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tabs-grid">
+      <div class="tab-col">
+        <div class="head">🏠 홈 <span class="idx">idx 0</span></div>
+        <ul>
+          <li><b>HomeScreen</b><span class="sub2">GNB · 위치 인사 · 배너 · 카테고리 · 주변 클럽</span></li>
+          <li><b>NotificationScreen</b><span class="sub2">home_gnb 벨 아이콘</span></li>
+          <li><b>SearchScreen</b><span class="sub2">검색 버튼 → fade 오버레이 push</span></li>
+          <li>카테고리 그리드 →
+            <ul>
+              <li><b>VybeRecommendScreen</b></li>
+              <li><b>HotPlacesScreen</b></li>
+              <li><b>FreeEntryScreen</b></li>
+              <li><b>ServiceDrinksScreen</b></li>
+              <li><b>HipHopScreen</b> → TodayLineupScreen</li>
+              <li>EDM · K-POP · 라운지 <span class="tag todo">미연결</span></li>
+            </ul>
+          </li>
+          <li>모든 카드 → <b>ClubDetailScreen</b></li>
+        </ul>
+      </div>
+
+      <div class="tab-col">
+        <div class="head">📍 주변 <span class="idx">idx 1</span></div>
+        <ul>
+          <li><b>NearbyScreen</b><span class="sub2">네이버 지도 + 마커 + GNB</span></li>
+          <li><b>NearbyBottomSheet</b><span class="sub2">DraggableScrollableSheet 클럽 리스트</span></li>
+          <li><b>NearbyDetailSheet</b><span class="sub2">마커 탭 → 미리보기</span></li>
+          <li>→ <b>SearchScreen</b> (fade route)</li>
+          <li>→ <b>ClubDetailScreen</b></li>
+        </ul>
+      </div>
+
+      <div class="tab-col">
+        <div class="head">🔖 찜 <span class="idx">idx 2</span></div>
+        <ul>
+          <li><b>SavedScreen</b><span class="sub2">정렬 · 리스트↔그리드 토글 · 찜 해제</span></li>
+          <li>→ <b>ClubDetailScreen</b></li>
+        </ul>
+      </div>
+
+      <div class="tab-col">
+        <div class="head">🔍 검색 <span class="idx">idx 3</span></div>
+        <ul>
+          <li><b>SearchScreen</b><span class="sub2">탭 진입 시 키보드 자동 노출 (FocusNode 를 Scaffold 가 소유)</span></li>
+          <li><b>SearchResultScreen</b><span class="sub2">필터 칩 바 + 결과 리스트</span></li>
+          <li>→ <b>ClubDetailScreen</b></li>
+        </ul>
+      </div>
+
+      <div class="tab-col">
+        <div class="head">👤 내 정보 <span class="idx">idx 4</span></div>
+        <ul>
+          <li><b>MyPageScreen</b><span class="sub2">프로필 히어로 · 리뷰/찜 통계</span></li>
+          <li><b>MyReviewsScreen</b><span class="sub2">collectionGroup 조회 · 삭제</span></li>
+          <li><b>ProfileEditScreen</b><span class="sub2">닉네임 수정</span></li>
+          <li><b>SettingsScreen</b><span class="sub2">로컬 토글 · 캐시 삭제 · 로그아웃</span></li>
+          <li>로그아웃 → <b>WelcomeScreen</b></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="note">
+      탭 밖 전환은 <code>tabSwitchRequestProvider</code> 로 요청 (예: 힙합 페이지 "지도에서 보기" → 주변 탭).
+      바텀 nav 축소/확장은 <code>navBarVisibilityProvider</code> 가 스크롤 방향 · 시트 extent 변화로 제어.
+      <code>PassWalletScreen</code> 은 존재하지만 탭 슬롯에 미연결.
+    </div>
+  </div>
+</section>
+
+<!-- ============ 4 ============ -->
+<section id="mvvm">
+  <div class="sec-head"><span class="sec-num">04</span><h2>MVVM 데이터 흐름</h2></div>
+  <p class="sec-desc">레이어를 건너뛰는 호출 금지. Firebase import 는 <code>data/datasources/remote/</code> 안에서만 허용.</p>
+  <div class="panel">
+    <div class="legend">
+      <div><span class="sw" style="background:rgba(139,92,246,.35)"></span>View</div>
+      <div><span class="sw" style="background:rgba(61,217,255,.3)"></span>ViewModel</div>
+      <div><span class="sw" style="background:rgba(255,159,69,.3)"></span>Repository</div>
+      <div><span class="sw" style="background:rgba(255,92,147,.3)"></span>DataSource</div>
+      <div><span class="sw" style="background:rgba(61,224,138,.3)"></span>Backend</div>
+    </div>
+
+    <div class="chain" style="margin-bottom:28px">
+      <div class="node n-ui"><div class="t">View</div><div class="d">ConsumerWidget<br>ref.watch / ref.read 만</div></div>
+      <div class="harrow" data-l="ref.read().메서드()"></div>
+      <div class="node n-vm"><div class="t">ViewModel</div><div class="d">AsyncNotifier / Notifier<br>상태 · 비즈니스 로직</div></div>
+      <div class="harrow" data-l="도메인 인터페이스"></div>
+      <div class="node n-repo"><div class="t">Repository</div><div class="d">domain 인터페이스<br>+ *_repository_impl</div></div>
+      <div class="harrow" data-l="모델 매핑"></div>
+      <div class="node n-ds"><div class="t">DataSource</div><div class="d">Firebase* / Algolia*<br>logFirebaseAccess()</div></div>
+      <div class="harrow"></div>
+      <div class="node n-fb"><div class="t">Firestore / Auth<br>Storage / Functions<br>Algolia</div></div>
+    </div>
+
+    <div class="cards">
+      <div class="card">
+        <h4><span class="dot" style="background:var(--cyan)"></span>ViewModel (14)</h4>
+        <ul>
+          <li>auth_viewmodel · user_viewmodel</li>
+          <li>banner · home_nearby (홈)</li>
+          <li>nearby · nearby_search (주변)</li>
+          <li>search · club_filter (검색)</li>
+          <li>club_detail · club_list · club_schedule · favorite · review (클럽)</li>
+          <li>saved · my_page · settings</li>
+          <li>vybe_recommend · free_entry · service_drinks · hip_hop</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4><span class="dot" style="background:var(--orange)"></span>Repository (9)</h4>
+        <ul>
+          <li>auth · user · club · favorite</li>
+          <li>review · search_history · banner</li>
+          <li>performance · vybe_recommendation</li>
+          <li>각 impl 에 Riverpod provider 동봉</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4><span class="dot" style="background:var(--pink)"></span>DataSource (10)</h4>
+        <ul>
+          <li>firebase_auth · firebase_user · firebase_storage</li>
+          <li>firebase_club · firebase_review · firebase_favorite</li>
+          <li>firebase_banner · firebase_search_history</li>
+          <li>firebase_performance · firebase_vybe_recommendation</li>
+          <li><b>algolia_club_search</b> — 유일한 non-Firebase</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4><span class="dot" style="background:var(--purple)"></span>Freezed 모델 (13)</h4>
+        <ul>
+          <li>user · club · club_info · menu · photo</li>
+          <li>review · favorite · banner · search_history</li>
+          <li>operating_hours · service_drink</li>
+          <li>performance · vybe_recommendation</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="note">모델 / provider 수정 시 <code>flutter pub run build_runner build --delete-conflicting-outputs</code> 필수.</div>
+  </div>
+</section>
+
+<!-- ============ 5 ============ -->
+<section id="search">
+  <div class="sec-head"><span class="sec-num">05</span><h2>검색 플로우 (Algolia 단일 경로)</h2></div>
+  <p class="sec-desc">구 Firestore searchTokens 검색은 폐기. 진입점은 <code>ClubRepositoryImpl.searchClubsPage</code> 하나 — 화면·VM 은 검색 엔진을 모름.</p>
+  <div class="panel">
+    <div class="col" style="margin-bottom:30px">
+      <div class="node n-ui"><div class="t">SearchScreen — 키워드 입력</div><div class="d">최근 검색어 · 트렌드 · 추천 칩</div></div>
+      <div class="arrow lbl" data-l="submit"></div>
+      <div class="row">
+        <div class="node n-vm"><div class="t">SearchViewModel</div><div class="d">페이지네이션 상태</div></div>
+        <div class="node n-ds n-dim"><div class="t">searchHistory 저장</div><div class="d">users/{uid}/searchHistory</div></div>
+      </div>
+      <div class="arrow"></div>
+      <div class="node n-repo"><div class="t">ClubRepositoryImpl.searchClubsPage(query, cursor)</div><div class="d">cursor = Algolia 페이지 번호(int, 0부터)</div></div>
+      <div class="arrow"></div>
+      <div class="node n-ds"><div class="t">AlgoliaClubSearchDataSource</div><div class="d">Search-Only 키 · 관련도순 clubId 목록</div></div>
+      <div class="arrow lbl" data-l="clubId[]"></div>
+      <div class="node n-fb"><div class="t">Firestore getClub 조인</div><div class="d">인덱스엔 표시용 일부 필드만 있어 전체 문서는 Firestore 에서</div></div>
+      <div class="arrow lbl" data-l="isActive 재확인"></div>
+      <div class="node n-ui"><div class="t">SearchResultScreen</div><div class="d">ClubFilterViewModel 필터 칩 적용</div></div>
+      <div class="arrow"></div>
+      <div class="node n-ui"><div class="t">ClubDetailScreen</div></div>
+    </div>
+
+    <div class="chain">
+      <div class="node n-fb"><div class="t">clubs 문서 쓰기</div></div>
+      <div class="harrow" data-l="Firebase Extension"></div>
+      <div class="node n-fb"><div class="t">firestore-algolia-search</div><div class="d">Admin 키(서버 전용)</div></div>
+      <div class="harrow" data-l="자동 동기화"></div>
+      <div class="node n-ds"><div class="t">Algolia <code>clubs</code> 인덱스</div><div class="d">objectID = doc.id</div></div>
+    </div>
+
+    <div class="note">
+      ⚠ Algolia <code>filters</code> 는 attributesForFaceting 미선언 속성에 쓰면 조용히 0건 → 사용 금지. 비활성 제외는 Firestore 조인 후 <code>isActive</code> 재확인으로 처리.<br>
+      🔐 앱 번들에는 Search-Only 키만. Admin/Write 키는 Extension(서버)에서만 사용.
+    </div>
+  </div>
+</section>
+
+<!-- ============ 6 ============ -->
+<section id="detail">
+  <div class="sec-head"><span class="sec-num">06</span><h2>클럽 상세 화면</h2></div>
+  <p class="sec-desc">모든 진입 경로가 <code>ClubDetailScreen(clubId)</code> 하나로 수렴. TabBar 5탭, 탭별 lazy build.</p>
+  <div class="panel">
+    <div class="col">
+      <div class="row" style="margin-bottom:2px">
+        <div class="node n-ui" style="min-width:120px"><div class="t">홈 주변</div></div>
+        <div class="node n-ui" style="min-width:120px"><div class="t">지도 시트</div></div>
+        <div class="node n-ui" style="min-width:120px"><div class="t">찜</div></div>
+        <div class="node n-ui" style="min-width:120px"><div class="t">검색 결과</div></div>
+        <div class="node n-ui" style="min-width:120px"><div class="t">카테고리 페이지</div></div>
+      </div>
+      <div class="fanout">
+        <div class="fan-stem" style="height:14px"></div>
+      </div>
+      <div class="node n-start" style="min-width:300px">
+        <div class="t">ClubDetailScreen(clubId)</div>
+        <div class="d">Hero 슬라이더 · 찜 토글 · 스켈레톤 로딩</div>
+        <div class="f">ClubDetailViewModel · FavoriteViewModel</div>
+      </div>
+      <div class="fanout">
+        <div class="fan-stem"></div>
+        <div class="fan-bar" style="width:82%"></div>
+        <div class="fan-legs" style="width:82%">
+          <div class="leg"><div class="v"></div></div><div class="leg"><div class="v"></div></div>
+          <div class="leg"><div class="v"></div></div><div class="leg"><div class="v"></div></div>
+          <div class="leg"><div class="v"></div></div>
+        </div>
+      </div>
+      <div class="row" style="width:100%">
+        <div class="node"><div class="t">홈</div><div class="d">소개 · 영업시간 · 공연 일정</div><div class="f">clubs/{id}</div></div>
+        <div class="node"><div class="t">메뉴</div><div class="d">메뉴 카드 · 메뉴판</div><div class="f">clubs/{id}/menus</div></div>
+        <div class="node"><div class="t">사진</div><div class="d">카테고리 칩 필터 (venue/food/inside)</div><div class="f">clubs/{id}/photos</div></div>
+        <div class="node"><div class="t">리뷰</div><div class="d">별점 · 작성 · 삭제</div><div class="f">clubs/{id}/reviews</div></div>
+        <div class="node"><div class="t">매장 정보</div><div class="d">지하철 · 오픈챗 · 유의사항</div><div class="f">clubs/{id}/info</div></div>
+      </div>
+      <div class="arrow lbl" data-l="공연 일정 더보기"></div>
+      <div class="node n-ui"><div class="t">PerformanceScheduleScreen</div><div class="f">performances (genre, date, startAt)</div></div>
+    </div>
+    <div class="note">리뷰 작성/삭제 → Cloud Functions 트리거가 <code>rating · ratingSum · reviewCount</code> 재계산. 찜 토글 → <code>favoriteCount</code> 자동 증감. 클라이언트에서 직접 수정 금지.</div>
+  </div>
+</section>
+
+<!-- ============ 7 ============ -->
+<section id="nearby">
+  <div class="sec-head"><span class="sec-num">07</span><h2>내 주변 — 지도 + geohash</h2></div>
+  <div class="panel">
+    <div class="col">
+      <div class="node n-ui"><div class="t">NearbyScreen 진입</div><div class="d">FlutterNaverMap 위젯</div></div>
+      <div class="arrow"></div>
+      <div class="node n-vm"><div class="t">locationProviders — 현재 위치</div><div class="d">권한 요청 · 좌표 획득</div></div>
+      <div class="arrow"></div>
+      <div class="node n-vm"><div class="t">NearbyViewModel</div><div class="d">중심 좌표 + 반경(km)</div></div>
+      <div class="arrow"></div>
+      <div class="node n-ds"><div class="t">getClubsNearby(lat, lng, radiusKm)</div><div class="d">geoflutterfire_plus GeoQuery<br>필드 경로 <code>location.geohash</code></div></div>
+      <div class="arrow"></div>
+      <div class="node n-fb"><div class="t">Firestore clubs</div><div class="d">geohash 범위 쿼리 → 거리 재필터</div></div>
+      <div class="arrow"></div>
+      <div class="row">
+        <div class="node n-ui"><div class="t">지도 마커</div><div class="d">VybeMapPin · currentTabIndexProvider 로 렌더 가드</div></div>
+        <div class="node n-ui"><div class="t">NearbyBottomSheet</div><div class="d">드래그 extent → nav 축소/확장</div></div>
+      </div>
+      <div class="arrow"></div>
+      <div class="node n-ui"><div class="t">NearbyDetailSheet / ClubDetailScreen</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 8 ============ -->
+<section id="functions">
+  <div class="sec-head"><span class="sec-num">08</span><h2>Cloud Functions (13)</h2></div>
+  <p class="sec-desc"><code>functions/src/index.ts</code> — auth 7 · favorites 2 · reviews 3 · performances 1.</p>
+  <div class="panel">
+    <div class="cards" style="margin-bottom:22px">
+      <div class="card">
+        <h4><span class="dot" style="background:var(--purple)"></span>onCall — 앱이 직접 호출</h4>
+        <ul>
+          <li><b>naverLogin</b> · <b>kakaoLogin</b> · <b>phoneLogin</b> → { customToken, isNewUser }</li>
+          <li><b>checkPhoneDuplicate</b> → { isDuplicate }</li>
+          <li><b>verifyIdentity</b> → { verified }, phone·birthDate 저장</li>
+          <li><b>deleteUser</b> → Auth + Firestore + Storage 일괄 삭제</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4><span class="dot" style="background:var(--green)"></span>자동 트리거</h4>
+        <ul>
+          <li><b>onUserCreated</b> — users/{uid} 자동 생성 (중복 실행 방어)</li>
+          <li><b>onFavoriteCreated / Deleted</b> — favoriteCount ±1</li>
+          <li><b>onReviewCreated / Deleted / Updated</b> — ratingSum · reviewCount · rating 재계산</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4><span class="dot" style="background:var(--orange)"></span>스케줄 (Blaze 필요)</h4>
+        <ul>
+          <li><b>cleanupPastPerformances</b> — 매일 KST 04:00</li>
+          <li><code>startAt &lt; now - 8h</code> 인 공연만 삭제 → 새벽 진행 중 공연 보존</li>
+          <li>500개씩 배치 삭제</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="chain">
+      <div class="node n-ui"><div class="t">favorites 문서 생성</div></div>
+      <div class="harrow" data-l="트리거"></div>
+      <div class="node n-fb"><div class="t">onFavoriteCreated</div><div class="d">FieldValue.increment(1)</div></div>
+      <div class="harrow"></div>
+      <div class="node n-repo"><div class="t">clubs.favoriteCount</div><div class="d">앱은 읽기만</div></div>
+    </div>
+
+    <div class="note">집계 필드(<code>favoriteCount · ratingSum · reviewCount · rating</code>)는 Cloud Functions 로만 갱신. <code>performances</code> 는 집계가 없어 트리거 불필요 — live/lineup 은 클라이언트에서 오늘 공연을 clubId 로 머지해 계산.</div>
+  </div>
+</section>
+
+<!-- ============ 9 ============ -->
+<section id="data">
+  <div class="sec-head"><span class="sec-num">09</span><h2>Firestore 컬렉션 · Storage</h2></div>
+  <div class="panel">
+    <table>
+      <thead><tr><th>경로</th><th>용도</th><th>읽기 / 쓰기</th><th>소비 화면</th></tr></thead>
+      <tbody>
+        <tr><td><b>users/{uid}</b></td><td>프로필 · phone · isVerified</td><td>본인만 / 본인만</td><td>마이페이지 · 인증</td></tr>
+        <tr><td><b>clubs/{clubId}</b></td><td>클럽 본문 · location.geohash · 집계 필드</td><td>누구나(isActive) / 어드민</td><td>전 화면</td></tr>
+        <tr><td>clubs/…/info</td><td>지하철 · 오픈챗 · 유의사항</td><td>누구나 / 어드민</td><td>상세 · 매장 정보 탭</td></tr>
+        <tr><td>clubs/…/menus</td><td>메뉴 · 가격 · 대표 메뉴</td><td>누구나 / 어드민</td><td>상세 · 메뉴 탭</td></tr>
+        <tr><td>clubs/…/photos</td><td>venue / food / inside 분류 사진</td><td>누구나 / 본인·어드민</td><td>상세 · 사진 탭</td></tr>
+        <tr><td>clubs/…/reviews</td><td>별점 · 본문 · 이미지</td><td>누구나 / 본인·어드민</td><td>상세 · 리뷰 탭</td></tr>
+        <tr><td><b>{path=**}/reviews</b></td><td>collectionGroup — 내 리뷰</td><td>본인 리뷰만 / 불가</td><td>MyReviewsScreen</td></tr>
+        <tr><td><b>favorites/{id}</b></td><td>userId + clubId</td><td>본인만 / 본인만</td><td>찜 탭 · 찜 버튼</td></tr>
+        <tr><td>users/…/searchHistory</td><td>최근 검색어</td><td>본인만 / 본인만</td><td>검색</td></tr>
+        <tr><td><b>banners/{id}</b></td><td>홈 배너 · order · 노출 기간</td><td>누구나</td><td>홈</td></tr>
+        <tr><td><b>vybeRecommendations</b></td><td>rank · match · reason (에디토리얼)</td><td>누구나</td><td>VYBE 추천</td></tr>
+        <tr><td><b>performances</b></td><td>top-level · (클럽 × 날짜 × 공연)</td><td>누구나</td><td>힙합 · 공연 일정</td></tr>
+      </tbody>
+    </table>
+
+    <div class="cards" style="margin-top:24px">
+      <div class="card">
+        <h4><span class="dot" style="background:var(--cyan)"></span>필요한 인덱스</h4>
+        <ul>
+          <li><code>reviews COLLECTION_GROUP (userId ASC, createdAt DESC)</code></li>
+          <li><code>performances (genre, date, startAt)</code></li>
+          <li>clubs geohash 범위 쿼리 (location.geohash)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4><span class="dot" style="background:var(--pink)"></span>Storage 경로</h4>
+        <ul>
+          <li><code>clubs/{id}/thumbnail.jpeg</code></li>
+          <li><code>clubs/{id}/gallery/{n}.jpg</code> — hero + 사진탭 공용</li>
+          <li><code>clubs/{id}/menus/…</code> · <code>menus/boards/…</code></li>
+          <li><code>reviews/{clubId}/{reviewId}/…</code></li>
+          <li><code>users/{uid}/profile.jpg</code></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4><span class="dot" style="background:var(--green)"></span>Rules 요약</h4>
+        <ul>
+          <li>clubs/** 공개 읽기, 어드민만 쓰기(10MB·이미지)</li>
+          <li>reviews/** 로그인 유저 업로드</li>
+          <li>users/{uid}/** 본인만 (5MB)</li>
+          <li>어드민 = <code>request.auth.token.admin == true</code></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 10 ============ -->
+<section id="status">
+  <div class="sec-head"><span class="sec-num">10</span><h2>구현 상태 · 남은 로드맵</h2></div>
+  <div class="panel">
+    <div class="cards" style="margin-bottom:26px">
+      <div class="card">
+        <h4><span class="dot" style="background:var(--green)"></span>완료</h4>
+        <ul>
+          <li>디자인 시스템 · 앱 테마 · 공통 위젯</li>
+          <li>Cloud Functions 13개 전부</li>
+          <li>데이터 레이어 전부 (모델 13 · datasource 10 · repo 9)</li>
+          <li>인증 플로우 (카카오 · 네이버 · 전화)</li>
+          <li>홈 · 주변 · 찜 · 검색 · 마이페이지</li>
+          <li>클럽 상세 5탭 · 카테고리 페이지 5종</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4><span class="dot" style="background:var(--orange)"></span>진행 중 / 미구현</h4>
+        <ul>
+          <li>주변 ↔ 상세 연동 마무리</li>
+          <li>마이페이지 — 리뷰 수정 · 프로필 사진 · 알림</li>
+          <li>EDM · K-POP · 라운지 카테고리 페이지</li>
+          <li>패스·지갑 탭 (플레이스홀더)</li>
+          <li>reviews collectionGroup 인덱스·Rules 배포</li>
+          <li>Storage Rules 배포 검증 · Apple 로그인</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="chain">
+      <div class="node n-repo"><div class="t">1. 주변 ↔ 상세 연동</div></div>
+      <div class="harrow"></div>
+      <div class="node"><div class="t">2. 마이페이지 잔여</div></div>
+      <div class="harrow"></div>
+      <div class="node"><div class="t">3. 패스·지갑 탭</div></div>
+      <div class="harrow"></div>
+      <div class="node"><div class="t">4. Rules·인덱스 배포</div></div>
+      <div class="harrow"></div>
+      <div class="node n-dim"><div class="t">5. Apple 로그인</div></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  VYBE — 코드 기준 플로우차트 · <code>docs/project_flow.html</code><br>
+  갱신 시 <code>lib/presentation/main_scaffold/main_scaffold.dart</code>(탭 구조), <code>functions/src/index.ts</code>(함수 목록), <code>CLAUDE.md</code>(스키마) 세 곳을 기준으로 맞출 것.
+</footer>
+
+</div>
+</body>
+</html>

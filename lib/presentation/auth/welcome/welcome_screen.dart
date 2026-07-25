@@ -15,7 +15,6 @@ import 'package:vybe/presentation/auth/viewmodels/auth_viewmodel.dart';
 import 'package:vybe/presentation/auth/welcome/login_method_bottom_sheet.dart';
 import 'package:vybe/presentation/common/widgets/vybe_spinner.dart';
 import 'package:vybe/presentation/home/viewmodels/banner_viewmodel.dart';
-import 'package:vybe/presentation/main_scaffold/main_scaffold.dart';
 
 class WelcomeScreen extends ConsumerStatefulWidget {
   const WelcomeScreen({super.key});
@@ -48,11 +47,9 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
       );
     } catch (_) {}
     if (!mounted) return;
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => const MainScaffold()),
-      (route) => false,
-    );
+    // 로그인 성공 시 루트(AuthGate)가 이미 MainScaffold로 바뀌어 있다.
+    // 이 화면이 push된 상태(마이페이지 등에서 진입)면 스택만 정리하면 된다.
+    Navigator.popUntil(context, (route) => route.isFirst);
   }
 
   Future<void> _onKakaoLogin() async {

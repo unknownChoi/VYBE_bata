@@ -458,13 +458,9 @@ class _LoggedInView extends ConsumerWidget {
       builder: (sheetContext) => _LogoutSheet(
         onConfirm: () async {
           Navigator.of(sheetContext).pop();
+          // 로그아웃하면 AuthGate가 루트를 WelcomeScreen으로 교체하고
+          // 그 위에 쌓인 라우트를 전부 정리한다.
           await ref.read(authViewModelProvider.notifier).signOut();
-          if (!context.mounted) return;
-          // 로그아웃 후 루트 네비게이터에서 웰컴 화면으로 전체 교체.
-          Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-            (_) => false,
-          );
         },
       ),
     );

@@ -8,7 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 import 'package:flutter_naver_map/flutter_naver_map.dart';
-import 'package:vybe/presentation/main_scaffold/main_scaffold.dart';
+import 'package:vybe/presentation/auth/auth_gate.dart';
 import 'core/theme/app_theme.dart';
 import 'firebase_options.dart';
 
@@ -60,7 +60,8 @@ class VybeApp extends StatelessWidget {
         theme: AppTheme.dark,
         home: child,
       ),
-      child: const MainScaffold(),
+      // 루트는 AuthGate — 비로그인이면 MainScaffold로 진입 자체가 불가.
+      child: const AuthGate(),
     );
   }
 }
