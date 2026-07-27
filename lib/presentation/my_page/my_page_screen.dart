@@ -147,25 +147,8 @@ class _LoggedInView extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // ---------- 히어로 ----------
-          Padding(
-            padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                _circleButton(
-                  icon: Icons.notifications_none_rounded,
-                  onTap: () =>
-                      VybeToast.show(context, message: '알림은 준비 중이에요'),
-                ),
-                SizedBox(width: 8.w),
-                _circleButton(
-                  icon: Icons.settings_outlined,
-                  onTap: () => _push(context, const SettingsScreen()),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: 18.h),
+          // 상단 우측 알림·설정 버튼 제거 — 아래 '계정' 메뉴에 동일 항목이 있어 중복.
+          SizedBox(height: 72.h),
           MyAvatar(
             name: name,
             imageUrl: user?.profileImageUrl ?? '',
@@ -358,18 +341,6 @@ class _LoggedInView extends ConsumerWidget {
     );
   }
 
-  Widget _circleButton({required IconData icon, required VoidCallback onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 40.r,
-        height: 40.r,
-        decoration: glassTileDecoration(radius: 999),
-        child: Icon(icon, size: 20.r, color: Colors.white),
-      ),
-    );
-  }
-
   Widget _stat(
     BuildContext context, {
     required String label,
@@ -451,8 +422,13 @@ class _LoggedInView extends ConsumerWidget {
   }
 
   void _confirmLogout(BuildContext context, WidgetRef ref) {
+    // MainScaffold의 floating 바텀 nav는 body 위 Stack에 떠 있어 시트 버튼과
+    // 겹친다 → 시트가 떠 있는 동안 nav를 화면 밖으로 내린다.
+    ref.read(navBarHiddenProvider.notifier).hide();
     showModalBottomSheet<void>(
       context: context,
+      // 탭 Navigator 대신 루트에 띄워 시트가 nav 레이어보다 위에 오게 한다.
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withValues(alpha: 0.6),
       builder: (sheetContext) => _LogoutSheet(
@@ -463,7 +439,7 @@ class _LoggedInView extends ConsumerWidget {
           await ref.read(authViewModelProvider.notifier).signOut();
         },
       ),
-    );
+    ).whenComplete(() => ref.read(navBarHiddenProvider.notifier).show());
   }
 }
 
@@ -588,7 +564,8 @@ class _LogoutSheet extends StatelessWidget {
             width: 38.w,
             height: 4.h,
             decoration: BoxDecoration(
-              color: VybeColors.gray700,
+              // gray700(#535355)은 시트 배경과 명도차가 작아 핸들이 안 보임.
+              color: Colors.white.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(99.r),
             ),
           ),
@@ -616,7 +593,15 @@ class _LogoutSheet extends StatelessWidget {
                   child: Container(
                     height: 50.h,
                     alignment: Alignment.center,
-                    decoration: glassTileDecoration(radius: 14),
+                    // glassTile(alpha 0.08)은 시트 위에서 버튼 경계가 거의
+                    // 안 보여 대비를 올린다.
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(14.r),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.24),
+                      ),
+                    ),
                     child: Text(
                       '취소',
                       style: VybeTypography.button1.copyWith(

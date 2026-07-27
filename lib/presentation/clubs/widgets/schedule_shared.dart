@@ -68,13 +68,13 @@ class ScheduleDay {
   });
 
   ScheduleDay copyWithActs(List<ScheduleAct> next) => ScheduleDay(
-        year: year,
-        month: month,
-        day: day,
-        dow: dow,
-        dday: dday,
-        acts: next,
-      );
+    year: year,
+    month: month,
+    day: day,
+    dow: dow,
+    dday: dday,
+    acts: next,
+  );
 }
 
 // ── PerformanceModel → UI 매퍼 ──
@@ -122,25 +122,28 @@ List<ScheduleDay> buildScheduleDays(List<PerformanceModel> perfs) {
 
   final days = <ScheduleDay>[];
   for (final key in keys) {
-    final list = byDate[key]!
-      ..sort((a, b) => a.startAt.compareTo(b.startAt));
+    final list = byDate[key]!..sort((a, b) => a.startAt.compareTo(b.startAt));
     final d = _parseBucket(key);
-    days.add(ScheduleDay(
-      year: d.year,
-      month: d.month,
-      day: d.day,
-      dow: _dow[d.weekday - 1],
-      dday: d.difference(today).inDays,
-      acts: list
-          .map((p) => ScheduleAct(
+    days.add(
+      ScheduleDay(
+        year: d.year,
+        month: d.month,
+        day: d.day,
+        dow: _dow[d.weekday - 1],
+        dday: d.difference(today).inDays,
+        acts: list
+            .map(
+              (p) => ScheduleAct(
                 time: p.hhmm,
                 name: p.artistName,
                 type: p.artistType,
                 headline: p.isFeatured,
                 gradient: _gradientFor(p.artistName),
-              ))
-          .toList(),
-    ));
+              ),
+            )
+            .toList(),
+      ),
+    );
   }
   return days;
 }
@@ -220,8 +223,10 @@ class ScheduleDayCard extends StatelessWidget {
                   ),
                   SizedBox(height: 5.h),
                   Container(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 7.w, vertical: 2.h),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 7.w,
+                      vertical: 2.h,
+                    ),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(999.r),
                       color: isToday

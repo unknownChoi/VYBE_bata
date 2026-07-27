@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -26,6 +27,11 @@ Future<void> main() async {
     }
     return false; // 그 외 에러는 기본 처리(로그/리포트)
   };
+
+  // 세로 방향 고정 (가로 회전 금지).
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+  ]);
 
   // 환경변수 로드
   await dotenv.load(fileName: '.env');

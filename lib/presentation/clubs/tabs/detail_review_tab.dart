@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/data/models/review_model.dart';
 import 'package:vybe/design_system/colors.dart';
+import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
 import 'package:vybe/presentation/clubs/viewmodels/review_viewmodel.dart';
+import 'package:vybe/presentation/clubs/widgets/write_review_sheet.dart';
 import 'package:vybe/presentation/common/widgets/vybe_photo_viewer.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 
@@ -16,7 +18,6 @@ class DetailReviewTab extends ConsumerStatefulWidget {
 }
 
 class _DetailReviewTabState extends ConsumerState<DetailReviewTab> {
-  int _toggleIndex = 0;
   int _sortIndex = 0;
 
   static const _avatarColors = [
@@ -29,41 +30,6 @@ class _DetailReviewTabState extends ConsumerState<DetailReviewTab> {
     Color(0xFFFFBE0B),
   ];
 
-  static const List<_BlogData> _blogs = [
-    _BlogData(
-      blogger: '클럽 탐험가',
-      subtitle: 'NAVER 블로그',
-      date: '2025.06.10',
-      title: '홍대에서 입문자가 가기 좋은 클럽 TOP 5',
-      preview: '어썸 레드는 입장료가 무료라서 처음 클럽에 가는 사람도 부담 없이 즐길 수 있는 곳이다...',
-      cover: 'assets/club_detail/images/home_tab_image_1.jpg',
-    ),
-    _BlogData(
-      blogger: '주말의기록',
-      subtitle: 'Tistory',
-      date: '2025.06.02',
-      title: '어썸 레드 방문 후기 - 힙합 좋아하는 사람 모여라',
-      preview: '드디어 다녀온 어썸 레드! 디제이 셀렉이 정말 취향 저격이었다. 입장하자마자...',
-      cover: 'assets/club_detail/images/home_tab_image_2.png',
-    ),
-    _BlogData(
-      blogger: 'night_seoul',
-      subtitle: 'Instagram',
-      date: '2025.05.20',
-      title: '홍대 클럽 어썸 레드 솔직 후기',
-      preview: '오늘은 홍대에 새로 생긴 클럽 어썸 레드에 다녀왔어요. 분위기 짱이고 음악이...',
-      cover: 'assets/club_detail/images/image_tab_image_1.png',
-    ),
-    _BlogData(
-      blogger: '서울나잇라이프',
-      subtitle: 'NAVER 블로그',
-      date: '2025.05.15',
-      title: '입장료 없는 홍대 클럽 추천 BEST 3',
-      preview: '주말 밤 놀거리 찾으시는 분들께 추천드리는 무료 입장 클럽들. 어썸 레드는 분위기가...',
-      cover: 'assets/club_detail/images/image_tab_image_2.png',
-    ),
-  ];
-
   @override
   Widget build(BuildContext context) {
     final reviewsAsync = ref.watch(reviewListProvider(widget.clubId));
@@ -72,75 +38,102 @@ class _DetailReviewTabState extends ConsumerState<DetailReviewTab> {
       physics: const ClampingScrollPhysics(),
       padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 32.h),
       children: [
-        // segmented toggle
-        Container(
-          height: 44.h,
-          decoration: BoxDecoration(
-            color: VybeColors.gray900,
-            borderRadius: BorderRadius.circular(999.r),
-          ),
-          padding: EdgeInsets.all(4.r),
-          child: Row(
-            children: [_toggleBtn('방문자 리뷰', 0), _toggleBtn('블로그 리뷰', 1)],
-          ),
-        ),
-        SizedBox(height: 20.h),
-
-        if (_toggleIndex == 0)
-          reviewsAsync.when(
-            loading: () => const ReviewsTabSkeleton(),
-            error: (_, __) => Center(
-              child: Text(
-                '리뷰를 불러올 수 없어요',
-                style: TextStyle(
-                  fontFamily: 'Pretendard',
-                  fontSize: 14.sp,
-                  color: VybeColors.gray500,
-                ),
+        // 방문자 리뷰만 노출 — 블로그 리뷰는 데이터 소스가 없어(하드코딩 목업) 제거.
+        reviewsAsync.when(
+          loading: () => const ReviewsTabSkeleton(),
+          error: (_, __) => Center(
+            child: Text(
+              '리뷰를 불러올 수 없어요',
+              style: TextStyle(
+                fontFamily: 'Pretendard',
+                fontSize: 14.sp,
+                color: VybeColors.gray500,
               ),
             ),
-            data: (reviews) {
-              final sorted = _sortedReviews(reviews);
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _RatingSummary(reviews: reviews),
-                  SizedBox(height: 20.h),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '리뷰 ${reviews.length}',
-                        style: TextStyle(
-                          fontFamily: 'Pretendard',
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
-                      Row(
-                        children: [
-                          _sortChip('최신순', 0),
-                          _sortChip('평점순', 1),
-                          _sortChip('사진', 2),
-                        ],
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 4.h),
-                  ...sorted.asMap().entries.map(
-                    (e) => _ReviewCard(
-                      review: e.value,
-                      avatarColor: _avatarColors[e.key % _avatarColors.length],
-                    ),
-                  ),
-                ],
-              );
-            },
           ),
-
-        if (_toggleIndex == 1) ..._blogs.map((b) => _BlogCard(blog: b)),
+          data: (reviews) {
+            final sorted = _sortedReviews(reviews);
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _RatingSummary(reviews: reviews),
+                SizedBox(height: 20.h),
+                _buildWriteButton(),
+                SizedBox(height: 20.h),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '리뷰 ${reviews.length}',
+                      style: TextStyle(
+                        fontFamily: 'Pretendard',
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        _sortChip('최신순', 0),
+                        _sortChip('평점순', 1),
+                        _sortChip('사진', 2),
+                      ],
+                    ),
+                  ],
+                ),
+                SizedBox(height: 4.h),
+                ...sorted.asMap().entries.map(
+                  (e) => _ReviewCard(
+                    review: e.value,
+                    avatarColor: _avatarColors[e.key % _avatarColors.length],
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
       ],
+    );
+  }
+
+  // 리뷰 작성하기 — 디자인(club_detail) 기준 라임 풀와이드 버튼.
+  Widget _buildWriteButton() {
+    return GestureDetector(
+      onTap: _openWriteSheet,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(vertical: 14.h),
+        decoration: BoxDecoration(
+          color: VybeColors.mainLime500,
+          borderRadius: BorderRadius.circular(12.r),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.edit_outlined, size: 17.r, color: VybeColors.background),
+            SizedBox(width: 8.w),
+            Text(
+              '리뷰 작성하기',
+              style: TextStyle(
+                fontFamily: 'Pretendard',
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w600,
+                color: VybeColors.background,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _openWriteSheet() {
+    final clubName = ref.read(clubDetailProvider(widget.clubId)).value?.name;
+    WriteReviewSheet.show(
+      context,
+      clubId: widget.clubId,
+      clubName: clubName ?? '이 클럽',
     );
   }
 
@@ -154,31 +147,6 @@ class _DetailReviewTabState extends ConsumerState<DetailReviewTab> {
       list.sort((a, b) => b.imageUrls.length.compareTo(a.imageUrls.length));
     }
     return list;
-  }
-
-  Widget _toggleBtn(String label, int index) {
-    final selected = _toggleIndex == index;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _toggleIndex = index),
-        child: Container(
-          decoration: BoxDecoration(
-            color: selected ? VybeColors.gray700 : Colors.transparent,
-            borderRadius: BorderRadius.circular(999.r),
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            label,
-            style: TextStyle(
-              fontFamily: 'Pretendard',
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w600,
-              color: selected ? Colors.white : VybeColors.gray400,
-            ),
-          ),
-        ),
-      ),
-    );
   }
 
   Widget _sortChip(String label, int index) {
@@ -493,49 +461,47 @@ class _ReviewCardState extends State<_ReviewCard> {
               if (firstImage != null) ...[
                 SizedBox(width: 14.w),
                 GestureDetector(
-                  onTap: () => VybePhotoViewer.open(
-                    context,
-                    imageUrls: r.imageUrls,
-                  ),
+                  onTap: () =>
+                      VybePhotoViewer.open(context, imageUrls: r.imageUrls),
                   child: SizedBox(
-                  width: 90.r,
-                  height: 90.r,
-                  child: Stack(
-                    children: [
-                      SkeletonImage(
-                        url: firstImage,
-                        width: 90.r,
-                        height: 90.r,
-                        fit: BoxFit.cover,
-                        borderRadius: BorderRadius.circular(6.r),
-                      ),
-                      if (r.imageUrls.length > 1)
-                        Positioned(
-                          right: 6.w,
-                          bottom: 6.h,
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 8.w,
-                              vertical: 3.h,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.7),
-                              borderRadius: BorderRadius.circular(999.r),
-                            ),
-                            child: Text(
-                              '+${r.imageUrls.length - 1}',
-                              style: TextStyle(
-                                fontFamily: 'Pretendard',
-                                fontSize: 12.sp,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
+                    width: 90.r,
+                    height: 90.r,
+                    child: Stack(
+                      children: [
+                        SkeletonImage(
+                          url: firstImage,
+                          width: 90.r,
+                          height: 90.r,
+                          fit: BoxFit.cover,
+                          borderRadius: BorderRadius.circular(6.r),
+                        ),
+                        if (r.imageUrls.length > 1)
+                          Positioned(
+                            right: 6.w,
+                            bottom: 6.h,
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 8.w,
+                                vertical: 3.h,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.7),
+                                borderRadius: BorderRadius.circular(999.r),
+                              ),
+                              child: Text(
+                                '+${r.imageUrls.length - 1}',
+                                style: TextStyle(
+                                  fontFamily: 'Pretendard',
+                                  fontSize: 12.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
                 ),
               ],
             ],
@@ -544,128 +510,4 @@ class _ReviewCardState extends State<_ReviewCard> {
       ),
     );
   }
-}
-
-// ── BLOG CARD ──
-
-class _BlogCard extends StatelessWidget {
-  final _BlogData blog;
-  const _BlogCard({required this.blog});
-
-  @override
-  Widget build(BuildContext context) {
-    final b = blog;
-    return Container(
-      padding: EdgeInsets.symmetric(vertical: 16.h),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: VybeColors.gray900)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      b.subtitle,
-                      style: TextStyle(
-                        fontFamily: 'Pretendard',
-                        fontSize: 12.sp,
-                        fontWeight: FontWeight.w600,
-                        color: VybeColors.mainLime500,
-                      ),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 6.w),
-                      child: Container(
-                        width: 2.r,
-                        height: 2.r,
-                        decoration: const BoxDecoration(
-                          color: VybeColors.gray600,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      b.blogger,
-                      style: TextStyle(
-                        fontFamily: 'Pretendard',
-                        fontSize: 12.sp,
-                        color: VybeColors.gray500,
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 8.h),
-                Text(
-                  b.title,
-                  style: TextStyle(
-                    fontFamily: 'Pretendard',
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                    height: 1.4,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                SizedBox(height: 6.h),
-                Text(
-                  b.preview,
-                  style: TextStyle(
-                    fontFamily: 'Pretendard',
-                    fontSize: 12.sp,
-                    color: VybeColors.gray400,
-                    height: 1.4,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                SizedBox(height: 8.h),
-                Text(
-                  b.date,
-                  style: TextStyle(
-                    fontFamily: 'Pretendard',
-                    fontSize: 12.sp,
-                    color: VybeColors.gray600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(width: 14.w),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8.r),
-            child: Image.asset(
-              b.cover,
-              width: 80.r,
-              height: 80.r,
-              fit: BoxFit.cover,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _BlogData {
-  final String blogger;
-  final String subtitle;
-  final String date;
-  final String title;
-  final String preview;
-  final String cover;
-
-  const _BlogData({
-    required this.blogger,
-    required this.subtitle,
-    required this.date,
-    required this.title,
-    required this.preview,
-    required this.cover,
-  });
 }

@@ -43,8 +43,9 @@ class _PerformanceScheduleScreenState
   List<ScheduleDay> _filtered(List<ScheduleDay> days) {
     if (_type == 'all') return days;
     return days
-        .map((d) => d.copyWithActs(
-            d.acts.where((a) => a.type == _type).toList()))
+        .map(
+          (d) => d.copyWithActs(d.acts.where((a) => a.type == _type).toList()),
+        )
         .where((d) => d.acts.isNotEmpty)
         .toList();
   }

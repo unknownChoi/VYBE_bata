@@ -7,6 +7,7 @@ import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/clubs/club_detail_screen.dart';
 import 'package:vybe/presentation/home/viewmodels/home_nearby_viewmodel.dart';
+import 'package:vybe/presentation/main_scaffold/nav_bar_visibility_provider.dart';
 
 class HomeNearbyClubs extends ConsumerWidget {
   const HomeNearbyClubs({super.key});
@@ -29,25 +30,31 @@ class HomeNearbyClubs extends ConsumerWidget {
                   '주변 클럽',
                   style: VybeTypography.heading4.copyWith(color: Colors.white),
                 ),
-                Row(
-                  children: [
-                    Text(
-                      '전체보기',
-                      style: VybeTypography.caption.copyWith(
-                        color: VybeColors.gray400,
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  // 주변 탭(index 1)으로 전환 — MainScaffold가 listen해 점프.
+                  onTap: () =>
+                      ref.read(tabSwitchRequestProvider.notifier).request(1),
+                  child: Row(
+                    children: [
+                      Text(
+                        '전체보기',
+                        style: VybeTypography.caption.copyWith(
+                          color: VybeColors.gray400,
+                        ),
                       ),
-                    ),
-                    SizedBox(width: 4.w),
-                    SvgPicture.asset(
-                      'assets/icons/home_screen/add_content.svg',
-                      width: 4.w,
-                      height: 8.h,
-                      colorFilter: const ColorFilter.mode(
-                        VybeColors.gray400,
-                        BlendMode.srcIn,
+                      SizedBox(width: 4.w),
+                      SvgPicture.asset(
+                        'assets/icons/home_screen/add_content.svg',
+                        width: 4.w,
+                        height: 8.h,
+                        colorFilter: const ColorFilter.mode(
+                          VybeColors.gray400,
+                          BlendMode.srcIn,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),

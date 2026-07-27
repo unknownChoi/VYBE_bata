@@ -8,6 +8,7 @@ import 'package:vybe/core/utils/url_utils.dart';
 import 'package:vybe/data/models/club_info_model.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/data/models/operating_hours.dart';
+import 'package:vybe/core/utils/phone_launcher.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
 import 'package:vybe/presentation/clubs/widgets/club_section_divider.dart';
@@ -311,66 +312,68 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
                           padding: EdgeInsets.only(top: 12.h),
                           child: Column(
                             children: List.generate(days.length, (i) {
-                      final isToday = i == today;
-                      return Padding(
-                        padding: EdgeInsets.only(bottom: 8.h),
-                        child: Row(
-                          children: [
-                            SizedBox(
-                              width: 18.w,
-                              child: Text(
-                                _weekdayLabels[i],
-                                style: TextStyle(
-                                  fontFamily: 'Pretendard',
-                                  fontSize: 13.sp,
-                                  fontWeight: isToday
-                                      ? FontWeight.w700
-                                      : FontWeight.w400,
-                                  color: isToday
-                                      ? Colors.white
-                                      : VybeColors.gray500,
+                              final isToday = i == today;
+                              return Padding(
+                                padding: EdgeInsets.only(bottom: 8.h),
+                                child: Row(
+                                  children: [
+                                    SizedBox(
+                                      width: 18.w,
+                                      child: Text(
+                                        _weekdayLabels[i],
+                                        style: TextStyle(
+                                          fontFamily: 'Pretendard',
+                                          fontSize: 13.sp,
+                                          fontWeight: isToday
+                                              ? FontWeight.w700
+                                              : FontWeight.w400,
+                                          color: isToday
+                                              ? Colors.white
+                                              : VybeColors.gray500,
+                                        ),
+                                      ),
+                                    ),
+                                    SizedBox(width: 12.w),
+                                    Text(
+                                      _dayHoursText(days[i]),
+                                      style: TextStyle(
+                                        fontFamily: 'Pretendard',
+                                        fontSize: 13.sp,
+                                        fontWeight: isToday
+                                            ? FontWeight.w600
+                                            : FontWeight.w400,
+                                        color: isToday
+                                            ? Colors.white
+                                            : VybeColors.gray500,
+                                      ),
+                                    ),
+                                    if (isToday) ...[
+                                      SizedBox(width: 8.w),
+                                      Container(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 6.w,
+                                          vertical: 1.h,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0x247731FE),
+                                          borderRadius: BorderRadius.circular(
+                                            4.r,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          '오늘',
+                                          style: TextStyle(
+                                            fontFamily: 'Pretendard',
+                                            fontSize: 10.sp,
+                                            fontWeight: FontWeight.w700,
+                                            color: VybeColors.mainPurple500,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
                                 ),
-                              ),
-                            ),
-                            SizedBox(width: 12.w),
-                            Text(
-                              _dayHoursText(days[i]),
-                              style: TextStyle(
-                                fontFamily: 'Pretendard',
-                                fontSize: 13.sp,
-                                fontWeight: isToday
-                                    ? FontWeight.w600
-                                    : FontWeight.w400,
-                                color: isToday
-                                    ? Colors.white
-                                    : VybeColors.gray500,
-                              ),
-                            ),
-                            if (isToday) ...[
-                              SizedBox(width: 8.w),
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 6.w,
-                                  vertical: 1.h,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0x247731FE),
-                                  borderRadius: BorderRadius.circular(4.r),
-                                ),
-                                child: Text(
-                                  '오늘',
-                                  style: TextStyle(
-                                    fontFamily: 'Pretendard',
-                                    fontSize: 10.sp,
-                                    fontWeight: FontWeight.w700,
-                                    color: VybeColors.mainPurple500,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      );
+                              );
                             }),
                           ),
                         ),
@@ -397,12 +400,16 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
                   ),
                 ),
                 SizedBox(width: 6.w),
-                Text(
-                  '전화 걸기',
-                  style: TextStyle(
-                    fontFamily: 'Pretendard',
-                    fontSize: 12.sp,
-                    color: VybeColors.mainLime500,
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => launchPhoneCall(context, phone),
+                  child: Text(
+                    '전화 걸기',
+                    style: TextStyle(
+                      fontFamily: 'Pretendard',
+                      fontSize: 12.sp,
+                      color: VybeColors.mainLime500,
+                    ),
                   ),
                 ),
               ],
@@ -517,58 +524,64 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
                   heightFactor: _noticeExpanded ? 1 : 0,
                   child: Container(
                     padding: EdgeInsets.fromLTRB(14.w, 14.h, 14.w, 16.h),
-                decoration: BoxDecoration(
-                  color: VybeColors.accentRed500.withValues(alpha: 0.04),
-                  border: Border(
-                    left: BorderSide(
-                      color: VybeColors.accentRed500.withValues(alpha: 0.25),
-                    ),
-                    right: BorderSide(
-                      color: VybeColors.accentRed500.withValues(alpha: 0.25),
-                    ),
-                    bottom: BorderSide(
-                      color: VybeColors.accentRed500.withValues(alpha: 0.25),
-                    ),
-                  ),
-                  borderRadius: BorderRadius.vertical(
-                    bottom: Radius.circular(12.r),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: cautions.map((notice) {
-                    return Padding(
-                      padding: EdgeInsets.only(bottom: 10.h),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '•',
-                            style: TextStyle(
-                              fontFamily: 'Pretendard',
-                              fontSize: 14.sp,
-                              color: VybeColors.gray500,
-                              height: 1.43,
-                            ),
+                    decoration: BoxDecoration(
+                      color: VybeColors.accentRed500.withValues(alpha: 0.04),
+                      border: Border(
+                        left: BorderSide(
+                          color: VybeColors.accentRed500.withValues(
+                            alpha: 0.25,
                           ),
-                          SizedBox(width: 8.w),
-                          Expanded(
-                            child: Text(
-                              notice,
-                              style: TextStyle(
-                                fontFamily: 'Pretendard',
-                                fontSize: 14.sp,
-                                color: VybeColors.gray200,
-                                height: 1.43,
-                              ),
-                            ),
+                        ),
+                        right: BorderSide(
+                          color: VybeColors.accentRed500.withValues(
+                            alpha: 0.25,
                           ),
-                        ],
+                        ),
+                        bottom: BorderSide(
+                          color: VybeColors.accentRed500.withValues(
+                            alpha: 0.25,
+                          ),
+                        ),
                       ),
-                    );
-                  }).toList(),
-                ),
-              ),
+                      borderRadius: BorderRadius.vertical(
+                        bottom: Radius.circular(12.r),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: cautions.map((notice) {
+                        return Padding(
+                          padding: EdgeInsets.only(bottom: 10.h),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '•',
+                                style: TextStyle(
+                                  fontFamily: 'Pretendard',
+                                  fontSize: 14.sp,
+                                  color: VybeColors.gray500,
+                                  height: 1.43,
+                                ),
+                              ),
+                              SizedBox(width: 8.w),
+                              Expanded(
+                                child: Text(
+                                  notice,
+                                  style: TextStyle(
+                                    fontFamily: 'Pretendard',
+                                    fontSize: 14.sp,
+                                    color: VybeColors.gray200,
+                                    height: 1.43,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -705,11 +718,12 @@ class _NaverMapCardState extends ConsumerState<_NaverMapCard> {
             // 2) 보라 라벨 + 핀을 하나의 마커 이미지로 생성.
             // 지도를 움직여도 클럽 좌표에 정확히 붙어 따라간다.
             if (!mounted) return;
-            final overlayImage = _clubPinIcon ??= await NOverlayImage.fromWidget(
-              widget: _PinWithLabel(label: name),
-              size: Size(240.r, 64.r),
-              context: context,
-            );
+            final overlayImage = _clubPinIcon ??=
+                await NOverlayImage.fromWidget(
+                  widget: _PinWithLabel(label: name),
+                  size: Size(240.r, 64.r),
+                  context: context,
+                );
             final marker = NMarker(
               id: 'club_marker',
               position: NLatLng(lat, lng),

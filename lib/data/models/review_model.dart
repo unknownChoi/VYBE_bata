@@ -35,12 +35,13 @@ abstract class ReviewModel with _$ReviewModel {
   }
 
   Map<String, dynamic> toFirestore() => {
-        'clubId': clubId,
-        'userId': userId,
-        'rating': rating,
-        'content': content,
-        'imageUrls': imageUrls,
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      };
+    'clubId': clubId,
+    'userId': userId,
+    'userName': userName,
+    'rating': rating,
+    'content': content,
+    'imageUrls': imageUrls,
+    'createdAt': FieldValue.serverTimestamp(),
+    'updatedAt': FieldValue.serverTimestamp(),
+  };
 }

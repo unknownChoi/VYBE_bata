@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vybe/core/providers/auth_providers.dart';
+import 'package:vybe/core/utils/phone_launcher.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/tabs/detail_gallery_tab.dart';
 import 'package:vybe/presentation/clubs/tabs/detail_home_tab.dart';
@@ -72,7 +73,8 @@ class _ClubDetailScreenState extends ConsumerState<ClubDetailScreen>
             child: clubAsync.isLoading
                 ? const HeroSkeleton()
                 : _Hero(
-                    onBack: widget.onClose ??
+                    onBack:
+                        widget.onClose ??
                         () => Navigator.of(context).maybePop(),
                     imageUrls: imageUrls,
                     clubId: widget.clubId,
@@ -323,20 +325,20 @@ class _HeroState extends ConsumerState<_Hero> {
             bottom: 40.h,
             child: IgnorePointer(
               child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.55),
-                borderRadius: BorderRadius.circular(999.r),
-              ),
-              child: Text(
-                '${_currentIndex + 1} / $total',
-                style: TextStyle(
-                  fontFamily: 'Pretendard',
-                  fontSize: 12.sp,
-                  color: Colors.white,
-                  fontWeight: FontWeight.w500,
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.55),
+                  borderRadius: BorderRadius.circular(999.r),
                 ),
-              ),
+                child: Text(
+                  '${_currentIndex + 1} / $total',
+                  style: TextStyle(
+                    fontFamily: 'Pretendard',
+                    fontSize: 12.sp,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ),
             ),
           ),
@@ -392,8 +394,8 @@ class _HeroState extends ConsumerState<_Hero> {
       onTap: uid == null
           ? null
           : () => ref
-              .read(favoriteViewModelProvider.notifier)
-              .toggleFavorite(uid, widget.clubId, isFavorited),
+                .read(favoriteViewModelProvider.notifier)
+                .toggleFavorite(uid, widget.clubId, isFavorited),
       child: Container(
         width: 36.r,
         height: 36.r,
@@ -442,12 +444,17 @@ class _TitleBlock extends ConsumerWidget {
     final rating = club?.rating ?? 0.0;
     final description = club?.description ?? '';
     final tags = club?.tags ?? [];
+    final phone = club?.phone ?? '';
 
     return Padding(
       padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 24.h),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (club?.isVybeRecommended ?? false) ...[
+            const _VybeRecommendBadge(),
+            SizedBox(height: 14.h),
+          ],
           Row(
             children: [
               Text(
@@ -491,7 +498,7 @@ class _TitleBlock extends ConsumerWidget {
                 ),
               ),
               GestureDetector(
-                onTap: () {},
+                onTap: () => launchPhoneCall(context, phone),
                 child: Container(
                   padding: EdgeInsets.symmetric(
                     horizontal: 12.w,
@@ -595,6 +602,63 @@ class _TitleBlock extends ConsumerWidget {
                 ),
               );
             }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// VYBE 추천 클럽 뱃지 — 상세 상단 타이틀 블록용.
+// 리스트 카드용 라임 칩(vybe_recommend_screen 등)과 달리, 상세는 디자인
+// (club_detail) 기준 보라 그라데이션 + 라임 테두리 pill.
+class _VybeRecommendBadge extends StatelessWidget {
+  const _VybeRecommendBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.fromLTRB(10.w, 6.h, 12.w, 6.h),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            VybeColors.mainPurple500.withValues(alpha: 0.95),
+            VybeColors.mainPurple500.withValues(alpha: 0.55),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(999.r),
+        border: Border.all(
+          color: VybeColors.mainLime500.withValues(alpha: 0.55),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: VybeColors.mainPurple500.withValues(alpha: 0.32),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SvgPicture.asset(
+            'assets/icons/common/club_card/vybe_recommend.svg',
+            width: 13.r,
+            height: 13.r,
+          ),
+          SizedBox(width: 6.w),
+          Text(
+            'VYBE 추천클럽',
+            style: TextStyle(
+              fontFamily: 'Pretendard',
+              fontSize: 12.sp,
+              height: 14 / 12,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 12 * 0.02,
+              color: Colors.white,
+            ),
           ),
         ],
       ),

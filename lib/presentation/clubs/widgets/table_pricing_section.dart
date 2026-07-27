@@ -86,15 +86,114 @@ class _Table {
 }
 
 const _floor = <_Table>[
-  _Table(id: 'S1', tierKey: 'VVIP', name: '스테이지 프론트 A', desc: '무대 바로 앞 · 최고의 시야', price: '100만', minPeople: 8, minBottles: 3, minSpend: '1,000,000원', left: 0.05, top: 62),
-  _Table(id: 'S2', tierKey: 'VVIP', name: '스테이지 프론트 B', desc: '무대 바로 앞 · 최고의 시야', price: '100만', minPeople: 8, minBottles: 3, minSpend: '1,000,000원', right: 0.05, top: 62),
-  _Table(id: 'V1', tierKey: 'VIP', name: '센터 사이드 1', desc: '플로어 옆 · 활기찬 자리', price: '50만', minPeople: 6, minBottles: 2, minSpend: '500,000원', left: 0.03, top: 126),
-  _Table(id: 'V2', tierKey: 'VIP', name: '센터 사이드 2', desc: '플로어 옆 · 활기찬 자리', price: '50만', minPeople: 6, minBottles: 2, minSpend: '500,000원', right: 0.03, top: 126),
-  _Table(id: 'V3', tierKey: 'VIP', name: '센터 사이드 3', desc: '플로어 옆 · 활기찬 자리', price: '50만', minPeople: 6, minBottles: 2, minSpend: '500,000원', left: 0.03, top: 188),
-  _Table(id: 'V4', tierKey: 'VIP', name: '센터 사이드 4', desc: '플로어 옆 · 활기찬 자리', price: '50만', minPeople: 6, minBottles: 2, minSpend: '500,000원', right: 0.03, top: 188),
-  _Table(id: 'T1', tierKey: 'STD', name: '바 라운지 1', desc: '바 근처 · 편안한 자리', price: '20만', minPeople: 4, minBottles: 1, minSpend: '200,000원', left: 0.04, top: 288),
-  _Table(id: 'T2', tierKey: 'STD', name: '바 라운지 2', desc: '바 근처 · 편안한 자리', price: '20만', minPeople: 4, minBottles: 1, minSpend: '200,000원', left: 0.37, top: 288),
-  _Table(id: 'T3', tierKey: 'STD', name: '바 라운지 3', desc: '바 근처 · 편안한 자리', price: '20만', minPeople: 4, minBottles: 1, minSpend: '200,000원', right: 0.04, top: 288),
+  _Table(
+    id: 'S1',
+    tierKey: 'VVIP',
+    name: '스테이지 프론트 A',
+    desc: '무대 바로 앞 · 최고의 시야',
+    price: '100만',
+    minPeople: 8,
+    minBottles: 3,
+    minSpend: '1,000,000원',
+    left: 0.05,
+    top: 62,
+  ),
+  _Table(
+    id: 'S2',
+    tierKey: 'VVIP',
+    name: '스테이지 프론트 B',
+    desc: '무대 바로 앞 · 최고의 시야',
+    price: '100만',
+    minPeople: 8,
+    minBottles: 3,
+    minSpend: '1,000,000원',
+    right: 0.05,
+    top: 62,
+  ),
+  _Table(
+    id: 'V1',
+    tierKey: 'VIP',
+    name: '센터 사이드 1',
+    desc: '플로어 옆 · 활기찬 자리',
+    price: '50만',
+    minPeople: 6,
+    minBottles: 2,
+    minSpend: '500,000원',
+    left: 0.03,
+    top: 126,
+  ),
+  _Table(
+    id: 'V2',
+    tierKey: 'VIP',
+    name: '센터 사이드 2',
+    desc: '플로어 옆 · 활기찬 자리',
+    price: '50만',
+    minPeople: 6,
+    minBottles: 2,
+    minSpend: '500,000원',
+    right: 0.03,
+    top: 126,
+  ),
+  _Table(
+    id: 'V3',
+    tierKey: 'VIP',
+    name: '센터 사이드 3',
+    desc: '플로어 옆 · 활기찬 자리',
+    price: '50만',
+    minPeople: 6,
+    minBottles: 2,
+    minSpend: '500,000원',
+    left: 0.03,
+    top: 188,
+  ),
+  _Table(
+    id: 'V4',
+    tierKey: 'VIP',
+    name: '센터 사이드 4',
+    desc: '플로어 옆 · 활기찬 자리',
+    price: '50만',
+    minPeople: 6,
+    minBottles: 2,
+    minSpend: '500,000원',
+    right: 0.03,
+    top: 188,
+  ),
+  _Table(
+    id: 'T1',
+    tierKey: 'STD',
+    name: '바 라운지 1',
+    desc: '바 근처 · 편안한 자리',
+    price: '20만',
+    minPeople: 4,
+    minBottles: 1,
+    minSpend: '200,000원',
+    left: 0.04,
+    top: 288,
+  ),
+  _Table(
+    id: 'T2',
+    tierKey: 'STD',
+    name: '바 라운지 2',
+    desc: '바 근처 · 편안한 자리',
+    price: '20만',
+    minPeople: 4,
+    minBottles: 1,
+    minSpend: '200,000원',
+    left: 0.37,
+    top: 288,
+  ),
+  _Table(
+    id: 'T3',
+    tierKey: 'STD',
+    name: '바 라운지 3',
+    desc: '바 근처 · 편안한 자리',
+    price: '20만',
+    minPeople: 4,
+    minBottles: 1,
+    minSpend: '200,000원',
+    right: 0.04,
+    top: 288,
+  ),
 ];
 
 class TablePricingSection extends StatefulWidget {
@@ -109,7 +208,10 @@ class _TablePricingSectionState extends State<TablePricingSection> {
 
   @override
   Widget build(BuildContext context) {
-    final sel = _floor.firstWhere((t) => t.id == _selId, orElse: () => _floor.first);
+    final sel = _floor.firstWhere(
+      (t) => t.id == _selId,
+      orElse: () => _floor.first,
+    );
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
@@ -136,7 +238,10 @@ class _TablePricingSectionState extends State<TablePricingSection> {
             ),
           ),
           SizedBox(height: 14.h),
-          _FloorMap(selId: _selId, onSelect: (id) => setState(() => _selId = id)),
+          _FloorMap(
+            selId: _selId,
+            onSelect: (id) => setState(() => _selId = id),
+          ),
           SizedBox(height: 12.h),
           _legend(),
           _TableDetail(table: sel),
@@ -250,7 +355,11 @@ class _FloorMap extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.album_outlined, size: 15.r, color: const Color(0xFFC8A8FF)),
+                      Icon(
+                        Icons.album_outlined,
+                        size: 15.r,
+                        color: const Color(0xFFC8A8FF),
+                      ),
                       SizedBox(width: 8.w),
                       Text(
                         'DJ BOOTH · STAGE',
@@ -277,10 +386,7 @@ class _FloorMap extends StatelessWidget {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12.r),
                     color: const Color(0x04FFFFFF),
-                    border: Border.all(
-                      color: VybeColors.gray700,
-                      width: 1.5,
-                    ),
+                    border: Border.all(color: VybeColors.gray700, width: 1.5),
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -346,15 +452,15 @@ class _FloorMap extends StatelessWidget {
   }
 
   Widget _floorLabel(String text) => Text(
-        text,
-        style: TextStyle(
-          fontFamily: 'Pretendard',
-          fontSize: 11.sp,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 1.76,
-          color: VybeColors.gray500,
-        ),
-      );
+    text,
+    style: TextStyle(
+      fontFamily: 'Pretendard',
+      fontSize: 11.sp,
+      fontWeight: FontWeight.w700,
+      letterSpacing: 1.76,
+      color: VybeColors.gray500,
+    ),
+  );
 }
 
 // ── 플로어맵 개별 테이블 ──
@@ -564,7 +670,11 @@ class _TableDetail extends StatelessWidget {
               children: [
                 Padding(
                   padding: EdgeInsets.only(top: 1.h),
-                  child: Icon(Icons.info_outline_rounded, size: 15.r, color: tier.color),
+                  child: Icon(
+                    Icons.info_outline_rounded,
+                    size: 15.r,
+                    color: tier.color,
+                  ),
                 ),
                 SizedBox(width: 8.w),
                 Expanded(
@@ -580,12 +690,18 @@ class _TableDetail extends StatelessWidget {
                         const TextSpan(text: '최소 '),
                         TextSpan(
                           text: '${table.minPeople}인',
-                          style: TextStyle(fontWeight: FontWeight.w800, color: tier.color),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            color: tier.color,
+                          ),
                         ),
                         const TextSpan(text: '부터, 보틀 '),
                         TextSpan(
                           text: '${table.minBottles}병',
-                          style: TextStyle(fontWeight: FontWeight.w800, color: tier.color),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            color: tier.color,
+                          ),
                         ),
                         const TextSpan(text: ' 이상 주문 시 예약 가능합니다.'),
                       ],

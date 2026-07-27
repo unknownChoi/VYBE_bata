@@ -845,11 +845,12 @@ class ReviewsTabSkeleton extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(0, 20.h, 0, 32.h),
       child: Column(
         children: [
-          // toggle
-          VybeSkel(width: double.infinity, height: 44.h, radius: 99),
-          SizedBox(height: 20.h),
+          // 방문자/블로그 토글은 제거됨 (블로그 리뷰 데이터 소스 없음) — 스켈레톤도 동일.
           // rating summary
           VybeSkel(width: double.infinity, height: 92.h, radius: 12),
+          SizedBox(height: 20.h),
+          // 리뷰 작성하기 버튼 (padding 14.h*2 + 16.sp 텍스트 ≈ 48.h)
+          VybeSkel(width: double.infinity, height: 48.h, radius: 12),
           SizedBox(height: 20.h),
           // sort row
           Row(
