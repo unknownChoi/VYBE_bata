@@ -33,8 +33,9 @@ class HomeNearbyClubs extends ConsumerWidget {
                   children: [
                     Text(
                       '전체보기',
-                      style: VybeTypography.caption
-                          .copyWith(color: VybeColors.gray400),
+                      style: VybeTypography.caption.copyWith(
+                        color: VybeColors.gray400,
+                      ),
                     ),
                     SizedBox(width: 4.w),
                     SvgPicture.asset(
@@ -79,8 +80,9 @@ class HomeNearbyClubs extends ConsumerWidget {
               child: Center(
                 child: Text(
                   '클럽 정보를 불러올 수 없어요',
-                  style:
-                      VybeTypography.body2.copyWith(color: VybeColors.gray500),
+                  style: VybeTypography.body2.copyWith(
+                    color: VybeColors.gray500,
+                  ),
                 ),
               ),
             ),
@@ -106,8 +108,9 @@ class _ClubCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final grad = _fallbackGradients[
-        club.clubId.hashCode.abs() % _fallbackGradients.length];
+    final grad =
+        _fallbackGradients[club.clubId.hashCode.abs() %
+            _fallbackGradients.length];
 
     return GestureDetector(
       onTap: () => Navigator.of(context).push(
@@ -132,114 +135,116 @@ class _ClubCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16.r),
         ),
         child: Stack(
-            fit: StackFit.expand,
-            children: [
-              if (club.thumbnailUrl.isNotEmpty)
-                Image.network(
-                  club.thumbnailUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                ),
-              // 하단 가독성 그라데이션
-              const DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Color(0xF00A0A0E)],
-                    stops: [0.32, 1.0],
-                  ),
+          fit: StackFit.expand,
+          children: [
+            if (club.thumbnailUrl.isNotEmpty)
+              Image.network(
+                club.thumbnailUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              ),
+            // 하단 가독성 그라데이션
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.transparent, Color(0xF00A0A0E)],
+                  stops: [0.32, 1.0],
                 ),
               ),
-              // 평점 배지 (우상단)
-              Positioned(
-                top: 12.h,
-                right: 12.w,
-                child: _Pill(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.star_rounded,
-                          size: 13.r, color: VybeColors.mainLime500),
-                      SizedBox(width: 3.w),
-                      Text(
-                        club.rating.toStringAsFixed(1),
-                        style: _badgeText,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              // 정보 (하단)
-              Positioned(
-                left: 14.w,
-                right: 14.w,
-                bottom: 13.h,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            ),
+            // 평점 배지 (우상단)
+            Positioned(
+              top: 12.h,
+              right: 12.w,
+              child: _Pill(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Row(
-                      children: [
-                        if (club.isVybeRecommended) ...[
-                          SvgPicture.asset(
-                            'assets/icons/common/club_card/vybe_recommend.svg',
-                            width: 14.r,
-                            height: 14.r,
-                          ),
-                          SizedBox(width: 5.w),
-                        ],
-                        Flexible(
-                          child: Text(
-                            club.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontFamily: 'Pretendard',
-                              fontSize: 18.sp,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                              letterSpacing: 18 * -0.025,
-                            ),
-                          ),
-                        ),
-                      ],
+                    Icon(
+                      Icons.star_rounded,
+                      size: 13.r,
+                      color: VybeColors.mainLime500,
                     ),
-                    SizedBox(height: 5.h),
-                    Row(
-                      children: [
-                        Text(
-                          club.area,
-                          style: VybeTypography.caption
-                              .copyWith(color: VybeColors.gray300),
-                        ),
-                        _dot(),
-                        Text(
-                          club.genre,
-                          style: VybeTypography.caption
-                              .copyWith(color: VybeColors.gray400),
-                        ),
-                      ],
-                    ),
+                    SizedBox(width: 3.w),
+                    Text(club.rating.toStringAsFixed(1), style: _badgeText),
                   ],
                 ),
               ),
-            ],
-          ),
+            ),
+            // 정보 (하단)
+            Positioned(
+              left: 14.w,
+              right: 14.w,
+              bottom: 13.h,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      if (club.isVybeRecommended) ...[
+                        SvgPicture.asset(
+                          'assets/icons/common/club_card/vybe_recommend.svg',
+                          width: 14.r,
+                          height: 14.r,
+                        ),
+                        SizedBox(width: 5.w),
+                      ],
+                      Flexible(
+                        child: Text(
+                          club.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontFamily: 'Pretendard',
+                            fontSize: 18.sp,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                            letterSpacing: 18 * -0.025,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 5.h),
+                  Row(
+                    children: [
+                      Text(
+                        club.area,
+                        style: VybeTypography.caption.copyWith(
+                          color: VybeColors.gray300,
+                        ),
+                      ),
+                      _dot(),
+                      Text(
+                        club.genre,
+                        style: VybeTypography.caption.copyWith(
+                          color: VybeColors.gray400,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _dot() => Padding(
-        padding: EdgeInsets.symmetric(horizontal: 6.w),
-        child: Container(
-          width: 2.r,
-          height: 2.r,
-          decoration: const BoxDecoration(
-            color: VybeColors.gray500,
-            shape: BoxShape.circle,
-          ),
-        ),
-      );
+    padding: EdgeInsets.symmetric(horizontal: 6.w),
+    child: Container(
+      width: 2.r,
+      height: 2.r,
+      decoration: const BoxDecoration(
+        color: VybeColors.gray500,
+        shape: BoxShape.circle,
+      ),
+    ),
+  );
 }
 
 final _badgeText = TextStyle(

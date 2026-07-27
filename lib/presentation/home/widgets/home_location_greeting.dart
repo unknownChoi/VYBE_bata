@@ -168,8 +168,9 @@ class _PinFlip extends StatelessWidget {
       builder: (context, _) {
         final angle = animation.value * 2 * math.pi; // 0 → 360도 반복
         final isFront = math.cos(angle) >= 0;
-        final color =
-            isFront ? VybeColors.mainLime500 : VybeColors.mainPurple500;
+        final color = isFront
+            ? VybeColors.mainLime500
+            : VybeColors.mainPurple500;
 
         return Transform(
           alignment: Alignment.center,

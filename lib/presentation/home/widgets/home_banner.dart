@@ -132,9 +132,8 @@ class _BannerCard extends StatelessWidget {
             Image.network(
               banner.imageUrl,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const ColoredBox(
-                color: VybeColors.surface,
-              ),
+              errorBuilder: (_, __, ___) =>
+                  const ColoredBox(color: VybeColors.surface),
             ),
             // 하단 가독성 그라데이션
             const DecoratedBox(

@@ -177,35 +177,25 @@ class HomeCategoryGrid extends StatelessWidget {
     return GestureDetector(
       onTap: isVybe
           ? () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const VybeRecommendScreen(),
-                ),
-              )
+              MaterialPageRoute(builder: (_) => const VybeRecommendScreen()),
+            )
           : isHot
-              ? () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const HotPlacesScreen(),
-                    ),
-                  )
-              : isDrink
-                  ? () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const ServiceDrinksScreen(),
-                        ),
-                      )
-                  : isFree
-                      ? () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const FreeEntryScreen(),
-                            ),
-                          )
-                      : isHiphop
-                          ? () => Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const HipHopScreen(),
-                                ),
-                              )
-                          : null,
+          ? () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const HotPlacesScreen()))
+          : isDrink
+          ? () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const ServiceDrinksScreen()),
+            )
+          : isFree
+          ? () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const FreeEntryScreen()))
+          : isHiphop
+          ? () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const HipHopScreen()))
+          : null,
       behavior: HitTestBehavior.opaque,
       child: Column(
         mainAxisSize: MainAxisSize.min,

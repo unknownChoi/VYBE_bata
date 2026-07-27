@@ -9,6 +9,7 @@ import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/data/models/menu_model.dart';
 import 'package:vybe/data/models/operating_hours.dart';
 import 'package:vybe/design_system/colors.dart';
+import 'package:vybe/presentation/clubs/club_detail_screen.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
 import 'package:vybe/presentation/clubs/widgets/club_section_divider.dart';
 import 'package:vybe/presentation/clubs/widgets/performance_schedule_section.dart';
@@ -155,39 +156,39 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: nearbySubways.map<Widget>((s) {
-                              final name = s['stationName'] as String? ?? '';
-                              final dist = s['distanceM'] as int? ?? 0;
-                              final lines =
-                                  (s['lines'] as List?)?.cast<String>() ??
-                                  const <String>[];
-                              return Padding(
-                                padding: EdgeInsets.only(bottom: 4.h),
-                                child: Row(
-                                  children: [
-                                    ...lines.map(
-                                      (l) => Padding(
-                                        padding: EdgeInsets.only(right: 4.w),
-                                        child: SubwayLineBadge(line: l),
-                                      ),
+                            final name = s['stationName'] as String? ?? '';
+                            final dist = s['distanceM'] as int? ?? 0;
+                            final lines =
+                                (s['lines'] as List?)?.cast<String>() ??
+                                const <String>[];
+                            return Padding(
+                              padding: EdgeInsets.only(bottom: 4.h),
+                              child: Row(
+                                children: [
+                                  ...lines.map(
+                                    (l) => Padding(
+                                      padding: EdgeInsets.only(right: 4.w),
+                                      child: SubwayLineBadge(line: l),
                                     ),
-                                    if (lines.isNotEmpty) SizedBox(width: 2.w),
-                                    Text(
-                                      '$name에서 ${dist}m',
-                                      style: TextStyle(
-                                        fontFamily: 'Pretendard',
-                                        fontSize: 13.sp,
-                                        color: VybeColors.gray300,
-                                      ),
+                                  ),
+                                  if (lines.isNotEmpty) SizedBox(width: 2.w),
+                                  Text(
+                                    '$name에서 ${dist}m',
+                                    style: TextStyle(
+                                      fontFamily: 'Pretendard',
+                                      fontSize: 13.sp,
+                                      color: VybeColors.gray300,
                                     ),
-                                  ],
-                                ),
-                              );
-                            }).toList(),
-                          ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
                         ),
                       ),
                     ),
                   ),
+                ),
               ],
             ),
           ),
@@ -270,80 +271,80 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: weekdays.asMap().entries.map((e) {
-                              final i = e.key;
-                              final label = e.value.$1;
-                              final day = e.value.$2;
-                              final isToday = i == todayIndex;
-                              final timeStr = day.isOpen
-                                  ? '${day.open} - ${day.close}'
-                                  : '정기휴무';
-                              return Padding(
-                                padding: EdgeInsets.only(bottom: 6.h),
-                                child: Row(
-                                  children: [
-                                    SizedBox(
-                                      width: 18.w,
-                                      child: Text(
-                                        label,
-                                        style: TextStyle(
-                                          fontFamily: 'Pretendard',
-                                          fontSize: 13.sp,
-                                          fontWeight: isToday
-                                              ? FontWeight.w700
-                                              : FontWeight.w400,
-                                          color: isToday
-                                              ? Colors.white
-                                              : VybeColors.gray500,
-                                        ),
-                                      ),
-                                    ),
-                                    SizedBox(width: 10.w),
-                                    Text(
-                                      timeStr,
+                            final i = e.key;
+                            final label = e.value.$1;
+                            final day = e.value.$2;
+                            final isToday = i == todayIndex;
+                            final timeStr = day.isOpen
+                                ? '${day.open} - ${day.close}'
+                                : '정기휴무';
+                            return Padding(
+                              padding: EdgeInsets.only(bottom: 6.h),
+                              child: Row(
+                                children: [
+                                  SizedBox(
+                                    width: 18.w,
+                                    child: Text(
+                                      label,
                                       style: TextStyle(
                                         fontFamily: 'Pretendard',
                                         fontSize: 13.sp,
                                         fontWeight: isToday
-                                            ? FontWeight.w600
+                                            ? FontWeight.w700
                                             : FontWeight.w400,
                                         color: isToday
                                             ? Colors.white
                                             : VybeColors.gray500,
                                       ),
                                     ),
-                                    if (isToday) ...[
-                                      SizedBox(width: 8.w),
-                                      Container(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: 6.w,
-                                          vertical: 1.h,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0x247731FE),
-                                          borderRadius: BorderRadius.circular(
-                                            4.r,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          '오늘',
-                                          style: TextStyle(
-                                            fontFamily: 'Pretendard',
-                                            fontSize: 10.sp,
-                                            fontWeight: FontWeight.w700,
-                                            color: VybeColors.mainPurple500,
-                                          ),
+                                  ),
+                                  SizedBox(width: 10.w),
+                                  Text(
+                                    timeStr,
+                                    style: TextStyle(
+                                      fontFamily: 'Pretendard',
+                                      fontSize: 13.sp,
+                                      fontWeight: isToday
+                                          ? FontWeight.w600
+                                          : FontWeight.w400,
+                                      color: isToday
+                                          ? Colors.white
+                                          : VybeColors.gray500,
+                                    ),
+                                  ),
+                                  if (isToday) ...[
+                                    SizedBox(width: 8.w),
+                                    Container(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 6.w,
+                                        vertical: 1.h,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0x247731FE),
+                                        borderRadius: BorderRadius.circular(
+                                          4.r,
                                         ),
                                       ),
-                                    ],
+                                      child: Text(
+                                        '오늘',
+                                        style: TextStyle(
+                                          fontFamily: 'Pretendard',
+                                          fontSize: 10.sp,
+                                          fontWeight: FontWeight.w700,
+                                          color: VybeColors.mainPurple500,
+                                        ),
+                                      ),
+                                    ),
                                   ],
-                                ),
-                              );
-                            }).toList(),
-                          ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
                         ),
                       ),
                     ),
                   ),
+                ),
               ],
             ),
           ),
@@ -718,105 +719,109 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
               children: clubs.map((club) {
                 return Padding(
                   padding: EdgeInsets.only(right: 12.w),
-                  child: SizedBox(
-                    width: 124.w,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Stack(
-                          children: [
-                            club.thumbnailUrl.isNotEmpty
-                                ? SkeletonImage(
-                                    url: club.thumbnailUrl,
-                                    width: 124.w,
-                                    height: 124.h,
-                                    fit: BoxFit.cover,
-                                    borderRadius: BorderRadius.circular(10.r),
-                                  )
-                                : Container(
-                                    width: 124.w,
-                                    height: 124.h,
-                                    color: VybeColors.gray800,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => _openClubDetail(club.clubId),
+                    child: SizedBox(
+                      width: 124.w,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Stack(
+                            children: [
+                              club.thumbnailUrl.isNotEmpty
+                                  ? SkeletonImage(
+                                      url: club.thumbnailUrl,
+                                      width: 124.w,
+                                      height: 124.h,
+                                      fit: BoxFit.cover,
+                                      borderRadius: BorderRadius.circular(10.r),
+                                    )
+                                  : Container(
+                                      width: 124.w,
+                                      height: 124.h,
+                                      color: VybeColors.gray800,
+                                    ),
+                              Positioned(
+                                top: 6.h,
+                                left: 6.w,
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 6.w,
+                                    vertical: 2.h,
                                   ),
-                            Positioned(
-                              top: 6.h,
-                              left: 6.w,
-                              child: Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 6.w,
-                                  vertical: 2.h,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.6),
-                                  borderRadius: BorderRadius.circular(4.r),
-                                ),
-                                child: Row(
-                                  children: [
-                                    SvgPicture.asset(
-                                      'assets/icons/common/club_card/star.svg',
-                                      width: 10.r,
-                                      height: 10.r,
-                                    ),
-                                    SizedBox(width: 3.w),
-                                    Text(
-                                      club.rating.toStringAsFixed(1),
-                                      style: TextStyle(
-                                        fontFamily: 'Pretendard',
-                                        fontSize: 10.sp,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white,
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.6),
+                                    borderRadius: BorderRadius.circular(4.r),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      SvgPicture.asset(
+                                        'assets/icons/common/club_card/star.svg',
+                                        width: 10.r,
+                                        height: 10.r,
                                       ),
-                                    ),
-                                  ],
+                                      SizedBox(width: 3.w),
+                                      Text(
+                                        club.rating.toStringAsFixed(1),
+                                        style: TextStyle(
+                                          fontFamily: 'Pretendard',
+                                          fontSize: 10.sp,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 8.h),
-                        Text(
-                          club.name,
-                          style: TextStyle(
-                            fontFamily: 'Pretendard',
-                            fontSize: 13.sp,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
+                            ],
                           ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        SizedBox(height: 2.h),
-                        Row(
-                          children: [
-                            Text(
-                              club.area,
-                              style: TextStyle(
-                                fontFamily: 'Pretendard',
-                                fontSize: 11.sp,
-                                color: VybeColors.gray500,
-                              ),
+                          SizedBox(height: 8.h),
+                          Text(
+                            club.name,
+                            style: TextStyle(
+                              fontFamily: 'Pretendard',
+                              fontSize: 13.sp,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
                             ),
-                            Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 4.w),
-                              child: Container(
-                                width: 2.r,
-                                height: 2.r,
-                                decoration: const BoxDecoration(
-                                  color: VybeColors.gray700,
-                                  shape: BoxShape.circle,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          SizedBox(height: 2.h),
+                          Row(
+                            children: [
+                              Text(
+                                club.area,
+                                style: TextStyle(
+                                  fontFamily: 'Pretendard',
+                                  fontSize: 11.sp,
+                                  color: VybeColors.gray500,
                                 ),
                               ),
-                            ),
-                            Text(
-                              club.genre,
-                              style: TextStyle(
-                                fontFamily: 'Pretendard',
-                                fontSize: 11.sp,
-                                color: VybeColors.gray500,
+                              Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 4.w),
+                                child: Container(
+                                  width: 2.r,
+                                  height: 2.r,
+                                  decoration: const BoxDecoration(
+                                    color: VybeColors.gray700,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ],
+                              Text(
+                                club.genre,
+                                style: TextStyle(
+                                  fontFamily: 'Pretendard',
+                                  fontSize: 11.sp,
+                                  color: VybeColors.gray500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 );
@@ -826,6 +831,15 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
         ],
       ),
     );
+  }
+
+  // 주변 클럽 카드 탭 → 해당 클럽 상세로 이동.
+  // 상세가 바텀시트(주변 페이지)로 떠 있어도 전체 화면으로 열리도록 root navigator 사용.
+  void _openClubDetail(String clubId) {
+    Navigator.of(
+      context,
+      rootNavigator: true,
+    ).push(MaterialPageRoute(builder: (_) => ClubDetailScreen(clubId: clubId)));
   }
 
   // ── HELPERS ──

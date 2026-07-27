@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/presentation/auth/viewmodels/auth_viewmodel.dart';
 import 'package:vybe/presentation/auth/welcome/welcome_screen.dart';
 import 'package:vybe/presentation/common/widgets/vybe_spinner.dart';
+import 'package:vybe/presentation/home/viewmodels/home_skeleton_provider.dart';
 import 'package:vybe/presentation/main_scaffold/main_scaffold.dart';
 
 /// 앱 루트 라우트. 로그인 여부로 진입 화면을 강제한다.
@@ -32,8 +33,10 @@ class _AuthGateState extends ConsumerState<AuthGate> {
       if (!wasLoggedIn || !isLoggedOut) return;
 
       // 리스너에서 바로 팝하면 진행 중인 빌드/전환과 겹칠 수 있어 다음 프레임에.
+      // 스켈레톤 게이트 복구(다음 로그인 때 다시 표시)도 같은 이유로 프레임 이후에.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
+        ref.read(homeSkeletonGateProvider.notifier).reset();
         Navigator.of(
           context,
           rootNavigator: true,
