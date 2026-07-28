@@ -55,17 +55,33 @@ class FirebaseReviewDataSource {
         .map((s) => s.docs.map(ReviewModel.fromFirestore).toList());
   }
 
+  /// 리뷰 문서 ID를 미리 발급한다 (네트워크 호출 없음).
+  ///
+  /// 첨부 이미지 Storage 경로가 `reviews/{clubId}/{reviewId}/...` 라서
+  /// 문서를 쓰기 전에 reviewId가 필요하다 → 업로드 → imageUrls 채워서 set.
+  String newReviewId(String clubId) => _firestore
+      .collection('clubs')
+      .doc(clubId)
+      .collection('reviews')
+      .doc()
+      .id;
+
+  /// review.reviewId가 비어있지 않으면 그 ID로 생성, 비어있으면 자동 발급.
   Future<void> createReview(String clubId, ReviewModel review) async {
     logFirebaseAccess(
       file: 'firebase_review_datasource.dart',
       service: 'Firestore(clubs/$clubId/reviews)',
       purpose: '리뷰 작성',
     );
-    await _firestore
+    final collection = _firestore
         .collection('clubs')
         .doc(clubId)
-        .collection('reviews')
-        .add(review.toFirestore());
+        .collection('reviews');
+    if (review.reviewId.isEmpty) {
+      await collection.add(review.toFirestore());
+    } else {
+      await collection.doc(review.reviewId).set(review.toFirestore());
+    }
   }
 
   Future<void> updateReview(
@@ -84,6 +100,7 @@ class FirebaseReviewDataSource {
       'rating': review.rating,
       'content': review.content,
       'imageUrls': review.imageUrls,
+      'tags': review.tags,
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }

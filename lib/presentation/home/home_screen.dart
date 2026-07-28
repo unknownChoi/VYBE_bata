@@ -86,10 +86,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           bottom: MediaQuery.of(context).padding.bottom + 100.h,
                         ),
                         children: const [
-                          HomeLocationGreeting(),
-                          HomeBanner(),
+                          // HomeLocationGreeting(),
+                          // HomeBanner(),
                           HomeCategoryGrid(),
-                          HomeNearbyClubs(),
+                          // HomeNearbyClubs(),
                         ],
                       ),
                     ),

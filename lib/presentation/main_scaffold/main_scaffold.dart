@@ -117,6 +117,9 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
     ref.read(currentTabIndexProvider.notifier).set(index);
     // 탭 전환 시 축소된 nav를 원래 크기로 복원.
     ref.read(navBarVisibilityProvider.notifier).expand();
+    // 탭 안에서 nav를 숨긴 화면(리뷰 작성 등)을 열어둔 채 가로 스와이프로
+    // 다른 탭에 가면 nav가 숨은 상태로 남는다 → 탭이 바뀌면 항상 복원.
+    ref.read(navBarHiddenProvider.notifier).show();
     // 검색 탭 진입 시 키보드 자동 노출 (KeepAlive라 autofocus는 최초 1회뿐).
     if (index == _searchTabIndex) {
       _focusSearch();
@@ -237,8 +240,11 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
             right: 0,
             bottom: 0,
             child: AnimatedSlide(
+              // 정확히 1.0 — 바 위젯 높이(64.h + bottomInset + 12.h Padding 포함)만큼만
+              // 내리면 화면 밖이다. 1.4처럼 오버슈트를 주면 감속 커브(easeOutCubic)에서
+              // 71% 지점(≈35% 시간)에 이미 안 보여 내려갈 때만 훨씬 빨라 보인다.
               offset: ref.watch(navBarHiddenProvider)
-                  ? const Offset(0, 1.4)
+                  ? const Offset(0, 1)
                   : Offset.zero,
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeOutCubic,

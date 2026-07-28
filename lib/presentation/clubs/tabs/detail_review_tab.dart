@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/data/models/review_model.dart';
 import 'package:vybe/design_system/colors.dart';
-import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
 import 'package:vybe/presentation/clubs/viewmodels/review_viewmodel.dart';
-import 'package:vybe/presentation/clubs/widgets/write_review_sheet.dart';
+import 'package:vybe/presentation/clubs/review_write_screen.dart';
 import 'package:vybe/presentation/common/widgets/vybe_photo_viewer.dart';
+import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 
 class DetailReviewTab extends ConsumerStatefulWidget {
@@ -99,7 +99,7 @@ class _DetailReviewTabState extends ConsumerState<DetailReviewTab> {
   // 리뷰 작성하기 — 디자인(club_detail) 기준 라임 풀와이드 버튼.
   Widget _buildWriteButton() {
     return GestureDetector(
-      onTap: _openWriteSheet,
+      onTap: _openWritePage,
       behavior: HitTestBehavior.opaque,
       child: Container(
         width: double.infinity,
@@ -128,13 +128,16 @@ class _DetailReviewTabState extends ConsumerState<DetailReviewTab> {
     );
   }
 
-  void _openWriteSheet() {
-    final clubName = ref.read(clubDetailProvider(widget.clubId)).value?.name;
-    WriteReviewSheet.show(
+  Future<void> _openWritePage() async {
+    final created = await ReviewWriteScreen.push(
       context,
+      ref,
       clubId: widget.clubId,
-      clubName: clubName ?? '이 클럽',
     );
+    // 등록 완료 안내는 작성 페이지가 아니라 돌아온 이 화면에서 띄운다.
+    if (created == true && mounted) {
+      VybeToast.show(context, message: '리뷰가 등록됐어요');
+    }
   }
 
   List<ReviewModel> _sortedReviews(List<ReviewModel> reviews) {
@@ -328,8 +331,8 @@ class _ReviewCardState extends State<_ReviewCard> {
   Widget build(BuildContext context) {
     final r = widget.review;
     final isLong = r.content.length > 60;
-    final showExpand = isLong && !_expanded;
-    final displayText = showExpand
+    final isCollapsed = isLong && !_expanded;
+    final displayText = isCollapsed
         ? '${r.content.substring(0, 60)}...'
         : r.content;
     final dateStr =
@@ -432,14 +435,14 @@ class _ReviewCardState extends State<_ReviewCard> {
                         height: 1.55,
                       ),
                     ),
-                    if (showExpand) ...[
+                    if (isLong) ...[
                       SizedBox(height: 6.h),
                       GestureDetector(
-                        onTap: () => setState(() => _expanded = true),
+                        onTap: () => setState(() => _expanded = !_expanded),
                         child: Row(
                           children: [
                             Text(
-                              '자세히 보기',
+                              isCollapsed ? '자세히 보기' : '숨기기',
                               style: TextStyle(
                                 fontFamily: 'Pretendard',
                                 fontSize: 12.sp,
@@ -447,7 +450,9 @@ class _ReviewCardState extends State<_ReviewCard> {
                               ),
                             ),
                             Icon(
-                              Icons.keyboard_arrow_down_rounded,
+                              isCollapsed
+                                  ? Icons.keyboard_arrow_down_rounded
+                                  : Icons.keyboard_arrow_up_rounded,
                               size: 10.r,
                               color: VybeColors.gray500,
                             ),

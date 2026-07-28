@@ -18,4 +18,22 @@ class FirebaseStorageDataSource {
     await ref.putFile(imageFile);
     return ref.getDownloadURL();
   }
+
+  /// 리뷰 첨부 이미지 업로드 → 다운로드 URL 반환.
+  /// 경로: reviews/{clubId}/{reviewId}/{fileName}
+  Future<String> uploadReviewImage({
+    required String clubId,
+    required String reviewId,
+    required String fileName,
+    required File imageFile,
+  }) async {
+    logFirebaseAccess(
+      file: 'firebase_storage_datasource.dart',
+      service: 'Storage(reviews/$clubId/$reviewId/$fileName)',
+      purpose: '리뷰 첨부 이미지 업로드',
+    );
+    final ref = _storage.ref('reviews/$clubId/$reviewId/$fileName');
+    await ref.putFile(imageFile);
+    return ref.getDownloadURL();
+  }
 }

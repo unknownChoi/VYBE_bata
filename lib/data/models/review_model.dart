@@ -15,6 +15,7 @@ abstract class ReviewModel with _$ReviewModel {
     required double rating,
     required String content,
     required List<String> imageUrls,
+    @Default(<String>[]) List<String> tags,
     required DateTime createdAt,
     required DateTime updatedAt,
   }) = _ReviewModel;
@@ -29,6 +30,7 @@ abstract class ReviewModel with _$ReviewModel {
       rating: (data['rating'] as num?)?.toDouble() ?? 0.0,
       content: data['content'] as String? ?? '',
       imageUrls: List<String>.from(data['imageUrls'] as List? ?? []),
+      tags: List<String>.from(data['tags'] as List? ?? []),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
@@ -41,6 +43,7 @@ abstract class ReviewModel with _$ReviewModel {
     'rating': rating,
     'content': content,
     'imageUrls': imageUrls,
+    'tags': tags,
     'createdAt': FieldValue.serverTimestamp(),
     'updatedAt': FieldValue.serverTimestamp(),
   };

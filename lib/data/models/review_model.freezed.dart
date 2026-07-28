@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ReviewModel {
 
- String get reviewId; String get clubId; String get userId; String get userName; double get rating; String get content; List<String> get imageUrls; DateTime get createdAt; DateTime get updatedAt;
+ String get reviewId; String get clubId; String get userId; String get userName; double get rating; String get content; List<String> get imageUrls; List<String> get tags; DateTime get createdAt; DateTime get updatedAt;
 /// Create a copy of ReviewModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $ReviewModelCopyWith<ReviewModel> get copyWith => _$ReviewModelCopyWithImpl<Revi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReviewModel&&(identical(other.reviewId, reviewId) || other.reviewId == reviewId)&&(identical(other.clubId, clubId) || other.clubId == clubId)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.userName, userName) || other.userName == userName)&&(identical(other.rating, rating) || other.rating == rating)&&(identical(other.content, content) || other.content == content)&&const DeepCollectionEquality().equals(other.imageUrls, imageUrls)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReviewModel&&(identical(other.reviewId, reviewId) || other.reviewId == reviewId)&&(identical(other.clubId, clubId) || other.clubId == clubId)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.userName, userName) || other.userName == userName)&&(identical(other.rating, rating) || other.rating == rating)&&(identical(other.content, content) || other.content == content)&&const DeepCollectionEquality().equals(other.imageUrls, imageUrls)&&const DeepCollectionEquality().equals(other.tags, tags)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,reviewId,clubId,userId,userName,rating,content,const DeepCollectionEquality().hash(imageUrls),createdAt,updatedAt);
+int get hashCode => Object.hash(runtimeType,reviewId,clubId,userId,userName,rating,content,const DeepCollectionEquality().hash(imageUrls),const DeepCollectionEquality().hash(tags),createdAt,updatedAt);
 
 @override
 String toString() {
-  return 'ReviewModel(reviewId: $reviewId, clubId: $clubId, userId: $userId, userName: $userName, rating: $rating, content: $content, imageUrls: $imageUrls, createdAt: $createdAt, updatedAt: $updatedAt)';
+  return 'ReviewModel(reviewId: $reviewId, clubId: $clubId, userId: $userId, userName: $userName, rating: $rating, content: $content, imageUrls: $imageUrls, tags: $tags, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $ReviewModelCopyWith<$Res>  {
   factory $ReviewModelCopyWith(ReviewModel value, $Res Function(ReviewModel) _then) = _$ReviewModelCopyWithImpl;
 @useResult
 $Res call({
- String reviewId, String clubId, String userId, String userName, double rating, String content, List<String> imageUrls, DateTime createdAt, DateTime updatedAt
+ String reviewId, String clubId, String userId, String userName, double rating, String content, List<String> imageUrls, List<String> tags, DateTime createdAt, DateTime updatedAt
 });
 
 
@@ -62,7 +62,7 @@ class _$ReviewModelCopyWithImpl<$Res>
 
 /// Create a copy of ReviewModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? reviewId = null,Object? clubId = null,Object? userId = null,Object? userName = null,Object? rating = null,Object? content = null,Object? imageUrls = null,Object? createdAt = null,Object? updatedAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? reviewId = null,Object? clubId = null,Object? userId = null,Object? userName = null,Object? rating = null,Object? content = null,Object? imageUrls = null,Object? tags = null,Object? createdAt = null,Object? updatedAt = null,}) {
   return _then(_self.copyWith(
 reviewId: null == reviewId ? _self.reviewId : reviewId // ignore: cast_nullable_to_non_nullable
 as String,clubId: null == clubId ? _self.clubId : clubId // ignore: cast_nullable_to_non_nullable
@@ -71,6 +71,7 @@ as String,userName: null == userName ? _self.userName : userName // ignore: cast
 as String,rating: null == rating ? _self.rating : rating // ignore: cast_nullable_to_non_nullable
 as double,content: null == content ? _self.content : content // ignore: cast_nullable_to_non_nullable
 as String,imageUrls: null == imageUrls ? _self.imageUrls : imageUrls // ignore: cast_nullable_to_non_nullable
+as List<String>,tags: null == tags ? _self.tags : tags // ignore: cast_nullable_to_non_nullable
 as List<String>,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as DateTime,
@@ -158,10 +159,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String reviewId,  String clubId,  String userId,  String userName,  double rating,  String content,  List<String> imageUrls,  DateTime createdAt,  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String reviewId,  String clubId,  String userId,  String userName,  double rating,  String content,  List<String> imageUrls,  List<String> tags,  DateTime createdAt,  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ReviewModel() when $default != null:
-return $default(_that.reviewId,_that.clubId,_that.userId,_that.userName,_that.rating,_that.content,_that.imageUrls,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.reviewId,_that.clubId,_that.userId,_that.userName,_that.rating,_that.content,_that.imageUrls,_that.tags,_that.createdAt,_that.updatedAt);case _:
   return orElse();
 
 }
@@ -179,10 +180,10 @@ return $default(_that.reviewId,_that.clubId,_that.userId,_that.userName,_that.ra
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String reviewId,  String clubId,  String userId,  String userName,  double rating,  String content,  List<String> imageUrls,  DateTime createdAt,  DateTime updatedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String reviewId,  String clubId,  String userId,  String userName,  double rating,  String content,  List<String> imageUrls,  List<String> tags,  DateTime createdAt,  DateTime updatedAt)  $default,) {final _that = this;
 switch (_that) {
 case _ReviewModel():
-return $default(_that.reviewId,_that.clubId,_that.userId,_that.userName,_that.rating,_that.content,_that.imageUrls,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.reviewId,_that.clubId,_that.userId,_that.userName,_that.rating,_that.content,_that.imageUrls,_that.tags,_that.createdAt,_that.updatedAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -199,10 +200,10 @@ return $default(_that.reviewId,_that.clubId,_that.userId,_that.userName,_that.ra
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String reviewId,  String clubId,  String userId,  String userName,  double rating,  String content,  List<String> imageUrls,  DateTime createdAt,  DateTime updatedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String reviewId,  String clubId,  String userId,  String userName,  double rating,  String content,  List<String> imageUrls,  List<String> tags,  DateTime createdAt,  DateTime updatedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _ReviewModel() when $default != null:
-return $default(_that.reviewId,_that.clubId,_that.userId,_that.userName,_that.rating,_that.content,_that.imageUrls,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.reviewId,_that.clubId,_that.userId,_that.userName,_that.rating,_that.content,_that.imageUrls,_that.tags,_that.createdAt,_that.updatedAt);case _:
   return null;
 
 }
@@ -214,7 +215,7 @@ return $default(_that.reviewId,_that.clubId,_that.userId,_that.userName,_that.ra
 
 
 class _ReviewModel extends ReviewModel {
-  const _ReviewModel({required this.reviewId, required this.clubId, required this.userId, this.userName = '', required this.rating, required this.content, required final  List<String> imageUrls, required this.createdAt, required this.updatedAt}): _imageUrls = imageUrls,super._();
+  const _ReviewModel({required this.reviewId, required this.clubId, required this.userId, this.userName = '', required this.rating, required this.content, required final  List<String> imageUrls, final  List<String> tags = const <String>[], required this.createdAt, required this.updatedAt}): _imageUrls = imageUrls,_tags = tags,super._();
   
 
 @override final  String reviewId;
@@ -230,6 +231,13 @@ class _ReviewModel extends ReviewModel {
   return EqualUnmodifiableListView(_imageUrls);
 }
 
+ final  List<String> _tags;
+@override@JsonKey() List<String> get tags {
+  if (_tags is EqualUnmodifiableListView) return _tags;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_tags);
+}
+
 @override final  DateTime createdAt;
 @override final  DateTime updatedAt;
 
@@ -243,16 +251,16 @@ _$ReviewModelCopyWith<_ReviewModel> get copyWith => __$ReviewModelCopyWithImpl<_
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReviewModel&&(identical(other.reviewId, reviewId) || other.reviewId == reviewId)&&(identical(other.clubId, clubId) || other.clubId == clubId)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.userName, userName) || other.userName == userName)&&(identical(other.rating, rating) || other.rating == rating)&&(identical(other.content, content) || other.content == content)&&const DeepCollectionEquality().equals(other._imageUrls, _imageUrls)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReviewModel&&(identical(other.reviewId, reviewId) || other.reviewId == reviewId)&&(identical(other.clubId, clubId) || other.clubId == clubId)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.userName, userName) || other.userName == userName)&&(identical(other.rating, rating) || other.rating == rating)&&(identical(other.content, content) || other.content == content)&&const DeepCollectionEquality().equals(other._imageUrls, _imageUrls)&&const DeepCollectionEquality().equals(other._tags, _tags)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,reviewId,clubId,userId,userName,rating,content,const DeepCollectionEquality().hash(_imageUrls),createdAt,updatedAt);
+int get hashCode => Object.hash(runtimeType,reviewId,clubId,userId,userName,rating,content,const DeepCollectionEquality().hash(_imageUrls),const DeepCollectionEquality().hash(_tags),createdAt,updatedAt);
 
 @override
 String toString() {
-  return 'ReviewModel(reviewId: $reviewId, clubId: $clubId, userId: $userId, userName: $userName, rating: $rating, content: $content, imageUrls: $imageUrls, createdAt: $createdAt, updatedAt: $updatedAt)';
+  return 'ReviewModel(reviewId: $reviewId, clubId: $clubId, userId: $userId, userName: $userName, rating: $rating, content: $content, imageUrls: $imageUrls, tags: $tags, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -263,7 +271,7 @@ abstract mixin class _$ReviewModelCopyWith<$Res> implements $ReviewModelCopyWith
   factory _$ReviewModelCopyWith(_ReviewModel value, $Res Function(_ReviewModel) _then) = __$ReviewModelCopyWithImpl;
 @override @useResult
 $Res call({
- String reviewId, String clubId, String userId, String userName, double rating, String content, List<String> imageUrls, DateTime createdAt, DateTime updatedAt
+ String reviewId, String clubId, String userId, String userName, double rating, String content, List<String> imageUrls, List<String> tags, DateTime createdAt, DateTime updatedAt
 });
 
 
@@ -280,7 +288,7 @@ class __$ReviewModelCopyWithImpl<$Res>
 
 /// Create a copy of ReviewModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? reviewId = null,Object? clubId = null,Object? userId = null,Object? userName = null,Object? rating = null,Object? content = null,Object? imageUrls = null,Object? createdAt = null,Object? updatedAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? reviewId = null,Object? clubId = null,Object? userId = null,Object? userName = null,Object? rating = null,Object? content = null,Object? imageUrls = null,Object? tags = null,Object? createdAt = null,Object? updatedAt = null,}) {
   return _then(_ReviewModel(
 reviewId: null == reviewId ? _self.reviewId : reviewId // ignore: cast_nullable_to_non_nullable
 as String,clubId: null == clubId ? _self.clubId : clubId // ignore: cast_nullable_to_non_nullable
@@ -289,6 +297,7 @@ as String,userName: null == userName ? _self.userName : userName // ignore: cast
 as String,rating: null == rating ? _self.rating : rating // ignore: cast_nullable_to_non_nullable
 as double,content: null == content ? _self.content : content // ignore: cast_nullable_to_non_nullable
 as String,imageUrls: null == imageUrls ? _self._imageUrls : imageUrls // ignore: cast_nullable_to_non_nullable
+as List<String>,tags: null == tags ? _self._tags : tags // ignore: cast_nullable_to_non_nullable
 as List<String>,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as DateTime,

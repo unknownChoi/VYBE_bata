@@ -96,7 +96,7 @@ View (Widget) → ViewModel (Notifier) → Repository → DataSource (Firebase)
 | 라우팅 | **별도 라우터 패키지 없음** — `MainScaffold`(IndexedStack 5탭) + 탭 내부 `Navigator` |
 | 코드 생성 | `riverpod_generator` ^4.0, `freezed` ^3.0 |
 | 아이콘/벡터 | `cupertino_icons`, `flutter_svg` |
-| 미디어 | `video_player` |
+| 미디어 | `video_player`, `image_picker`(리뷰 사진 첨부) |
 | UI 보조 | `flutter_spinkit`(로딩), `flutter_staggered_grid_view`(갤러리) |
 | 반응형 | `flutter_screenutil` |
 | 네이버 로그인 | `flutter_naver_login` |
@@ -308,11 +308,14 @@ ElevatedButton(onPressed: () {}, child: Text('로그인'))
 - **마이페이지 (`my_page/`) — my.html 디자인 기반** (프로필 히어로, 리뷰/찜 통계,
   내 리뷰 관리(collectionGroup 조회·삭제), 내 정보 수정(닉네임), 설정(로컬 토글 + 캐시 삭제 실동작), 로그아웃)
   — 리뷰 수정·프로필 사진 변경·알림 화면은 준비 중 토스트 처리
+- **리뷰 작성 페이지 (`clubs/review_write_screen.dart`) — review_write.jsx 글래스 디자인 기반**
+  (별점 0.5 단위 반쪽 별, 추천 태그 칩 → `tags`, 사진 최대 4장 `image_picker` → Storage 업로드,
+  후기 500자, 주의사항, 등록 완료 화면). 구 `write_review_sheet.dart` 바텀시트는 대체·삭제됨
 
 ### 미구현 / 진행 중 ✗
 - 패스·지갑 탭 (`pass_wallet_screen.dart` 플레이스홀더 — 현재 탭 슬롯엔 미연결)
 - 주변 페이지 ↔ 상세 페이지 연동 마무리 (최근 커밋 진행 중)
-- 마이페이지 세부 — 리뷰 수정, 프로필 사진 변경(image_picker), 알림 화면
+- 마이페이지 세부 — 리뷰 수정, 프로필 사진 변경(image_picker 설치됨 — 연결만 남음), 알림 화면
 - reviews collectionGroup 인덱스·Rules 배포 (`firebase deploy --only firestore` — 미배포 시 내 리뷰 관리 동작 안 함)
 - Storage Security Rules 배포 검증 (Firestore Rules는 배포됨)
 - Apple 로그인 (이후 구현)
@@ -565,9 +568,12 @@ reviewId        : string    // PK
 clubId          : string    // FK → clubs
 userId          : string    // FK → users
 userName        : string    // 표시 이름 (임시 — 추후 users/{uid} 조회로 대체)
-rating          : number    // 별점 1~5
+rating          : number    // 별점 0.5~5.0 (0.5 단위 — 리뷰 작성 페이지에서 반쪽 별 입력)
 content         : string    // 리뷰 텍스트
-imageUrls       : array     // 첨부 이미지 URL 목록
+imageUrls       : array     // 첨부 이미지 URL 목록 (최대 4장)
+                            //   Storage 경로 reviews/{clubId}/{reviewId}/{index}.{ext}
+tags            : array     // 선택한 추천 태그 (예: ["음악이 좋아요","사운드 최고"])
+                            //   리뷰 작성 페이지 고정 8종 칩에서 선택. 없으면 빈 배열
 createdAt       : timestamp
 updatedAt       : timestamp
 ```
@@ -742,7 +748,7 @@ clubs/{clubId}/gallery/{n}.{jpg|png}        // 갤러리 이미지 (1.jpg, 2.png
                                             //   → heroImageUrls(상단 슬라이더)·imageUrls(사진탭) 둘 다 이 폴더 참조
 clubs/{clubId}/menus/{menuId}.{jpg|png}     // 개별 메뉴 이미지
 clubs/{clubId}/menus/boards/board_{n}.png   // 메뉴판 이미지 (menuBoardUrls)
-reviews/{clubId}/{reviewId}/{filename}      // 리뷰 첨부 이미지
+reviews/{clubId}/{reviewId}/{index}.{ext}   // 리뷰 첨부 이미지 (0~3, 최대 4장)
 users/{uid}/profile.jpg                     // 프로필 이미지 (덮어쓰기)
 ```
 

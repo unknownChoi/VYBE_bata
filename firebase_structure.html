@@ -588,9 +588,10 @@ logFirebaseAccess(
     <tr><td class="field-name">clubId</td><td class="ftype">string</td><td><span class="pill fk">FK → clubs</span></td></tr>
     <tr><td class="field-name">userId</td><td class="ftype">string</td><td><span class="pill fk">FK → users</span></td></tr>
     <tr><td class="field-name">userName</td><td class="ftype">string</td><td>표시 이름 (임시 — 추후 users/{uid} 조회로 대체)</td></tr>
-    <tr><td class="field-name">rating</td><td class="ftype">number</td><td>별점 1~5</td></tr>
+    <tr><td class="field-name">rating</td><td class="ftype">number</td><td>별점 0.5~5.0 (0.5 단위 — 리뷰 작성 페이지 반쪽 별 입력)</td></tr>
     <tr><td class="field-name">content</td><td class="ftype">string</td><td>리뷰 텍스트</td></tr>
-    <tr><td class="field-name">imageUrls</td><td class="ftype">array</td><td>첨부 이미지 URL 목록</td></tr>
+    <tr><td class="field-name">imageUrls</td><td class="ftype">array</td><td>첨부 이미지 URL 목록 (최대 4장, <code>reviews/{clubId}/{reviewId}/{index}.{ext}</code>)</td></tr>
+    <tr><td class="field-name">tags</td><td class="ftype">array</td><td>선택한 추천 태그 (리뷰 작성 페이지 고정 8종 칩)</td></tr>
     <tr><td class="field-name">createdAt</td><td class="ftype">timestamp</td><td>생성 시각</td></tr>
     <tr><td class="field-name">updatedAt</td><td class="ftype">timestamp</td><td>수정 시각</td></tr>
   </table>
@@ -771,7 +772,7 @@ clubs/{clubId}/gallery/{n}.{jpg|png}        <span class="cmt">// 갤러리 이�
                                             <span class="cmt">//   → heroImageUrls·imageUrls 둘 다 이 폴더 참조</span>
 clubs/{clubId}/menus/{menuId}.{jpg|png}     <span class="cmt">// 개별 메뉴 이미지</span>
 clubs/{clubId}/menus/boards/board_{n}.png   <span class="cmt">// 메뉴판 이미지 (menuBoardUrls)</span>
-reviews/{clubId}/{reviewId}/{filename}      <span class="cmt">// 리뷰 첨부 이미지</span>
+reviews/{clubId}/{reviewId}/{index}.{ext}   <span class="cmt">// 리뷰 첨부 이미지 (0~3, 최대 4장)</span>
 users/{uid}/profile.jpg                     <span class="cmt">// 프로필 이미지 (덮어쓰기)</span></div>
   <div class="note"><strong>URL 토큰 차이:</strong> <code>thumbnail</code> 은 다운로드 토큰(<code>?alt=media&amp;token=…</code>) 포함, <code>gallery</code>/<code>menus</code> 는 토큰 없이 <code>?alt=media</code> 만 → Storage 규칙 <code>clubs/** read: if true</code>(공개 읽기)에 의존.</div>
   <div class="note"><strong>사진탭 photos 서브컬렉션:</strong> 현재 seed 데이터는 기존 <code>gallery/</code> URL 재활용(별도 업로드 없음). 추후 유저 업로드 기능 추가 시 권장 경로 <code>clubs/{clubId}/photos/{photoId}.{ext}</code>.</div>

@@ -48,4 +48,4 @@ final class ClubRepositoryProvider
   }
 }
 
-String _$clubRepositoryHash() => r'15d07804f3a4d6dd78415474ef37c0aaaaf1a0fa';
+String _$clubRepositoryHash() => r'6b9caa6c465d7a3b3153f432d09d2e35f019bf02';
