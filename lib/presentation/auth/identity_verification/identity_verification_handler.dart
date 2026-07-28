@@ -119,8 +119,10 @@ mixin _IdentityVerificationHandlerMixin on ConsumerState<IdentityVerificationScr
             if (!mounted) return;
 
             if (isDuplicate) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('이미 존재하는 계정입니다.')),
+              VybeToast.show(
+                context,
+                message: '이미 존재하는 계정입니다.',
+                isError: true,
               );
               return;
             }

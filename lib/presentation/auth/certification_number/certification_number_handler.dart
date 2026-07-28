@@ -104,9 +104,7 @@ mixin _CertificationNumberHandlerMixin on ConsumerState<CertificationNumberScree
         final isDuplicate = await vm.checkPhoneDuplicate(widget.phoneNumber);
         if (!mounted) return;
         if (isDuplicate) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('이미 존재하는 계정입니다.')),
-          );
+          VybeToast.show(context, message: '이미 존재하는 계정입니다.', isError: true);
           return;
         }
 
@@ -132,9 +130,7 @@ mixin _CertificationNumberHandlerMixin on ConsumerState<CertificationNumberScree
         );
       } catch (e) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('오류가 발생했습니다: $e')),
-        );
+        VybeToast.show(context, message: '오류가 발생했습니다: $e', isError: true);
       } finally {
         if (mounted) setState(() => _isLoading = false);
       }

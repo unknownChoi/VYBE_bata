@@ -12,9 +12,9 @@ import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/data/models/operating_hours.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
+import 'package:vybe/presentation/clubs/widgets/club_detail_skeleton.dart';
 import 'package:vybe/presentation/clubs/widgets/club_glass.dart';
 import 'package:vybe/presentation/common/widgets/vybe_map_pin.dart';
-import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
 
 /// 클럽 상세 · 매장 정보 탭 (리퀴드 글래스).
@@ -45,11 +45,11 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
       padding: glassTabPadding(context),
       children: [
         clubAsync.isLoading
-            ? const LocationSkeleton()
+            ? const DetailLocationCardSkeleton()
             : _buildLocationCard(club, clubInfo),
         glassGap(),
         clubAsync.isLoading
-            ? const DetailInfoSkeleton()
+            ? const DetailStoreInfoCardSkeleton()
             : _buildDetailCard(club),
         if ((clubInfo?.cautions ?? const []).isNotEmpty) ...[
           glassGap(),

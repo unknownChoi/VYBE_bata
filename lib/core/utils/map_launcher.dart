@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
 
 /// 네이버 지도로 길찾기를 연다.
 ///
@@ -11,10 +12,8 @@ Future<void> launchDirections(
   required double lng,
   required String name,
 }) async {
-  final messenger = ScaffoldMessenger.maybeOf(context);
-
   if (lat == 0 && lng == 0) {
-    messenger?.showSnackBar(const SnackBar(content: Text('위치 정보가 없습니다')));
+    VybeToast.show(context, message: '위치 정보가 없습니다', isError: true);
     return;
   }
 
@@ -38,7 +37,7 @@ Future<void> launchDirections(
     webUri,
     mode: LaunchMode.externalApplication,
   ).catchError((_) => false);
-  if (!fallback) {
-    messenger?.showSnackBar(const SnackBar(content: Text('지도 앱을 열 수 없습니다')));
+  if (!fallback && context.mounted) {
+    VybeToast.show(context, message: '지도 앱을 열 수 없습니다', isError: true);
   }
 }

@@ -13,6 +13,15 @@ import 'package:vybe/presentation/nearby/nearby_screen.dart';
 import 'package:vybe/presentation/saved/saved_screen.dart';
 import 'package:vybe/presentation/search/search_screen.dart';
 
+/// 하단 floating nav 바 크기.
+const double _navBarHeight = 64;
+const double _navBarBottomGap = 12;
+
+/// 바가 실제로 차지하는 세로 공간(바 높이 + 아래 여백 + 시스템 인셋).
+/// 토스트 등 오버레이가 바에 가리지 않게 띄울 때 참조한다.
+double navBarTotalHeight(BuildContext context) =>
+    _navBarHeight.h + _navBarBottomGap.h + MediaQuery.of(context).padding.bottom;
+
 /// 탭별 중첩 Navigator.
 /// 상세 페이지 등 화면 전환이 탭 영역(IndexedStack) 안에서만 일어나
 /// body 위에 floating된 바텀 nav가 가려지지 않고 유지된다.
@@ -285,7 +294,12 @@ class _BottomNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).padding.bottom;
     return Padding(
-      padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, bottomInset + 12.h),
+      padding: EdgeInsets.fromLTRB(
+        16.w,
+        0,
+        16.w,
+        bottomInset + _navBarBottomGap.h,
+      ),
       child: AnimatedScale(
         scale: expanded ? 1.0 : 0.7,
         alignment: Alignment.bottomCenter,
@@ -306,7 +320,7 @@ class _BottomNavBar extends StatelessWidget {
             saturation: 1.2,
           ),
           child: SizedBox(
-            height: 64.h,
+            height: _navBarHeight.h,
             child: LayoutBuilder(
               builder: (context, c) {
                 const innerPad = 8.0;

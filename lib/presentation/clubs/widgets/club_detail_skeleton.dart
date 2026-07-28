@@ -453,3 +453,373 @@ class DetailNearbyCardSkeleton extends StatelessWidget {
     );
   }
 }
+
+// ============================================================================
+// 매장 정보 탭
+// ============================================================================
+
+/// 위치 카드 — 지도(200) + 주소 타일 + 주소 복사·길찾기 칩.
+class DetailLocationCardSkeleton extends StatelessWidget {
+  const DetailLocationCardSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassCard(
+      child: GlassSkeletonSheen(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const _HeadBones(titleWidth: 36, subWidth: 116),
+            // 지도 — _NaverMapCard 자리(같은 200 높이라 로딩 후 안 튄다).
+            GlassBone(width: double.infinity, height: 200.h, radius: 16),
+            SizedBox(height: 14.h),
+            // 주소 타일 (주소 한 줄 + 지하철 한 줄)
+            GlassBone(width: double.infinity, height: 78.h, radius: 14),
+            SizedBox(height: 10.h),
+            Row(
+              children: [
+                Expanded(child: GlassBone(height: 42.h, radius: 12)),
+                SizedBox(width: 8.w),
+                Expanded(child: GlassBone(height: 42.h, radius: 12)),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 상세 정보 카드 — 영업시간(요일 7줄) + 입장료 · 전화 · 링크 행.
+class DetailStoreInfoCardSkeleton extends StatelessWidget {
+  const DetailStoreInfoCardSkeleton({super.key});
+
+  /// 영업시간 아래 한 줄짜리 행(입장료 · 전화 · 링크) 본문 너비.
+  static const List<double> _rowWidths = [128, 116, 96];
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassCard(
+      child: GlassSkeletonSheen(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const _HeadBones(titleWidth: 64),
+            // 영업시간 — 오늘 한 줄 + 요일 표 7줄. GlassInfoRow와 같은 여백(13).
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: 13.h),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.only(top: 1.h, right: 12.w),
+                    child: GlassBone(width: 17.r, height: 17.r, radius: 5),
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        GlassBone(width: 172.w, height: 14.h),
+                        SizedBox(height: 12.h),
+                        // WeekHoursTable(rowGap: 9)과 같은 리듬.
+                        for (var i = 0; i < 7; i++)
+                          Padding(
+                            padding: EdgeInsets.only(bottom: i == 6 ? 0 : 9.h),
+                            child: Row(
+                              children: [
+                                GlassBone(width: 16.w, height: 12.h),
+                                SizedBox(width: 12.w),
+                                GlassBone(width: 104.w, height: 12.h),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            for (final w in _rowWidths)
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: 13.h),
+                child: Row(
+                  children: [
+                    GlassBone(width: 17.r, height: 17.r, radius: 5),
+                    SizedBox(width: 12.w),
+                    GlassBone(width: w.w, height: 14.h),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// 메뉴 탭
+// ============================================================================
+
+/// 메뉴 탭 — 메뉴판 이미지 카드 + 카테고리 섹션 카드.
+class DetailMenuTabSkeleton extends StatelessWidget {
+  const DetailMenuTabSkeleton({super.key});
+
+  static const int _boards = 3;
+  static const int _rows = 3;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        // 메뉴판 이미지 — 104 정사각 가로 스크롤.
+        GlassCard(
+          child: GlassSkeletonSheen(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const _HeadBones(titleWidth: 72),
+                SizedBox(
+                  height: 104.r,
+                  child: Row(
+                    children: [
+                      for (var i = 0; i < _boards; i++)
+                        Padding(
+                          padding: EdgeInsets.only(
+                            right: i == _boards - 1 ? 0 : 8.w,
+                          ),
+                          child: GlassBone(
+                            width: 104.r,
+                            height: 104.r,
+                            radius: 14,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        glassGap(),
+        // 카테고리 섹션 — 실제 카드처럼 padding 0 + 안쪽 18 여백.
+        GlassCard(
+          padding: 0,
+          child: GlassSkeletonSheen(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(18.w, 18.h, 18.w, 6.h),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const _HeadBones(titleWidth: 56),
+                  for (var i = 0; i < _rows; i++)
+                    Padding(
+                      padding: EdgeInsets.symmetric(vertical: 14.h),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                GlassBone(width: 116.w, height: 14.h),
+                                SizedBox(height: 6.h),
+                                GlassBone(width: 152.w, height: 12.h),
+                                SizedBox(height: 8.h),
+                                GlassBone(width: 76.w, height: 16.h),
+                              ],
+                            ),
+                          ),
+                          SizedBox(width: 14.w),
+                          GlassBone(width: 78.r, height: 78.r, radius: 14),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ============================================================================
+// 사진 탭
+// ============================================================================
+
+/// 사진 탭 — 2열 매스너리. 실제 타일과 같은 높이 패턴을 쓴다.
+class DetailPhotoTabSkeleton extends StatelessWidget {
+  const DetailPhotoTabSkeleton({super.key});
+
+  static const List<double> _leftHeights = [220, 180, 260, 200];
+  static const List<double> _rightHeights = [180, 240, 190, 230];
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassSkeletonSheen(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: _column(_leftHeights)),
+          SizedBox(width: 8.w),
+          Expanded(child: _column(_rightHeights)),
+        ],
+      ),
+    );
+  }
+
+  Widget _column(List<double> heights) {
+    return Column(
+      children: [
+        for (var i = 0; i < heights.length; i++)
+          Padding(
+            padding: EdgeInsets.only(bottom: i == heights.length - 1 ? 0 : 8.h),
+            child: GlassBone(
+              width: double.infinity,
+              height: heights[i].h,
+              radius: 14,
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+// ============================================================================
+// 리뷰 탭
+// ============================================================================
+
+/// 리뷰 탭 — 평점 요약 카드 + 작성 버튼 + 정렬 행 + 리뷰 카드 3장.
+class DetailReviewTabSkeleton extends StatelessWidget {
+  const DetailReviewTabSkeleton({super.key});
+
+  static const int _cards = 3;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _summaryCard(),
+        glassGap(),
+        // 작성 버튼 + 정렬 행은 카드 밖이라 sheen을 따로 씌운다.
+        GlassSkeletonSheen(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              GlassBone(width: double.infinity, height: 48.h, radius: 16),
+              SizedBox(height: 16.h),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  GlassBone(width: 48.w, height: 14.h),
+                  Row(
+                    children: [
+                      for (final w in const [46.0, 46.0, 34.0])
+                        Padding(
+                          padding: EdgeInsets.only(left: 4.w),
+                          child: GlassBone(
+                            width: w.w,
+                            height: 22.h,
+                            radius: 999,
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: 14.h),
+        for (var i = 0; i < _cards; i++) ...[
+          _reviewCard(),
+          SizedBox(height: 14.h),
+        ],
+      ],
+    );
+  }
+
+  /// 평점 요약 — 좌측 평균(78) + 우측 분포 바 5줄.
+  Widget _summaryCard() {
+    return GlassCard(
+      padding: 20,
+      child: GlassSkeletonSheen(
+        child: Row(
+          children: [
+            SizedBox(
+              width: 78.w,
+              child: Column(
+                children: [
+                  GlassBone(width: 62.w, height: 30.h, radius: 8),
+                  SizedBox(height: 5.h),
+                  GlassBone(width: 64.w, height: 12.h),
+                  SizedBox(height: 5.h),
+                  GlassBone(width: 52.w, height: 12.h),
+                ],
+              ),
+            ),
+            SizedBox(width: 20.w),
+            Expanded(
+              child: Column(
+                children: [
+                  for (var i = 0; i < 5; i++)
+                    Padding(
+                      padding: EdgeInsets.only(bottom: i == 4 ? 0 : 5.h),
+                      child: Row(
+                        children: [
+                          GlassBone(width: 10.w, height: 12.h),
+                          SizedBox(width: 8.w),
+                          Expanded(child: GlassBone(height: 5.h, radius: 99)),
+                          SizedBox(width: 8.w),
+                          GlassBone(width: 14.w, height: 12.h),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 리뷰 카드 — 아바타 34 + 이름·별점 + 날짜 / 본문 두 줄.
+  Widget _reviewCard() {
+    return GlassCard(
+      padding: 16,
+      child: GlassSkeletonSheen(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                GlassBone(width: 34.r, height: 34.r, radius: 999),
+                SizedBox(width: 10.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      GlassBone(width: 72.w, height: 14.h),
+                      SizedBox(height: 5.h),
+                      GlassBone(width: 58.w, height: 10.h),
+                    ],
+                  ),
+                ),
+                GlassBone(width: 62.w, height: 12.h),
+              ],
+            ),
+            SizedBox(height: 12.h),
+            GlassBone(width: double.infinity, height: 14.h),
+            SizedBox(height: 6.h),
+            GlassBone(width: 216.w, height: 14.h),
+          ],
+        ),
+      ),
+    );
+  }
+}

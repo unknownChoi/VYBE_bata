@@ -22,14 +22,13 @@ class FirebaseReviewDataSource {
     return snapshot.docs.map(ReviewModel.fromFirestore).toList();
   }
 
-  Stream<List<ReviewModel>> watchReviews(String clubId) async* {
-    await Future.delayed(const Duration(seconds: 5)); // TODO: remove after skeleton test
+  Stream<List<ReviewModel>> watchReviews(String clubId) {
     logFirebaseAccess(
       file: 'firebase_review_datasource.dart',
       service: 'Firestore(clubs/$clubId/reviews) [Stream]',
       purpose: '클럽 리뷰 실시간 구독',
     );
-    yield* _firestore
+    return _firestore
         .collection('clubs')
         .doc(clubId)
         .collection('reviews')

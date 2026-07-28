@@ -5,6 +5,7 @@ import 'package:vybe/data/models/review_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/review_write_screen.dart';
 import 'package:vybe/presentation/clubs/viewmodels/review_viewmodel.dart';
+import 'package:vybe/presentation/clubs/widgets/club_detail_skeleton.dart';
 import 'package:vybe/presentation/clubs/widgets/club_glass.dart';
 import 'package:vybe/presentation/common/widgets/vybe_photo_viewer.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
@@ -56,7 +57,7 @@ class _DetailReviewTabState extends ConsumerState<DetailReviewTab> {
       padding: glassTabPadding(context),
       children: [
         reviewsAsync.when(
-          loading: () => const ReviewsTabSkeleton(),
+          loading: () => const DetailReviewTabSkeleton(),
           error: (_, __) => Center(
             child: Text(
               '리뷰를 불러올 수 없어요',

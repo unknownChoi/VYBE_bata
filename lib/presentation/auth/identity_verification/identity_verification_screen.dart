@@ -27,6 +27,7 @@ import 'package:vybe/presentation/common/widgets/vybe_loading_overlay.dart';
 import 'package:vybe/presentation/common/widgets/vybe_page_title.dart';
 import 'package:vybe/presentation/common/widgets/vybe_status_message.dart';
 import 'package:vybe/presentation/common/widgets/vybe_text_field.dart';
+import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
 
 part 'identity_verification_logic.dart';
 part 'identity_verification_handler.dart';

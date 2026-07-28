@@ -15,6 +15,7 @@ import 'package:vybe/presentation/auth/viewmodels/auth_viewmodel.dart';
 import 'package:vybe/presentation/auth/welcome/login_method_bottom_sheet.dart';
 import 'package:vybe/presentation/common/widgets/vybe_spinner.dart';
 import 'package:vybe/presentation/home/viewmodels/banner_viewmodel.dart';
+import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
 
 class WelcomeScreen extends ConsumerStatefulWidget {
   const WelcomeScreen({super.key});
@@ -83,9 +84,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
       File('/Users/justinchoi/Desktop/업무/소스코드/vybe_bata/kakao_error.txt')
           .writeAsStringSync(log, mode: FileMode.append);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      VybeToast.show(context, message: e.toString(), isError: true);
     } finally {
       if (mounted) setState(() => _loadingButton = null);
     }
@@ -117,9 +116,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      VybeToast.show(context, message: e.toString(), isError: true);
     } finally {
       if (mounted) setState(() => _loadingButton = null);
     }

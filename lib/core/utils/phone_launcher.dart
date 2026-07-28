@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
 
 /// 전화번호로 기기 전화 앱을 연다.
 ///
 /// 번호가 비었거나 전화 앱을 열 수 없는 기기(시뮬레이터·태블릿 등)면
-/// 스낵바로 안내만 하고 조용히 종료한다.
+/// 토스트로 안내만 하고 조용히 종료한다.
 Future<void> launchPhoneCall(BuildContext context, String phone) async {
-  final messenger = ScaffoldMessenger.maybeOf(context);
-
   void notify(String message) {
-    messenger?.showSnackBar(SnackBar(content: Text(message)));
+    if (!context.mounted) return;
+    VybeToast.show(context, message: message, isError: true);
   }
 
   // 하이픈·공백 등 표시용 구분자 제거 (tel: 스킴은 숫자와 +만 허용).

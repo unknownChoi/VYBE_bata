@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/data/models/menu_model.dart';
 import 'package:vybe/presentation/clubs/tabs/detail_home_tab.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
+import 'package:vybe/presentation/clubs/widgets/club_detail_skeleton.dart';
 import 'package:vybe/presentation/clubs/widgets/club_glass.dart';
 import 'package:vybe/presentation/common/widgets/vybe_photo_viewer.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
@@ -47,7 +48,7 @@ class _DetailMenuTabState extends ConsumerState<DetailMenuTab> {
       return ListView(
         physics: const ClampingScrollPhysics(),
         padding: glassTabPadding(context),
-        children: const [MenuTabSkeleton()],
+        children: const [DetailMenuTabSkeleton()],
       );
     }
 

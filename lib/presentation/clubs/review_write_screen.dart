@@ -13,7 +13,6 @@ import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
 import 'package:vybe/presentation/clubs/viewmodels/review_viewmodel.dart';
 import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
 import 'package:vybe/presentation/main_scaffold/nav_bar_visibility_provider.dart';
-import 'package:vybe/presentation/profile/viewmodels/user_viewmodel.dart';
 
 // 디자인: review_write.jsx (WRITE REVIEW — LIQUID GLASS)
 
@@ -178,15 +177,12 @@ class _ReviewWriteScreenState extends ConsumerState<ReviewWriteScreen> {
 
     setState(() => _submitting = true);
 
-    final userName = await _resolveUserName(uid);
-    if (!mounted) return;
-
+    // 작성자 이름은 ViewModel이 users/{uid}에서 직접 채운다 (submitReview 주석 참고).
     final ok = await ref
         .read(reviewViewModelProvider.notifier)
         .submitReview(
           clubId: widget.clubId,
           userId: uid,
-          userName: userName,
           rating: _rating,
           content: _controller.text.trim(),
           tags: const [],
@@ -205,21 +201,6 @@ class _ReviewWriteScreenState extends ConsumerState<ReviewWriteScreen> {
     // 등록 성공 → 바로 이전 페이지(클럽 상세 리뷰 탭)로 복귀.
     // 완료 안내는 돌아간 화면에서 토스트로 띄운다.
     Navigator.of(context).pop(true);
-  }
-
-  /// 리뷰에 표시할 작성자 이름.
-  ///
-  /// `currentUserProvider`는 users/{uid} 실시간 스트림이라 이 화면에서 처음
-  /// 읽는 순간엔 아직 AsyncLoading이다. `.value`로 꺼내면 항상 null → 빈 이름 →
-  /// 리뷰 목록에 '익명'으로 뜬다. 반드시 `.future`로 첫 값을 기다린다.
-  Future<String> _resolveUserName(String uid) async {
-    try {
-      final user = await ref.read(currentUserProvider(uid).future);
-      return user?.name ?? '';
-    } catch (e) {
-      debugPrint('[ReviewWrite] resolveUserName failed: $e');
-      return '';
-    }
   }
 
   @override

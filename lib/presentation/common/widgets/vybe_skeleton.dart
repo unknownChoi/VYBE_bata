@@ -11,12 +11,7 @@ class VybeSkel extends StatefulWidget {
   final double? height;
   final double radius;
 
-  const VybeSkel({
-    super.key,
-    this.width,
-    this.height,
-    this.radius = 6,
-  });
+  const VybeSkel({super.key, this.width, this.height, this.radius = 6});
 
   @override
   State<VybeSkel> createState() => _VybeSkelState();
@@ -34,9 +29,10 @@ class _VybeSkelState extends State<VybeSkel>
       vsync: this,
       duration: const Duration(milliseconds: 1400),
     )..repeat();
-    _anim = Tween<double>(begin: -1.5, end: 1.5).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
-    );
+    _anim = Tween<double>(
+      begin: -1.5,
+      end: 1.5,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
   }
 
   @override
@@ -110,8 +106,9 @@ class _SkeletonImageState extends State<SkeletonImage> {
 
     // 이미 ImageCache에 있으면(재방문) skeleton 없이 즉시 노출.
     // 최초 로드(캐시 없음)일 때만 minSkeleton 동안 shimmer 표시.
-    final status = PaintingBinding.instance.imageCache
-        .statusForKey(NetworkImage(widget.url));
+    final status = PaintingBinding.instance.imageCache.statusForKey(
+      NetworkImage(widget.url),
+    );
     if (status.keepAlive || status.live) {
       _loaded = true;
       _revealed = true;
@@ -268,10 +265,7 @@ class InfoSkeleton extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      VybeSkel(
-                        width: double.infinity,
-                        height: 14.h,
-                      ),
+                      VybeSkel(width: double.infinity, height: 14.h),
                       if (i == 0) ...[
                         SizedBox(height: 6.h),
                         VybeSkel(width: 120.w, height: 12.h),
@@ -351,9 +345,7 @@ class ScheduleSkeleton extends StatelessWidget {
             child: Container(
               padding: EdgeInsets.only(left: 14.w),
               decoration: const BoxDecoration(
-                border: Border(
-                  left: BorderSide(color: VybeColors.gray900),
-                ),
+                border: Border(left: BorderSide(color: VybeColors.gray900)),
               ),
               child: Column(
                 children: [
@@ -441,9 +433,7 @@ class MenuSkeleton extends StatelessWidget {
             return Container(
               padding: EdgeInsets.symmetric(vertical: 14.h),
               decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: VybeColors.gray900),
-                ),
+                border: Border(bottom: BorderSide(color: VybeColors.gray900)),
               ),
               child: Row(
                 children: [
@@ -622,9 +612,7 @@ class NearbyListItemSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: VybeColors.gray800, width: 1),
-        ),
+        border: Border(bottom: BorderSide(color: VybeColors.gray800, width: 1)),
       ),
       padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 24.h),
       child: Column(
@@ -684,311 +672,14 @@ class HomeSkeleton extends StatelessWidget {
   }
 
   Widget _divider() => Container(
-        height: 8.h,
-        decoration: const BoxDecoration(
-          color: Colors.black,
-          border: Border.symmetric(
-            horizontal: BorderSide(color: Color(0xFF1F1F23)),
-          ),
-        ),
-      );
-}
-
-// ── Tab skeletons ───────────────────────────────────────────────
-
-class MenuTabSkeleton extends StatelessWidget {
-  const MenuTabSkeleton({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // menu board image section
-        Padding(
-          padding: EdgeInsets.fromLTRB(20.w, 24.h, 0, 28.h),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              VybeSkel(width: 88.w, height: 20.h),
-              SizedBox(height: 16.h),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: List.generate(3, (i) {
-                    return Padding(
-                      padding: EdgeInsets.only(right: 8.w),
-                      child: VybeSkel(width: 121.r, height: 121.r, radius: 8),
-                    );
-                  }),
-                ),
-              ),
-            ],
-          ),
-        ),
-        Container(height: 2, color: VybeColors.gray900),
-        // category chips
-        Padding(
-          padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 12.h),
-          child: Row(
-            children: [60, 48, 56, 80].map((w) {
-              return Padding(
-                padding: EdgeInsets.only(right: 8.w),
-                child: VybeSkel(width: w.w, height: 32.h, radius: 99),
-              );
-            }).toList(),
-          ),
-        ),
-        // menu items
-        Padding(
-          padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 24.h),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              VybeSkel(width: 80.w, height: 20.h),
-              SizedBox(height: 16.h),
-              ...List.generate(3, (i) {
-                return Container(
-                  padding: EdgeInsets.symmetric(vertical: 16.h),
-                  decoration: BoxDecoration(
-                    border: Border(
-                      top: BorderSide(color: VybeColors.gray900),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            VybeSkel(width: 110.w, height: 16.h),
-                            SizedBox(height: 10.h),
-                            VybeSkel(width: 170.w, height: 12.h),
-                            SizedBox(height: 10.h),
-                            VybeSkel(width: 70.w, height: 16.h),
-                          ],
-                        ),
-                      ),
-                      SizedBox(width: 16.w),
-                      VybeSkel(width: 100.r, height: 100.r, radius: 6),
-                    ],
-                  ),
-                );
-              }),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class PhotosTabSkeleton extends StatelessWidget {
-  const PhotosTabSkeleton({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // filter chips
-        Padding(
-          padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 12.h),
-          child: Row(
-            children: [44, 64, 56, 50].map((w) {
-              return Padding(
-                padding: EdgeInsets.only(right: 8.w),
-                child: VybeSkel(width: w.w, height: 30.h, radius: 99),
-              );
-            }).toList(),
-          ),
-        ),
-        // masonry grid
-        Padding(
-          padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 0),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              [262, 180, 220, 270],
-              [180, 220, 180, 200],
-            ].map((heights) {
-              return Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(right: 4.w),
-                  child: Column(
-                    children: heights.map((h) {
-                      return Padding(
-                        padding: EdgeInsets.only(bottom: 8.h),
-                        child: VybeSkel(
-                          width: double.infinity,
-                          height: h.h,
-                          radius: 6,
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class ReviewsTabSkeleton extends StatelessWidget {
-  const ReviewsTabSkeleton({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(0, 20.h, 0, 32.h),
-      child: Column(
-        children: [
-          // 방문자/블로그 토글은 제거됨 (블로그 리뷰 데이터 소스 없음) — 스켈레톤도 동일.
-          // rating summary
-          VybeSkel(width: double.infinity, height: 92.h, radius: 12),
-          SizedBox(height: 20.h),
-          // 리뷰 작성하기 버튼 (padding 14.h*2 + 16.sp 텍스트 ≈ 48.h)
-          VybeSkel(width: double.infinity, height: 48.h, radius: 12),
-          SizedBox(height: 20.h),
-          // sort row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              VybeSkel(width: 56.w, height: 16.h),
-              VybeSkel(width: 120.w, height: 20.h, radius: 99),
-            ],
-          ),
-          SizedBox(height: 4.h),
-          // review cards
-          ...List.generate(3, (i) {
-            return Container(
-              padding: EdgeInsets.symmetric(vertical: 16.h),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: VybeColors.gray900),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      VybeSkel(width: 32.r, height: 32.r, radius: 99),
-                      SizedBox(width: 10.w),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          VybeSkel(width: 70.w, height: 12.h),
-                          SizedBox(height: 4.h),
-                          VybeSkel(width: 40.w, height: 10.h),
-                        ],
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 10.h),
-                  VybeSkel(width: double.infinity, height: 14.h),
-                  SizedBox(height: 6.h),
-                  VybeSkel(width: 220.w, height: 14.h),
-                ],
-              ),
-            );
-          }),
-        ],
+    height: 8.h,
+    decoration: const BoxDecoration(
+      color: Colors.black,
+      border: Border.symmetric(
+        horizontal: BorderSide(color: Color(0xFF1F1F23)),
       ),
-    );
-  }
-}
-
-class LocationSkeleton extends StatelessWidget {
-  const LocationSkeleton({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // '위치' 타이틀
-          VybeSkel(width: 60.w, height: 20.h),
-          SizedBox(height: 16.h),
-          // 지도 카드
-          VybeSkel(width: double.infinity, height: 200.h, radius: 12),
-          SizedBox(height: 16.h),
-          // 주소 카드
-          VybeSkel(width: double.infinity, height: 78.h, radius: 12),
-          SizedBox(height: 10.h),
-          // 액션 칩 3개
-          Row(
-            children: List.generate(3, (i) {
-              return Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(right: i < 2 ? 8.w : 0),
-                  child: VybeSkel(
-                    width: double.infinity,
-                    height: 38.h,
-                    radius: 8,
-                  ),
-                ),
-              );
-            }),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class DetailInfoSkeleton extends StatelessWidget {
-  const DetailInfoSkeleton({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // '상세 정보' 타이틀
-          VybeSkel(width: 80.w, height: 20.h),
-          SizedBox(height: 16.h),
-          // 정보 행 4개 (영업시간/전화/인스타/오픈채팅)
-          ...List.generate(4, (i) {
-            return Container(
-              padding: EdgeInsets.symmetric(vertical: 16.h),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: VybeColors.gray900),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      VybeSkel(width: 16.r, height: 16.r, radius: 4),
-                      SizedBox(width: 8.w),
-                      VybeSkel(width: 60.w, height: 13.h),
-                    ],
-                  ),
-                  SizedBox(height: 10.h),
-                  Padding(
-                    padding: EdgeInsets.only(left: 24.w),
-                    child: VybeSkel(width: 130.w, height: 14.h),
-                  ),
-                ],
-              ),
-            );
-          }),
-          SizedBox(height: 16.h),
-          // 안내/유의사항 박스
-          VybeSkel(width: double.infinity, height: 44.h, radius: 12),
-        ],
-      ),
-    );
-  }
+    ),
+  );
 }
 
 // ── 찜 탭 스켈레톤 ───────────────────────────────────────────────

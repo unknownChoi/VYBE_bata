@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:vybe/data/models/photo_model.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
+import 'package:vybe/presentation/clubs/widgets/club_detail_skeleton.dart';
 import 'package:vybe/presentation/clubs/widgets/club_glass.dart';
 import 'package:vybe/presentation/common/widgets/vybe_photo_viewer.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
@@ -65,7 +66,7 @@ class _DetailGalleryTabState extends ConsumerState<DetailGalleryTab> {
       return ListView(
         physics: const ClampingScrollPhysics(),
         padding: glassTabPadding(context),
-        children: const [PhotosTabSkeleton()],
+        children: const [DetailPhotoTabSkeleton()],
       );
     }
 

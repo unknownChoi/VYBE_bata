@@ -29,9 +29,7 @@ Future<void> main() async {
   };
 
   // 세로 방향 고정 (가로 회전 금지).
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-  ]);
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
   // 환경변수 로드
   await dotenv.load(fileName: '.env');
