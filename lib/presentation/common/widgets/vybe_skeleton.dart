@@ -993,8 +993,8 @@ class DetailInfoSkeleton extends StatelessWidget {
 
 // ── 찜 탭 스켈레톤 ───────────────────────────────────────────────
 //
-// SavedScreen 로딩 중 표시. 통계 바 + 툴바 + 리스트 카드 골격.
-// 실제 레이아웃(_StatsBar / _ToolBar / _ListCard)과 패딩 동일.
+// SavedScreen 로딩 중 표시. 헤더 + 툴바 + 글래스 리스트 카드 골격.
+// 실제 레이아웃(_Header / _Toolbar / _ListCard)과 패딩 동일.
 
 class _SavedListItemSkeleton extends StatelessWidget {
   const _SavedListItemSkeleton();
@@ -1002,26 +1002,30 @@ class _SavedListItemSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 14.h),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: VybeColors.gray900)),
+      margin: EdgeInsets.only(bottom: 12.h),
+      padding: EdgeInsets.all(12.r),
+      decoration: BoxDecoration(
+        // GlassCard와 같은 톤 (블러는 스켈레톤에 불필요).
+        color: const Color(0x29787880),
+        borderRadius: BorderRadius.circular(18.r),
+        border: Border.all(color: const Color(0x1AFFFFFF)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          VybeSkel(width: 96.w, height: 96.w, radius: 10),
-          SizedBox(width: 14.w),
+          VybeSkel(width: 92.w, height: 92.w, radius: 14),
+          SizedBox(width: 13.w),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 VybeSkel(width: 130.w, height: 16.h),
-                SizedBox(height: 12.h),
-                VybeSkel(width: 180.w, height: 12.h),
                 SizedBox(height: 10.h),
-                VybeSkel(width: 160.w, height: 12.h),
-                SizedBox(height: 12.h),
-                VybeSkel(width: 70.w, height: 11.h),
+                VybeSkel(width: 170.w, height: 12.h),
+                SizedBox(height: 10.h),
+                VybeSkel(width: 132.w, height: 21.h, radius: 99),
+                SizedBox(height: 8.h),
+                VybeSkel(width: 64.w, height: 11.h),
               ],
             ),
           ),
@@ -1039,32 +1043,43 @@ class SavedSkeleton extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 통계 바
+        // 헤더 (찜 개수 + 영업중)
         Padding(
-          padding: EdgeInsets.fromLTRB(20.w, 28.h, 20.w, 12.h),
+          padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 18.h),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              VybeSkel(width: 140.w, height: 28.h, radius: 8),
-              VybeSkel(width: 86.w, height: 14.h, radius: 99),
+              VybeSkel(width: 176.w, height: 32.h, radius: 8),
+              VybeSkel(width: 96.w, height: 14.h, radius: 99),
             ],
           ),
         ),
-        SizedBox(height: 8.h),
         // 툴바 (정렬 + 뷰 전환)
-        Padding(
-          padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 16.h),
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 11.h),
+          decoration: const BoxDecoration(
+            color: Color(0x8C0E0D12),
+            border: Border(
+              top: BorderSide(color: Color(0x17FFFFFF)),
+              bottom: BorderSide(color: Color(0x17FFFFFF)),
+            ),
+          ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              VybeSkel(width: 80.w, height: 14.h),
-              VybeSkel(width: 64.w, height: 26.h, radius: 8),
+              VybeSkel(width: 116.w, height: 34.h, radius: 99),
+              VybeSkel(width: 74.w, height: 34.h, radius: 99),
             ],
           ),
         ),
-        // 리스트 카드 5개
-        ...List.generate(5, (_) => const _SavedListItemSkeleton()),
+        // 리스트 카드 4개
+        Padding(
+          padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 0),
+          child: Column(
+            children: List.generate(4, (_) => const _SavedListItemSkeleton()),
+          ),
+        ),
       ],
     );
   }

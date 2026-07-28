@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:vybe/core/utils/number_format.dart';
 import 'package:vybe/data/models/menu_model.dart';
-import 'package:vybe/design_system/colors.dart';
+import 'package:vybe/presentation/clubs/tabs/detail_home_tab.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
+import 'package:vybe/presentation/clubs/widgets/club_glass.dart';
 import 'package:vybe/presentation/common/widgets/vybe_photo_viewer.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 
+/// 클럽 상세 · 메뉴 탭 (리퀴드 글래스).
+///
+/// 디자인 club_glass_tabs.jsx(CGMenuTab) — 메뉴판 이미지 가로 스크롤 →
+/// sticky 카테고리 칩 → 카테고리별 섹션이 한 장의 카드 안에 이어진다.
+/// 칩을 누르면 해당 섹션으로 스크롤한다.
 class DetailMenuTab extends ConsumerStatefulWidget {
   final String clubId;
   const DetailMenuTab({super.key, required this.clubId});
@@ -17,127 +22,118 @@ class DetailMenuTab extends ConsumerStatefulWidget {
 }
 
 class _DetailMenuTabState extends ConsumerState<DetailMenuTab> {
-  int _selectedCategoryIndex = 0;
-
-  // 카테고리별 섹션 위치 키 (칩 클릭 시 해당 섹션으로 스크롤)
+  String? _activeCategory;
   final Map<String, GlobalKey> _sectionKeys = {};
 
-  static const _categoryOrder = [
-    '대표메뉴',
-    'SET',
-    'HARD',
-    'CHAMPAGNE',
-    'BEER',
-    'COCKTAIL',
-  ];
-
-  void _scrollToCategory(int index, String category) {
-    setState(() => _selectedCategoryIndex = index);
-    final ctx = _sectionKeys[category]?.currentContext;
-    if (ctx == null) return;
+  void _goToSection(String category) {
+    setState(() => _activeCategory = category);
+    final sectionContext = _sectionKeys[category]?.currentContext;
+    if (sectionContext == null) return;
     Scrollable.ensureVisible(
-      ctx,
-      duration: const Duration(milliseconds: 350),
-      curve: Curves.easeInOut,
-      alignment: 0,
+      sectionContext,
+      duration: const Duration(milliseconds: 320),
+      curve: Curves.easeOutCubic,
+      alignment: 0.02,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final clubAsync = ref.watch(clubDetailProvider(widget.clubId));
     final menusAsync = ref.watch(clubMenusProvider(widget.clubId));
+    final club = ref.watch(clubDetailProvider(widget.clubId)).value;
+    final boards = club?.menuBoardUrls ?? const <String>[];
 
-    if (menusAsync.isLoading || clubAsync.isLoading) {
-      return const SingleChildScrollView(
-        physics: ClampingScrollPhysics(),
-        child: MenuTabSkeleton(),
+    if (menusAsync.isLoading) {
+      return ListView(
+        physics: const ClampingScrollPhysics(),
+        padding: glassTabPadding(context),
+        children: const [MenuTabSkeleton()],
       );
     }
-    if (menusAsync.hasError) {
+
+    final menus = menusAsync.value ?? const <MenuModel>[];
+    final grouped = _groupByCategory(menus);
+    final categories = grouped.keys.toList();
+
+    if (boards.isEmpty && menus.isEmpty) {
       return Center(
-        child: Text(
-          '메뉴를 불러올 수 없어요',
-          style: TextStyle(
-            fontFamily: 'Pretendard',
-            fontSize: 14.sp,
-            color: VybeColors.gray500,
+        child: Text('등록된 메뉴가 없어요', style: ClubGlass.body(color: ClubGlass.t4)),
+      );
+    }
+
+    // 첫 렌더 시 활성 칩 초기화 + 섹션 키 확보.
+    if (_activeCategory == null && categories.isNotEmpty) {
+      _activeCategory = categories.first;
+    }
+    for (final c in categories) {
+      _sectionKeys.putIfAbsent(c, GlobalKey.new);
+    }
+
+    // 카테고리 바는 탭 상단에 고정한다. sticky를 pinned SliverPersistentHeader로
+    // 만들면 Flutter 3.41 세만틱스 검증이 매 프레임 assert를 던져 화면이 안 그려진다
+    // (club_detail_screen 주석 참고) — 그래서 스크롤 밖 고정 행으로 뺐다.
+    return Column(
+      children: [
+        if (categories.length > 1)
+          _CategoryBar(
+            categories: categories,
+            active: _activeCategory,
+            onSelect: _goToSection,
+          ),
+        Expanded(
+          child: ListView(
+            physics: const ClampingScrollPhysics(),
+            padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 28.h),
+            children: [
+              if (boards.isNotEmpty) ...[
+                _buildBoardCard(boards),
+                SizedBox(height: 14.h),
+              ],
+              if (menus.isNotEmpty) _buildSectionsCard(grouped),
+              SizedBox(height: 12.h),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4.w),
+                child: Text(
+                  '메뉴 항목과 가격은 매장 사정에 따라 다를 수 있습니다.',
+                  style: ClubGlass.caption(color: ClubGlass.t4, lineHeight: 17),
+                ),
+              ),
+            ],
           ),
         ),
-      );
-    }
-
-    final menus = menusAsync.value ?? [];
-    final boardImages = clubAsync.value?.menuBoardUrls ?? [];
-    final groups = _buildGroups(menus);
-    final categories = _categoryOrder.where(groups.containsKey).toList();
-
-    return ListView(
-      physics: const ClampingScrollPhysics(),
-      padding: EdgeInsets.zero,
-      children: [
-        if (boardImages.isNotEmpty) _buildImageSection(boardImages),
-        Container(height: 2, color: VybeColors.gray900),
-        _buildCategoryChips(categories),
-        _buildMenuSections(groups, categories),
-        SizedBox(height: 32.h),
       ],
     );
   }
 
-  Map<String, List<MenuModel>> _buildGroups(List<MenuModel> menus) {
-    final groups = <String, List<MenuModel>>{};
-    for (final cat in _categoryOrder) {
-      final items = menus.where((m) => m.category == cat).toList();
-      if (items.isNotEmpty) groups[cat] = items;
-    }
-    return groups;
-  }
-
-  Widget _buildImageSection(List<String> boardImages) {
-    return Padding(
-      padding: EdgeInsets.only(top: 24.h, bottom: 28.h),
+  /// 메뉴판 이미지 — 가로 스크롤, 탭하면 전체 뷰어.
+  Widget _buildBoardCard(List<String> boards) {
+    return GlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.w),
-            child: Text(
-              '메뉴 이미지',
-              style: TextStyle(
-                fontFamily: 'Pretendard',
-                fontSize: 18.sp,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
-          ),
-          SizedBox(height: 16.h),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: EdgeInsets.symmetric(horizontal: 20.w),
-            child: Row(
-              children: boardImages.asMap().entries.map((entry) {
-                final index = entry.key;
-                final url = entry.value;
-                return Padding(
-                  padding: EdgeInsets.only(right: 8.w),
-                  child: GestureDetector(
-                    onTap: () => VybePhotoViewer.open(
-                      context,
-                      imageUrls: boardImages,
-                      initialIndex: index,
-                    ),
-                    child: SkeletonImage(
-                      url: url,
-                      width: 121.r,
-                      height: 121.r,
-                      fit: BoxFit.cover,
-                      borderRadius: BorderRadius.circular(8.r),
-                    ),
+          const GlassSectionHead(title: '메뉴 이미지'),
+          SizedBox(
+            height: 104.r,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: boards.length,
+              separatorBuilder: (_, __) => SizedBox(width: 8.w),
+              itemBuilder: (_, i) => GestureDetector(
+                onTap: () => VybePhotoViewer.open(
+                  context,
+                  imageUrls: boards,
+                  initialIndex: i,
+                ),
+                behavior: HitTestBehavior.opaque,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14.r),
+                  child: SizedBox(
+                    width: 104.r,
+                    height: 104.r,
+                    child: SkeletonImage(url: boards[i], fit: BoxFit.cover),
                   ),
-                );
-              }).toList(),
+                ),
+              ),
             ),
           ),
         ],
@@ -145,186 +141,88 @@ class _DetailMenuTabState extends ConsumerState<DetailMenuTab> {
     );
   }
 
-  Widget _buildCategoryChips(List<String> categories) {
-    return Container(
-      padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 12.h),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: VybeColors.gray900)),
-      ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: List.generate(categories.length, (i) {
-            final selected = i == _selectedCategoryIndex;
-            return Padding(
-              padding: EdgeInsets.only(right: 8.w),
-              child: GestureDetector(
-                onTap: () => _scrollToCategory(i, categories[i]),
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 14.w,
-                    vertical: 7.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: selected
-                        ? VybeColors.mainPurple700
-                        : VybeColors.gray800,
-                    borderRadius: BorderRadius.circular(999.r),
-                  ),
-                  child: Text(
-                    categories[i],
-                    style: TextStyle(
-                      fontFamily: 'Pretendard',
-                      fontSize: 13.sp,
-                      fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                      color: selected ? Colors.white : VybeColors.gray400,
-                    ),
-                  ),
-                ),
-              ),
-            );
-          }),
-        ),
-      ),
-    );
-  }
+  /// 카테고리별 섹션이 하나의 카드 안에서 hairline으로 구분된다.
+  Widget _buildSectionsCard(Map<String, List<MenuModel>> grouped) {
+    final entries = grouped.entries.toList();
 
-  Widget _buildMenuSections(
-    Map<String, List<MenuModel>> groups,
-    List<String> categories,
-  ) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 24.h),
+    return GlassCard(
+      padding: 0,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ...categories.map((cat) {
-            final key = _sectionKeys.putIfAbsent(cat, () => GlobalKey());
-            return Padding(
-              key: key,
-              padding: EdgeInsets.only(top: 16.h),
+          for (var i = 0; i < entries.length; i++)
+            Container(
+              key: _sectionKeys[entries[i].key],
+              padding: EdgeInsets.fromLTRB(18.w, 18.h, 18.w, 6.h),
+              decoration: BoxDecoration(
+                border: i == 0
+                    ? null
+                    : const Border(top: BorderSide(color: ClubGlass.hair)),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    cat,
-                    style: TextStyle(
-                      fontFamily: 'Pretendard',
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                  GlassSectionHead(title: entries[i].key),
+                  for (var j = 0; j < entries[i].value.length; j++)
+                    GlassMenuRow(
+                      menu: entries[i].value[j],
+                      last: j == entries[i].value.length - 1,
                     ),
-                  ),
-                  SizedBox(height: 16.h),
-                  ...groups[cat]!.map((item) => _MenuItemWidget(item: item)),
-                  Container(height: 1, color: VybeColors.gray800),
                 ],
               ),
-            );
-          }),
-          SizedBox(height: 12.h),
-          Text(
-            '메뉴 항목과 가격은 각 매장 사정에 따라 기재된 내용과 다를 수 있습니다.',
-            style: TextStyle(
-              fontFamily: 'Pretendard',
-              fontSize: 12.sp,
-              color: VybeColors.gray500,
-              height: 1.5,
             ),
-          ),
         ],
       ),
     );
   }
+
+  /// 등장 순서를 유지하며 카테고리별로 묶는다. 대표 메뉴는 항상 맨 앞 그룹.
+  Map<String, List<MenuModel>> _groupByCategory(List<MenuModel> menus) {
+    final available = menus.where((m) => m.isAvailable).toList();
+    final featured = available.where((m) => m.isFeatured).toList();
+    final grouped = <String, List<MenuModel>>{};
+
+    if (featured.isNotEmpty) grouped['대표 메뉴'] = featured;
+
+    for (final m in available) {
+      final key = m.category.isEmpty ? '기타' : m.category;
+      grouped.putIfAbsent(key, () => []).add(m);
+    }
+    return grouped;
+  }
 }
 
-class _MenuItemWidget extends StatelessWidget {
-  final MenuModel item;
-  const _MenuItemWidget({required this.item});
+// ============================================================================
+// STICKY CATEGORY BAR
+// ============================================================================
+
+class _CategoryBar extends StatelessWidget {
+  final List<String> categories;
+  final String? active;
+  final ValueChanged<String> onSelect;
+
+  const _CategoryBar({
+    required this.categories,
+    required this.active,
+    required this.onSelect,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(vertical: 16.h),
-      decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: VybeColors.gray800)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    if (item.isFeatured) ...[
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 7.w,
-                          vertical: 2.h,
-                        ),
-                        decoration: BoxDecoration(
-                          color: VybeColors.mainPurple500,
-                          borderRadius: BorderRadius.circular(999.r),
-                        ),
-                        child: Text(
-                          '대표',
-                          style: TextStyle(
-                            fontFamily: 'Pretendard',
-                            fontSize: 10.sp,
-                            fontWeight: FontWeight.w500,
-                            color: VybeColors.gray200,
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: 6.w),
-                    ],
-                    Text(
-                      item.name,
-                      style: TextStyle(
-                        fontFamily: 'Pretendard',
-                        fontSize: 14.sp,
-                        color: VybeColors.gray200,
-                      ),
-                    ),
-                  ],
-                ),
-                if (item.description.isNotEmpty) ...[
-                  SizedBox(height: 6.h),
-                  Text(
-                    item.description,
-                    style: TextStyle(
-                      fontFamily: 'Pretendard',
-                      fontSize: 12.sp,
-                      color: VybeColors.gray500,
-                    ),
-                  ),
-                ],
-                SizedBox(height: 10.h),
-                Text(
-                  '${formatThousands(item.price)}원',
-                  style: TextStyle(
-                    fontFamily: 'Pretendard',
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
+    return GlassBar(
+      padding: EdgeInsets.symmetric(vertical: 10.h),
+      child: SizedBox(
+        height: 34.h,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          itemCount: categories.length,
+          separatorBuilder: (_, __) => SizedBox(width: 8.w),
+          itemBuilder: (_, i) => GlassFilterChip(
+            label: categories[i],
+            selected: categories[i] == active,
+            onTap: () => onSelect(categories[i]),
           ),
-          if (item.imageUrl.isNotEmpty) ...[
-            SizedBox(width: 16.w),
-            SkeletonImage(
-              url: item.imageUrl,
-              width: 100.r,
-              height: 100.r,
-              fit: BoxFit.cover,
-              borderRadius: BorderRadius.circular(6.r),
-            ),
-          ],
-        ],
+        ),
       ),
     );
   }

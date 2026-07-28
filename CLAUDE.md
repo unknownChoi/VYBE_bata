@@ -303,7 +303,20 @@ ElevatedButton(onPressed: () {}, child: Text('로그인'))
 - 인증 플로우 연결 (SDK → Functions → Firebase)
 - `MainScaffold` 5탭 (홈 / 주변 / 찜 / 검색 / 내 정보)
 - 홈 (배너·추천), 내 주변 (네이버 지도 + geohash), 검색 화면
-- 클럽 상세 (정보·메뉴·사진·리뷰 탭, 찜, 스켈레톤 로딩)
+- **클럽 상세 — club_detail_glass.html(리퀴드 글래스) 리뉴얼 완료**
+  (오로라 배경 + 히어로 320 + 히어로를 -34 덮는 아이덴티티 글래스 카드 +
+  퀵 액션 4칸(전화·길찾기·공유·저장) + sticky 글래스 세그먼트 탭 5개)
+  - 홈: 매장정보(주소·영업시간 확장) / 오늘의 라인업 / 테이블 요약 / 메뉴3 / 사진6 / 주변 클럽
+  - 메뉴: 메뉴판 이미지 + sticky 카테고리 칩(섹션 스크롤) + 카테고리별 섹션
+  - 사진: sticky 필터 칩(개수) + 2열 매스너리 + 12장씩 더 보기
+  - 리뷰: 평점 요약(분포 바) + 작성 버튼 + 정렬 칩 + 5개씩 더 보기
+  - 매장 정보: 위치(네이버 지도·주소 복사·길찾기) / 상세 정보 / 이용 안내
+  - 공통 글래스 위젯은 `clubs/widgets/club_glass.dart`
+  - ⚠ **`NestedScrollView.headerSliverBuilder`에 pinned `SliverPersistentHeader` 금지**
+    — Flutter 3.41 세만틱스 검증(`debugCheckForParentData`)이 매 프레임
+    `'!semantics.parentDataDirty'` assert를 던져 화면이 통째로 안 그려진다(빈 화면).
+    sticky 바는 스크롤 밖 고정 행(탭바는 `NestedScrollView.body` 최상단)으로 구현할 것
+  - ⚠ 디자인의 '편의시설'(주차·화장실·흡연실 등) 카드는 Firestore 필드가 없어 미구현
 - **찜 탭 (`saved/`) — favorites 실연동** (정렬, 리스트↔그리드 뷰, 찜 해제)
 - **마이페이지 (`my_page/`) — my.html 디자인 기반** (프로필 히어로, 리뷰/찜 통계,
   내 리뷰 관리(collectionGroup 조회·삭제), 내 정보 수정(닉네임), 설정(로컬 토글 + 캐시 삭제 실동작), 로그아웃)

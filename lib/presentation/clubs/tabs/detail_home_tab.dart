@@ -10,27 +10,42 @@ import 'package:vybe/data/models/menu_model.dart';
 import 'package:vybe/data/models/operating_hours.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/club_detail_screen.dart';
+import 'package:vybe/presentation/clubs/performance_schedule_screen.dart';
+import 'package:vybe/presentation/clubs/table_pricing_screen.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
-import 'package:vybe/presentation/clubs/widgets/club_section_divider.dart';
-import 'package:vybe/presentation/clubs/widgets/performance_schedule_section.dart';
+import 'package:vybe/presentation/clubs/viewmodels/club_schedule_viewmodel.dart';
+import 'package:vybe/presentation/clubs/widgets/club_glass.dart';
+import 'package:vybe/presentation/clubs/widgets/schedule_shared.dart';
 import 'package:vybe/presentation/clubs/widgets/subway_line_badge.dart';
 import 'package:vybe/presentation/clubs/widgets/table_pricing_section.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 
+/// 클럽 상세 · 홈 탭 (리퀴드 글래스).
+///
+/// 디자인 club_glass.jsx 홈 탭 순서 — 매장 정보 / 오늘의 라인업 / 테이블 /
+/// 메뉴(3) / 사진(6) / 주변 클럽. 전부 [GlassCard] 한 장씩.
 class DetailHomeTab extends ConsumerStatefulWidget {
   final String clubId;
   final VoidCallback? onViewAllPhotos;
   final VoidCallback? onViewAllMenus;
+  final VoidCallback? onViewInfo;
   const DetailHomeTab({
     super.key,
     required this.clubId,
     this.onViewAllPhotos,
     this.onViewAllMenus,
+    this.onViewInfo,
   });
 
   @override
   ConsumerState<DetailHomeTab> createState() => _DetailHomeTabState();
 }
+
+/// 주변 클럽 카드 썸네일 한 변 (정사각, `.w` 적용).
+const double _kNearbyThumb = 134;
+
+/// 주변 클럽 카드 이름 + 지역·장르 두 줄이 차지할 높이 (`.h` 적용).
+const double _kNearbyTextBlock = 44;
 
 class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
   bool _addrExpanded = false;
@@ -41,53 +56,228 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
     final clubAsync = ref.watch(clubDetailProvider(widget.clubId));
     final clubInfoAsync = ref.watch(clubInfoProvider(widget.clubId));
     final menusAsync = ref.watch(clubMenusProvider(widget.clubId));
+    final club = clubAsync.value;
 
     return ListView(
       physics: const ClampingScrollPhysics(),
-      padding: EdgeInsets.zero,
+      padding: glassTabPadding(context),
       children: [
         clubAsync.isLoading
             ? const InfoSkeleton()
-            : _buildInfoSection(clubAsync.value, clubInfoAsync.value),
-        const ClubSectionDivider(),
-        PerformanceScheduleSection(
-          clubId: widget.clubId,
-          clubName: clubAsync.value?.name,
-          area: clubAsync.value?.area,
-        ),
-        const ClubSectionDivider(),
-        clubAsync.isLoading
-            ? const TableSkeleton()
-            : const TablePricingSection(),
-        const ClubSectionDivider(),
+            : _buildInfoCard(club, clubInfoAsync.value),
+        glassGap(),
+        _buildLineupCard(club),
+        _buildTableCard(club),
         menusAsync.isLoading
             ? const MenuSkeleton()
-            : _buildMenuPreviewSection(menusAsync.value ?? []),
-        const ClubSectionDivider(),
+            : _buildMenuCard(menusAsync.value ?? const []),
+        glassGap(),
         clubAsync.isLoading
             ? const PhotosSkeleton()
-            : _buildPhotoPreviewSection(clubAsync.value?.imageUrls ?? []),
-        const ClubSectionDivider(),
-        _buildNearbyClubsSection(ref.watch(nearbyClubsProvider(widget.clubId))),
-        SizedBox(height: 32.h),
+            : _buildPhotoCard(club?.imageUrls ?? const []),
+        glassGap(),
+        _buildNearbyCard(club),
       ],
     );
   }
 
-  // ── INFO SECTION ──
+  // ==========================================================================
+  // 매장 정보
+  // ==========================================================================
 
-  Widget _buildInfoSection(ClubModel? club, ClubInfoModel? clubInfo) {
-    final address = club?.address ?? '';
+  Widget _buildInfoCard(ClubModel? club, ClubInfoModel? clubInfo) {
     final hours = club?.operatingHours ?? const OperatingHours();
-    final todayHours = hours.today;
-    final isOpen = todayHours.isCurrentlyOpen;
-    final entryFeeMin = club?.entryFeeMin ?? 0;
-    final entryFeeMax = club?.entryFeeMax ?? 0;
-    final instagramUrl = club?.instagramUrl ?? '';
-    final igHandle = instagramHandle(instagramUrl);
-    final nearbySubways = (clubInfo?.nearbySubways ?? []);
+    final today = hours.today;
+    final isOpen = today.isCurrentlyOpen;
+    final igHandle = instagramHandle(club?.instagramUrl ?? '');
+    final subways = clubInfo?.nearbySubways ?? const [];
 
-    final weekdays = [
+    return GlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const GlassSectionHead(title: '매장 정보'),
+          Transform.translate(
+            offset: Offset(0, -4.h),
+            child: Column(
+              children: [
+                // 주소 — 탭하면 주변 지하철 상세가 펼쳐진다.
+                GlassInfoRow(
+                  icon: Icons.place_outlined,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      GestureDetector(
+                        onTap: () =>
+                            setState(() => _addrExpanded = !_addrExpanded),
+                        behavior: HitTestBehavior.opaque,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                club?.address ?? '',
+                                style: ClubGlass.body(),
+                              ),
+                            ),
+                            if (subways.isNotEmpty)
+                              Padding(
+                                padding: EdgeInsets.only(left: 10.w, top: 3.h),
+                                child: AnimatedRotation(
+                                  turns: _addrExpanded ? 0.5 : 0,
+                                  duration: const Duration(milliseconds: 220),
+                                  child: Icon(
+                                    Icons.keyboard_arrow_down_rounded,
+                                    size: 18.r,
+                                    color: const Color(0x80FFFFFF),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      // 접으면 주소 한 줄만 남는다 — 지하철역은 펼쳤을 때만.
+                      if (subways.isNotEmpty && _addrExpanded)
+                        Padding(
+                          padding: EdgeInsets.only(top: 10.h),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              for (var i = 0; i < subways.length; i++)
+                                Padding(
+                                  padding: EdgeInsets.only(
+                                    bottom: i == subways.length - 1 ? 0 : 8.h,
+                                  ),
+                                  child: _subwayLine(subways[i]),
+                                ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                // 영업시간 — 탭하면 요일별 전체가 펼쳐진다.
+                GlassInfoRow(
+                  icon: Icons.schedule_rounded,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      GestureDetector(
+                        onTap: () =>
+                            setState(() => _hoursExpanded = !_hoursExpanded),
+                        behavior: HitTestBehavior.opaque,
+                        child: Row(
+                          children: [
+                            Expanded(child: _openStatusLine(isOpen, today)),
+                            AnimatedRotation(
+                              turns: _hoursExpanded ? 0.5 : 0,
+                              duration: const Duration(milliseconds: 220),
+                              child: Icon(
+                                Icons.keyboard_arrow_down_rounded,
+                                size: 18.r,
+                                color: const Color(0x80FFFFFF),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (_hoursExpanded)
+                        Padding(
+                          padding: EdgeInsets.only(top: 10.h),
+                          child: _weekHours(hours),
+                        ),
+                    ],
+                  ),
+                ),
+                // 입장료
+                GlassInfoRow(
+                  icon: Icons.confirmation_number_outlined,
+                  child: Row(
+                    children: [
+                      Text('입장료 ', style: ClubGlass.body()),
+                      Text(
+                        _entryFee(club),
+                        style: TextStyle(
+                          fontFamily: 'Pretendard',
+                          fontSize: 14.sp,
+                          height: 20 / 14,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // 인스타그램
+                GlassInfoRow(
+                  icon: Icons.link_rounded,
+                  last: true,
+                  child: Text(
+                    igHandle.isEmpty ? '등록된 링크가 없어요' : '@$igHandle',
+                    style: ClubGlass.body(
+                      color: igHandle.isEmpty ? ClubGlass.t4 : ClubGlass.link,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _subwayLine(Map<String, dynamic> subway) {
+    final lines = List<String>.from(subway['lines'] as List? ?? const []);
+    final station = subway['stationName'] as String? ?? '';
+    final distance = (subway['distanceM'] as num?)?.toInt() ?? 0;
+
+    return Row(
+      children: [
+        if (lines.isNotEmpty) ...[
+          SubwayLineBadge(line: lines.first),
+          SizedBox(width: 6.w),
+        ],
+        Flexible(
+          child: Text(
+            distance > 0 ? '$station에서 ${distance}m' : station,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: ClubGlass.caption(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _openStatusLine(bool isOpen, DayHours today) {
+    return Row(
+      children: [
+        Text(
+          isOpen ? '영업중' : '영업종료',
+          style: ClubGlass.body(
+            color: isOpen ? VybeColors.mainLime500 : ClubGlass.t4,
+          ).copyWith(fontWeight: FontWeight.w700),
+        ),
+        if (today.close != null) ...[
+          SizedBox(width: 7.w),
+          const GlassDot(),
+          SizedBox(width: 7.w),
+          Flexible(
+            child: Text(
+              isOpen ? '${today.close}에 영업 종료' : '${today.open}에 영업 시작',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: ClubGlass.body(),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _weekHours(OperatingHours hours) {
+    final week = [
       ('월', hours.mon),
       ('화', hours.tue),
       ('수', hours.wed),
@@ -96,595 +286,212 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
       ('토', hours.sat),
       ('일', hours.sun),
     ];
-    final todayIndex = DateTime.now().weekday - 1; // 0=월~6=일
+    final todayIndex = DateTime.now().weekday - 1;
 
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Address row
-          _infoRow(
-            icon: SvgPicture.asset(
-              'assets/icons/common/club_card/location_pin.svg',
-              width: 17.r,
-              height: 17.r,
-              colorFilter: const ColorFilter.mode(
-                VybeColors.gray500,
-                BlendMode.srcIn,
-              ),
-            ),
-            onTap: () => setState(() => _addrExpanded = !_addrExpanded),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      children: [
+        for (var i = 0; i < week.length; i++)
+          Padding(
+            padding: EdgeInsets.only(bottom: i == week.length - 1 ? 0 : 7.h),
+            child: Row(
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        address,
-                        style: TextStyle(
-                          fontFamily: 'Pretendard',
-                          fontSize: 14.sp,
-                          color: VybeColors.gray200,
-                          height: 1.5,
-                        ),
-                      ),
-                    ),
-                    AnimatedRotation(
-                      turns: _addrExpanded ? 0.5 : 0,
-                      duration: const Duration(milliseconds: 200),
-                      child: Icon(
-                        Icons.keyboard_arrow_down_rounded,
-                        color: VybeColors.gray500,
-                        size: 16.r,
-                      ),
-                    ),
-                  ],
-                ),
-                AnimatedSize(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                  alignment: Alignment.topCenter,
-                  child: ClipRect(
-                    child: Align(
-                      alignment: Alignment.topCenter,
-                      heightFactor: _addrExpanded ? 1 : 0,
-                      child: Padding(
-                        padding: EdgeInsets.only(top: 10.h),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: nearbySubways.map<Widget>((s) {
-                            final name = s['stationName'] as String? ?? '';
-                            final dist = s['distanceM'] as int? ?? 0;
-                            final lines =
-                                (s['lines'] as List?)?.cast<String>() ??
-                                const <String>[];
-                            return Padding(
-                              padding: EdgeInsets.only(bottom: 4.h),
-                              child: Row(
-                                children: [
-                                  ...lines.map(
-                                    (l) => Padding(
-                                      padding: EdgeInsets.only(right: 4.w),
-                                      child: SubwayLineBadge(line: l),
-                                    ),
-                                  ),
-                                  if (lines.isNotEmpty) SizedBox(width: 2.w),
-                                  Text(
-                                    '$name에서 ${dist}m',
-                                    style: TextStyle(
-                                      fontFamily: 'Pretendard',
-                                      fontSize: 13.sp,
-                                      color: VybeColors.gray300,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ),
+                SizedBox(
+                  width: 16.w,
+                  child: Text(
+                    week[i].$1,
+                    style: ClubGlass.caption(
+                      color: i == todayIndex ? Colors.white : ClubGlass.t3,
+                      weight: i == todayIndex
+                          ? FontWeight.w700
+                          : FontWeight.w400,
                     ),
                   ),
                 ),
-              ],
-            ),
-          ),
-          SizedBox(height: 16.h),
-          // Hours row
-          _infoRow(
-            icon: SvgPicture.asset(
-              'assets/icons/common/club_card/time.svg',
-              width: 17.r,
-              height: 17.r,
-              colorFilter: const ColorFilter.mode(
-                VybeColors.gray500,
-                BlendMode.srcIn,
-              ),
-            ),
-            onTap: () => setState(() => _hoursExpanded = !_hoursExpanded),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          isOpen ? '영업중' : '영업종료',
-                          style: TextStyle(
-                            fontFamily: 'Pretendard',
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w600,
-                            color: isOpen
-                                ? VybeColors.mainLime500
-                                : VybeColors.gray500,
-                          ),
-                        ),
-                        if (isOpen && todayHours.close != null) ...[
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 6.w),
-                            child: Container(
-                              width: 2.r,
-                              height: 2.r,
-                              decoration: const BoxDecoration(
-                                color: VybeColors.gray700,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                          ),
-                          Text(
-                            '${todayHours.close}에 영업 종료',
-                            style: TextStyle(
-                              fontFamily: 'Pretendard',
-                              fontSize: 14.sp,
-                              color: VybeColors.gray400,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    AnimatedRotation(
-                      turns: _hoursExpanded ? 0.5 : 0,
-                      duration: const Duration(milliseconds: 200),
-                      child: Icon(
-                        Icons.keyboard_arrow_down_rounded,
-                        color: VybeColors.gray500,
-                        size: 16.r,
-                      ),
-                    ),
-                  ],
-                ),
-                AnimatedSize(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                  alignment: Alignment.topCenter,
-                  child: ClipRect(
-                    child: Align(
-                      alignment: Alignment.topCenter,
-                      heightFactor: _hoursExpanded ? 1 : 0,
-                      child: Padding(
-                        padding: EdgeInsets.only(top: 10.h),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: weekdays.asMap().entries.map((e) {
-                            final i = e.key;
-                            final label = e.value.$1;
-                            final day = e.value.$2;
-                            final isToday = i == todayIndex;
-                            final timeStr = day.isOpen
-                                ? '${day.open} - ${day.close}'
-                                : '정기휴무';
-                            return Padding(
-                              padding: EdgeInsets.only(bottom: 6.h),
-                              child: Row(
-                                children: [
-                                  SizedBox(
-                                    width: 18.w,
-                                    child: Text(
-                                      label,
-                                      style: TextStyle(
-                                        fontFamily: 'Pretendard',
-                                        fontSize: 13.sp,
-                                        fontWeight: isToday
-                                            ? FontWeight.w700
-                                            : FontWeight.w400,
-                                        color: isToday
-                                            ? Colors.white
-                                            : VybeColors.gray500,
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(width: 10.w),
-                                  Text(
-                                    timeStr,
-                                    style: TextStyle(
-                                      fontFamily: 'Pretendard',
-                                      fontSize: 13.sp,
-                                      fontWeight: isToday
-                                          ? FontWeight.w600
-                                          : FontWeight.w400,
-                                      color: isToday
-                                          ? Colors.white
-                                          : VybeColors.gray500,
-                                    ),
-                                  ),
-                                  if (isToday) ...[
-                                    SizedBox(width: 8.w),
-                                    Container(
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: 6.w,
-                                        vertical: 1.h,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0x247731FE),
-                                        borderRadius: BorderRadius.circular(
-                                          4.r,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        '오늘',
-                                        style: TextStyle(
-                                          fontFamily: 'Pretendard',
-                                          fontSize: 10.sp,
-                                          fontWeight: FontWeight.w700,
-                                          color: VybeColors.mainPurple500,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ),
-                    ),
+                SizedBox(width: 12.w),
+                Text(
+                  week[i].$2.isOpen
+                      ? '${week[i].$2.open} - ${week[i].$2.close}'
+                      : '정기휴무',
+                  style: ClubGlass.caption(
+                    color: !week[i].$2.isOpen
+                        ? VybeColors.accentRed500
+                        : i == todayIndex
+                        ? Colors.white
+                        : ClubGlass.t3,
+                    weight: i == todayIndex || !week[i].$2.isOpen
+                        ? FontWeight.w600
+                        : FontWeight.w400,
                   ),
                 ),
-              ],
-            ),
-          ),
-          SizedBox(height: 16.h),
-          // Entry fee row
-          _infoRow(
-            icon: SvgPicture.asset(
-              'assets/icons/common/club_card/won.svg',
-              width: 17.r,
-              height: 17.r,
-              colorFilter: const ColorFilter.mode(
-                VybeColors.gray500,
-                BlendMode.srcIn,
-              ),
-            ),
-            child: RichText(
-              text: TextSpan(
-                style: TextStyle(
-                  fontFamily: 'Pretendard',
-                  fontSize: 14.sp,
-                  color: VybeColors.gray200,
-                ),
-                children: [
-                  const TextSpan(text: '입장료 '),
-                  TextSpan(
-                    text: _formatEntryFee(entryFeeMin, entryFeeMax),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
+                if (i == todayIndex) ...[
+                  SizedBox(width: 8.w),
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 7.w,
+                      vertical: 2.h,
+                    ),
+                    decoration: BoxDecoration(
+                      color: VybeColors.mainPurple500.withValues(alpha: 0.22),
+                      borderRadius: BorderRadius.circular(5.r),
+                    ),
+                    child: Text(
+                      '오늘',
+                      style: ClubGlass.caption(
+                        color: ClubGlass.accentLavender,
+                        size: 10,
+                        lineHeight: 12,
+                        weight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ],
-              ),
+              ],
             ),
           ),
-          SizedBox(height: 16.h),
-          // Instagram row
-          _infoRow(
-            icon: SvgPicture.asset(
-              'assets/club_detail/icons/sns_url.svg',
-              width: 17.r,
-              height: 17.r,
-              colorFilter: const ColorFilter.mode(
-                VybeColors.gray500,
-                BlendMode.srcIn,
-              ),
-            ),
-            child: Text(
-              igHandle,
-              style: TextStyle(
-                fontFamily: 'Pretendard',
-                fontSize: 14.sp,
-                color: VybeColors.accentBlue500,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatEntryFee(int min, int max) {
-    if (min == 0 && max == 0) return '무료';
-    final maxStr = formatThousands(max);
-    return min == 0 ? '0 ~ $maxStr원' : '${formatThousands(min)} ~ $maxStr원';
-  }
-
-  Widget _infoRow({
-    required Widget icon,
-    required Widget child,
-    VoidCallback? onTap,
-  }) {
-    final row = Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 20.w,
-          child: Padding(
-            padding: EdgeInsets.only(top: 1.h),
-            child: Center(child: icon),
-          ),
-        ),
-        SizedBox(width: 12.w),
-        Expanded(child: child),
       ],
     );
-    if (onTap == null) return row;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: row,
+  }
+
+  String _entryFee(ClubModel? club) {
+    final min = club?.entryFeeMin ?? 0;
+    final max = club?.entryFeeMax ?? 0;
+    if (min == 0 && max == 0) return '무료';
+    if (min == max) return '${formatThousands(min)}원';
+    return '${formatThousands(min)} ~ ${formatThousands(max)}원';
+  }
+
+  // ==========================================================================
+  // 오늘의 라인업
+  // ==========================================================================
+
+  Widget _buildLineupCard(ClubModel? club) {
+    final async = ref.watch(clubScheduleProvider(widget.clubId));
+    if (async.isLoading) return const ScheduleSkeleton();
+
+    final days = async.value ?? const <ScheduleDay>[];
+    if (days.isEmpty) return const SizedBox.shrink();
+
+    final day = days.first;
+    if (day.acts.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      children: [
+        GlassCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              GlassSectionHead(
+                title: day.dday == 0 ? '오늘의 라인업' : '다가오는 라인업',
+                sub: '${day.month}월 ${day.day}일 (${day.dow})',
+                onAction: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => PerformanceScheduleScreen(
+                      clubId: widget.clubId,
+                      clubName: club?.name,
+                      area: club?.area,
+                    ),
+                  ),
+                ),
+              ),
+              for (var i = 0; i < day.acts.length; i++)
+                Padding(
+                  padding: EdgeInsets.only(
+                    bottom: i == day.acts.length - 1 ? 0 : 10.h,
+                  ),
+                  child: _lineupRow(day.acts[i]),
+                ),
+            ],
+          ),
+        ),
+        glassGap(),
+      ],
     );
   }
 
-  // ── MENU PREVIEW ──
-
-  Widget _buildMenuPreviewSection(List<MenuModel> menus) {
-    final featured = menus.where((m) => m.isFeatured).take(3).toList();
-    if (featured.isEmpty) return const SizedBox.shrink();
-
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _sectionHeader('메뉴', onViewAll: widget.onViewAllMenus),
-          SizedBox(height: 4.h),
-          ...featured.asMap().entries.map(
-            (e) =>
-                _menuPreviewItem(e.value, isLast: e.key == featured.length - 1),
-          ),
-          SizedBox(height: 12.h),
-          Text(
-            '메뉴 항목과 가격은 매장 사정에 따라 다를 수 있습니다.',
-            style: TextStyle(
-              fontFamily: 'Pretendard',
-              fontSize: 11.sp,
-              color: VybeColors.gray600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _menuPreviewItem(MenuModel item, {bool isLast = false}) {
+  Widget _lineupRow(ScheduleAct act) {
+    final type = scheduleActTypes[act.type];
     return Container(
-      padding: EdgeInsets.symmetric(vertical: 16.h),
+      padding: EdgeInsets.all(10.r),
       decoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(color: VybeColors.gray800),
-          bottom: isLast
-              ? BorderSide(color: VybeColors.gray800)
-              : BorderSide.none,
+        color: act.headline
+            ? VybeColors.mainPurple500.withValues(alpha: 0.16)
+            : const Color(0x0DFFFFFF),
+        borderRadius: BorderRadius.circular(14.r),
+        border: Border.all(
+          color: act.headline
+              ? VybeColors.mainLime500.withValues(alpha: 0.22)
+              : const Color(0x17FFFFFF),
         ),
       ),
       child: Row(
         children: [
+          Container(
+            width: 44.r,
+            height: 44.r,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12.r),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: act.gradient,
+              ),
+            ),
+            alignment: Alignment.center,
+            child: Icon(
+              type?.icon ?? Icons.music_note_rounded,
+              size: 20.r,
+              color: Colors.white.withValues(alpha: 0.9),
+            ),
+          ),
+          SizedBox(width: 12.w),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
                   children: [
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 7.w,
-                        vertical: 2.h,
-                      ),
-                      decoration: BoxDecoration(
-                        color: VybeColors.mainPurple500,
-                        borderRadius: BorderRadius.circular(999.r),
-                      ),
+                    Flexible(
                       child: Text(
-                        '대표',
+                        act.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontFamily: 'Pretendard',
-                          fontSize: 10.sp,
-                          fontWeight: FontWeight.w500,
-                          color: VybeColors.gray200,
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
                         ),
                       ),
                     ),
-                    SizedBox(width: 6.w),
-                    Text(
-                      item.name,
-                      style: TextStyle(
-                        fontFamily: 'Pretendard',
-                        fontSize: 14.sp,
-                        color: VybeColors.gray200,
-                      ),
-                    ),
-                  ],
-                ),
-                if (item.description.isNotEmpty) ...[
-                  SizedBox(height: 6.h),
-                  Text(
-                    item.description,
-                    style: TextStyle(
-                      fontFamily: 'Pretendard',
-                      fontSize: 12.sp,
-                      color: VybeColors.gray500,
-                    ),
-                  ),
-                ],
-                SizedBox(height: 10.h),
-                Text(
-                  '${formatThousands(item.price)}원',
-                  style: TextStyle(
-                    fontFamily: 'Pretendard',
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (item.imageUrl.isNotEmpty) ...[
-            SizedBox(width: 16.w),
-            SkeletonImage(
-              url: item.imageUrl,
-              width: 100.r,
-              height: 100.r,
-              fit: BoxFit.cover,
-              borderRadius: BorderRadius.circular(6.r),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  // ── PHOTO PREVIEW ──
-
-  Widget _buildPhotoPreviewSection(List<String> imageUrls) {
-    if (imageUrls.isEmpty) return const SizedBox.shrink();
-
-    final total = imageUrls.length;
-    final countLabel = total > 99 ? '99+' : '$total';
-    final remaining = total - 4;
-
-    Widget networkImage(String url, {double radius = 8, double opacity = 1.0}) {
-      Widget img = SkeletonImage(
-        url: url,
-        fit: BoxFit.cover,
-        width: double.infinity,
-        height: double.infinity,
-        borderRadius: BorderRadius.circular(radius.r),
-      );
-      return opacity < 1.0 ? Opacity(opacity: opacity, child: img) : img;
-    }
-
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _sectionHeader(
-            '사진',
-            count: countLabel,
-            onViewAll: widget.onViewAllPhotos,
-          ),
-          SizedBox(height: 14.h),
-          SizedBox(
-            height: 110.h,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // big left image
-                Expanded(
-                  flex: 2,
-                  child: networkImage(imageUrls[0], radius: 10),
-                ),
-                SizedBox(width: 6.w),
-                // right 2×2 grid
-                Expanded(
-                  flex: 2,
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: imageUrls.length > 1
-                                  ? networkImage(imageUrls[1])
-                                  : Container(color: VybeColors.gray800),
-                            ),
-                            SizedBox(width: 6.w),
-                            Expanded(
-                              child: imageUrls.length > 2
-                                  ? networkImage(imageUrls[2])
-                                  : Container(color: VybeColors.gray800),
-                            ),
-                          ],
+                    if (act.headline) ...[
+                      SizedBox(width: 7.w),
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 7.w,
+                          vertical: 2.h,
                         ),
-                      ),
-                      SizedBox(height: 6.h),
-                      Expanded(
-                        child: Row(
-                          children: [
-                            // "+N 더보기" overlay cell
-                            Expanded(
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8.r),
-                                child: Stack(
-                                  fit: StackFit.expand,
-                                  children: [
-                                    Container(
-                                      color: const Color(0xFF1A1A20),
-                                      child: DecoratedBox(
-                                        decoration: BoxDecoration(
-                                          gradient: RadialGradient(
-                                            colors: [
-                                              VybeColors.mainPurple500
-                                                  .withValues(alpha: 0.4),
-                                              Colors.transparent,
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          '+$remaining',
-                                          style: TextStyle(
-                                            fontFamily: 'Pretendard',
-                                            fontSize: 16.sp,
-                                            fontWeight: FontWeight.w700,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                        Text(
-                                          '더보기',
-                                          style: TextStyle(
-                                            fontFamily: 'Pretendard',
-                                            fontSize: 11.sp,
-                                            color: VybeColors.gray400,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            SizedBox(width: 6.w),
-                            Expanded(
-                              child: imageUrls.length > 3
-                                  ? networkImage(imageUrls[3], opacity: 0.7)
-                                  : Container(color: VybeColors.gray800),
-                            ),
-                          ],
+                        decoration: BoxDecoration(
+                          color: VybeColors.mainLime500,
+                          borderRadius: BorderRadius.circular(5.r),
+                        ),
+                        child: Text(
+                          'HEADLINE',
+                          style: ClubGlass.caption(
+                            color: ClubGlass.ink,
+                            size: 10,
+                            lineHeight: 12,
+                            weight: FontWeight.w800,
+                          ),
                         ),
                       ),
                     ],
-                  ),
+                  ],
+                ),
+                SizedBox(height: 4.h),
+                Text(
+                  '${act.time} · ${type?.label ?? act.type}',
+                  style: ClubGlass.caption(lineHeight: 13),
                 ),
               ],
             ),
@@ -694,141 +501,272 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
     );
   }
 
-  // ── NEARBY CLUBS ──
+  // ==========================================================================
+  // 테이블
+  // ==========================================================================
 
-  Widget _buildNearbyClubsSection(AsyncValue<List<ClubModel>> nearbyAsync) {
+  Widget _buildTableCard(ClubModel? club) {
+    return Column(
+      children: [
+        GlassCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              GlassSectionHead(
+                title: '테이블',
+                sub: '예약은 매장 전화로 문의해주세요',
+                actionLabel: '가격표',
+                onAction: () => TablePricingScreen.push(
+                  context,
+                  clubName: club?.name ?? '',
+                ),
+              ),
+              const TableTierSummary(),
+            ],
+          ),
+        ),
+        glassGap(),
+      ],
+    );
+  }
+
+  // ==========================================================================
+  // 메뉴 (미리보기 3개)
+  // ==========================================================================
+
+  Widget _buildMenuCard(List<MenuModel> menus) {
+    if (menus.isEmpty) return const SizedBox.shrink();
+    final preview = menus.take(3).toList();
+
+    return GlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GlassSectionHead(
+            title: '메뉴',
+            sub: '가격은 매장 사정에 따라 달라질 수 있어요',
+            actionLabel: '더보기',
+            onAction: widget.onViewAllMenus,
+          ),
+          for (var i = 0; i < preview.length; i++)
+            GlassMenuRow(menu: preview[i], last: i == preview.length - 1),
+        ],
+      ),
+    );
+  }
+
+  // ==========================================================================
+  // 사진 (미리보기 6장)
+  // ==========================================================================
+
+  Widget _buildPhotoCard(List<String> imageUrls) {
+    if (imageUrls.isEmpty) return const SizedBox.shrink();
+    final preview = imageUrls.take(6).toList();
+
+    return GlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GlassSectionHead(
+            title: '사진',
+            sub: '${imageUrls.length}장',
+            onAction: widget.onViewAllPhotos,
+          ),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: EdgeInsets.zero,
+            itemCount: preview.length,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              mainAxisSpacing: 6.w,
+              crossAxisSpacing: 6.w,
+            ),
+            itemBuilder: (_, i) => ClipRRect(
+              borderRadius: BorderRadius.circular(14.r),
+              child: SkeletonImage(url: preview[i], fit: BoxFit.cover),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ==========================================================================
+  // 주변 클럽
+  // ==========================================================================
+
+  Widget _buildNearbyCard(ClubModel? club) {
+    final nearbyAsync = ref.watch(nearbyClubsProvider(widget.clubId));
+    final nearby = nearbyAsync.value ?? const <ClubModel>[];
     if (nearbyAsync.isLoading) return const NearbySkeleton();
+    if (nearby.isEmpty) return const SizedBox.shrink();
 
-    final clubs = nearbyAsync.value ?? [];
-    if (clubs.isEmpty) return const SizedBox.shrink();
-
-    return Padding(
-      padding: EdgeInsets.only(top: 24.h, bottom: 24.h),
+    return GlassCard(
+      padding: 0,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.w),
-            child: _sectionHeader('주변 클럽'),
+            padding: EdgeInsets.fromLTRB(18.w, 18.h, 18.w, 0),
+            child: GlassSectionHead(
+              title: '주변 클럽',
+              sub: '${club?.area ?? ''} · ${nearby.length}곳',
+              onAction: null,
+            ),
           ),
-          SizedBox(height: 14.h),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: EdgeInsets.symmetric(horizontal: 20.w),
-            child: Row(
-              children: clubs.map((club) {
-                return Padding(
-                  padding: EdgeInsets.only(right: 12.w),
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => _openClubDetail(club.clubId),
-                    child: SizedBox(
-                      width: 124.w,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+          SizedBox(
+            // 썸네일은 .w(가로 스케일), 나머지는 .h(세로 스케일)이라 상수 하나로
+            // 높이를 잡으면 기기별로 어긋나 오버플로우가 난다 → 실제 구성요소를
+            // 그대로 더한다: 썸네일 + 간격 + 텍스트 블록 + 리스트 하단 패딩.
+            height: _kNearbyThumb.w + 9.h + _kNearbyTextBlock.h + 18.h,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: EdgeInsets.fromLTRB(18.w, 0, 18.w, 18.h),
+              itemCount: nearby.length,
+              separatorBuilder: (_, __) => SizedBox(width: 10.w),
+              itemBuilder: (_, i) => _nearbyCard(nearby[i]),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _nearbyCard(ClubModel club) {
+    final isOpen = club.operatingHours.today.isCurrentlyOpen;
+
+    return GestureDetector(
+      onTap: () => _openClubDetail(club.clubId),
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: _kNearbyThumb.w,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: _kNearbyThumb.w,
+              height: _kNearbyThumb.w,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(16.r),
+                    child: SkeletonImage(
+                      url: club.thumbnailUrl,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  IgnorePointer(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16.r),
+                        gradient: const LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Color(0x00000000), Color(0x99000000)],
+                          stops: [0.48, 1.0],
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 7.h,
+                    left: 7.w,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 8.w,
+                        vertical: 3.h,
+                      ),
+                      decoration: BoxDecoration(
+                        color: ClubGlass.barFill,
+                        borderRadius: BorderRadius.circular(999.r),
+                        border: Border.all(color: const Color(0x24FFFFFF)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Stack(
-                            children: [
-                              club.thumbnailUrl.isNotEmpty
-                                  ? SkeletonImage(
-                                      url: club.thumbnailUrl,
-                                      width: 124.w,
-                                      height: 124.h,
-                                      fit: BoxFit.cover,
-                                      borderRadius: BorderRadius.circular(10.r),
-                                    )
-                                  : Container(
-                                      width: 124.w,
-                                      height: 124.h,
-                                      color: VybeColors.gray800,
-                                    ),
-                              Positioned(
-                                top: 6.h,
-                                left: 6.w,
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 6.w,
-                                    vertical: 2.h,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withValues(alpha: 0.6),
-                                    borderRadius: BorderRadius.circular(4.r),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      SvgPicture.asset(
-                                        'assets/icons/common/club_card/star.svg',
-                                        width: 10.r,
-                                        height: 10.r,
-                                      ),
-                                      SizedBox(width: 3.w),
-                                      Text(
-                                        club.rating.toStringAsFixed(1),
-                                        style: TextStyle(
-                                          fontFamily: 'Pretendard',
-                                          fontSize: 10.sp,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
+                          SvgPicture.asset(
+                            'assets/icons/common/club_card/star.svg',
+                            width: 10.r,
+                            height: 10.r,
                           ),
-                          SizedBox(height: 8.h),
+                          SizedBox(width: 3.w),
                           Text(
-                            club.name,
-                            style: TextStyle(
-                              fontFamily: 'Pretendard',
-                              fontSize: 13.sp,
-                              fontWeight: FontWeight.w600,
+                            club.rating.toStringAsFixed(1),
+                            style: ClubGlass.caption(
                               color: Colors.white,
+                              size: 10.5,
+                              lineHeight: 12,
+                              weight: FontWeight.w700,
                             ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          SizedBox(height: 2.h),
-                          Row(
-                            children: [
-                              Text(
-                                club.area,
-                                style: TextStyle(
-                                  fontFamily: 'Pretendard',
-                                  fontSize: 11.sp,
-                                  color: VybeColors.gray500,
-                                ),
-                              ),
-                              Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 4.w),
-                                child: Container(
-                                  width: 2.r,
-                                  height: 2.r,
-                                  decoration: const BoxDecoration(
-                                    color: VybeColors.gray700,
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                              ),
-                              Text(
-                                club.genre,
-                                style: TextStyle(
-                                  fontFamily: 'Pretendard',
-                                  fontSize: 11.sp,
-                                  color: VybeColors.gray500,
-                                ),
-                              ),
-                            ],
                           ),
                         ],
                       ),
                     ),
                   ),
-                );
-              }).toList(),
+                  Positioned(
+                    left: 8.w,
+                    bottom: 8.h,
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 5.r,
+                          height: 5.r,
+                          decoration: BoxDecoration(
+                            color: isOpen
+                                ? VybeColors.mainLime500
+                                : const Color(0x66FFFFFF),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        SizedBox(width: 4.w),
+                        Text(
+                          isOpen ? '영업중' : '영업종료',
+                          style: ClubGlass.caption(
+                            color: Colors.white,
+                            size: 10.5,
+                            lineHeight: 12,
+                            weight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+            SizedBox(height: 9.h),
+            // 남은 높이를 텍스트가 나눠 갖게 해 폰트 스케일이 커져도 넘치지 않게 한다.
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    club.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: 'Pretendard',
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                  SizedBox(height: 3.h),
+                  Flexible(
+                    child: Text(
+                      '${club.area} · ${club.genre}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: ClubGlass.caption(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -841,65 +779,107 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
       rootNavigator: true,
     ).push(MaterialPageRoute(builder: (_) => ClubDetailScreen(clubId: clubId)));
   }
+}
 
-  // ── HELPERS ──
+// ============================================================================
+// 메뉴 한 줄 (홈 미리보기 · 메뉴 탭 공용)
+// ============================================================================
 
-  Widget _sectionHeader(
-    String title, {
-    String? count,
-    VoidCallback? onViewAll,
-  }) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            Text(
-              title,
-              style: TextStyle(
-                fontFamily: 'Pretendard',
-                fontSize: 18.sp,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
+/// 디자인 CGMenuList의 한 행 — 좌측 텍스트, 우측 78x78 썸네일.
+class GlassMenuRow extends StatelessWidget {
+  final MenuModel menu;
+  final bool last;
+
+  const GlassMenuRow({super.key, required this.menu, this.last = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 14.h),
+      decoration: BoxDecoration(
+        border: last
+            ? null
+            : const Border(bottom: BorderSide(color: ClubGlass.hair)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    if (menu.isFeatured) ...[
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 7.w,
+                          vertical: 2.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: VybeColors.mainPurple500,
+                          borderRadius: BorderRadius.circular(5.r),
+                        ),
+                        child: Text(
+                          '대표',
+                          style: ClubGlass.caption(
+                            color: Colors.white,
+                            size: 10,
+                            lineHeight: 13,
+                            weight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 6.w),
+                    ],
+                    Flexible(
+                      child: Text(
+                        menu.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: 'Pretendard',
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if (menu.description.isNotEmpty) ...[
+                  SizedBox(height: 5.h),
+                  Text(
+                    menu.description,
+                    style: ClubGlass.caption(lineHeight: 15),
+                  ),
+                ],
+                SizedBox(height: 7.h),
+                Text(
+                  '${formatThousands(menu.price)}원',
+                  style: TextStyle(
+                    fontFamily: 'Pretendard',
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (menu.imageUrl.isNotEmpty) ...[
+            SizedBox(width: 14.w),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(14.r),
+              child: SizedBox(
+                width: 78.r,
+                height: 78.r,
+                child: SkeletonImage(url: menu.imageUrl, fit: BoxFit.cover),
               ),
             ),
-            if (count != null) ...[
-              SizedBox(width: 6.w),
-              Text(
-                count,
-                style: TextStyle(
-                  fontFamily: 'Pretendard',
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w500,
-                  color: VybeColors.gray500,
-                ),
-              ),
-            ],
           ],
-        ),
-        GestureDetector(
-          onTap: onViewAll,
-          child: Row(
-            children: [
-              Text(
-                '전체보기',
-                style: TextStyle(
-                  fontFamily: 'Pretendard',
-                  fontSize: 12.sp,
-                  color: VybeColors.gray500,
-                ),
-              ),
-              Icon(
-                Icons.chevron_right_rounded,
-                size: 14.r,
-                color: VybeColors.gray500,
-              ),
-            ],
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

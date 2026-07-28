@@ -2,15 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
-import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/clubs/club_detail_screen.dart';
-import 'package:vybe/presentation/common/widgets/ambient_backdrop.dart';
+import 'package:vybe/presentation/clubs/widgets/club_glass.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
+import 'package:vybe/presentation/main_scaffold/nav_bar_visibility_provider.dart';
 import 'package:vybe/presentation/saved/viewmodels/saved_viewmodel.dart';
 
 // ============================================================
-// 찜한 클럽 화면 (saved.html 디자인 기반)
+// 찜한 클럽 화면 (saved_glass.html · Liquid Glass 리뉴얼)
 //
+// 배경·카드·바는 클럽 상세와 같은 글래스 요소(club_glass.dart) 재사용.
 // favorites Firestore 연동. 정렬, 리스트↔그리드 뷰 지원.
 // ============================================================
 
@@ -36,12 +37,27 @@ const List<List<Color>> _kGradients = [
 List<Color> _gradientFor(String key) =>
     _kGradients[key.hashCode.abs() % _kGradients.length];
 
+/// 홈 탭 인덱스 (빈 화면 CTA에서 사용).
+const int _kHomeTabIndex = 0;
+
 /// 탭 내부 Navigator로 클럽 상세 push.
 void _openClubDetail(BuildContext context, String clubId) {
   Navigator.of(context).push(
     MaterialPageRoute(builder: (_) => ClubDetailScreen(clubId: clubId)),
   );
 }
+
+TextStyle _caption({
+  Color color = ClubGlass.t3,
+  double size = 12,
+  double lineHeight = 14,
+  FontWeight weight = FontWeight.w400,
+}) => ClubGlass.caption(
+  color: color,
+  size: size,
+  lineHeight: lineHeight,
+  weight: weight,
+);
 
 // ============ 화면 ============
 
@@ -81,17 +97,23 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
   @override
   Widget build(BuildContext context) {
     final savedAsync = ref.watch(savedClubsProvider);
-    final topInset = MediaQuery.of(context).padding.top;
-    const bottomPad = 100.0;
+    final media = MediaQuery.of(context);
+    // 하단 floating nav(64.h + safe inset + 12.h) 아래로 콘텐츠가 숨지 않게.
+    final bottomPad = media.padding.bottom + 96.h;
 
     return Scaffold(
-      backgroundColor: VybeColors.background,
+      backgroundColor: ClubGlass.ink,
       body: Stack(
         children: [
-          const Positioned.fill(
-            child: IgnorePointer(child: AmbientBackdrop()),
+          const Positioned.fill(child: IgnorePointer(child: ClubAurora())),
+          // 오로라는 상태바 뒤까지 깔되, 콘텐츠는 인셋 아래에서 시작한다
+          // (sticky 툴바가 노치·시계 뒤로 들어가지 않도록).
+          Positioned.fill(
+            child: SafeArea(
+              bottom: false,
+              child: _buildContent(savedAsync, bottomPad, media.size),
+            ),
           ),
-          Positioned.fill(child: _buildContent(savedAsync, topInset, bottomPad)),
         ],
       ),
     );
@@ -99,227 +121,382 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
 
   Widget _buildContent(
     AsyncValue<List<SavedEntry>> savedAsync,
-    double topInset,
     double bottomPad,
+    Size screen,
   ) {
     return savedAsync.when(
-        loading: () => ListView(
-          padding: EdgeInsets.only(top: topInset),
-          physics: const NeverScrollableScrollPhysics(),
-          children: const [SavedSkeleton()],
-        ),
-        error: (e, _) => Center(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 32.w),
-            child: Text(
-              '찜 목록을 불러오지 못했어요',
-              style: VybeTypography.body3.copyWith(color: VybeColors.gray400),
-            ),
+      loading: () => ListView(
+        padding: EdgeInsets.zero,
+        physics: const NeverScrollableScrollPhysics(),
+        children: const [SavedSkeleton()],
+      ),
+      error: (e, _) => Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 32.w),
+          child: Text(
+            '찜 목록을 불러오지 못했어요',
+            style: ClubGlass.body(color: ClubGlass.t4),
           ),
         ),
-        data: (all) {
-          if (all.isEmpty) {
-            return Padding(
-              padding: EdgeInsets.only(top: topInset),
-              child: const _EmptyState(),
-            );
-          }
-          final openCount = all.where((e) => e.isOpen).length;
-          final sorted = _applySort(all);
+      ),
+      data: (all) {
+        final isEmpty = all.isEmpty;
+        final sorted = _applySort(all);
+        // 그리드 셀 높이 = 정사각 이미지 + 이름/메타 영역(46).
+        final cellWidth = (screen.width - 32.w - 14.w) / 2;
 
-          return ListView(
-            padding: EdgeInsets.only(top: topInset),
-            children: [
-              _StatsBar(count: all.length, openCount: openCount),
-              SizedBox(height: 8.h),
-              _ToolBar(
-                isGrid: _isGrid,
-                sort: _sort,
-                onView: (g) => setState(() => _isGrid = g),
-                onSort: (s) => setState(() => _sort = s),
+        return CustomScrollView(
+          physics: const ClampingScrollPhysics(),
+          slivers: [
+            SliverToBoxAdapter(
+              child: _Header(
+                count: all.length,
+                openCount: all.where((e) => e.isOpen).length,
               ),
-              if (_isGrid)
-                _GridList(
-                  entries: sorted,
-                  onUnsave: (id) =>
-                      ref.read(savedActionsProvider.notifier).unsave(id),
-                )
-              else
-                _CardList(
-                  entries: sorted,
-                  onUnsave: (id) =>
-                      ref.read(savedActionsProvider.notifier).unsave(id),
+            ),
+            // 찜이 없으면 정렬·뷰 전환이 무의미해 툴바를 숨긴다 (디자인과 다름).
+            if (!isEmpty)
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _ToolbarDelegate(
+                  isGrid: _isGrid,
+                  sort: _sort,
+                  onView: (g) => setState(() => _isGrid = g),
+                  onSort: (s) => setState(() => _sort = s),
                 ),
-              SizedBox(height: bottomPad.h),
-            ],
-          );
-        },
+              ),
+            if (isEmpty)
+              SliverToBoxAdapter(
+                child: _EmptyState(
+                  onExplore: () => ref
+                      .read(tabSwitchRequestProvider.notifier)
+                      .request(_kHomeTabIndex),
+                ),
+              )
+            else if (_isGrid)
+              SliverPadding(
+                padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 28.h),
+                sliver: SliverGrid(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 14.h,
+                    crossAxisSpacing: 14.w,
+                    mainAxisExtent: cellWidth + 46.h,
+                  ),
+                  delegate: SliverChildBuilderDelegate(
+                    (_, i) => _GridCard(
+                      entry: sorted[i],
+                      onUnsave: _unsave,
+                    ),
+                    childCount: sorted.length,
+                  ),
+                ),
+              )
+            else
+              SliverPadding(
+                padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 28.h),
+                sliver: SliverList.separated(
+                  itemCount: sorted.length,
+                  separatorBuilder: (_, __) => SizedBox(height: 12.h),
+                  itemBuilder: (_, i) => _ListCard(
+                    entry: sorted[i],
+                    onUnsave: _unsave,
+                  ),
+                ),
+              ),
+            SliverToBoxAdapter(child: SizedBox(height: bottomPad)),
+          ],
+        );
+      },
     );
   }
+
+  void _unsave(String clubId) =>
+      ref.read(savedActionsProvider.notifier).unsave(clubId);
 }
 
-// ============ 통계 바 ============
+// ============ 헤더 (찜 개수 + 영업중 카운트) ============
 
-class _StatsBar extends StatelessWidget {
+class _Header extends StatelessWidget {
   final int count;
   final int openCount;
-  const _StatsBar({required this.count, required this.openCount});
+
+  const _Header({required this.count, required this.openCount});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(20.w, 28.h, 20.w, 12.h),
+      padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 18.h),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '$count',
-                style: VybeTypography.heading2.copyWith(color: Colors.white),
-              ),
-              SizedBox(width: 8.w),
-              Padding(
-                padding: EdgeInsets.only(bottom: 2.h),
-                child: Text(
+          Flexible(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  '$count',
+                  style: TextStyle(
+                    fontFamily: 'Pretendard',
+                    fontSize: 32.sp,
+                    height: 34 / 32,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 32 * -0.025,
+                    color: Colors.white,
+                  ),
+                ),
+                SizedBox(width: 8.w),
+                Text(
                   '곳을 찜했어요',
-                  style: VybeTypography.body3.copyWith(color: VybeColors.gray400),
+                  style: TextStyle(
+                    fontFamily: 'Pretendard',
+                    fontSize: 20.sp,
+                    height: 22 / 20,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 20 * -0.025,
+                    color: ClubGlass.t3,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          Row(
-            children: [
-              Container(
-                width: 6.r,
-                height: 6.r,
-                decoration: BoxDecoration(
-                  color: VybeColors.mainLime500,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: VybeColors.mainLime500.withValues(alpha: 0.6),
-                      blurRadius: 6,
+          if (count > 0)
+            Padding(
+              padding: EdgeInsets.only(left: 12.w, bottom: 3.h),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 7.r,
+                    height: 7.r,
+                    decoration: BoxDecoration(
+                      color: VybeColors.mainLime500,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: VybeColors.mainLime500,
+                          blurRadius: 8.r,
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                  SizedBox(width: 7.w),
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        const TextSpan(text: '지금 '),
+                        TextSpan(
+                          text: '$openCount곳',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const TextSpan(text: ' 영업중'),
+                      ],
+                    ),
+                    style: TextStyle(
+                      fontFamily: 'Pretendard',
+                      fontSize: 14.sp,
+                      height: 16 / 14,
+                      letterSpacing: 14 * -0.025,
+                      color: ClubGlass.t2,
+                    ),
+                  ),
+                ],
               ),
-              SizedBox(width: 6.w),
-              Text(
-                '지금 $openCount곳 영업중',
-                style: VybeTypography.caption.copyWith(
-                  color: VybeColors.gray300,
-                  fontWeight: FontWeight.w600,
-                  height: 14 / 12,
-                ),
-              ),
-            ],
-          ),
+            ),
         ],
       ),
     );
   }
 }
 
-// ============ 정렬 + 뷰 전환 툴바 ============
+// ============ 정렬 + 뷰 전환 툴바 (sticky) ============
 
-class _ToolBar extends StatelessWidget {
+class _ToolbarDelegate extends SliverPersistentHeaderDelegate {
   final bool isGrid;
   final _SortOption sort;
   final ValueChanged<bool> onView;
   final ValueChanged<_SortOption> onSort;
 
-  const _ToolBar({
+  _ToolbarDelegate({
     required this.isGrid,
     required this.sort,
     required this.onView,
     required this.onSort,
   });
 
-  Future<void> _openSortMenu(BuildContext context) async {
-    final box = context.findRenderObject() as RenderBox;
-    final offset = box.localToGlobal(Offset.zero);
-    final selected = await showMenu<_SortOption>(
-      context: context,
-      color: VybeColors.gray900,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14.r),
-        side: BorderSide(color: VybeColors.gray800),
-      ),
-      position: RelativeRect.fromLTRB(
-        offset.dx + 20.w,
-        offset.dy + 28.h,
-        offset.dx + box.size.width,
-        offset.dy,
-      ),
-      items: [
-        for (final o in _SortOption.values)
-          PopupMenuItem<_SortOption>(
-            value: o,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  _kSortLabels[o]!,
-                  style: VybeTypography.body4.copyWith(
-                    color: o == sort ? Colors.white : VybeColors.gray300,
-                    fontWeight: o == sort ? FontWeight.w600 : FontWeight.w500,
-                  ),
-                ),
-                if (o == sort)
-                  Icon(Icons.check, size: 15.r, color: VybeColors.mainPurple500),
-              ],
+  // 11(pad) + 34(컨트롤) + 11(pad) + 상하 hairline.
+  double get _extent => 58.h;
+
+  @override
+  double get maxExtent => _extent;
+
+  @override
+  double get minExtent => _extent;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlaps) {
+    return _Toolbar(
+      isGrid: isGrid,
+      sort: sort,
+      onView: onView,
+      onSort: onSort,
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _ToolbarDelegate old) =>
+      old.isGrid != isGrid || old.sort != sort;
+}
+
+class _Toolbar extends StatefulWidget {
+  final bool isGrid;
+  final _SortOption sort;
+  final ValueChanged<bool> onView;
+  final ValueChanged<_SortOption> onSort;
+
+  const _Toolbar({
+    required this.isGrid,
+    required this.sort,
+    required this.onView,
+    required this.onSort,
+  });
+
+  @override
+  State<_Toolbar> createState() => _ToolbarState();
+}
+
+class _ToolbarState extends State<_Toolbar> {
+  // 정렬 버튼 아래에 붙는 드롭다운 오버레이.
+  final LayerLink _link = LayerLink();
+  OverlayEntry? _overlay;
+  bool _open = false;
+
+  @override
+  void dispose() {
+    _remove();
+    super.dispose();
+  }
+
+  void _toggle() => _overlay == null ? _openMenu() : _close();
+
+  void _openMenu() {
+    _overlay = OverlayEntry(
+      builder: (_) => Stack(
+        children: [
+          // 바깥 탭 → 닫기.
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _close,
             ),
           ),
-      ],
+          CompositedTransformFollower(
+            link: _link,
+            showWhenUnlinked: false,
+            targetAnchor: Alignment.bottomLeft,
+            followerAnchor: Alignment.topLeft,
+            offset: Offset(0, 8.h),
+            child: _SortMenu(current: widget.sort, onSelect: _select),
+          ),
+        ],
+      ),
     );
-    if (selected != null) onSort(selected);
+    Overlay.of(context).insert(_overlay!);
+    setState(() => _open = true);
+  }
+
+  void _close() {
+    _remove();
+    if (mounted) setState(() => _open = false);
+  }
+
+  void _remove() {
+    _overlay?.remove();
+    _overlay = null;
+  }
+
+  void _select(_SortOption opt) {
+    _remove();
+    if (!mounted) return;
+    setState(() => _open = false);
+    widget.onSort(opt);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 16.h),
+    return GlassBar(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 11.h),
+      topBorder: true,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          GestureDetector(
-            onTap: () => _openSortMenu(context),
-            child: Row(
-              children: [
-                Text(
-                  _kSortLabels[sort]!,
-                  style: VybeTypography.caption.copyWith(
-                    color: VybeColors.gray300,
-                    fontWeight: FontWeight.w500,
-                    height: 14 / 12,
-                  ),
+          CompositedTransformTarget(
+            link: _link,
+            child: GestureDetector(
+              onTap: _toggle,
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 13.w, vertical: 7.h),
+                decoration: BoxDecoration(
+                  color: ClubGlass.tileFill,
+                  borderRadius: BorderRadius.circular(999.r),
+                  border: Border.all(color: ClubGlass.tileBorder),
                 ),
-                Icon(Icons.keyboard_arrow_down,
-                    size: 16.r, color: VybeColors.gray300),
-              ],
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _kSortLabels[widget.sort]!,
+                      style: TextStyle(
+                        fontFamily: 'Pretendard',
+                        fontSize: 14.sp,
+                        height: 16 / 14,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 14 * -0.025,
+                        color: Colors.white,
+                      ),
+                    ),
+                    SizedBox(width: 4.w),
+                    AnimatedRotation(
+                      turns: _open ? 0.5 : 0,
+                      duration: const Duration(milliseconds: 200),
+                      child: Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        size: 14.r,
+                        color: ClubGlass.t3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
           Container(
             padding: EdgeInsets.all(3.r),
             decoration: BoxDecoration(
-              color: VybeColors.gray900,
-              borderRadius: BorderRadius.circular(8.r),
+              color: const Color(0x0FFFFFFF),
+              borderRadius: BorderRadius.circular(999.r),
+              border: Border.all(color: const Color(0x1AFFFFFF)),
             ),
             child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                _viewBtn(
-                  icon: Icons.format_list_bulleted,
-                  active: !isGrid,
-                  onTap: () => onView(false),
+                _viewButton(
+                  icon: Icons.format_list_bulleted_rounded,
+                  active: !widget.isGrid,
+                  onTap: () => widget.onView(false),
                 ),
-                SizedBox(width: 2.w),
-                _viewBtn(
-                  icon: Icons.grid_view,
-                  active: isGrid,
-                  onTap: () => onView(true),
+                SizedBox(width: 3.w),
+                _viewButton(
+                  icon: Icons.grid_view_rounded,
+                  active: widget.isGrid,
+                  onTap: () => widget.onView(true),
                 ),
               ],
             ),
@@ -329,64 +506,133 @@ class _ToolBar extends StatelessWidget {
     );
   }
 
-  Widget _viewBtn({
+  Widget _viewButton({
     required IconData icon,
     required bool active,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        width: 30.w,
-        height: 26.h,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        width: 34.w,
+        height: 28.h,
+        alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: active ? VybeColors.gray700 : Colors.transparent,
-          borderRadius: BorderRadius.circular(6.r),
+          color: active ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(999.r),
         ),
-        child: Icon(icon,
-            size: 14.r, color: active ? Colors.white : VybeColors.gray500),
+        child: Icon(
+          icon,
+          size: 14.r,
+          color: active ? ClubGlass.ink : ClubGlass.t3,
+        ),
       ),
     );
   }
 }
 
-// ============ 리스트(세로) 카드 ============
+/// 정렬 드롭다운 패널 — 선택 항목은 보라 배경 + 라임 체크.
+class _SortMenu extends StatelessWidget {
+  final _SortOption current;
+  final ValueChanged<_SortOption> onSelect;
 
-class _CardList extends StatelessWidget {
-  final List<SavedEntry> entries;
-  final ValueChanged<String> onUnsave;
-  const _CardList({required this.entries, required this.onUnsave});
+  const _SortMenu({required this.current, required this.onSelect});
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        for (final e in entries) _ListCard(entry: e, onUnsave: onUnsave)
-      ],
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        width: 168.w,
+        padding: EdgeInsets.all(5.r),
+        decoration: BoxDecoration(
+          color: const Color(0xF01A181F),
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(color: ClubGlass.cardBorder),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0x5C000000),
+              blurRadius: 30.r,
+              offset: Offset(0, 10.h),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final o in _SortOption.values)
+              GestureDetector(
+                onTap: () => onSelect(o),
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 12.w,
+                    vertical: 11.h,
+                  ),
+                  decoration: BoxDecoration(
+                    color: o == current
+                        ? VybeColors.mainPurple500.withValues(alpha: 0.22)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(11.r),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        _kSortLabels[o]!,
+                        style: TextStyle(
+                          fontFamily: 'Pretendard',
+                          fontSize: 14.sp,
+                          height: 16 / 14,
+                          letterSpacing: 14 * -0.025,
+                          fontWeight:
+                              o == current ? FontWeight.w700 : FontWeight.w500,
+                          color: o == current ? Colors.white : ClubGlass.t3,
+                        ),
+                      ),
+                      if (o == current)
+                        Icon(
+                          Icons.check_rounded,
+                          size: 14.r,
+                          color: VybeColors.mainLime500,
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }
 
+// ============ 리스트 카드 ============
+
 class _ListCard extends StatelessWidget {
   final SavedEntry entry;
   final ValueChanged<String> onUnsave;
+
   const _ListCard({required this.entry, required this.onUnsave});
 
   @override
   Widget build(BuildContext context) {
     final club = entry.club;
+
     return GestureDetector(
       onTap: () => _openClubDetail(context, club.clubId),
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 14.h),
-        decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: VybeColors.gray900)),
-        ),
+      behavior: HitTestBehavior.opaque,
+      child: GlassCard(
+        padding: 12,
+        radius: 18,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _Thumb(entry: entry, size: 96),
-            SizedBox(width: 14.w),
+            _Thumb(entry: entry, size: 92, radius: 14),
+            SizedBox(width: 13.w),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -395,87 +641,74 @@ class _ListCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        child: Text(
-                          club.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: VybeTypography.body3.copyWith(
-                              color: Colors.white, fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: () => onUnsave(club.clubId),
                         child: Padding(
-                          padding: EdgeInsets.all(4.r),
-                          child: Icon(Icons.favorite,
-                              size: 20.r, color: VybeColors.mainPurple500),
+                          padding: EdgeInsets.only(top: 2.h),
+                          child: Text(
+                            club.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontFamily: 'Pretendard',
+                              fontSize: 16.sp,
+                              height: 18 / 16,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 16 * -0.025,
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
                       ),
+                      SizedBox(width: 8.w),
+                      _UnsaveButton(onTap: () => onUnsave(club.clubId)),
                     ],
                   ),
                   SizedBox(height: 6.h),
                   Row(
                     children: [
-                      Icon(Icons.star, size: 12.r, color: VybeColors.mainLime500),
-                      SizedBox(width: 6.w),
+                      Icon(Icons.star_rounded,
+                          size: 12.r, color: VybeColors.mainLime500),
+                      SizedBox(width: 5.w),
                       Text(
                         club.rating.toStringAsFixed(2),
-                        style: VybeTypography.caption.copyWith(
+                        style: _caption(
                           color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          height: 14 / 12,
+                          weight: FontWeight.w700,
                         ),
                       ),
-                      _dotDivider(),
-                      Flexible(
-                        child: Text(club.area,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: _metaStyle()),
+                      Container(
+                        width: 1,
+                        height: 9.h,
+                        margin: EdgeInsets.symmetric(horizontal: 6.w),
+                        color: const Color(0x33FFFFFF),
                       ),
-                      _smallDot(),
                       Flexible(
-                        child: Text(club.genre,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: _metaStyle()),
+                        child: Text(
+                          club.area,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: _caption(),
+                        ),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 6.w),
+                        child: const GlassDot(),
+                      ),
+                      Flexible(
+                        child: Text(
+                          club.genre,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: _caption(),
+                        ),
                       ),
                     ],
                   ),
                   SizedBox(height: 6.h),
-                  Row(
-                    children: [
-                      Icon(Icons.access_time,
-                          size: 12.r,
-                          color: entry.isOpen
-                              ? VybeColors.mainLime500
-                              : VybeColors.gray600),
-                      SizedBox(width: 6.w),
-                      Text(
-                        entry.isOpen ? '영업중' : '영업종료',
-                        style: VybeTypography.caption.copyWith(
-                          color: entry.isOpen
-                              ? VybeColors.mainLime500
-                              : VybeColors.gray500,
-                          fontWeight: FontWeight.w600,
-                          height: 14 / 12,
-                        ),
-                      ),
-                      _smallDot(),
-                      Flexible(
-                        child: Text(entry.hoursLabel,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style:
-                                _metaStyle().copyWith(color: VybeColors.gray400)),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 4.h),
+                  _OpenHoursPill(isOpen: entry.isOpen, hours: entry.hoursLabel),
+                  SizedBox(height: 6.h),
                   Text(
                     entry.savedAtLabel,
-                    style: VybeTypography.caption
-                        .copyWith(color: VybeColors.gray600, height: 14 / 12),
+                    style: _caption(color: ClubGlass.t4),
                   ),
                 ],
               ),
@@ -485,109 +718,143 @@ class _ListCard extends StatelessWidget {
       ),
     );
   }
-
-  TextStyle _metaStyle() =>
-      VybeTypography.caption.copyWith(color: VybeColors.gray500, height: 14 / 12);
-
-  Widget _dotDivider() => Padding(
-        padding: EdgeInsets.symmetric(horizontal: 6.w),
-        child: Container(width: 1, height: 10.h, color: VybeColors.gray700),
-      );
-
-  Widget _smallDot() => Padding(
-        padding: EdgeInsets.symmetric(horizontal: 6.w),
-        child: Container(
-          width: 2.r,
-          height: 2.r,
-          decoration: const BoxDecoration(
-              color: VybeColors.gray600, shape: BoxShape.circle),
-        ),
-      );
 }
 
-// ============ 그리드 카드 ============
+/// 찜 해제 버튼 (리스트 카드용 글래스 타일 원형).
+class _UnsaveButton extends StatelessWidget {
+  final VoidCallback onTap;
 
-class _GridList extends StatelessWidget {
-  final List<SavedEntry> entries;
-  final ValueChanged<String> onUnsave;
-  const _GridList({required this.entries, required this.onUnsave});
+  const _UnsaveButton({required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 24.h),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: entries.length,
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          mainAxisSpacing: 14.h,
-          crossAxisSpacing: 14.w,
-          childAspectRatio: 0.78,
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        width: 30.r,
+        height: 30.r,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: ClubGlass.tileFill,
+          shape: BoxShape.circle,
+          border: Border.all(color: ClubGlass.tileBorder),
         ),
-        itemBuilder: (_, i) =>
-            _GridCard(entry: entries[i], onUnsave: onUnsave),
+        child: Icon(
+          Icons.favorite_rounded,
+          size: 15.r,
+          color: ClubGlass.saved,
+        ),
       ),
     );
   }
 }
 
+/// 영업 상태 + 마감/오픈 시각을 한 pill 안에 담는다 (찜 리스트 전용).
+class _OpenHoursPill extends StatelessWidget {
+  final bool isOpen;
+  final String hours;
+
+  const _OpenHoursPill({required this.isOpen, required this.hours});
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = isOpen ? VybeColors.mainLime500 : ClubGlass.t4;
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 9.w, vertical: 4.h),
+      decoration: BoxDecoration(
+        color: isOpen
+            ? VybeColors.mainLime500.withValues(alpha: 0.13)
+            : const Color(0x0FFFFFFF),
+        borderRadius: BorderRadius.circular(999.r),
+        border: Border.all(
+          color: isOpen
+              ? VybeColors.mainLime500.withValues(alpha: 0.28)
+              : const Color(0x1AFFFFFF),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 5.r,
+            height: 5.r,
+            decoration: BoxDecoration(
+              color: isOpen ? VybeColors.mainLime500 : const Color(0x59FFFFFF),
+              shape: BoxShape.circle,
+            ),
+          ),
+          SizedBox(width: 5.w),
+          Text(
+            isOpen ? '영업중' : '영업종료',
+            style: _caption(
+              color: accent,
+              lineHeight: 13,
+              weight: FontWeight.w700,
+            ),
+          ),
+          SizedBox(width: 5.w),
+          Flexible(
+            child: Text(
+              hours,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: _caption(lineHeight: 13),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ============ 그리드 카드 ============
+
 class _GridCard extends StatelessWidget {
   final SavedEntry entry;
   final ValueChanged<String> onUnsave;
+
   const _GridCard({required this.entry, required this.onUnsave});
 
   @override
   Widget build(BuildContext context) {
     final club = entry.club;
+
     return GestureDetector(
       onTap: () => _openClubDetail(context, club.clubId),
+      behavior: HitTestBehavior.opaque,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
+          AspectRatio(
+            aspectRatio: 1,
             child: _Thumb(
               entry: entry,
+              radius: 18,
               isGrid: true,
               onUnsave: () => onUnsave(club.clubId),
             ),
           ),
-          SizedBox(height: 8.h),
+          SizedBox(height: 9.h),
           Text(
             club.name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: VybeTypography.body4
-                .copyWith(color: Colors.white, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontFamily: 'Pretendard',
+              fontSize: 14.sp,
+              height: 16 / 14,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 14 * -0.025,
+              color: Colors.white,
+            ),
           ),
-          SizedBox(height: 2.h),
-          Row(
-            children: [
-              Flexible(
-                child: Text(club.area,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: VybeTypography.caption
-                        .copyWith(color: VybeColors.gray500, height: 14 / 12)),
-              ),
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 4.w),
-                child: Container(
-                  width: 2.r,
-                  height: 2.r,
-                  decoration: const BoxDecoration(
-                      color: VybeColors.gray600, shape: BoxShape.circle),
-                ),
-              ),
-              Flexible(
-                child: Text(club.genre,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: VybeTypography.caption
-                        .copyWith(color: VybeColors.gray500, height: 14 / 12)),
-              ),
-            ],
+          SizedBox(height: 3.h),
+          Text(
+            '${club.area} · ${club.genre}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: _caption(),
           ),
         ],
       ),
@@ -599,13 +866,17 @@ class _GridCard extends StatelessWidget {
 
 class _Thumb extends StatelessWidget {
   final SavedEntry entry;
-  final double size; // 리스트용 고정 크기
+
+  /// 리스트용 고정 한 변 길이 (그리드는 부모가 정한다).
+  final double size;
+  final double radius;
   final bool isGrid;
   final VoidCallback? onUnsave;
 
   const _Thumb({
     required this.entry,
-    this.size = 96,
+    this.size = 92,
+    this.radius = 14,
     this.isGrid = false,
     this.onUnsave,
   });
@@ -613,12 +884,11 @@ class _Thumb extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final club = entry.club;
-    final radius = isGrid ? 12.r : 10.r;
     final gradient = _gradientFor(club.clubId);
     final url = club.thumbnailUrl;
 
     final thumb = ClipRRect(
-      borderRadius: BorderRadius.circular(radius),
+      borderRadius: BorderRadius.circular(radius.r),
       child: DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -626,7 +896,7 @@ class _Thumb extends StatelessWidget {
             end: Alignment.bottomRight,
             colors: gradient,
           ),
-          border: Border.all(color: VybeColors.gray900),
+          border: Border.all(color: const Color(0x1AFFFFFF)),
         ),
         child: Stack(
           fit: StackFit.expand,
@@ -638,77 +908,120 @@ class _Thumb extends StatelessWidget {
                 // 최초 로드 시 최소 1초 shimmer 후 페이드 — 검정 화면 깜빡임 방지.
                 minSkeleton: const Duration(seconds: 1),
               ),
-            // 광택.
-            DecoratedBox(
-              decoration: const BoxDecoration(
+            // 좌상단에서 번지는 광택.
+            const DecoratedBox(
+              decoration: BoxDecoration(
                 gradient: RadialGradient(
-                  center: Alignment(-0.4, -0.4),
-                  radius: 0.9,
-                  colors: [Color(0x22FFFFFF), Color(0x00FFFFFF)],
+                  center: Alignment(-0.4, -0.44),
+                  radius: 0.86,
+                  colors: [Color(0x42FFFFFF), Color(0x00FFFFFF)],
+                  stops: [0.0, 0.62],
                 ),
               ),
             ),
-            if (entry.tag != null) _TagBadge(tag: entry.tag!, isGrid: isGrid),
             if (isGrid) ...[
+              // 하단 정보가 읽히도록 어둡게 깔아준다.
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color(0x00000000), Color(0xAD000000)],
+                    stops: [0.46, 1.0],
+                  ),
+                ),
+              ),
               Positioned(
-                top: 6.h,
-                right: 6.w,
+                top: 8.h,
+                right: 8.w,
                 child: GestureDetector(
                   onTap: onUnsave,
+                  behavior: HitTestBehavior.opaque,
                   child: Container(
-                    width: 32.r,
-                    height: 32.r,
+                    width: 30.r,
+                    height: 30.r,
+                    alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.5),
+                      // 이미지 위 blur는 비용이 커 반투명 채움으로 대체.
+                      color: const Color(0x8014121A),
                       shape: BoxShape.circle,
+                      border: Border.all(color: const Color(0x29FFFFFF)),
                     ),
-                    child: Icon(Icons.favorite,
-                        size: 16.r, color: VybeColors.mainPurple500),
+                    child: Icon(
+                      Icons.favorite_rounded,
+                      size: 15.r,
+                      color: ClubGlass.saved,
+                    ),
                   ),
                 ),
               ),
               Positioned(
-                left: 8.w,
-                bottom: 8.h,
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.65),
-                    borderRadius: BorderRadius.circular(999.r),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.star,
-                          size: 10.r, color: VybeColors.mainLime500),
-                      SizedBox(width: 3.w),
-                      Text(
-                        club.rating.toStringAsFixed(2),
-                        style: VybeTypography.caption.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          height: 12 / 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              if (!entry.isOpen)
-                DecoratedBox(
-                  decoration: const BoxDecoration(color: Color(0x80101013)),
-                  child: Center(
-                    child: Text(
-                      '영업 종료',
-                      style: VybeTypography.caption.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        height: 14 / 12,
+                left: 9.w,
+                right: 9.w,
+                bottom: 9.h,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Flexible(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 5.r,
+                            height: 5.r,
+                            decoration: BoxDecoration(
+                              color: entry.isOpen
+                                  ? VybeColors.mainLime500
+                                  : const Color(0x73FFFFFF),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          SizedBox(width: 4.w),
+                          Text(
+                            entry.isOpen ? '영업중' : '영업종료',
+                            style: _caption(
+                              color: Colors.white,
+                              size: 10.5,
+                              lineHeight: 12,
+                              weight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 8.w,
+                        vertical: 3.h,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0x800E0D12),
+                        borderRadius: BorderRadius.circular(999.r),
+                        border: Border.all(color: const Color(0x24FFFFFF)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.star_rounded,
+                              size: 10.r, color: VybeColors.mainLime500),
+                          SizedBox(width: 3.w),
+                          Text(
+                            entry.club.rating.toStringAsFixed(1),
+                            style: _caption(
+                              color: Colors.white,
+                              size: 10.5,
+                              lineHeight: 12,
+                              weight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
+              ),
             ],
+            if (entry.tag != null) _TagBadge(tag: entry.tag!),
           ],
         ),
       ),
@@ -721,37 +1034,42 @@ class _Thumb extends StatelessWidget {
 
 class _TagBadge extends StatelessWidget {
   final String tag;
-  final bool isGrid;
-  const _TagBadge({required this.tag, required this.isGrid});
+
+  const _TagBadge({required this.tag});
 
   @override
   Widget build(BuildContext context) {
     final isHot = tag == 'HOT';
     return Positioned(
-      top: isGrid ? 8.h : 6.h,
-      left: isGrid ? 8.w : 6.w,
+      top: 8.h,
+      left: 8.w,
       child: Container(
-        padding:
-            EdgeInsets.symmetric(horizontal: isGrid ? 7.w : 6.w, vertical: 2.h),
+        padding: EdgeInsets.symmetric(horizontal: 9.w, vertical: 4.h),
         decoration: BoxDecoration(
-          color: isHot
-              ? const Color(0xFFFF3B6E)
-              : Colors.black.withValues(alpha: 0.7),
-          borderRadius: BorderRadius.circular(4.r),
+          color: isHot ? const Color(0xE0FF3B6E) : const Color(0xB80E0D12),
+          borderRadius: BorderRadius.circular(999.r),
+          border: Border.all(
+            color: isHot
+                ? const Color(0x47FFFFFF)
+                : VybeColors.mainLime500.withValues(alpha: 0.42),
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (!isHot) ...[
-              Icon(Icons.star, size: 9.r, color: VybeColors.mainLime500),
-              SizedBox(width: 3.w),
+              Icon(Icons.star_rounded,
+                  size: 9.r, color: VybeColors.mainLime500),
+              SizedBox(width: 4.w),
             ],
             Text(
               tag,
-              style: VybeTypography.caption.copyWith(
+              style: TextStyle(
+                fontFamily: 'Pretendard',
+                fontSize: 10.sp,
+                height: 12 / 10,
+                fontWeight: FontWeight.w800,
                 color: isHot ? Colors.white : VybeColors.mainLime500,
-                fontWeight: FontWeight.w700,
-                height: 12 / 12,
               ),
             ),
           ],
@@ -764,29 +1082,90 @@ class _TagBadge extends StatelessWidget {
 // ============ 전체 비었을 때 ============
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  final VoidCallback onExplore;
+
+  const _EmptyState({required this.onExplore});
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 24.w),
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 0),
+      child: GlassCard(
+        padding: 32,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.favorite_border, size: 80.r, color: VybeColors.gray700),
-            SizedBox(height: 20.h),
+            Container(
+              width: 76.r,
+              height: 76.r,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: VybeColors.mainPurple500.withValues(alpha: 0.16),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: VybeColors.mainPurple500.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Icon(
+                Icons.favorite_border_rounded,
+                size: 30.r,
+                color: Colors.white,
+              ),
+            ),
+            SizedBox(height: 14.h),
             Text(
               '아직 찜한 클럽이 없어요',
-              style: VybeTypography.heading4
-                  .copyWith(color: Colors.white, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontFamily: 'Pretendard',
+                fontSize: 20.sp,
+                height: 22 / 20,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 20 * -0.025,
+                color: Colors.white,
+              ),
             ),
-            SizedBox(height: 6.h),
+            SizedBox(height: 14.h),
             Text(
               '마음에 드는 클럽의 하트를 눌러서\n나만의 리스트를 만들어보세요',
               textAlign: TextAlign.center,
-              style: VybeTypography.body4
-                  .copyWith(color: VybeColors.gray500, height: 20 / 14),
+              style: ClubGlass.body(color: ClubGlass.t3),
+            ),
+            SizedBox(height: 16.h),
+            GestureDetector(
+              onTap: onExplore,
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 26.w, vertical: 13.h),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      VybeColors.mainLime500,
+                      VybeColors.mainLime700,
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(14.r),
+                  boxShadow: [
+                    BoxShadow(
+                      color: VybeColors.mainLime500.withValues(alpha: 0.2),
+                      blurRadius: 26.r,
+                      offset: Offset(0, 10.h),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  '클럽 둘러보기',
+                  style: TextStyle(
+                    fontFamily: 'Pretendard',
+                    fontSize: 16.sp,
+                    height: 18 / 16,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 16 * -0.025,
+                    color: ClubGlass.ink,
+                  ),
+                ),
+              ),
             ),
           ],
         ),

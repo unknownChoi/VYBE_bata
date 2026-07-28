@@ -911,7 +911,7 @@ class _GlassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
+    return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(radius.r),
         boxShadow: [
@@ -922,26 +922,46 @@ class _GlassCard extends StatelessWidget {
           ),
         ],
       ),
+      // 테두리는 하이라이트 위에 그린다.
+      foregroundDecoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(radius.r),
+        border: Border.all(color: _glassBorder),
+      ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(radius.r),
         child: BackdropFilter(
           // CSS blur(18px) ≈ sigma 9.
           filter: ui.ImageFilter.blur(sigmaX: 9, sigmaY: 9),
-          child: Container(
-            padding: EdgeInsets.all(padding.r),
-            decoration: BoxDecoration(
-              color: _glassFill,
-              borderRadius: BorderRadius.circular(radius.r),
-              border: Border.all(color: _glassBorder),
-              // 좌상단에서 번지는 유리 하이라이트.
-              gradient: const RadialGradient(
-                center: Alignment(-0.76, -1),
-                radius: 1.1,
-                colors: [Color(0x1AFFFFFF), Color(0x00FFFFFF)],
-                stops: [0.0, 0.58],
-              ),
+          // 채움색과 하이라이트는 레이어를 나눈다 — 한 BoxDecoration에
+          // color·gradient를 같이 주면 gradient가 color를 덮어 카드가 사라진다.
+          child: ColoredBox(
+            color: _glassFill,
+            child: Stack(
+              fit: StackFit.passthrough,
+              children: [
+                // 좌상단에서 번지는 유리 하이라이트.
+                const Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: RadialGradient(
+                        center: Alignment(-0.76, -1),
+                        radius: 1.1,
+                        colors: [Color(0x1AFFFFFF), Color(0x00FFFFFF)],
+                        stops: [0.0, 0.58],
+                      ),
+                    ),
+                  ),
+                ),
+                const Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: 1,
+                  child: ColoredBox(color: Color(0x29FFFFFF)),
+                ),
+                Padding(padding: EdgeInsets.all(padding.r), child: child),
+              ],
             ),
-            child: child,
           ),
         ),
       ),

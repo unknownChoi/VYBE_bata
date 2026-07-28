@@ -758,3 +758,92 @@ class _TableDetail extends StatelessWidget {
     );
   }
 }
+
+// ============================================================================
+// 티어 요약 (클럽 상세 홈 탭)
+// ============================================================================
+
+/// 홈 탭 '테이블' 글래스 카드에 들어가는 티어 3줄 요약.
+///
+/// 디자인 club_glass_tabs.jsx(CGTables) — 플로어맵 없이 티어별
+/// `{n}석 · 최소 {m}인` + 대표 가격만 보여주고, 전체는 가격표 화면으로 넘긴다.
+/// 데이터(_tiers·_floor)가 이 파일에 있어 여기에 함께 둔다.
+class TableTierSummary extends StatelessWidget {
+  const TableTierSummary({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final keys = _tiers.keys.where(
+      (k) => _floor.any((t) => t.tierKey == k),
+    );
+
+    return Column(
+      children: [
+        for (final key in keys) ...[
+          Builder(
+            builder: (_) {
+              final tier = _tiers[key]!;
+              final rows = _floor.where((t) => t.tierKey == key).toList();
+              return Container(
+                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+                decoration: BoxDecoration(
+                  color: tier.soft,
+                  borderRadius: BorderRadius.circular(14.r),
+                  border: Border.all(color: tier.ring),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 8.r,
+                      height: 8.r,
+                      decoration: BoxDecoration(
+                        color: tier.dot,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    SizedBox(width: 12.w),
+                    SizedBox(
+                      width: 46.w,
+                      child: Text(
+                        tier.short,
+                        style: TextStyle(
+                          fontFamily: 'Pretendard',
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w800,
+                          color: tier.color,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        '${rows.length}석 · 최소 ${rows.first.minPeople}인',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: 'Pretendard',
+                          fontSize: 12.sp,
+                          height: 14 / 12,
+                          color: const Color(0xADFFFFFF),
+                        ),
+                      ),
+                    ),
+                    Text(
+                      rows.first.price,
+                      style: TextStyle(
+                        fontFamily: 'Pretendard',
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          SizedBox(height: 8.h),
+        ],
+      ],
+    );
+  }
+}

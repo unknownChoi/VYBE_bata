@@ -1,10 +1,13 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vybe/core/providers/auth_providers.dart';
+import 'package:vybe/core/utils/map_launcher.dart';
 import 'package:vybe/core/utils/phone_launcher.dart';
+import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/tabs/detail_gallery_tab.dart';
 import 'package:vybe/presentation/clubs/tabs/detail_home_tab.dart';
@@ -13,10 +16,16 @@ import 'package:vybe/presentation/clubs/tabs/detail_menu_tab.dart';
 import 'package:vybe/presentation/clubs/tabs/detail_review_tab.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
 import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
-import 'package:vybe/presentation/clubs/widgets/club_section_divider.dart';
+import 'package:vybe/presentation/clubs/widgets/club_glass.dart';
 import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
+import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
 
+/// 클럽 상세 — 리퀴드 글래스 리뉴얼.
+///
+/// 디자인: club_detail_glass.html (club_glass_shell.jsx · club_glass_tabs.jsx).
+/// 히어로(320) 위로 -34 겹치는 아이덴티티 글래스 카드 → 퀵 액션 4칸 →
+/// sticky 글래스 세그먼트 탭 순서.
 class ClubDetailScreen extends ConsumerStatefulWidget {
   final String clubId;
   // 바텀시트(주변 페이지)로 띄울 때 닫기 동작 주입. null이면 Navigator.maybePop.
@@ -41,6 +50,12 @@ class _ClubDetailScreenState extends ConsumerState<ClubDetailScreen>
 
   static const List<String> _tabs = ['홈', '메뉴', '사진', '리뷰', '매장 정보'];
 
+  /// 히어로 높이 (디자인 320px).
+  static const double _heroHeight = 320;
+
+  /// 아이덴티티 카드가 히어로를 덮는 깊이 (디자인 -34px).
+  static const double _identityOverlap = 34;
+
   @override
   void initState() {
     super.initState();
@@ -54,98 +69,191 @@ class _ClubDetailScreenState extends ConsumerState<ClubDetailScreen>
     super.dispose();
   }
 
+  void _goToTab(int index) => _tabController.animateTo(index);
+
   @override
   Widget build(BuildContext context) {
     final clubAsync = ref.watch(clubDetailProvider(widget.clubId));
-    final imageUrls = clubAsync.value?.heroImageUrls ?? [];
+    final club = clubAsync.value;
 
     // 탭 전환 시 재로딩 방지 — 상세 페이지 진입 시 1회만 fetch
     ref.watch(clubInfoProvider(widget.clubId));
     ref.watch(nearbyClubsProvider(widget.clubId));
 
     return Scaffold(
-      backgroundColor: VybeColors.background,
-      body: NestedScrollView(
-        controller: widget.scrollController,
-        physics: const ClampingScrollPhysics(),
-        headerSliverBuilder: (context, innerBoxIsScrolled) => [
-          SliverToBoxAdapter(
-            child: clubAsync.isLoading
-                ? const HeroSkeleton()
-                : _Hero(
-                    onBack:
-                        widget.onClose ??
-                        () => Navigator.of(context).maybePop(),
-                    imageUrls: imageUrls,
-                    clubId: widget.clubId,
-                  ),
-          ),
-          SliverToBoxAdapter(
-            child: clubAsync.isLoading
-                ? const TitleSkeleton()
-                : _TitleBlock(clubId: widget.clubId),
-          ),
-          const SliverToBoxAdapter(child: ClubSectionDivider()),
-          SliverToBoxAdapter(
-            child: Container(
-              color: VybeColors.background,
-              child: TabBar(
-                controller: _tabController,
-                padding: EdgeInsets.zero,
-                labelPadding: EdgeInsets.zero,
-                indicatorColor: VybeColors.mainPurple500,
-                indicatorWeight: 2,
-                dividerColor: VybeColors.gray900,
-                dividerHeight: 1,
-                labelStyle: TextStyle(
-                  fontFamily: 'Pretendard',
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w700,
-                ),
-                unselectedLabelStyle: TextStyle(
-                  fontFamily: 'Pretendard',
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w500,
-                ),
-                labelColor: Colors.white,
-                unselectedLabelColor: VybeColors.gray500,
-                tabs: _tabs.map((t) => Tab(text: t, height: 44.h)).toList(),
+      backgroundColor: ClubGlass.ink,
+      body: Stack(
+        children: [
+          const Positioned.fill(child: ClubAurora()),
+          NestedScrollView(
+            controller: widget.scrollController,
+            physics: const ClampingScrollPhysics(),
+            headerSliverBuilder: (context, innerBoxIsScrolled) => [
+              SliverToBoxAdapter(
+                child: clubAsync.isLoading
+                    ? const HeroSkeleton()
+                    : _buildHeader(club),
               ),
+            ],
+            // 탭바를 body 최상단에 두면 헤더가 스크롤되어 사라진 뒤 자연히 화면
+            // 맨 위에 고정된다(sticky). headerSliverBuilder에 pinned
+            // SliverPersistentHeader를 쓰면 Flutter 3.41 세만틱스 검증
+            // (debugCheckForParentData)이 매 프레임 assert를 던져 화면이 통째로
+            // 안 그려진다 — 그래서 pinned sliver를 쓰지 않는다.
+            body: Column(
+              children: [
+                _GlassTabs(
+                  tabs: _tabs,
+                  activeIndex: _tabController.index,
+                  onSelect: _goToTab,
+                ),
+                Expanded(child: _buildTabViews()),
+              ],
             ),
           ),
         ],
-        body: TabBarView(
-          controller: _tabController,
-          children: [
-            DetailHomeTab(
-              clubId: widget.clubId,
-              onViewAllPhotos: () => _tabController.animateTo(2),
-              onViewAllMenus: () => _tabController.animateTo(1),
-            ),
-            _LazyTabBody(
-              isSelected: _tabController.index == 1,
-              builder: () => DetailMenuTab(clubId: widget.clubId),
-            ),
-            _LazyTabBody(
-              isSelected: _tabController.index == 2,
-              builder: () => DetailGalleryTab(clubId: widget.clubId),
-            ),
-            _LazyTabBody(
-              isSelected: _tabController.index == 3,
-              builder: () => DetailReviewTab(clubId: widget.clubId),
-            ),
-            _LazyTabBody(
-              isSelected: _tabController.index == 4,
-              builder: () => DetailInfoTab(clubId: widget.clubId),
-            ),
-          ],
+      ),
+    );
+  }
+
+  Widget _buildTabViews() {
+    return TabBarView(
+      controller: _tabController,
+      children: [
+                DetailHomeTab(
+                  clubId: widget.clubId,
+                  onViewAllPhotos: () => _goToTab(2),
+                  onViewAllMenus: () => _goToTab(1),
+                  onViewInfo: () => _goToTab(4),
+                ),
+                _LazyTabBody(
+                  isSelected: _tabController.index == 1,
+                  builder: () => DetailMenuTab(clubId: widget.clubId),
+                ),
+                _LazyTabBody(
+                  isSelected: _tabController.index == 2,
+                  builder: () => DetailGalleryTab(clubId: widget.clubId),
+                ),
+                _LazyTabBody(
+                  isSelected: _tabController.index == 3,
+                  builder: () => DetailReviewTab(clubId: widget.clubId),
+                ),
+                _LazyTabBody(
+                  isSelected: _tabController.index == 4,
+                  builder: () => DetailInfoTab(clubId: widget.clubId),
+                ),
+      ],
+    );
+  }
+
+  /// 히어로 + 아이덴티티 카드 + 퀵 액션.
+  ///
+  /// 카드가 히어로를 [_identityOverlap] 만큼 덮어야 해서 Column 대신 Stack —
+  /// 아래 블록을 `히어로 높이 - 겹침` 위치에서 시작시키면 전체 높이가
+  /// 자연스럽게 맞는다(음수 마진 불가 대응).
+  Widget _buildHeader(ClubModel? club) {
+    return Stack(
+      children: [
+        SizedBox(
+          width: double.infinity,
+          height: _heroHeight.h,
+          child: _Hero(
+            onBack: widget.onClose ?? () => Navigator.of(context).maybePop(),
+            imageUrls: club?.heroImageUrls ?? const [],
+          ),
+        ),
+        Padding(
+          padding: EdgeInsets.only(top: (_heroHeight - _identityOverlap).h),
+          child: Column(
+            children: [
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
+                child: _IdentityCard(clubId: widget.clubId),
+              ),
+              _QuickActions(clubId: widget.clubId),
+              SizedBox(height: 16.h),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ============================================================================
+// STICKY GLASS TABS
+// ============================================================================
+
+class _GlassTabs extends StatelessWidget {
+  final List<String> tabs;
+  final int activeIndex;
+  final ValueChanged<int> onSelect;
+
+  const _GlassTabs({
+    required this.tabs,
+    required this.activeIndex,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassBar(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+      child: Container(
+        padding: EdgeInsets.all(4.r),
+        decoration: BoxDecoration(
+          color: const Color(0x0FFFFFFF),
+          borderRadius: BorderRadius.circular(999.r),
+          border: Border.all(color: const Color(0x1AFFFFFF)),
+        ),
+        child: Row(
+          children: List.generate(tabs.length, (i) {
+            final selected = i == activeIndex;
+            return Expanded(
+              child: GestureDetector(
+                onTap: () => onSelect(i),
+                behavior: HitTestBehavior.opaque,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: EdgeInsets.symmetric(vertical: 8.h),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: selected ? Colors.white : Colors.transparent,
+                    borderRadius: BorderRadius.circular(999.r),
+                    boxShadow: selected
+                        ? [
+                            BoxShadow(
+                              color: const Color(0x59000000),
+                              blurRadius: 14.r,
+                              offset: Offset(0, 4.h),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Text(
+                    tabs[i],
+                    maxLines: 1,
+                    style: TextStyle(
+                      fontFamily: 'Pretendard',
+                      fontSize: 12.5.sp,
+                      height: 14 / 12.5,
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                      color: selected ? ClubGlass.ink : ClubGlass.t2,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
         ),
       ),
     );
   }
 }
 
-// ============ LAZY TAB BODY ============
+// ============================================================================
+// LAZY TAB BODY
+// ============================================================================
 
 class _LazyTabBody extends StatefulWidget {
   final bool isSelected;
@@ -182,23 +290,20 @@ class _LazyTabBodyState extends State<_LazyTabBody>
   }
 }
 
-// ============ HERO ============
+// ============================================================================
+// HERO
+// ============================================================================
 
-class _Hero extends ConsumerStatefulWidget {
+class _Hero extends StatefulWidget {
   final VoidCallback onBack;
   final List<String> imageUrls;
-  final String clubId;
-  const _Hero({
-    required this.onBack,
-    required this.imageUrls,
-    required this.clubId,
-  });
+  const _Hero({required this.onBack, required this.imageUrls});
 
   @override
-  ConsumerState<_Hero> createState() => _HeroState();
+  State<_Hero> createState() => _HeroState();
 }
 
-class _HeroState extends ConsumerState<_Hero> {
+class _HeroState extends State<_Hero> {
   int _currentIndex = 0;
   final _pageController = PageController();
   Timer? _timer;
@@ -206,12 +311,13 @@ class _HeroState extends ConsumerState<_Hero> {
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 3), (_) {
-      if (!mounted || widget.imageUrls.isEmpty) return;
+    // 디자인 4.2초 간격 자동 전환.
+    _timer = Timer.periodic(const Duration(milliseconds: 4200), (_) {
+      if (!mounted || widget.imageUrls.length < 2) return;
       final next = (_currentIndex + 1) % widget.imageUrls.length;
       _pageController.animateToPage(
         next,
-        duration: const Duration(milliseconds: 400),
+        duration: const Duration(milliseconds: 900),
         curve: Curves.easeInOut,
       );
     });
@@ -229,310 +335,209 @@ class _HeroState extends ConsumerState<_Hero> {
     final images = widget.imageUrls;
     final total = images.length;
 
-    // 찜 상태 (스트림 + 낙관적 오버라이드 머지)
-    final uid = ref.watch(currentUidProvider);
-    final streamFavIds = uid != null
-        ? ref.watch(favoritedClubIdsProvider(uid)).asData?.value ?? <String>{}
-        : <String>{};
-    final optimistic = ref.watch(favoriteViewModelProvider);
-    final isFavorited = optimistic.containsKey(widget.clubId)
-        ? optimistic[widget.clubId]!
-        : streamFavIds.contains(widget.clubId);
-
-    if (total == 0) return SizedBox(height: 270.h);
-    return SizedBox(
-      height: 270.h,
-      child: Stack(
-        children: [
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        if (total > 0)
           PageView.builder(
             controller: _pageController,
             onPageChanged: (i) => setState(() => _currentIndex = i),
             itemCount: total,
-            itemBuilder: (_, i) => SkeletonImage(
-              url: images[i],
-              fit: BoxFit.cover,
-              width: double.infinity,
-              height: 270.h,
-            ),
+            itemBuilder: (_, i) =>
+                SkeletonImage(url: images[i], fit: BoxFit.cover),
           ),
-          // top scrim
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 130.h,
-            child: IgnorePointer(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.black.withValues(alpha: 0.6),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
+        // 상단 하이라이트 — 유리에 빛이 도는 느낌.
+        const IgnorePointer(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment(-0.48, -0.56),
+                radius: 0.9,
+                colors: [Color(0x3DFFFFFF), Color(0x00FFFFFF)],
+                stops: [0.0, 0.62],
               ),
             ),
           ),
-          // bottom scrim
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 120.h,
-            child: const IgnorePointer(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [Color(0xFF0E0E11), Colors.transparent],
-                  ),
-                ),
+        ),
+        // 상·하단 스크림 (디자인 linear-gradient 4-stop).
+        const IgnorePointer(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0x8C08070C),
+                  Color(0x00000000),
+                  Color(0x730D0C11),
+                  Color(0xFF0D0C11),
+                ],
+                stops: [0.0, 0.32, 0.74, 1.0],
               ),
             ),
           ),
-          // nav bar
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    VybeGlassButton(onTap: widget.onBack),
-                    Row(
-                      children: [
-                        _iconButton(Icons.ios_share_rounded, () {}),
-                        SizedBox(width: 10.w),
-                        _heartButton(isFavorited, uid),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+        ),
+        // 뒤로가기 — 공유/찜은 퀵 액션 줄에 있어 히어로 위에는 두지 않는다.
+        Positioned(
+          top: 0,
+          left: 0,
+          child: SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+              child: VybeGlassButton(onTap: widget.onBack),
             ),
           ),
-          // counter
+        ),
+        if (total > 1) ...[
+          // 카운터
           Positioned(
             right: 16.w,
-            bottom: 40.h,
+            bottom: 76.h,
             child: IgnorePointer(
               child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                padding: EdgeInsets.symmetric(horizontal: 11.w, vertical: 5.h),
                 decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.55),
+                  color: ClubGlass.barFill,
                   borderRadius: BorderRadius.circular(999.r),
+                  border: Border.all(color: const Color(0x24FFFFFF)),
                 ),
                 child: Text(
                   '${_currentIndex + 1} / $total',
-                  style: TextStyle(
-                    fontFamily: 'Pretendard',
-                    fontSize: 12.sp,
+                  style: ClubGlass.caption(
                     color: Colors.white,
-                    fontWeight: FontWeight.w500,
+                    lineHeight: 15,
+                    weight: FontWeight.w600,
                   ),
                 ),
               ),
             ),
           ),
-          // dot indicators
+          // 도트 인디케이터
           Positioned(
-            bottom: 18.h,
             left: 0,
             right: 0,
-            child: IgnorePointer(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(total, (i) {
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
+            bottom: 52.h,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(total, (i) {
+                final on = i == _currentIndex;
+                return GestureDetector(
+                  onTap: () => _pageController.animateToPage(
+                    i,
+                    duration: const Duration(milliseconds: 320),
+                    curve: Curves.easeOutCubic,
+                  ),
+                  behavior: HitTestBehavior.opaque,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 280),
                     margin: EdgeInsets.symmetric(horizontal: 2.5.w),
-                    width: i == _currentIndex ? 16.w : 5.w,
+                    width: on ? 18.w : 5.w,
                     height: 5.h,
                     decoration: BoxDecoration(
-                      color: i == _currentIndex
-                          ? Colors.white
-                          : Colors.white.withValues(alpha: 0.4),
-                      borderRadius: BorderRadius.circular(999.r),
+                      color: on ? Colors.white : const Color(0x61FFFFFF),
+                      borderRadius: BorderRadius.circular(99.r),
                     ),
-                  );
-                }),
-              ),
+                  ),
+                );
+              }),
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _iconButton(IconData icon, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 36.r,
-        height: 36.r,
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.4),
-          shape: BoxShape.circle,
-        ),
-        alignment: Alignment.center,
-        child: Icon(icon, color: Colors.white, size: 20.r),
-      ),
-    );
-  }
-
-  // 찜 하트 버튼 — 찜 상태면 핑크레드(#FF3B6E) 채움 + 바운스 모션
-  Widget _heartButton(bool isFavorited, String? uid) {
-    return GestureDetector(
-      onTap: uid == null
-          ? null
-          : () => ref
-                .read(favoriteViewModelProvider.notifier)
-                .toggleFavorite(uid, widget.clubId, isFavorited),
-      child: Container(
-        width: 36.r,
-        height: 36.r,
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.4),
-          shape: BoxShape.circle,
-        ),
-        alignment: Alignment.center,
-        child: TweenAnimationBuilder<double>(
-          key: ValueKey(isFavorited),
-          tween: Tween(begin: isFavorited ? 0.7 : 1, end: 1),
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.elasticOut,
-          builder: (_, scale, child) =>
-              Transform.scale(scale: scale, child: child),
-          // 주변 페이지와 동일한 outline 하트 — 찜 시 보라 테두리(채움 없음)
-          child: SvgPicture.asset(
-            'assets/icons/common/club_card/favorite.svg',
-            width: 20.r,
-            height: 20.r,
-            colorFilter: ColorFilter.mode(
-              isFavorited ? VybeColors.mainPurple500 : Colors.white,
-              BlendMode.srcIn,
-            ),
-          ),
-        ),
-      ),
+      ],
     );
   }
 }
 
-// ============ TITLE BLOCK ============
+// ============================================================================
+// IDENTITY CARD
+// ============================================================================
 
-class _TitleBlock extends ConsumerWidget {
+class _IdentityCard extends ConsumerWidget {
   final String clubId;
-  const _TitleBlock({required this.clubId});
+  const _IdentityCard({required this.clubId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final club = ref.watch(clubDetailProvider(clubId)).value;
-    final reviewCount = club?.reviewCount ?? 0;
+    if (club == null) return const TitleSkeleton();
 
-    final area = club?.area ?? '';
-    final genre = club?.genre ?? '';
-    final name = club?.name ?? '';
-    final rating = club?.rating ?? 0.0;
-    final description = club?.description ?? '';
-    final tags = club?.tags ?? [];
-    final phone = club?.phone ?? '';
+    final isOpen = club.operatingHours.today.isCurrentlyOpen;
 
-    return Padding(
-      padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 24.h),
+    return GlassCard(
+      padding: 20,
+      radius: 24,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (club?.isVybeRecommended ?? false) ...[
-            const _VybeRecommendBadge(),
-            SizedBox(height: 14.h),
-          ],
+          // 지역 · 장르 + 영업 상태
+          // 영업 상태 pill은 항상 오른쪽 끝(디자인 margin-left: auto).
+          // 지역·장르를 Expanded로 묶어야 남는 폭을 전부 왼쪽이 먹고 pill이
+          // 끝에 붙는다 — Flexible 텍스트 + Spacer를 나란히 두면 Spacer가
+          // 여유 폭의 일부만 가져가 pill이 가운데로 밀린다.
           Row(
             children: [
-              Text(
-                area,
-                style: TextStyle(
-                  fontFamily: 'Pretendard',
-                  fontSize: 12.sp,
-                  color: VybeColors.gray500,
+              Expanded(
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        club.area,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: ClubGlass.caption(),
+                      ),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 7.w),
+                      child: Container(
+                        width: 1,
+                        height: 9.h,
+                        color: const Color(0x38FFFFFF),
+                      ),
+                    ),
+                    Flexible(
+                      child: Text(
+                        '${club.genre} 클럽',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: ClubGlass.caption(),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 6.w),
-                child: Container(
-                  width: 1.w,
-                  height: 10.h,
-                  color: VybeColors.gray700,
-                ),
-              ),
-              Text(
-                genre,
-                style: TextStyle(
-                  fontFamily: 'Pretendard',
-                  fontSize: 12.sp,
-                  color: VybeColors.gray500,
-                ),
-              ),
+              SizedBox(width: 8.w),
+              OpenStatusPill(isOpen: isOpen),
             ],
           ),
-          SizedBox(height: 8.h),
+          SizedBox(height: 9.h),
+          // 이름 + VYBE 추천 뱃지
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(
-                name,
-                style: TextStyle(
-                  fontFamily: 'Pretendard',
-                  fontSize: 24.sp,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-              ),
-              GestureDetector(
-                onTap: () => launchPhoneCall(context, phone),
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 12.w,
-                    vertical: 7.h,
-                  ),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: VybeColors.gray800),
-                    borderRadius: BorderRadius.circular(999.r),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.phone_rounded,
-                        size: 13.r,
-                        color: VybeColors.gray400,
-                      ),
-                      SizedBox(width: 5.w),
-                      Text(
-                        '전화',
-                        style: TextStyle(
-                          fontFamily: 'Pretendard',
-                          fontSize: 13.sp,
-                          fontWeight: FontWeight.w600,
-                          color: VybeColors.gray400,
-                        ),
-                      ),
-                    ],
+              Flexible(
+                child: Text(
+                  club.name,
+                  maxLines: 2,
+                  style: TextStyle(
+                    fontFamily: 'Pretendard',
+                    fontSize: 28.sp,
+                    height: 30 / 28,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 28 * -0.025,
+                    color: Colors.white,
                   ),
                 ),
               ),
+              if (club.isVybeRecommended) ...[
+                SizedBox(width: 8.w),
+                const _VybeRecommendBadge(),
+              ],
             ],
           ),
-          SizedBox(height: 14.h),
+          SizedBox(height: 10.h),
+          // 평점 · 리뷰 수
           Row(
             children: [
               SvgPicture.asset(
@@ -540,103 +545,87 @@ class _TitleBlock extends ConsumerWidget {
                 width: 15.r,
                 height: 15.r,
               ),
-              SizedBox(width: 4.w),
+              SizedBox(width: 8.w),
               Text(
-                rating.toStringAsFixed(2),
+                club.rating.toStringAsFixed(2),
                 style: TextStyle(
                   fontFamily: 'Pretendard',
-                  fontSize: 15.sp,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w700,
                   color: Colors.white,
                 ),
               ),
               SizedBox(width: 8.w),
-              Container(
-                width: 2.r,
-                height: 2.r,
-                decoration: const BoxDecoration(
-                  color: VybeColors.gray700,
-                  shape: BoxShape.circle,
-                ),
-              ),
+              const GlassDot(),
               SizedBox(width: 8.w),
-              Text(
-                '리뷰 $reviewCount',
-                style: TextStyle(
-                  fontFamily: 'Pretendard',
-                  fontSize: 14.sp,
-                  color: VybeColors.gray400,
-                ),
-              ),
+              Text('리뷰 ${club.reviewCount}', style: ClubGlass.body()),
             ],
           ),
-          SizedBox(height: 10.h),
-          Text(
-            description,
-            style: TextStyle(
-              fontFamily: 'Pretendard',
-              fontSize: 15.sp,
-              color: VybeColors.gray400,
-              height: 1.5,
+          if (club.description.isNotEmpty) ...[
+            SizedBox(height: 12.h),
+            Text(club.description, style: ClubGlass.body()),
+          ],
+          if (club.tags.isNotEmpty) ...[
+            SizedBox(height: 14.h),
+            Wrap(
+              spacing: 6.w,
+              runSpacing: 6.h,
+              children: club.tags
+                  .map(
+                    (tag) => Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 11.w,
+                        vertical: 5.h,
+                      ),
+                      decoration: BoxDecoration(
+                        color: ClubGlass.tileFill,
+                        borderRadius: BorderRadius.circular(99.r),
+                        border: Border.all(color: const Color(0x1CFFFFFF)),
+                      ),
+                      child: Text(
+                        '#$tag',
+                        style: ClubGlass.caption(
+                          color: ClubGlass.accentLavender,
+                          weight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
             ),
-          ),
-          SizedBox(height: 14.h),
-          Wrap(
-            spacing: 6.w,
-            runSpacing: 6.h,
-            children: tags.map((tag) {
-              return Container(
-                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
-                decoration: BoxDecoration(
-                  color: const Color(0x247731FE),
-                  borderRadius: BorderRadius.circular(99.r),
-                ),
-                child: Text(
-                  '# $tag',
-                  style: TextStyle(
-                    fontFamily: 'Pretendard',
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFFC8A8FF),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
+          ],
         ],
       ),
     );
   }
 }
 
-// VYBE 추천 클럽 뱃지 — 상세 상단 타이틀 블록용.
-// 리스트 카드용 라임 칩(vybe_recommend_screen 등)과 달리, 상세는 디자인
-// (club_detail) 기준 보라 그라데이션 + 라임 테두리 pill.
+/// VYBE 추천 클럽 뱃지 — 보라 그라데이션 + 라임 테두리 pill.
 class _VybeRecommendBadge extends StatelessWidget {
   const _VybeRecommendBadge();
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.fromLTRB(10.w, 6.h, 12.w, 6.h),
+      padding: EdgeInsets.fromLTRB(8.w, 5.h, 10.w, 5.h),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            VybeColors.mainPurple500.withValues(alpha: 0.95),
-            VybeColors.mainPurple500.withValues(alpha: 0.55),
+            VybeColors.mainPurple500.withValues(alpha: 0.92),
+            VybeColors.mainPurple500.withValues(alpha: 0.5),
           ],
         ),
         borderRadius: BorderRadius.circular(999.r),
         border: Border.all(
-          color: VybeColors.mainLime500.withValues(alpha: 0.55),
+          color: VybeColors.mainLime500.withValues(alpha: 0.5),
         ),
         boxShadow: [
           BoxShadow(
-            color: VybeColors.mainPurple500.withValues(alpha: 0.32),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
+            color: VybeColors.mainPurple500.withValues(alpha: 0.35),
+            blurRadius: 18.r,
+            offset: Offset(0, 6.h),
           ),
         ],
       ),
@@ -645,18 +634,18 @@ class _VybeRecommendBadge extends StatelessWidget {
         children: [
           SvgPicture.asset(
             'assets/icons/common/club_card/vybe_recommend.svg',
-            width: 13.r,
-            height: 13.r,
+            width: 11.r,
+            height: 11.r,
           ),
-          SizedBox(width: 6.w),
+          SizedBox(width: 5.w),
           Text(
             'VYBE 추천클럽',
             style: TextStyle(
               fontFamily: 'Pretendard',
-              fontSize: 12.sp,
-              height: 14 / 12,
+              fontSize: 11.sp,
+              height: 12 / 11,
               fontWeight: FontWeight.w800,
-              letterSpacing: 12 * 0.02,
+              letterSpacing: 11 * 0.02,
               color: Colors.white,
             ),
           ),
@@ -666,4 +655,106 @@ class _VybeRecommendBadge extends StatelessWidget {
   }
 }
 
-// ============ TAB BAR DELEGATE ============
+// ============================================================================
+// QUICK ACTIONS
+// ============================================================================
+
+class _QuickActions extends ConsumerWidget {
+  final String clubId;
+  const _QuickActions({required this.clubId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final club = ref.watch(clubDetailProvider(clubId)).value;
+
+    final uid = ref.watch(currentUidProvider);
+    final streamFavIds = uid != null
+        ? ref.watch(favoritedClubIdsProvider(uid)).asData?.value ?? <String>{}
+        : <String>{};
+    final optimistic = ref.watch(favoriteViewModelProvider);
+    final isFavorited = optimistic.containsKey(clubId)
+        ? optimistic[clubId]!
+        : streamFavIds.contains(clubId);
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 0),
+      child: Row(
+        children: [
+          _action(
+            icon: Icons.phone_rounded,
+            label: '전화',
+            onTap: () => launchPhoneCall(context, club?.phone ?? ''),
+          ),
+          SizedBox(width: 8.w),
+          _action(
+            icon: Icons.near_me_outlined,
+            label: '길찾기',
+            onTap: () => launchDirections(
+              context,
+              lat: club?.lat ?? 0,
+              lng: club?.lng ?? 0,
+              name: club?.name ?? '',
+            ),
+          ),
+          SizedBox(width: 8.w),
+          _action(
+            icon: Icons.ios_share_rounded,
+            label: '공유',
+            onTap: () => VybeToast.show(context, message: '공유 기능은 준비 중이에요'),
+          ),
+          SizedBox(width: 8.w),
+          _action(
+            icon: isFavorited ? Icons.favorite_rounded : Icons.favorite_border,
+            label: isFavorited ? '저장됨' : '저장',
+            active: isFavorited,
+            onTap: uid == null
+                ? () => VybeToast.show(context, message: '로그인 후 저장할 수 있어요')
+                : () => ref
+                      .read(favoriteViewModelProvider.notifier)
+                      .toggleFavorite(uid, clubId, isFavorited),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _action({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    bool active = false,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          padding: EdgeInsets.symmetric(vertical: 13.h),
+          decoration: BoxDecoration(
+            color: ClubGlass.tileFill,
+            borderRadius: BorderRadius.circular(16.r),
+            border: Border.all(color: ClubGlass.tileBorder),
+          ),
+          child: Column(
+            children: [
+              Icon(
+                icon,
+                size: 18.r,
+                color: active ? ClubGlass.saved : const Color(0xD1FFFFFF),
+              ),
+              SizedBox(height: 7.h),
+              Text(
+                label,
+                style: ClubGlass.caption(
+                  color: active ? ClubGlass.accentLavender : ClubGlass.t2,
+                  lineHeight: 12,
+                  weight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

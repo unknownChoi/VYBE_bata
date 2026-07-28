@@ -4,19 +4,28 @@ import 'package:flutter_naver_map/flutter_naver_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/core/providers/location_providers.dart';
+import 'package:vybe/core/utils/map_launcher.dart';
+import 'package:vybe/core/utils/number_format.dart';
+import 'package:vybe/core/utils/phone_launcher.dart';
 import 'package:vybe/core/utils/url_utils.dart';
 import 'package:vybe/data/models/club_info_model.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/data/models/operating_hours.dart';
-import 'package:vybe/core/utils/phone_launcher.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
-import 'package:vybe/presentation/clubs/widgets/club_section_divider.dart';
+import 'package:vybe/presentation/clubs/widgets/club_glass.dart';
 import 'package:vybe/presentation/clubs/widgets/subway_line_badge.dart';
 import 'package:vybe/presentation/common/widgets/vybe_map_pin.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
 
+/// 클럽 상세 · 매장 정보 탭 (리퀴드 글래스).
+///
+/// 디자인 club_glass.jsx '매장 정보' 탭 — 위치(지도·주소·액션칩) /
+/// 상세 정보(영업시간 전체·입장료·전화·인스타) / 이용 안내.
+///
+/// 디자인의 '편의시설'(주차·화장실·흡연실 등) 카드는 Firestore에 해당 필드가
+/// 없어 제외했다. 실제 없는 정보를 하드코딩하면 잘못된 안내가 된다.
 class DetailInfoTab extends ConsumerStatefulWidget {
   final String clubId;
   const DetailInfoTab({super.key, required this.clubId});
@@ -26,67 +35,57 @@ class DetailInfoTab extends ConsumerStatefulWidget {
 }
 
 class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
-  bool _hoursExpanded = false;
-  bool _noticeExpanded = true;
-
   static const _weekdayLabels = ['월', '화', '수', '목', '금', '토', '일'];
 
   @override
   Widget build(BuildContext context) {
     final clubAsync = ref.watch(clubDetailProvider(widget.clubId));
     final clubInfoAsync = ref.watch(clubInfoProvider(widget.clubId));
-    final isLoading = clubAsync.isLoading;
+    final club = clubAsync.value;
+    final clubInfo = clubInfoAsync.value;
+
     return ListView(
       physics: const ClampingScrollPhysics(),
-      padding: EdgeInsets.zero,
+      padding: glassTabPadding(context),
       children: [
-        isLoading ? const LocationSkeleton() : _buildLocationSection(),
-        const ClubSectionDivider(),
-        isLoading
+        clubAsync.isLoading
+            ? const LocationSkeleton()
+            : _buildLocationCard(club, clubInfo),
+        glassGap(),
+        clubAsync.isLoading
             ? const DetailInfoSkeleton()
-            : _buildDetailInfoSection(clubAsync.value, clubInfoAsync.value),
-        SizedBox(height: 32.h),
+            : _buildDetailCard(club),
+        if ((clubInfo?.cautions ?? const []).isNotEmpty) ...[
+          glassGap(),
+          _buildCautionCard(clubInfo!.cautions),
+        ],
       ],
     );
   }
 
-  /// 하루 영업시간 문자열
-  String _dayHoursText(DayHours d) =>
-      (d.isOpen && d.open != null && d.close != null)
-      ? '${d.open} - ${d.close}'
-      : '정기휴무';
+  // ==========================================================================
+  // 위치
+  // ==========================================================================
 
-  // ── LOCATION ──
+  Widget _buildLocationCard(ClubModel? club, ClubInfoModel? clubInfo) {
+    final subways = clubInfo?.nearbySubways ?? const [];
+    final nearest = subways.isEmpty ? null : subways.first;
+    final address = club?.address ?? '';
 
-  Widget _buildLocationSection() {
-    final club = ref.watch(clubDetailProvider(widget.clubId)).value;
-    final address = (club?.address.isNotEmpty ?? false)
-        ? club!.address
-        : '서울 마포구 잔다리로 12 지하 1층';
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
+    return GlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '위치',
-            style: TextStyle(
-              fontFamily: 'Pretendard',
-              fontSize: 20.sp,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
-          ),
-          SizedBox(height: 16.h),
+          GlassSectionHead(title: '위치', sub: _subwayLabel(nearest)),
           _NaverMapCard(clubId: widget.clubId),
-          SizedBox(height: 16.h),
-          // address card
+          SizedBox(height: 14.h),
+          // 주소 타일
           Container(
-            padding: EdgeInsets.all(14.r),
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
             decoration: BoxDecoration(
-              color: VybeColors.gray900,
-              borderRadius: BorderRadius.circular(12.r),
-              border: Border.all(color: VybeColors.gray800),
+              color: ClubGlass.tileFill,
+              borderRadius: BorderRadius.circular(14.r),
+              border: Border.all(color: ClubGlass.tileBorder),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -94,63 +93,60 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      Icons.location_on_rounded,
-                      size: 18.r,
-                      color: VybeColors.gray400,
+                    Padding(
+                      padding: EdgeInsets.only(top: 1.h, right: 10.w),
+                      child: Icon(
+                        Icons.place_outlined,
+                        size: 18.r,
+                        color: const Color(0x99FFFFFF),
+                      ),
                     ),
-                    SizedBox(width: 10.w),
                     Expanded(
                       child: Text(
                         address,
-                        style: TextStyle(
-                          fontFamily: 'Pretendard',
-                          fontSize: 14.sp,
-                          color: Colors.white,
-                          height: 1.5,
-                        ),
+                        style: ClubGlass.body(color: Colors.white),
                       ),
                     ),
                   ],
                 ),
-                SizedBox(height: 8.h),
-                Padding(
-                  padding: EdgeInsets.only(left: 28.w),
-                  child: Row(
-                    children: [
-                      const SubwayLineBadge(line: '9호선'),
-                      SizedBox(width: 6.w),
-                      Text(
-                        '상수역 1번 출구에서 422m',
-                        style: TextStyle(
-                          fontFamily: 'Pretendard',
-                          fontSize: 13.sp,
-                          color: VybeColors.gray300,
-                        ),
-                      ),
-                    ],
+                if (nearest != null) ...[
+                  SizedBox(height: 9.h),
+                  Padding(
+                    padding: EdgeInsets.only(left: 28.w),
+                    child: _subwayRow(nearest),
                   ),
-                ),
+                ],
               ],
             ),
           ),
           SizedBox(height: 10.h),
-          // action chips
+          // 주소 복사 · 길찾기
           Row(
             children: [
-              _actionChip(
-                icon: Icons.copy_rounded,
-                label: '주소 복사',
-                accent: false,
-                onTap: () => _copyAddress(address),
+              Expanded(
+                child: _actionChip(
+                  icon: Icons.copy_rounded,
+                  label: '주소 복사',
+                  onTap: () async {
+                    await Clipboard.setData(ClipboardData(text: address));
+                    if (!mounted) return;
+                    VybeToast.show(context, message: '주소를 복사했어요');
+                  },
+                ),
               ),
               SizedBox(width: 8.w),
-              _actionChip(icon: Icons.map_rounded, label: '지도', accent: false),
-              SizedBox(width: 8.w),
-              _actionChip(
-                icon: Icons.near_me_rounded,
-                label: '길찾기',
-                accent: true,
+              Expanded(
+                child: _actionChip(
+                  icon: Icons.near_me_outlined,
+                  label: '길찾기',
+                  accent: true,
+                  onTap: () => launchDirections(
+                    context,
+                    lat: club?.lat ?? 0,
+                    lng: club?.lng ?? 0,
+                    name: club?.name ?? '',
+                  ),
+                ),
               ),
             ],
           ),
@@ -159,56 +155,188 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
     );
   }
 
-  Future<void> _copyAddress(String address) async {
-    await Clipboard.setData(ClipboardData(text: address));
-    if (!mounted) return;
-    VybeToast.show(context, message: '주소가 복사되었습니다');
+  String? _subwayLabel(Map<String, dynamic>? subway) {
+    if (subway == null) return null;
+    final station = subway['stationName'] as String? ?? '';
+    final distance = (subway['distanceM'] as num?)?.toInt() ?? 0;
+    if (station.isEmpty) return null;
+    return distance > 0 ? '$station에서 ${distance}m' : station;
+  }
+
+  Widget _subwayRow(Map<String, dynamic> subway) {
+    final lines = List<String>.from(subway['lines'] as List? ?? const []);
+    return Row(
+      children: [
+        if (lines.isNotEmpty) ...[
+          SubwayLineBadge(line: lines.first),
+          SizedBox(width: 6.w),
+        ],
+        Flexible(
+          child: Text(
+            _subwayLabel(subway) ?? '',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: ClubGlass.caption(),
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _actionChip({
     required IconData icon,
     required String label,
-    required bool accent,
-    VoidCallback? onTap,
+    required VoidCallback onTap,
+    bool accent = false,
   }) {
-    final color = accent ? VybeColors.mainLime500 : VybeColors.gray200;
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: EdgeInsets.symmetric(vertical: 10.h),
-          decoration: BoxDecoration(
-            color: VybeColors.gray900,
-            borderRadius: BorderRadius.circular(8.r),
-            border: Border.all(color: VybeColors.gray800),
+    final color = accent ? VybeColors.mainLime500 : ClubGlass.t2;
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 11.h),
+        decoration: BoxDecoration(
+          color: accent
+              ? VybeColors.mainLime500.withValues(alpha: 0.13)
+              : ClubGlass.tileFill,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(
+            color: accent
+                ? VybeColors.mainLime500.withValues(alpha: 0.3)
+                : ClubGlass.tileBorder,
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 14.r, color: color),
-              SizedBox(width: 6.w),
-              Text(
-                label,
-                style: TextStyle(
-                  fontFamily: 'Pretendard',
-                  fontSize: 13.sp,
-                  fontWeight: FontWeight.w600,
-                  color: color,
-                ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 14.r, color: color),
+            SizedBox(width: 6.w),
+            Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'Pretendard',
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w600,
+                color: color,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  // ── DETAIL INFO ──
+  // ==========================================================================
+  // 상세 정보
+  // ==========================================================================
 
-  Widget _buildDetailInfoSection(ClubModel? club, ClubInfoModel? clubInfo) {
-    final today = DateTime.now().weekday - 1;
+  Widget _buildDetailCard(ClubModel? club) {
     final hours = club?.operatingHours ?? const OperatingHours();
-    final days = [
+    final today = hours.today;
+    final isOpen = today.isCurrentlyOpen;
+    final phone = club?.phone ?? '';
+    final igHandle = instagramHandle(club?.instagramUrl ?? '');
+
+    return GlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const GlassSectionHead(title: '상세 정보'),
+          Transform.translate(
+            offset: Offset(0, -4.h),
+            child: Column(
+              children: [
+                // 영업시간 — 상세 탭에서는 요일 전체를 항상 펼쳐 보여준다.
+                GlassInfoRow(
+                  icon: Icons.schedule_rounded,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            isOpen ? '영업중' : '영업종료',
+                            style: ClubGlass.body(
+                              color: isOpen
+                                  ? VybeColors.mainLime500
+                                  : ClubGlass.t4,
+                            ).copyWith(fontWeight: FontWeight.w700),
+                          ),
+                          if (today.close != null) ...[
+                            SizedBox(width: 7.w),
+                            const GlassDot(),
+                            SizedBox(width: 7.w),
+                            Flexible(
+                              child: Text(
+                                isOpen
+                                    ? '${today.close}에 영업 종료'
+                                    : '${today.open}에 영업 시작',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: ClubGlass.body(),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      SizedBox(height: 12.h),
+                      _weekHours(hours),
+                    ],
+                  ),
+                ),
+                GlassInfoRow(
+                  icon: Icons.confirmation_number_outlined,
+                  child: Row(
+                    children: [
+                      Text('입장료 ', style: ClubGlass.body()),
+                      Text(
+                        _entryFee(club),
+                        style: TextStyle(
+                          fontFamily: 'Pretendard',
+                          fontSize: 14.sp,
+                          height: 20 / 14,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                GlassInfoRow(
+                  icon: Icons.phone_rounded,
+                  child: GestureDetector(
+                    onTap: phone.isEmpty
+                        ? null
+                        : () => launchPhoneCall(context, phone),
+                    behavior: HitTestBehavior.opaque,
+                    child: Text(
+                      phone.isEmpty ? '등록된 번호가 없어요' : phone,
+                      style: ClubGlass.body(
+                        color: phone.isEmpty ? ClubGlass.t4 : ClubGlass.link,
+                      ),
+                    ),
+                  ),
+                ),
+                GlassInfoRow(
+                  icon: Icons.link_rounded,
+                  last: true,
+                  child: Text(
+                    igHandle.isEmpty ? '등록된 링크가 없어요' : '@$igHandle',
+                    style: ClubGlass.body(
+                      color: igHandle.isEmpty ? ClubGlass.t4 : ClubGlass.link,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _weekHours(OperatingHours hours) {
+    final week = [
       hours.mon,
       hours.tue,
       hours.wed,
@@ -217,420 +345,144 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
       hours.sat,
       hours.sun,
     ];
-    final todayHours = hours.today;
-    final isOpen = todayHours.isCurrentlyOpen;
-    final phone = club?.phone ?? '';
-    final instagram = instagramHandle(club?.instagramUrl ?? '');
-    final openChatUrl = clubInfo?.openChatUrl ?? '';
-    final cautions = clubInfo?.cautions ?? const <String>[];
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
+    final todayIndex = DateTime.now().weekday - 1;
+
+    return Column(
+      children: [
+        for (var i = 0; i < week.length; i++)
+          Padding(
+            padding: EdgeInsets.only(bottom: i == week.length - 1 ? 0 : 9.h),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 16.w,
+                  child: Text(
+                    _weekdayLabels[i],
+                    style: ClubGlass.caption(
+                      color: i == todayIndex ? Colors.white : ClubGlass.t3,
+                      weight: i == todayIndex
+                          ? FontWeight.w700
+                          : FontWeight.w400,
+                    ),
+                  ),
+                ),
+                SizedBox(width: 12.w),
+                Text(
+                  week[i].isOpen
+                      ? '${week[i].open} - ${week[i].close}'
+                      : '정기휴무',
+                  style: ClubGlass.caption(
+                    color: !week[i].isOpen
+                        ? VybeColors.accentRed500
+                        : i == todayIndex
+                        ? Colors.white
+                        : ClubGlass.t3,
+                    weight: i == todayIndex || !week[i].isOpen
+                        ? FontWeight.w600
+                        : FontWeight.w400,
+                  ),
+                ),
+                if (i == todayIndex) ...[
+                  SizedBox(width: 8.w),
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 7.w,
+                      vertical: 2.h,
+                    ),
+                    decoration: BoxDecoration(
+                      color: VybeColors.mainPurple500.withValues(alpha: 0.22),
+                      borderRadius: BorderRadius.circular(5.r),
+                    ),
+                    child: Text(
+                      '오늘',
+                      style: ClubGlass.caption(
+                        color: ClubGlass.accentLavender,
+                        size: 10,
+                        lineHeight: 12,
+                        weight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  String _entryFee(ClubModel? club) {
+    final min = club?.entryFeeMin ?? 0;
+    final max = club?.entryFeeMax ?? 0;
+    if (min == 0 && max == 0) return '무료';
+    if (min == max) return '${formatThousands(min)}원';
+    return '${formatThousands(min)} ~ ${formatThousands(max)}원';
+  }
+
+  // ==========================================================================
+  // 이용 안내
+  // ==========================================================================
+
+  Widget _buildCautionCard(List<String> cautions) {
+    return GlassCard(
+      fill: VybeColors.mainPurple500.withValues(alpha: 0.16),
+      border: VybeColors.mainPurple500.withValues(alpha: 0.32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '상세 정보',
-            style: TextStyle(
-              fontFamily: 'Pretendard',
-              fontSize: 20.sp,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
+          Row(
+            children: [
+              Icon(
+                Icons.info_outline_rounded,
+                size: 16.r,
+                color: VybeColors.mainLime500,
+              ),
+              SizedBox(width: 7.w),
+              Text('이용 안내', style: ClubGlass.title()),
+            ],
           ),
-          SizedBox(height: 8.h),
-
-          // hours row
-          _infoRowFull(
-            icon: Icons.access_time_rounded,
-            label: '영업 시간',
-            child: GestureDetector(
-              onTap: () => setState(() => _hoursExpanded = !_hoursExpanded),
-              child: Column(
+          SizedBox(height: 14.h),
+          for (var i = 0; i < cautions.length; i++)
+            Padding(
+              padding: EdgeInsets.only(
+                bottom: i == cautions.length - 1 ? 0 : 10.h,
+              ),
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 8.w,
-                              vertical: 2.h,
-                            ),
-                            decoration: BoxDecoration(
-                              color:
-                                  (isOpen
-                                          ? VybeColors.mainLime500
-                                          : VybeColors.gray500)
-                                      .withValues(alpha: 0.16),
-                              borderRadius: BorderRadius.circular(99.r),
-                            ),
-                            child: Text(
-                              isOpen ? '영업중' : '영업종료',
-                              style: TextStyle(
-                                fontFamily: 'Pretendard',
-                                fontSize: 12.sp,
-                                fontWeight: FontWeight.w700,
-                                color: isOpen
-                                    ? VybeColors.mainLime500
-                                    : VybeColors.gray500,
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 8.w),
-                          Text(
-                            _dayHoursText(todayHours),
-                            style: TextStyle(
-                              fontFamily: 'Pretendard',
-                              fontSize: 14.sp,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                      AnimatedRotation(
-                        turns: _hoursExpanded ? 0.5 : 0,
-                        duration: const Duration(milliseconds: 200),
-                        child: Icon(
-                          Icons.keyboard_arrow_down_rounded,
-                          size: 14.r,
-                          color: VybeColors.gray500,
-                        ),
-                      ),
-                    ],
+                  Container(
+                    width: 4.r,
+                    height: 4.r,
+                    margin: EdgeInsets.only(top: 7.h, right: 8.w),
+                    decoration: const BoxDecoration(
+                      color: VybeColors.mainLime500,
+                      shape: BoxShape.circle,
+                    ),
                   ),
-                  AnimatedSize(
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
-                    alignment: Alignment.topCenter,
-                    child: ClipRect(
-                      child: Align(
-                        alignment: Alignment.topCenter,
-                        heightFactor: _hoursExpanded ? 1 : 0,
-                        child: Padding(
-                          padding: EdgeInsets.only(top: 12.h),
-                          child: Column(
-                            children: List.generate(days.length, (i) {
-                              final isToday = i == today;
-                              return Padding(
-                                padding: EdgeInsets.only(bottom: 8.h),
-                                child: Row(
-                                  children: [
-                                    SizedBox(
-                                      width: 18.w,
-                                      child: Text(
-                                        _weekdayLabels[i],
-                                        style: TextStyle(
-                                          fontFamily: 'Pretendard',
-                                          fontSize: 13.sp,
-                                          fontWeight: isToday
-                                              ? FontWeight.w700
-                                              : FontWeight.w400,
-                                          color: isToday
-                                              ? Colors.white
-                                              : VybeColors.gray500,
-                                        ),
-                                      ),
-                                    ),
-                                    SizedBox(width: 12.w),
-                                    Text(
-                                      _dayHoursText(days[i]),
-                                      style: TextStyle(
-                                        fontFamily: 'Pretendard',
-                                        fontSize: 13.sp,
-                                        fontWeight: isToday
-                                            ? FontWeight.w600
-                                            : FontWeight.w400,
-                                        color: isToday
-                                            ? Colors.white
-                                            : VybeColors.gray500,
-                                      ),
-                                    ),
-                                    if (isToday) ...[
-                                      SizedBox(width: 8.w),
-                                      Container(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: 6.w,
-                                          vertical: 1.h,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0x247731FE),
-                                          borderRadius: BorderRadius.circular(
-                                            4.r,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          '오늘',
-                                          style: TextStyle(
-                                            fontFamily: 'Pretendard',
-                                            fontSize: 10.sp,
-                                            fontWeight: FontWeight.w700,
-                                            color: VybeColors.mainPurple500,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              );
-                            }),
-                          ),
-                        ),
+                  Expanded(
+                    child: Text(
+                      cautions[i],
+                      style: TextStyle(
+                        fontFamily: 'Pretendard',
+                        fontSize: 14.sp,
+                        height: 19 / 14,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xD9FFFFFF),
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-
-          // phone row
-          _infoRowFull(
-            icon: Icons.phone_rounded,
-            label: '전화번호',
-            child: Row(
-              children: [
-                Text(
-                  phone.isNotEmpty ? phone : '-',
-                  style: TextStyle(
-                    fontFamily: 'Pretendard',
-                    fontSize: 14.sp,
-                    color: Colors.white,
-                  ),
-                ),
-                SizedBox(width: 6.w),
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => launchPhoneCall(context, phone),
-                  child: Text(
-                    '전화 걸기',
-                    style: TextStyle(
-                      fontFamily: 'Pretendard',
-                      fontSize: 12.sp,
-                      color: VybeColors.mainLime500,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // instagram row
-          _infoRowFull(
-            icon: Icons.camera_alt_rounded,
-            label: '인스타그램',
-            child: Row(
-              children: [
-                Text(
-                  instagram.isNotEmpty ? instagram : '-',
-                  style: TextStyle(
-                    fontFamily: 'Pretendard',
-                    fontSize: 14.sp,
-                    color: VybeColors.accentBlue500,
-                  ),
-                ),
-                SizedBox(width: 6.w),
-                Icon(
-                  Icons.open_in_new_rounded,
-                  size: 12.r,
-                  color: VybeColors.accentBlue500,
-                ),
-              ],
-            ),
-          ),
-
-          // openchat row
-          _infoRowFull(
-            icon: Icons.chat_bubble_rounded,
-            label: '오픈 채팅',
-            child: Row(
-              children: [
-                Flexible(
-                  child: Text(
-                    openChatUrl.isNotEmpty ? stripScheme(openChatUrl) : '-',
-                    style: TextStyle(
-                      fontFamily: 'Pretendard',
-                      fontSize: 14.sp,
-                      color: VybeColors.accentBlue500,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                SizedBox(width: 6.w),
-                Icon(
-                  Icons.open_in_new_rounded,
-                  size: 12.r,
-                  color: VybeColors.accentBlue500,
-                ),
-              ],
-            ),
-          ),
-
-          // notice section
-          if (cautions.isNotEmpty) ...[
-            SizedBox(height: 16.h),
-            GestureDetector(
-              onTap: () => setState(() => _noticeExpanded = !_noticeExpanded),
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
-                decoration: BoxDecoration(
-                  color: VybeColors.accentRed500.withValues(alpha: 0.08),
-                  border: Border.all(
-                    color: VybeColors.accentRed500.withValues(alpha: 0.25),
-                  ),
-                  borderRadius: _noticeExpanded
-                      ? BorderRadius.vertical(top: Radius.circular(12.r))
-                      : BorderRadius.circular(12.r),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.warning_amber_rounded,
-                      size: 16.r,
-                      color: VybeColors.accentRed500,
-                    ),
-                    SizedBox(width: 8.w),
-                    Text(
-                      '안내 및 유의사항',
-                      style: TextStyle(
-                        fontFamily: 'Pretendard',
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w700,
-                        color: VybeColors.accentRed500,
-                      ),
-                    ),
-                    const Spacer(),
-                    AnimatedRotation(
-                      turns: _noticeExpanded ? 0.5 : 0,
-                      duration: const Duration(milliseconds: 200),
-                      child: Icon(
-                        Icons.keyboard_arrow_down_rounded,
-                        size: 14.r,
-                        color: VybeColors.accentRed500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            AnimatedSize(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              alignment: Alignment.topCenter,
-              child: ClipRect(
-                child: Align(
-                  alignment: Alignment.topCenter,
-                  heightFactor: _noticeExpanded ? 1 : 0,
-                  child: Container(
-                    padding: EdgeInsets.fromLTRB(14.w, 14.h, 14.w, 16.h),
-                    decoration: BoxDecoration(
-                      color: VybeColors.accentRed500.withValues(alpha: 0.04),
-                      border: Border(
-                        left: BorderSide(
-                          color: VybeColors.accentRed500.withValues(
-                            alpha: 0.25,
-                          ),
-                        ),
-                        right: BorderSide(
-                          color: VybeColors.accentRed500.withValues(
-                            alpha: 0.25,
-                          ),
-                        ),
-                        bottom: BorderSide(
-                          color: VybeColors.accentRed500.withValues(
-                            alpha: 0.25,
-                          ),
-                        ),
-                      ),
-                      borderRadius: BorderRadius.vertical(
-                        bottom: Radius.circular(12.r),
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: cautions.map((notice) {
-                        return Padding(
-                          padding: EdgeInsets.only(bottom: 10.h),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '•',
-                                style: TextStyle(
-                                  fontFamily: 'Pretendard',
-                                  fontSize: 14.sp,
-                                  color: VybeColors.gray500,
-                                  height: 1.43,
-                                ),
-                              ),
-                              SizedBox(width: 8.w),
-                              Expanded(
-                                child: Text(
-                                  notice,
-                                  style: TextStyle(
-                                    fontFamily: 'Pretendard',
-                                    fontSize: 14.sp,
-                                    color: VybeColors.gray200,
-                                    height: 1.43,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _infoRowFull({
-    required IconData icon,
-    required String label,
-    required Widget child,
-  }) {
-    return Container(
-      padding: EdgeInsets.symmetric(vertical: 16.h),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: VybeColors.gray900)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 16.r, color: VybeColors.gray400),
-              SizedBox(width: 8.w),
-              Text(
-                label,
-                style: TextStyle(
-                  fontFamily: 'Pretendard',
-                  fontSize: 13.sp,
-                  fontWeight: FontWeight.w500,
-                  color: VybeColors.gray400,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 8.h),
-          Padding(
-            padding: EdgeInsets.only(left: 24.w),
-            child: child,
-          ),
         ],
       ),
     );
   }
 }
 
-// ── MAP CARD ──
+// ============================================================================
+// MAP CARD
+// ============================================================================
 
 class _NaverMapCard extends ConsumerStatefulWidget {
   final String clubId;
@@ -655,8 +507,8 @@ class _NaverMapCardState extends ConsumerState<_NaverMapCard> {
         height: 200.h,
         decoration: BoxDecoration(
           color: const Color(0xFF1A1A1F),
-          borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(color: VybeColors.gray800),
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(color: ClubGlass.tileBorder),
         ),
       );
     }
@@ -668,7 +520,7 @@ class _NaverMapCardState extends ConsumerState<_NaverMapCard> {
     final myLocation = ref.watch(userLocationProvider);
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(12.r),
+      borderRadius: BorderRadius.circular(16.r),
       child: SizedBox(
         width: double.infinity,
         height: 200.h,
