@@ -773,9 +773,7 @@ class TableTierSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final keys = _tiers.keys.where(
-      (k) => _floor.any((t) => t.tierKey == k),
-    );
+    final keys = _tiers.keys.where((k) => _floor.any((t) => t.tierKey == k));
 
     return Column(
       children: [

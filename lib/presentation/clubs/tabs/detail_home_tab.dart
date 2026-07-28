@@ -14,9 +14,9 @@ import 'package:vybe/presentation/clubs/performance_schedule_screen.dart';
 import 'package:vybe/presentation/clubs/table_pricing_screen.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_schedule_viewmodel.dart';
+import 'package:vybe/presentation/clubs/widgets/club_detail_skeleton.dart';
 import 'package:vybe/presentation/clubs/widgets/club_glass.dart';
 import 'package:vybe/presentation/clubs/widgets/schedule_shared.dart';
-import 'package:vybe/presentation/clubs/widgets/subway_line_badge.dart';
 import 'package:vybe/presentation/clubs/widgets/table_pricing_section.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 
@@ -41,12 +41,6 @@ class DetailHomeTab extends ConsumerStatefulWidget {
   ConsumerState<DetailHomeTab> createState() => _DetailHomeTabState();
 }
 
-/// 주변 클럽 카드 썸네일 한 변 (정사각, `.w` 적용).
-const double _kNearbyThumb = 134;
-
-/// 주변 클럽 카드 이름 + 지역·장르 두 줄이 차지할 높이 (`.h` 적용).
-const double _kNearbyTextBlock = 44;
-
 class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
   bool _addrExpanded = false;
   bool _hoursExpanded = false;
@@ -63,17 +57,17 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
       padding: glassTabPadding(context),
       children: [
         clubAsync.isLoading
-            ? const InfoSkeleton()
+            ? const DetailInfoCardSkeleton()
             : _buildInfoCard(club, clubInfoAsync.value),
         glassGap(),
         _buildLineupCard(club),
         _buildTableCard(club),
         menusAsync.isLoading
-            ? const MenuSkeleton()
+            ? const DetailMenuCardSkeleton()
             : _buildMenuCard(menusAsync.value ?? const []),
         glassGap(),
         clubAsync.isLoading
-            ? const PhotosSkeleton()
+            ? const DetailPhotoCardSkeleton()
             : _buildPhotoCard(club?.imageUrls ?? const []),
         glassGap(),
         _buildNearbyCard(club),
@@ -88,7 +82,6 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
   Widget _buildInfoCard(ClubModel? club, ClubInfoModel? clubInfo) {
     final hours = club?.operatingHours ?? const OperatingHours();
     final today = hours.today;
-    final isOpen = today.isCurrentlyOpen;
     final igHandle = instagramHandle(club?.instagramUrl ?? '');
     final subways = clubInfo?.nearbySubways ?? const [];
 
@@ -148,7 +141,7 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
                                   padding: EdgeInsets.only(
                                     bottom: i == subways.length - 1 ? 0 : 8.h,
                                   ),
-                                  child: _subwayLine(subways[i]),
+                                  child: SubwayStationLine(subway: subways[i]),
                                 ),
                             ],
                           ),
@@ -168,7 +161,7 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
                         behavior: HitTestBehavior.opaque,
                         child: Row(
                           children: [
-                            Expanded(child: _openStatusLine(isOpen, today)),
+                            Expanded(child: OpenHoursLine(today: today)),
                             AnimatedRotation(
                               turns: _hoursExpanded ? 0.5 : 0,
                               duration: const Duration(milliseconds: 220),
@@ -184,7 +177,7 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
                       if (_hoursExpanded)
                         Padding(
                           padding: EdgeInsets.only(top: 10.h),
-                          child: _weekHours(hours),
+                          child: WeekHoursTable(hours: hours, rowGap: 7),
                         ),
                     ],
                   ),
@@ -196,7 +189,10 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
                     children: [
                       Text('입장료 ', style: ClubGlass.body()),
                       Text(
-                        _entryFee(club),
+                        formatEntryFee(
+                          min: club?.entryFeeMin ?? 0,
+                          max: club?.entryFeeMax ?? 0,
+                        ),
                         style: TextStyle(
                           fontFamily: 'Pretendard',
                           fontSize: 14.sp,
@@ -227,146 +223,16 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
     );
   }
 
-  Widget _subwayLine(Map<String, dynamic> subway) {
-    final lines = List<String>.from(subway['lines'] as List? ?? const []);
-    final station = subway['stationName'] as String? ?? '';
-    final distance = (subway['distanceM'] as num?)?.toInt() ?? 0;
-
-    return Row(
-      children: [
-        if (lines.isNotEmpty) ...[
-          SubwayLineBadge(line: lines.first),
-          SizedBox(width: 6.w),
-        ],
-        Flexible(
-          child: Text(
-            distance > 0 ? '$station에서 ${distance}m' : station,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: ClubGlass.caption(),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _openStatusLine(bool isOpen, DayHours today) {
-    return Row(
-      children: [
-        Text(
-          isOpen ? '영업중' : '영업종료',
-          style: ClubGlass.body(
-            color: isOpen ? VybeColors.mainLime500 : ClubGlass.t4,
-          ).copyWith(fontWeight: FontWeight.w700),
-        ),
-        if (today.close != null) ...[
-          SizedBox(width: 7.w),
-          const GlassDot(),
-          SizedBox(width: 7.w),
-          Flexible(
-            child: Text(
-              isOpen ? '${today.close}에 영업 종료' : '${today.open}에 영업 시작',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: ClubGlass.body(),
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _weekHours(OperatingHours hours) {
-    final week = [
-      ('월', hours.mon),
-      ('화', hours.tue),
-      ('수', hours.wed),
-      ('목', hours.thu),
-      ('금', hours.fri),
-      ('토', hours.sat),
-      ('일', hours.sun),
-    ];
-    final todayIndex = DateTime.now().weekday - 1;
-
-    return Column(
-      children: [
-        for (var i = 0; i < week.length; i++)
-          Padding(
-            padding: EdgeInsets.only(bottom: i == week.length - 1 ? 0 : 7.h),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 16.w,
-                  child: Text(
-                    week[i].$1,
-                    style: ClubGlass.caption(
-                      color: i == todayIndex ? Colors.white : ClubGlass.t3,
-                      weight: i == todayIndex
-                          ? FontWeight.w700
-                          : FontWeight.w400,
-                    ),
-                  ),
-                ),
-                SizedBox(width: 12.w),
-                Text(
-                  week[i].$2.isOpen
-                      ? '${week[i].$2.open} - ${week[i].$2.close}'
-                      : '정기휴무',
-                  style: ClubGlass.caption(
-                    color: !week[i].$2.isOpen
-                        ? VybeColors.accentRed500
-                        : i == todayIndex
-                        ? Colors.white
-                        : ClubGlass.t3,
-                    weight: i == todayIndex || !week[i].$2.isOpen
-                        ? FontWeight.w600
-                        : FontWeight.w400,
-                  ),
-                ),
-                if (i == todayIndex) ...[
-                  SizedBox(width: 8.w),
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 7.w,
-                      vertical: 2.h,
-                    ),
-                    decoration: BoxDecoration(
-                      color: VybeColors.mainPurple500.withValues(alpha: 0.22),
-                      borderRadius: BorderRadius.circular(5.r),
-                    ),
-                    child: Text(
-                      '오늘',
-                      style: ClubGlass.caption(
-                        color: ClubGlass.accentLavender,
-                        size: 10,
-                        lineHeight: 12,
-                        weight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-      ],
-    );
-  }
-
-  String _entryFee(ClubModel? club) {
-    final min = club?.entryFeeMin ?? 0;
-    final max = club?.entryFeeMax ?? 0;
-    if (min == 0 && max == 0) return '무료';
-    if (min == max) return '${formatThousands(min)}원';
-    return '${formatThousands(min)} ~ ${formatThousands(max)}원';
-  }
-
   // ==========================================================================
   // 오늘의 라인업
   // ==========================================================================
 
   Widget _buildLineupCard(ClubModel? club) {
     final async = ref.watch(clubScheduleProvider(widget.clubId));
-    if (async.isLoading) return const ScheduleSkeleton();
+    // 카드 뒤 간격까지 같이 내보내야 로딩 → 콘텐츠 전환에서 간격이 안 튄다.
+    if (async.isLoading) {
+      return Column(children: [const DetailLineupCardSkeleton(), glassGap()]);
+    }
 
     final days = async.value ?? const <ScheduleDay>[];
     if (days.isEmpty) return const SizedBox.shrink();
@@ -599,7 +465,7 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
   Widget _buildNearbyCard(ClubModel? club) {
     final nearbyAsync = ref.watch(nearbyClubsProvider(widget.clubId));
     final nearby = nearbyAsync.value ?? const <ClubModel>[];
-    if (nearbyAsync.isLoading) return const NearbySkeleton();
+    if (nearbyAsync.isLoading) return const DetailNearbyCardSkeleton();
     if (nearby.isEmpty) return const SizedBox.shrink();
 
     return GlassCard(
@@ -619,7 +485,7 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
             // 썸네일은 .w(가로 스케일), 나머지는 .h(세로 스케일)이라 상수 하나로
             // 높이를 잡으면 기기별로 어긋나 오버플로우가 난다 → 실제 구성요소를
             // 그대로 더한다: 썸네일 + 간격 + 텍스트 블록 + 리스트 하단 패딩.
-            height: _kNearbyThumb.w + 9.h + _kNearbyTextBlock.h + 18.h,
+            height: kNearbyThumbSize.w + 9.h + kNearbyTextBlock.h + 18.h,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: EdgeInsets.fromLTRB(18.w, 0, 18.w, 18.h),
@@ -640,13 +506,13 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
       onTap: () => _openClubDetail(club.clubId),
       behavior: HitTestBehavior.opaque,
       child: SizedBox(
-        width: _kNearbyThumb.w,
+        width: kNearbyThumbSize.w,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(
-              width: _kNearbyThumb.w,
-              height: _kNearbyThumb.w,
+              width: kNearbyThumbSize.w,
+              height: kNearbyThumbSize.w,
               child: Stack(
                 fit: StackFit.expand,
                 children: [

@@ -21,14 +21,7 @@ const _kStarAsset = 'assets/icons/common/club_card/star.svg';
 
 /// 별점 라벨 — rating.ceil() 인덱스로 조회.
 /// 0.5 단위라 0.5~1.0 → '별로예요', 1.5~2.0 → '아쉬워요' … 로 묶인다.
-const _kRatingLabels = [
-  '별을 눌러 평가해주세요',
-  '별로예요',
-  '아쉬워요',
-  '괜찮아요',
-  '좋아요',
-  '최고예요',
-];
+const _kRatingLabels = ['별을 눌러 평가해주세요', '별로예요', '아쉬워요', '괜찮아요', '좋아요', '최고예요'];
 
 const _kCautions = [
   '실제 방문한 클럽에 대한 후기만 등록할 수 있어요.',
@@ -548,7 +541,11 @@ class _ReviewWriteScreenState extends ConsumerState<ReviewWriteScreen> {
                   color: Color(0x9E000000),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.close_rounded, size: 12.r, color: Colors.white),
+                child: Icon(
+                  Icons.close_rounded,
+                  size: 12.r,
+                  color: Colors.white,
+                ),
               ),
             ),
           ),
@@ -903,11 +900,7 @@ class _GlassCard extends StatelessWidget {
   final double padding;
   final double radius;
 
-  const _GlassCard({
-    required this.child,
-    this.padding = 18,
-    this.radius = 20,
-  });
+  const _GlassCard({required this.child, this.padding = 18, this.radius = 20});
 
   @override
   Widget build(BuildContext context) {
@@ -978,16 +971,14 @@ class _DashedBorderPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0x38FFFFFF) // rgba(255,255,255,0.22)
+      ..color =
+          const Color(0x38FFFFFF) // rgba(255,255,255,0.22)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
 
     final path = Path()
       ..addRRect(
-        RRect.fromRectAndRadius(
-          Offset.zero & size,
-          Radius.circular(radius),
-        ),
+        RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(radius)),
       );
 
     const dash = 4.0;

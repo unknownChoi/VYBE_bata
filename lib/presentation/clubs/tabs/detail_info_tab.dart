@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/core/providers/location_providers.dart';
 import 'package:vybe/core/utils/map_launcher.dart';
-import 'package:vybe/core/utils/number_format.dart';
 import 'package:vybe/core/utils/phone_launcher.dart';
 import 'package:vybe/core/utils/url_utils.dart';
 import 'package:vybe/data/models/club_info_model.dart';
@@ -14,7 +13,6 @@ import 'package:vybe/data/models/operating_hours.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
 import 'package:vybe/presentation/clubs/widgets/club_glass.dart';
-import 'package:vybe/presentation/clubs/widgets/subway_line_badge.dart';
 import 'package:vybe/presentation/common/widgets/vybe_map_pin.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
@@ -35,8 +33,6 @@ class DetailInfoTab extends ConsumerStatefulWidget {
 }
 
 class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
-  static const _weekdayLabels = ['월', '화', '수', '목', '금', '토', '일'];
-
   @override
   Widget build(BuildContext context) {
     final clubAsync = ref.watch(clubDetailProvider(widget.clubId));
@@ -76,7 +72,7 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          GlassSectionHead(title: '위치', sub: _subwayLabel(nearest)),
+          GlassSectionHead(title: '위치', sub: subwayLabel(nearest)),
           _NaverMapCard(clubId: widget.clubId),
           SizedBox(height: 14.h),
           // 주소 타일
@@ -113,7 +109,7 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
                   SizedBox(height: 9.h),
                   Padding(
                     padding: EdgeInsets.only(left: 28.w),
-                    child: _subwayRow(nearest),
+                    child: SubwayStationLine(subway: nearest),
                   ),
                 ],
               ],
@@ -152,34 +148,6 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
           ),
         ],
       ),
-    );
-  }
-
-  String? _subwayLabel(Map<String, dynamic>? subway) {
-    if (subway == null) return null;
-    final station = subway['stationName'] as String? ?? '';
-    final distance = (subway['distanceM'] as num?)?.toInt() ?? 0;
-    if (station.isEmpty) return null;
-    return distance > 0 ? '$station에서 ${distance}m' : station;
-  }
-
-  Widget _subwayRow(Map<String, dynamic> subway) {
-    final lines = List<String>.from(subway['lines'] as List? ?? const []);
-    return Row(
-      children: [
-        if (lines.isNotEmpty) ...[
-          SubwayLineBadge(line: lines.first),
-          SizedBox(width: 6.w),
-        ],
-        Flexible(
-          child: Text(
-            _subwayLabel(subway) ?? '',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: ClubGlass.caption(),
-          ),
-        ),
-      ],
     );
   }
 
@@ -233,7 +201,6 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
   Widget _buildDetailCard(ClubModel? club) {
     final hours = club?.operatingHours ?? const OperatingHours();
     final today = hours.today;
-    final isOpen = today.isCurrentlyOpen;
     final phone = club?.phone ?? '';
     final igHandle = instagramHandle(club?.instagramUrl ?? '');
 
@@ -252,35 +219,9 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Text(
-                            isOpen ? '영업중' : '영업종료',
-                            style: ClubGlass.body(
-                              color: isOpen
-                                  ? VybeColors.mainLime500
-                                  : ClubGlass.t4,
-                            ).copyWith(fontWeight: FontWeight.w700),
-                          ),
-                          if (today.close != null) ...[
-                            SizedBox(width: 7.w),
-                            const GlassDot(),
-                            SizedBox(width: 7.w),
-                            Flexible(
-                              child: Text(
-                                isOpen
-                                    ? '${today.close}에 영업 종료'
-                                    : '${today.open}에 영업 시작',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: ClubGlass.body(),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
+                      OpenHoursLine(today: today),
                       SizedBox(height: 12.h),
-                      _weekHours(hours),
+                      WeekHoursTable(hours: hours, rowGap: 9),
                     ],
                   ),
                 ),
@@ -290,7 +231,10 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
                     children: [
                       Text('입장료 ', style: ClubGlass.body()),
                       Text(
-                        _entryFee(club),
+                        formatEntryFee(
+                          min: club?.entryFeeMin ?? 0,
+                          max: club?.entryFeeMax ?? 0,
+                        ),
                         style: TextStyle(
                           fontFamily: 'Pretendard',
                           fontSize: 14.sp,
@@ -333,90 +277,6 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
         ],
       ),
     );
-  }
-
-  Widget _weekHours(OperatingHours hours) {
-    final week = [
-      hours.mon,
-      hours.tue,
-      hours.wed,
-      hours.thu,
-      hours.fri,
-      hours.sat,
-      hours.sun,
-    ];
-    final todayIndex = DateTime.now().weekday - 1;
-
-    return Column(
-      children: [
-        for (var i = 0; i < week.length; i++)
-          Padding(
-            padding: EdgeInsets.only(bottom: i == week.length - 1 ? 0 : 9.h),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 16.w,
-                  child: Text(
-                    _weekdayLabels[i],
-                    style: ClubGlass.caption(
-                      color: i == todayIndex ? Colors.white : ClubGlass.t3,
-                      weight: i == todayIndex
-                          ? FontWeight.w700
-                          : FontWeight.w400,
-                    ),
-                  ),
-                ),
-                SizedBox(width: 12.w),
-                Text(
-                  week[i].isOpen
-                      ? '${week[i].open} - ${week[i].close}'
-                      : '정기휴무',
-                  style: ClubGlass.caption(
-                    color: !week[i].isOpen
-                        ? VybeColors.accentRed500
-                        : i == todayIndex
-                        ? Colors.white
-                        : ClubGlass.t3,
-                    weight: i == todayIndex || !week[i].isOpen
-                        ? FontWeight.w600
-                        : FontWeight.w400,
-                  ),
-                ),
-                if (i == todayIndex) ...[
-                  SizedBox(width: 8.w),
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 7.w,
-                      vertical: 2.h,
-                    ),
-                    decoration: BoxDecoration(
-                      color: VybeColors.mainPurple500.withValues(alpha: 0.22),
-                      borderRadius: BorderRadius.circular(5.r),
-                    ),
-                    child: Text(
-                      '오늘',
-                      style: ClubGlass.caption(
-                        color: ClubGlass.accentLavender,
-                        size: 10,
-                        lineHeight: 12,
-                        weight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-      ],
-    );
-  }
-
-  String _entryFee(ClubModel? club) {
-    final min = club?.entryFeeMin ?? 0;
-    final max = club?.entryFeeMax ?? 0;
-    if (min == 0 && max == 0) return '무료';
-    if (min == max) return '${formatThousands(min)}원';
-    return '${formatThousands(min)} ~ ${formatThousands(max)}원';
   }
 
   // ==========================================================================

@@ -16,6 +16,7 @@ import 'package:vybe/presentation/clubs/tabs/detail_menu_tab.dart';
 import 'package:vybe/presentation/clubs/tabs/detail_review_tab.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
 import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
+import 'package:vybe/presentation/clubs/widgets/club_detail_skeleton.dart';
 import 'package:vybe/presentation/clubs/widgets/club_glass.dart';
 import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
@@ -56,11 +57,19 @@ class _ClubDetailScreenState extends ConsumerState<ClubDetailScreen>
   /// 아이덴티티 카드가 히어로를 덮는 깊이 (디자인 -34px).
   static const double _identityOverlap = 34;
 
+  /// 마지막으로 반영한 탭 인덱스. TabController는 스와이프 애니메이션 중에도
+  /// 매 프레임 notify하는데, 그때마다 setState하면 히어로·아이덴티티 카드까지
+  /// 전부 다시 그린다. 인덱스가 실제로 바뀔 때만 갱신한다.
+  int _activeIndex = 0;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: _tabs.length, vsync: this);
-    _tabController.addListener(() => setState(() {}));
+    _tabController.addListener(() {
+      if (_tabController.index == _activeIndex) return;
+      setState(() => _activeIndex = _tabController.index);
+    });
   }
 
   @override
@@ -89,10 +98,10 @@ class _ClubDetailScreenState extends ConsumerState<ClubDetailScreen>
             controller: widget.scrollController,
             physics: const ClampingScrollPhysics(),
             headerSliverBuilder: (context, innerBoxIsScrolled) => [
+              // 로딩 중에도 헤더 골격은 그대로 두고 안쪽만 스켈레톤으로 바꾼다 —
+              // 레이아웃이 안 튀고 뒤로가기 버튼도 계속 눌린다.
               SliverToBoxAdapter(
-                child: clubAsync.isLoading
-                    ? const HeroSkeleton()
-                    : _buildHeader(club),
+                child: _buildHeader(club, loading: clubAsync.isLoading),
               ),
             ],
             // 탭바를 body 최상단에 두면 헤더가 스크롤되어 사라진 뒤 자연히 화면
@@ -104,7 +113,7 @@ class _ClubDetailScreenState extends ConsumerState<ClubDetailScreen>
               children: [
                 _GlassTabs(
                   tabs: _tabs,
-                  activeIndex: _tabController.index,
+                  activeIndex: _activeIndex,
                   onSelect: _goToTab,
                 ),
                 Expanded(child: _buildTabViews()),
@@ -120,28 +129,28 @@ class _ClubDetailScreenState extends ConsumerState<ClubDetailScreen>
     return TabBarView(
       controller: _tabController,
       children: [
-                DetailHomeTab(
-                  clubId: widget.clubId,
-                  onViewAllPhotos: () => _goToTab(2),
-                  onViewAllMenus: () => _goToTab(1),
-                  onViewInfo: () => _goToTab(4),
-                ),
-                _LazyTabBody(
-                  isSelected: _tabController.index == 1,
-                  builder: () => DetailMenuTab(clubId: widget.clubId),
-                ),
-                _LazyTabBody(
-                  isSelected: _tabController.index == 2,
-                  builder: () => DetailGalleryTab(clubId: widget.clubId),
-                ),
-                _LazyTabBody(
-                  isSelected: _tabController.index == 3,
-                  builder: () => DetailReviewTab(clubId: widget.clubId),
-                ),
-                _LazyTabBody(
-                  isSelected: _tabController.index == 4,
-                  builder: () => DetailInfoTab(clubId: widget.clubId),
-                ),
+        DetailHomeTab(
+          clubId: widget.clubId,
+          onViewAllPhotos: () => _goToTab(2),
+          onViewAllMenus: () => _goToTab(1),
+          onViewInfo: () => _goToTab(4),
+        ),
+        _LazyTabBody(
+          isSelected: _activeIndex == 1,
+          builder: () => DetailMenuTab(clubId: widget.clubId),
+        ),
+        _LazyTabBody(
+          isSelected: _activeIndex == 2,
+          builder: () => DetailGalleryTab(clubId: widget.clubId),
+        ),
+        _LazyTabBody(
+          isSelected: _activeIndex == 3,
+          builder: () => DetailReviewTab(clubId: widget.clubId),
+        ),
+        _LazyTabBody(
+          isSelected: _activeIndex == 4,
+          builder: () => DetailInfoTab(clubId: widget.clubId),
+        ),
       ],
     );
   }
@@ -151,7 +160,7 @@ class _ClubDetailScreenState extends ConsumerState<ClubDetailScreen>
   /// 카드가 히어로를 [_identityOverlap] 만큼 덮어야 해서 Column 대신 Stack —
   /// 아래 블록을 `히어로 높이 - 겹침` 위치에서 시작시키면 전체 높이가
   /// 자연스럽게 맞는다(음수 마진 불가 대응).
-  Widget _buildHeader(ClubModel? club) {
+  Widget _buildHeader(ClubModel? club, {bool loading = false}) {
     return Stack(
       children: [
         SizedBox(
@@ -160,6 +169,7 @@ class _ClubDetailScreenState extends ConsumerState<ClubDetailScreen>
           child: _Hero(
             onBack: widget.onClose ?? () => Navigator.of(context).maybePop(),
             imageUrls: club?.heroImageUrls ?? const [],
+            loading: loading,
           ),
         ),
         Padding(
@@ -297,7 +307,15 @@ class _LazyTabBodyState extends State<_LazyTabBody>
 class _Hero extends StatefulWidget {
   final VoidCallback onBack;
   final List<String> imageUrls;
-  const _Hero({required this.onBack, required this.imageUrls});
+
+  /// 클럽 로딩 중 — 이미지 자리에 스켈레톤을 깐다.
+  final bool loading;
+
+  const _Hero({
+    required this.onBack,
+    required this.imageUrls,
+    this.loading = false,
+  });
 
   @override
   State<_Hero> createState() => _HeroState();
@@ -338,7 +356,9 @@ class _HeroState extends State<_Hero> {
     return Stack(
       fit: StackFit.expand,
       children: [
-        if (total > 0)
+        if (widget.loading)
+          const DetailHeroSkeleton()
+        else if (total > 0)
           PageView.builder(
             controller: _pageController,
             onPageChanged: (i) => setState(() => _currentIndex = i),
@@ -460,7 +480,7 @@ class _IdentityCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final club = ref.watch(clubDetailProvider(clubId)).value;
-    if (club == null) return const TitleSkeleton();
+    if (club == null) return const DetailIdentityCardSkeleton();
 
     final isOpen = club.operatingHours.today.isCurrentlyOpen;
 
@@ -600,7 +620,8 @@ class _IdentityCard extends ConsumerWidget {
   }
 }
 
-/// VYBE 추천 클럽 뱃지 — 보라 그라데이션 + 라임 테두리 pill.
+/// VYBE 추천 클럽 뱃지 — 라임 그라데이션 pill.
+/// 라임 배경이라 아이콘·텍스트는 잉크(어두운 색)로 둬야 읽힌다.
 class _VybeRecommendBadge extends StatelessWidget {
   const _VybeRecommendBadge();
 
@@ -609,21 +630,16 @@ class _VybeRecommendBadge extends StatelessWidget {
     return Container(
       padding: EdgeInsets.fromLTRB(8.w, 5.h, 10.w, 5.h),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            VybeColors.mainPurple500.withValues(alpha: 0.92),
-            VybeColors.mainPurple500.withValues(alpha: 0.5),
-          ],
+          colors: [VybeColors.mainLime500, VybeColors.mainLime700],
         ),
         borderRadius: BorderRadius.circular(999.r),
-        border: Border.all(
-          color: VybeColors.mainLime500.withValues(alpha: 0.5),
-        ),
+        border: Border.all(color: const Color(0x3DFFFFFF)),
         boxShadow: [
           BoxShadow(
-            color: VybeColors.mainPurple500.withValues(alpha: 0.35),
+            color: VybeColors.mainLime500.withValues(alpha: 0.32),
             blurRadius: 18.r,
             offset: Offset(0, 6.h),
           ),
@@ -636,6 +652,7 @@ class _VybeRecommendBadge extends StatelessWidget {
             'assets/icons/common/club_card/vybe_recommend.svg',
             width: 11.r,
             height: 11.r,
+            colorFilter: const ColorFilter.mode(ClubGlass.ink, BlendMode.srcIn),
           ),
           SizedBox(width: 5.w),
           Text(
@@ -646,7 +663,7 @@ class _VybeRecommendBadge extends StatelessWidget {
               height: 12 / 11,
               fontWeight: FontWeight.w800,
               letterSpacing: 11 * 0.02,
-              color: Colors.white,
+              color: ClubGlass.ink,
             ),
           ),
         ],

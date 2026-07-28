@@ -2,7 +2,10 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vybe/core/utils/number_format.dart';
+import 'package:vybe/data/models/operating_hours.dart';
 import 'package:vybe/design_system/colors.dart';
+import 'package:vybe/presentation/clubs/widgets/subway_line_badge.dart';
 
 /// 클럽 상세 리퀴드 글래스 공통 요소.
 ///
@@ -374,7 +377,7 @@ class GlassRoundButton extends StatelessWidget {
 // 작은 조각들
 // ============================================================================
 
-/// 영업중/영업종료 pill. 영업중이면 라임 점 + 라임 텍스트.
+/// 영업중/영업종료 pill. 영업중이면 라임, 영업종료면 레드.
 class OpenStatusPill extends StatelessWidget {
   final bool isOpen;
 
@@ -382,7 +385,7 @@ class OpenStatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isOpen ? VybeColors.mainLime500 : ClubGlass.t4;
+    final color = isOpen ? VybeColors.mainLime500 : VybeColors.accentRed500;
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 9.w, vertical: 3.h),
       decoration: BoxDecoration(
@@ -407,6 +410,191 @@ class OpenStatusPill extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 영업 상태 + 오늘 영업 시간 한 줄. 예) `영업중 · 22:00 - 06:00`
+///
+/// 남은 시각("02:00에 영업 종료")이 아니라 오늘 영업 시간을 그대로 보여준다.
+/// 정기휴무면 시간 대신 '오늘 휴무'.
+class OpenHoursLine extends StatelessWidget {
+  final DayHours today;
+
+  const OpenHoursLine({super.key, required this.today});
+
+  @override
+  Widget build(BuildContext context) {
+    final isOpen = today.isCurrentlyOpen;
+    final String? hours;
+    if (!today.isOpen) {
+      hours = '오늘 휴무';
+    } else if (today.open != null && today.close != null) {
+      hours = '${today.open} - ${today.close}';
+    } else {
+      hours = null;
+    }
+
+    return Row(
+      children: [
+        Text(
+          isOpen ? '영업중' : '영업종료',
+          style: ClubGlass.body(
+            color: isOpen ? VybeColors.mainLime500 : VybeColors.accentRed500,
+          ).copyWith(fontWeight: FontWeight.w700),
+        ),
+        if (hours != null) ...[
+          SizedBox(width: 7.w),
+          const GlassDot(),
+          SizedBox(width: 7.w),
+          Flexible(
+            child: Text(
+              hours,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: ClubGlass.body(),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// 요일별 영업시간 표. 오늘 줄은 흰색 + '오늘' 뱃지, 정기휴무는 레드.
+///
+/// 홈 탭(접었다 펴는 영업시간)과 매장 정보 탭(상시 노출)이 같은 표를 쓴다.
+/// 줄 간격만 화면마다 달라 [rowGap]으로 받는다.
+class WeekHoursTable extends StatelessWidget {
+  final OperatingHours hours;
+
+  /// 줄 사이 간격(px, `.h` 적용).
+  final double rowGap;
+
+  const WeekHoursTable({super.key, required this.hours, this.rowGap = 8});
+
+  static const _labels = ['월', '화', '수', '목', '금', '토', '일'];
+
+  @override
+  Widget build(BuildContext context) {
+    final week = [
+      hours.mon,
+      hours.tue,
+      hours.wed,
+      hours.thu,
+      hours.fri,
+      hours.sat,
+      hours.sun,
+    ];
+    final todayIndex = DateTime.now().weekday - 1;
+
+    return Column(
+      children: [
+        for (var i = 0; i < week.length; i++)
+          Padding(
+            padding: EdgeInsets.only(
+              bottom: i == week.length - 1 ? 0 : rowGap.h,
+            ),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 16.w,
+                  child: Text(
+                    _labels[i],
+                    style: ClubGlass.caption(
+                      color: i == todayIndex ? Colors.white : ClubGlass.t3,
+                      weight: i == todayIndex
+                          ? FontWeight.w700
+                          : FontWeight.w400,
+                    ),
+                  ),
+                ),
+                SizedBox(width: 12.w),
+                Text(
+                  week[i].isOpen
+                      ? '${week[i].open} - ${week[i].close}'
+                      : '정기휴무',
+                  style: ClubGlass.caption(
+                    color: !week[i].isOpen
+                        ? VybeColors.accentRed500
+                        : i == todayIndex
+                        ? Colors.white
+                        : ClubGlass.t3,
+                    weight: i == todayIndex || !week[i].isOpen
+                        ? FontWeight.w600
+                        : FontWeight.w400,
+                  ),
+                ),
+                if (i == todayIndex) ...[
+                  SizedBox(width: 8.w),
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 7.w,
+                      vertical: 2.h,
+                    ),
+                    decoration: BoxDecoration(
+                      color: VybeColors.mainPurple500.withValues(alpha: 0.22),
+                      borderRadius: BorderRadius.circular(5.r),
+                    ),
+                    child: Text(
+                      '오늘',
+                      style: ClubGlass.caption(
+                        color: ClubGlass.accentLavender,
+                        size: 10,
+                        lineHeight: 12,
+                        weight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// 호선 배지 + `역명에서 N m` 한 줄. `clubs/{id}/info.nearbySubways` 원소를 받는다.
+class SubwayStationLine extends StatelessWidget {
+  final Map<String, dynamic> subway;
+
+  const SubwayStationLine({super.key, required this.subway});
+
+  @override
+  Widget build(BuildContext context) {
+    final lines = List<String>.from(subway['lines'] as List? ?? const []);
+    return Row(
+      children: [
+        if (lines.isNotEmpty) ...[
+          SubwayLineBadge(line: lines.first),
+          SizedBox(width: 6.w),
+        ],
+        Flexible(
+          child: Text(
+            subwayLabel(subway) ?? '',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: ClubGlass.caption(),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 지하철역 표기 — `상수역에서 422m`. 역명이 없으면 null.
+String? subwayLabel(Map<String, dynamic>? subway) {
+  if (subway == null) return null;
+  final station = subway['stationName'] as String? ?? '';
+  if (station.isEmpty) return null;
+  final distance = (subway['distanceM'] as num?)?.toInt() ?? 0;
+  return distance > 0 ? '$station에서 ${distance}m' : station;
+}
+
+/// 입장료 표기 — 둘 다 0이면 '무료', 같으면 단일가, 다르면 범위.
+String formatEntryFee({required int min, required int max}) {
+  if (min == 0 && max == 0) return '무료';
+  if (min == max) return '${formatThousands(min)}원';
+  return '${formatThousands(min)} ~ ${formatThousands(max)}원';
 }
 
 /// 가운데 점 구분자 (· 대신 쓰는 2px 원).
@@ -529,6 +717,13 @@ EdgeInsets glassTabPadding(BuildContext context) => EdgeInsets.fromLTRB(
 
 /// 카드 사이 간격 (14px).
 Widget glassGap() => SizedBox(height: 14.h);
+
+/// 주변 클럽 카드 썸네일 한 변 (정사각, `.w` 적용).
+/// 스켈레톤도 같은 값을 써야 로딩 → 콘텐츠 전환에서 높이가 안 튄다.
+const double kNearbyThumbSize = 134;
+
+/// 주변 클럽 카드 이름 + 지역·장르 두 줄이 차지할 높이 (`.h` 적용).
+const double kNearbyTextBlock = 44;
 
 /// 상단 블러 바 (sticky 칩 줄 배경).
 class GlassBar extends StatelessWidget {
