@@ -18,7 +18,7 @@ Future<void> main() async {
 
   // flutter_naver_map 마커 이미지(NOverlayImage.fromWidget)가 임시파일을
   // 생성/정리하는 과정에서, 이미 삭제된 temp 디렉토리를 다시 지우려다 던지는
-  // 무해한 비동기 FileSystemException(_Directory._delete)을 삼킨다.
+  // 무해한 비동기 FileSystemException(_Directory._delete)을 삼킨다.e
   // 앱 동작엔 영향 없고 콘솔만 오염시키므로 이 케이스만 처리 완료로 표시.
   PlatformDispatcher.instance.onError = (error, stack) {
     if (error is FileSystemException &&
