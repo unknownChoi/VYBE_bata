@@ -168,27 +168,39 @@ class SearchViewModel extends _$SearchViewModel {
     }
   }
 
+  /// 최근 검색어 개별 삭제 → 목록 갱신.
   Future<void> deleteHistory(String userId, String historyId) async {
-    await ref
-        .read(searchHistoryRepositoryProvider)
-        .deleteSearchHistory(userId, historyId);
-    if (!ref.mounted) return;
-    ref.invalidate(searchHistoryProvider(userId));
+    // 검색 화면은 이 VM을 watch하지 않고 read로만 호출한다 → autoDispose가
+    // await 사이에 VM을 버리면 아래 invalidate가 실행되지 않아(ref.mounted=false)
+    // Firestore에선 지워졌는데 칩은 그대로 남는다. 작업 동안만 살려둔다.
+    final link = ref.keepAlive();
+    try {
+      await ref
+          .read(searchHistoryRepositoryProvider)
+          .deleteSearchHistory(userId, historyId);
+      ref.invalidate(searchHistoryProvider(userId));
+    } finally {
+      link.close();
+    }
   }
 
   /// 최근 검색어 전체 삭제. 성공 여부를 반환한다 (화면에서 토스트 문구 분기용).
   Future<bool> clearHistory(String userId) async {
+    // deleteHistory와 같은 이유로 작업 동안 VM을 살려둔다.
+    final link = ref.keepAlive();
     try {
       await ref
           .read(searchHistoryRepositoryProvider)
           .clearAllSearchHistory(userId);
+      ref.invalidate(searchHistoryProvider(userId));
+      return true;
     } catch (e) {
       // ignore: avoid_print
       print('[Search] 검색기록 전체 삭제 실패: $e');
       return false;
+    } finally {
+      link.close();
     }
-    if (ref.mounted) ref.invalidate(searchHistoryProvider(userId));
-    return true;
   }
 
   void clear() => state = const AsyncData(SearchResults.empty);

@@ -3,21 +3,37 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/core/providers/auth_providers.dart';
 import 'package:vybe/core/providers/location_providers.dart';
+import 'package:vybe/core/utils/geohash_utils.dart';
+import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/design_system/colors.dart';
-import 'package:vybe/design_system/typography.dart';
-import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 import 'package:vybe/presentation/clubs/club_detail_screen.dart';
 import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
-import 'package:vybe/presentation/nearby/viewmodels/nearby_viewmodel.dart';
+import 'package:vybe/presentation/clubs/widgets/club_glass.dart';
+import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
+import 'package:vybe/presentation/main_scaffold/main_scaffold.dart';
 import 'package:vybe/presentation/nearby/viewmodels/nearby_search_provider.dart';
+import 'package:vybe/presentation/nearby/viewmodels/nearby_viewmodel.dart';
 import 'package:vybe/presentation/nearby/widgets/club_nearby_list_item.dart';
+import 'package:vybe/presentation/nearby/widgets/nearby_filter_chips.dart';
+import 'package:vybe/presentation/nearby/widgets/nearby_glass.dart';
 import 'package:vybe/presentation/search/viewmodels/club_filter_viewmodel.dart';
-import 'package:vybe/presentation/search/widgets/filter_chip_bar.dart';
 
+/// 주변 페이지 리스트 시트 (리퀴드 글래스).
+///
+/// 디자인 nearby_glass.jsx `NGListSheet` — 핸들 · 제목+개수(라임) ·
+/// 정렬/필터 칩 줄 · 클럽 카드 리스트. 지도 위로 떠 있어 배경이 비치는
+/// 블러 시트([NearbySheetSurface])를 표면으로 쓴다.
 class NearbyBottomSheet extends ConsumerWidget {
   final ScrollController scrollController;
 
-  const NearbyBottomSheet({super.key, required this.scrollController});
+  /// 지도에서 선택된 핀의 clubId. 해당 카드에 보라 wash로 표시.
+  final String? selectedClubId;
+
+  const NearbyBottomSheet({
+    super.key,
+    required this.scrollController,
+    this.selectedClubId,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -28,7 +44,7 @@ class NearbyBottomSheet extends ConsumerWidget {
         : ref.watch(nearbyViewModelProvider);
     final activeFilters = ref.watch(clubFilterViewModelProvider);
     final sort = ref.watch(clubSortViewModelProvider);
-    // 거리순 기준 = 내 위치(지도 내 위치 마커와 동일 좌표).
+    // 거리순 정렬·도보 거리 기준 = 내 위치(지도 내 위치 마커와 동일 좌표).
     final myLocation = ref.watch(userLocationProvider);
     // 지역 클러스터에서 선택한 area (null이면 전체).
     final selectedArea = ref.watch(selectedAreaProvider);
@@ -53,20 +69,27 @@ class NearbyBottomSheet extends ConsumerWidget {
           : clubs.where((c) => c.area == selectedArea).toList();
       if (activeFilters.isNotEmpty) {
         filtered = filtered
-            .where((c) => clubMatchesFilters(c, activeFilters,
-                favoritedIds: favoritedIds))
+            .where(
+              (c) => clubMatchesFilters(
+                c,
+                activeFilters,
+                favoritedIds: favoritedIds,
+              ),
+            )
             .toList();
       }
-      return sortClubs(filtered, sort,
-          refLat: myLocation.lat, refLng: myLocation.lng);
+      return sortClubs(
+        filtered,
+        sort,
+        refLat: myLocation.lat,
+        refLng: myLocation.lng,
+      );
     });
 
-    return Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: VybeColors.gray900,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28.r)),
-      ),
+    // 마지막 카드가 하단 nav 바에 가리지 않도록.
+    final padBottom = navBarTotalHeight(context) + 12.h;
+
+    return NearbySheetSurface(
       // 헤더(핸들·카운트·필터칩)까지 하나의 스크롤뷰로 묶어, 시트 어느 곳을
       // 잡고 드래그해도 DraggableScrollableSheet가 반응하도록 한다.
       child: CustomScrollView(
@@ -77,78 +100,80 @@ class NearbyBottomSheet extends ConsumerWidget {
           SliverToBoxAdapter(
             child: Column(
               children: [
-                _Handle(),
+                SizedBox(height: 11.h),
+                const NearbySheetHandle(),
                 _SheetHeader(
                   count: filteredAsync.asData?.value.length ?? 0,
                   area: selectedArea,
                   searchKeyword: searchResult?.keyword,
                   loading: filteredAsync.isLoading,
                 ),
-                const FilterChipBar(hasBackground: true, showFavorite: true),
-                SizedBox(height: 8.h),
+                const NearbyFilterChipBar(),
+                SizedBox(height: 12.h),
               ],
             ),
           ),
-          filteredAsync.when(
-            data: (clubs) => clubs.isEmpty
-                ? _centerSliver(
-                    Text(
-                      searchResult != null
-                          ? '검색 결과가 없어요'
-                          : activeFilters.isEmpty
-                              ? '주변에 클럽이 없어요'
-                              : '조건에 맞는 클럽이 없어요',
-                      style: VybeTypography.body2
-                          .copyWith(color: VybeColors.gray500),
-                    ),
-                  )
-                : SliverList.builder(
-                    itemCount: clubs.length,
-                    itemBuilder: (_, i) => ClubNearbyListItem(
-                      club: clubs[i],
-                      isFavorited: favoritedIds.contains(clubs[i].clubId),
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              ClubDetailScreen(clubId: clubs[i].clubId),
-                        ),
+          SliverPadding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            sliver: filteredAsync.when(
+              data: (clubs) => clubs.isEmpty
+                  ? SliverToBoxAdapter(
+                      child: _EmptyCard(
+                        searching: searchResult != null,
+                        filtered: activeFilters.isNotEmpty,
                       ),
-                      onFavoriteTap: uid == null
-                          ? null
-                          : () => ref
-                              .read(favoriteViewModelProvider.notifier)
-                              .toggleFavorite(
-                                uid,
-                                clubs[i].clubId,
-                                favoritedIds.contains(clubs[i].clubId),
-                              ),
+                    )
+                  : SliverList.builder(
+                      itemCount: clubs.length,
+                      itemBuilder: (_, i) => ClubNearbyListItem(
+                        club: clubs[i],
+                        isFavorited: favoritedIds.contains(clubs[i].clubId),
+                        selected: clubs[i].clubId == selectedClubId,
+                        distanceMeters: _distanceM(
+                          clubs[i],
+                          myLocation.lat,
+                          myLocation.lng,
+                        ),
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                ClubDetailScreen(clubId: clubs[i].clubId),
+                          ),
+                        ),
+                        onFavoriteTap: uid == null
+                            ? null
+                            : () => ref
+                                  .read(favoriteViewModelProvider.notifier)
+                                  .toggleFavorite(
+                                    uid,
+                                    clubs[i].clubId,
+                                    favoritedIds.contains(clubs[i].clubId),
+                                  ),
+                      ),
                     ),
-                  ),
-            loading: () => SliverList.builder(
-              itemCount: 4,
-              itemBuilder: (_, __) => const NearbyListItemSkeleton(),
-            ),
-            error: (e, _) => _centerSliver(
-              Text(
-                '클럽 정보를 불러올 수 없어요',
-                style:
-                    VybeTypography.body2.copyWith(color: VybeColors.gray500),
+              loading: () => SliverList.builder(
+                itemCount: 3,
+                itemBuilder: (_, __) => const NearbyListItemSkeleton(),
+              ),
+              error: (e, _) => SliverToBoxAdapter(
+                child: _MessageCard(
+                  icon: Icons.cloud_off_rounded,
+                  title: '클럽 정보를 불러올 수 없어요',
+                  message: '네트워크 상태를 확인하고\n잠시 후 다시 시도해주세요',
+                ),
               ),
             ),
           ),
+          SliverToBoxAdapter(child: SizedBox(height: padBottom)),
         ],
       ),
     );
   }
 
-  // 빈/에러 상태 메시지를 sliver로 가운데 표시.
-  Widget _centerSliver(Widget child) {
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 60),
-        child: Center(child: child),
-      ),
-    );
+  // 좌표가 없는 클럽(0,0)은 거리 표기를 생략한다.
+  double? _distanceM(ClubModel club, double lat, double lng) {
+    if (club.lat == 0 && club.lng == 0) return null;
+    return GeohashUtils.haversineKm(lat, lng, club.lat, club.lng) * 1000;
   }
 }
 
@@ -167,26 +192,42 @@ class _SheetHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final labelStyle = VybeTypography.body3.copyWith(
+    final style = TextStyle(
+      fontFamily: 'Pretendard',
+      fontSize: 16.sp,
+      height: 18 / 16,
+      letterSpacing: 16 * -0.025,
+      fontWeight: FontWeight.w700,
       color: Colors.white,
-      fontWeight: FontWeight.w600,
     );
     final label = searchKeyword != null
-        ? "'$searchKeyword' 검색 결과 "
+        ? "'$searchKeyword' 검색 결과"
         : area == null
-            ? '내 주변 클럽 '
-            : '$area 클럽 ';
+        ? '내 주변 클럽'
+        : '$area 클럽';
+
     return Padding(
-      padding: EdgeInsets.fromLTRB(24.w, 4.h, 24.w, 12.h),
+      padding: EdgeInsets.fromLTRB(20.w, 13.h, 20.w, 12.h),
       child: Row(
         children: [
-          Text(label, style: labelStyle),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: style,
+            ),
+          ),
+          SizedBox(width: 7.w),
           // 로딩 중엔 카운트 자리에 shimmer.
           loading
               ? VybeSkel(width: 20.w, height: 15.h, radius: 4)
               : Text(
                   '$count',
-                  style: labelStyle.copyWith(color: VybeColors.mainLime500),
+                  style: style.copyWith(
+                    color: VybeColors.mainLime500,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
         ],
       ),
@@ -194,18 +235,82 @@ class _SheetHeader extends StatelessWidget {
   }
 }
 
-class _Handle extends StatelessWidget {
+/// 결과 0건 안내 카드 (디자인 NGListSheet 빈 상태).
+class _EmptyCard extends StatelessWidget {
+  final bool searching;
+  final bool filtered;
+
+  const _EmptyCard({required this.searching, required this.filtered});
+
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 12.h),
-      child: Container(
-        width: 36.w,
-        height: 4.h,
-        decoration: BoxDecoration(
-          color: VybeColors.gray700,
-          borderRadius: BorderRadius.circular(2.r),
-        ),
+    if (searching) {
+      return _MessageCard(
+        icon: Icons.search_rounded,
+        title: '검색 결과가 없어요',
+        message: '다른 키워드로 검색하거나\n지도를 움직여 재검색해보세요',
+      );
+    }
+    return _MessageCard(
+      icon: Icons.search_rounded,
+      title: filtered ? '조건에 맞는 클럽이 없어요' : '주변에 클럽이 없어요',
+      message: filtered
+          ? '필터를 줄이거나 지도를 움직여\n다른 지역에서 재검색해보세요'
+          : '지도를 움직여\n다른 지역에서 재검색해보세요',
+    );
+  }
+}
+
+class _MessageCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String message;
+
+  const _MessageCard({
+    required this.icon,
+    required this.title,
+    required this.message,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassCard(
+      padding: 30,
+      margin: EdgeInsets.only(top: 6.h),
+      child: Column(
+        children: [
+          Container(
+            width: 62.r,
+            height: 62.r,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: VybeColors.mainPurple500.withValues(alpha: 0.16),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: VybeColors.mainPurple500.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Icon(icon, size: 24.r, color: ClubGlass.t3),
+          ),
+          SizedBox(height: 12.h),
+          Text(
+            title,
+            style: TextStyle(
+              fontFamily: 'Pretendard',
+              fontSize: 16.sp,
+              height: 18 / 16,
+              letterSpacing: 16 * -0.025,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+          ),
+          SizedBox(height: 12.h),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: ClubGlass.body(color: ClubGlass.t3),
+          ),
+        ],
       ),
     );
   }

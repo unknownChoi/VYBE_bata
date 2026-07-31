@@ -16,14 +16,7 @@ const TREND_LIMIT = 10;
 const RANKED_SOURCES = ["input", "suggestion"];
 // 한 번에 읽을 로그 상한 (폭주 방어).
 const MAX_LOGS = 20000;
-// 시드 스크립트가 넣은 합성 로그(isSynthetic: true) 제외 여부.
-// 실사용자 트래픽이 확보되면 true로 바꾼다.
-const EXCLUDE_SYNTHETIC = false;
 const BLOCKLIST = [];
-// 갱신 주기·중복 실행 가드를 무시하고 즉시 집계 (검증용).
-// functions:shell 에서만 켠다 — 배포 환경엔 이 환경변수가 없다.
-//   FORCE_TREND_AGGREGATION=1 firebase functions:shell
-const FORCE = process.env.FORCE_TREND_AGGREGATION === "1";
 const TRENDS_COLLECTION = "searchTrends";
 const CURRENT_DOC = "current";
 const FALLBACK_DOC = "fallback";
@@ -52,13 +45,9 @@ exports.aggregateSearchTrends = v1_1.pubsub
     const db = admin.firestore();
     const now = new Date();
     const { hour, runKey } = kstParts(now);
-    const scheduled = (0, compute_trends_1.scheduleDecision)(hour);
-    const due = FORCE ?
-        { trend: true, hashtag: true, night: scheduled.night } :
-        scheduled;
+    const due = (0, compute_trends_1.scheduleDecision)(hour);
     if (!due.trend) {
-        v1_1.logger.info(`aggregateSearchTrends: skip (KST ${hour}시 — 갱신 대상 아님) ` +
-            `[force=${FORCE}]`);
+        v1_1.logger.info(`aggregateSearchTrends: skip (KST ${hour}시 — 갱신 대상 아님)`);
         return;
     }
     const currentRef = db.collection(TRENDS_COLLECTION).doc(CURRENT_DOC);
@@ -69,9 +58,8 @@ exports.aggregateSearchTrends = v1_1.pubsub
     // 같은 시각에 두 번 실행되면(재시도 등) 증감이 직전 결과와 비교되어
     // 전부 same으로 뭉개진다 → runKey로 중복 실행 차단.
     const currentData = currentSnap.data();
-    if (!FORCE && (currentData === null || currentData === void 0 ? void 0 : currentData.runKey) === runKey) {
-        v1_1.logger.info(`aggregateSearchTrends: skip (runKey ${runKey} 이미 처리) ` +
-            `[force=${FORCE}] — 재실행하려면 FORCE_TREND_AGGREGATION=1`);
+    if ((currentData === null || currentData === void 0 ? void 0 : currentData.runKey) === runKey) {
+        v1_1.logger.info(`aggregateSearchTrends: skip (runKey ${runKey} 이미 처리)`);
         return;
     }
     // ── 1. 로그 수집 ──
@@ -86,8 +74,6 @@ exports.aggregateSearchTrends = v1_1.pubsub
     logsSnap.forEach((doc) => {
         var _a, _b, _c;
         const data = doc.data();
-        if (EXCLUDE_SYNTHETIC && data.isSynthetic === true)
-            return;
         const createdAt = data.createdAt;
         if (!createdAt)
             return;

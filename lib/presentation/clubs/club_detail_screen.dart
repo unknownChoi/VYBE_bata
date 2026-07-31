@@ -710,7 +710,10 @@ class _QuickActions extends ConsumerWidget {
               context,
               lat: club?.lat ?? 0,
               lng: club?.lng ?? 0,
-              name: club?.name ?? '',
+              // 목적지 라벨은 주소 — 주소가 비면 클럽 이름으로 폴백
+              destination: (club?.address.isNotEmpty ?? false)
+                  ? club!.address
+                  : (club?.name ?? ''),
             ),
           ),
           SizedBox(width: 8.w),

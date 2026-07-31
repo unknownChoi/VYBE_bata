@@ -16,6 +16,7 @@ import 'package:vybe/presentation/search/viewmodels/club_filter_viewmodel.dart';
 import 'package:vybe/presentation/main_scaffold/nav_bar_visibility_provider.dart';
 import 'package:vybe/presentation/nearby/widgets/nearby_bottom_sheet.dart';
 import 'package:vybe/presentation/nearby/widgets/nearby_detail_sheet.dart';
+import 'package:vybe/presentation/nearby/widgets/nearby_glass.dart';
 import 'package:vybe/presentation/nearby/widgets/nearby_gnb.dart';
 
 class NearbyScreen extends ConsumerStatefulWidget {
@@ -29,6 +30,11 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
     with WidgetsBindingObserver {
   // 이 줌 이하로 축소되면 개별 핀 대신 지역(area)별 클러스터 동그라미 표시.
   static const double _kRegionZoomThreshold = 13.0;
+  // 리스트 시트 스냅 위치 (디자인 nearby_glass.jsx SNAPS).
+  // 최소 높이에서도 핸들·제목·필터 칩 줄까지 보이도록 0.3에서 시작한다.
+  static const double _kSheetMin = 0.3;
+  static const double _kSheetMid = 0.56;
+  static const double _kSheetMax = 0.88;
   // 대한민국 전체가 보이는 bounds (fitCountry 카메라용, 제주 포함).
   static final NLatLngBounds _kKoreaBounds = NLatLngBounds(
     southWest: const NLatLng(33.0, 124.6),
@@ -185,8 +191,7 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _invalidateIconCaches();
-      final isActive =
-          ref.read(currentTabIndexProvider) == _kNearbyTabIndex;
+      final isActive = ref.read(currentTabIndexProvider) == _kNearbyTabIndex;
       if (isActive && mounted) setState(() {});
     }
   }
@@ -278,7 +283,7 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
         // 시트를 절반 높이로 펼쳐 리스트가 보이게.
         if (_sheetController.isAttached) {
           _sheetController.animateTo(
-            0.5,
+            _kSheetMid,
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeOut,
           );
@@ -339,17 +344,23 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
 
     // 검색 결과가 있으면 geo 클럽 대신 검색결과를 핀 소스로 사용.
     final searchResult = ref.watch(nearbySearchResultProvider);
-    final List<ClubModel>? sourceClubs =
-        searchResult != null ? searchResult.clubs : clubsAsync.asData?.value;
+    final List<ClubModel>? sourceClubs = searchResult != null
+        ? searchResult.clubs
+        : clubsAsync.asData?.value;
 
     if (sourceClubs != null) {
       // 검색 칩 필터(찜 포함)를 마커에도 동일 적용.
       final filtered = activeFilters.isEmpty
           ? sourceClubs
           : sourceClubs
-              .where((c) => clubMatchesFilters(c, activeFilters,
-                  favoritedIds: favoritedIds))
-              .toList();
+                .where(
+                  (c) => clubMatchesFilters(
+                    c,
+                    activeFilters,
+                    favoritedIds: favoritedIds,
+                  ),
+                )
+                .toList();
       final searchKeyword = searchResult?.keyword;
       final searchReqId = searchResult?.requestId;
       // 새 검색 요청이면 카메라를 결과 핀에 맞춤.
@@ -381,7 +392,7 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
               // 검색 직후 결과 리스트가 보이도록 시트 펼침.
               if (_sheetController.isAttached) {
                 _sheetController.animateTo(
-                  0.5,
+                  _kSheetMid,
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeOut,
                 );
@@ -407,10 +418,11 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
           return Stack(
             children: [
               _buildMap(),
-              _buildTopOverlay(),
-              _buildLocateButton(),
               _buildReSearchButton(),
+              _buildMapControls(),
               _buildBottomSheet(),
+              // 상단 GNB·칩은 시트보다 위 (시트가 최대로 올라와도 검색바 유지).
+              _buildTopOverlay(),
               // 핀 탭 상세 패널 — 리스트 시트 위에 오버레이.
               if (_detailClub != null)
                 Positioned.fill(
@@ -487,15 +499,89 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
     );
   }
 
+  // 상단 스크림 + 검색 GNB + 지도 위 필터 칩 줄 (디자인 NGGnb + NGChips).
   Widget _buildTopOverlay() {
     final keyword = ref.watch(nearbySearchResultProvider)?.keyword;
-    return SafeArea(
-      child: NearbyGnb(
-        searchKeyword: keyword,
-        onClearSearch: keyword == null ? null : _clearSearch,
-        onSearchTap: _openSearch,
+    final area = ref.watch(selectedAreaProvider);
+
+    return Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+      child: Stack(
+        children: [
+          // 지도 위 검색바 가독성용 스크림 + 상단 오로라(보라·라임).
+          // 오로라는 스크림 범위 안에서만 얹는다 — 지도 전체에 깔면 실제
+          // 지도 색이 왜곡돼 길·건물 구분이 어려워진다.
+          IgnorePointer(
+            child: Container(
+              height: 150.h,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0xD10A090E),
+                    Color(0x570A090E),
+                    Color(0x000A090E),
+                  ],
+                  stops: [0.0, 0.58, 1.0],
+                ),
+              ),
+              child: const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    center: Alignment(-0.96, -1),
+                    radius: 1.3,
+                    colors: [Color(0x3D7731FE), Color(0x007731FE)],
+                    stops: [0.0, 0.64],
+                  ),
+                ),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: RadialGradient(
+                      center: Alignment(1, -0.8),
+                      radius: 1.1,
+                      colors: [Color(0x14B5FF60), Color(0x00B5FF60)],
+                      stops: [0.0, 0.66],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SafeArea(
+            bottom: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(height: 6.h),
+                NearbyGnb(
+                  searchKeyword: keyword,
+                  onClearSearch: keyword == null ? null : _clearSearch,
+                  onSearchTap: _openSearch,
+                  area: area,
+                  onClearArea: area == null ? null : _clearArea,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
+  }
+
+  // 지역 클러스터 선택 해제 → 전체 목록으로 복귀.
+  void _clearArea() {
+    ref.read(selectedAreaProvider.notifier).select(null);
+    if (_sheetController.isAttached) {
+      _sheetController.animateTo(
+        _kSheetMin,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
   }
 
   void _openSearch() {
@@ -529,39 +615,63 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
     ref.read(nearbySearchResultProvider.notifier).clear();
   }
 
-  // 내 위치로 카메라 이동 FAB (디자인: MapControls)
-  Widget _buildLocateButton() {
+  // 지도 우측 플로팅 컨트롤 — 줌 인/아웃 + 내 위치 (디자인 NGControls).
+  Widget _buildMapControls() {
     // 상세 시트가 떠 있으면 지도 컨트롤 숨김.
     if (_detailClub != null) return const SizedBox.shrink();
-    final sheetSize = _sheetController.isAttached ? _sheetController.size : 0.2;
+    final sheetSize = _sheetController.isAttached
+        ? _sheetController.size
+        : _kSheetMin;
 
     return Positioned(
       right: 16.w,
-      bottom: _stackHeight * sheetSize + 16.h,
-      child: GestureDetector(
-        onTap: _onLocate,
-        child: Container(
-          width: 44.r,
-          height: 44.r,
-          decoration: BoxDecoration(
-            color: const Color(0xEB101013),
-            shape: BoxShape.circle,
-            border: Border.all(color: VybeColors.gray800, width: 1),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x4D000000),
-                blurRadius: 12,
-                offset: Offset(0, 4),
-              ),
-            ],
+      bottom: _stackHeight * sheetSize + 8.h,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          NearbyFloatSurface(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _zoomButton(Icons.add_rounded, 1),
+                Container(
+                  width: 44.r,
+                  height: 1,
+                  color: const Color(0x24FFFFFF),
+                ),
+                _zoomButton(Icons.remove_rounded, -1),
+              ],
+            ),
           ),
-          child: Icon(
-            Icons.my_location_rounded,
-            size: 20.r,
-            color: Colors.white,
+          SizedBox(height: 9.h),
+          NearbyRoundButton(
+            onTap: _onLocate,
+            child: Icon(
+              Icons.my_location_rounded,
+              size: 19.r,
+              color: Colors.white,
+            ),
           ),
-        ),
+        ],
       ),
+    );
+  }
+
+  Widget _zoomButton(IconData icon, int delta) {
+    return GestureDetector(
+      onTap: () => _onZoom(delta),
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: 44.r,
+        height: 42.h,
+        child: Icon(icon, size: 17.r, color: Colors.white),
+      ),
+    );
+  }
+
+  Future<void> _onZoom(int delta) async {
+    await _mapController?.updateCamera(
+      delta > 0 ? NCameraUpdate.zoomIn() : NCameraUpdate.zoomOut(),
     );
   }
 
@@ -588,10 +698,14 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
     final lats = clubs.map((c) => c.lat);
     final lngs = clubs.map((c) => c.lng);
     final bounds = NLatLngBounds(
-      southWest: NLatLng(lats.reduce((a, b) => a < b ? a : b),
-          lngs.reduce((a, b) => a < b ? a : b)),
-      northEast: NLatLng(lats.reduce((a, b) => a > b ? a : b),
-          lngs.reduce((a, b) => a > b ? a : b)),
+      southWest: NLatLng(
+        lats.reduce((a, b) => a < b ? a : b),
+        lngs.reduce((a, b) => a < b ? a : b),
+      ),
+      northEast: NLatLng(
+        lats.reduce((a, b) => a > b ? a : b),
+        lngs.reduce((a, b) => a > b ? a : b),
+      ),
     );
     await _mapController!.updateCamera(
       NCameraUpdate.fitBounds(bounds, padding: EdgeInsets.all(64.r)),
@@ -608,40 +722,45 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
   Widget _buildReSearchButton() {
     if (!_showReSearch || _detailClub != null) return const SizedBox.shrink();
 
-    final sheetSize = _sheetController.isAttached ? _sheetController.size : 0.2;
-    if (sheetSize > 0.5) return const SizedBox.shrink();
+    final sheetSize = _sheetController.isAttached
+        ? _sheetController.size
+        : _kSheetMin;
+    if (sheetSize > _kSheetMid - 0.01) return const SizedBox.shrink();
 
     return Positioned(
-      bottom: _stackHeight * sheetSize + 16.h,
+      bottom: _stackHeight * sheetSize + 8.h,
       left: 0,
       right: 0,
       child: Center(
         child: GestureDetector(
           onTap: _onReSearch,
-          child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
-            decoration: BoxDecoration(
-              color: VybeColors.surface,
-              borderRadius: BorderRadius.circular(20.r),
-              border: Border.all(color: VybeColors.gray800, width: 1),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.refresh_rounded, size: 16.r, color: Colors.white),
-                SizedBox(width: 6.w),
-                Text(
-                  '현재 지역에서 재검색',
-                  style: TextStyle(
-                    fontFamily: 'Pretendard',
-                    fontWeight: FontWeight.w500,
-                    fontSize: 14.sp,
-                    height: 16 / 14,
-                    letterSpacing: 14 * -0.025,
-                    color: Colors.white,
+          behavior: HitTestBehavior.opaque,
+          child: NearbyFloatSurface(
+            radius: 999,
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 10.h),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.refresh_rounded,
+                    size: 15.r,
+                    color: VybeColors.mainLime500,
                   ),
-                ),
-              ],
+                  SizedBox(width: 7.w),
+                  Text(
+                    '현재 지역에서 재검색',
+                    style: TextStyle(
+                      fontFamily: 'Pretendard',
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14.sp,
+                      height: 16 / 14,
+                      letterSpacing: 14 * -0.025,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -653,13 +772,15 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
     return DraggableScrollableSheet(
       key: _sheetKey,
       controller: _sheetController,
-      initialChildSize: 0.2,
-      minChildSize: 0.2,
-      maxChildSize: 0.85,
+      initialChildSize: _kSheetMin,
+      minChildSize: _kSheetMin,
+      maxChildSize: _kSheetMax,
       snap: true,
-      snapSizes: const [0.2, 0.5, 0.85],
-      builder: (_, scrollController) =>
-          NearbyBottomSheet(scrollController: scrollController),
+      snapSizes: const [_kSheetMin, _kSheetMid, _kSheetMax],
+      builder: (_, scrollController) => NearbyBottomSheet(
+        scrollController: scrollController,
+        selectedClubId: _selectedClubId,
+      ),
     );
   }
 
@@ -677,18 +798,22 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
     final centerLng =
         (bounds.southWest.longitude + bounds.northEast.longitude) / 2;
     final radiusKm = GeohashUtils.haversineKm(
-      centerLat, centerLng,
-      bounds.northEast.latitude, bounds.northEast.longitude,
+      centerLat,
+      centerLng,
+      bounds.northEast.latitude,
+      bounds.northEast.longitude,
     );
     final searchRadius = radiusKm * 1.2;
 
     // ignore: avoid_print
-    print('[NearbySearch] re-search '
-        'bounds SW=(${bounds.southWest.latitude}, ${bounds.southWest.longitude}) '
-        'NE=(${bounds.northEast.latitude}, ${bounds.northEast.longitude}) '
-        'center=($centerLat, $centerLng) '
-        'rawRadius=${radiusKm.toStringAsFixed(3)}km '
-        'searchRadius=${searchRadius.toStringAsFixed(3)}km (buffer 20%)');
+    print(
+      '[NearbySearch] re-search '
+      'bounds SW=(${bounds.southWest.latitude}, ${bounds.southWest.longitude}) '
+      'NE=(${bounds.northEast.latitude}, ${bounds.northEast.longitude}) '
+      'center=($centerLat, $centerLng) '
+      'rawRadius=${radiusKm.toStringAsFixed(3)}km '
+      'searchRadius=${searchRadius.toStringAsFixed(3)}km (buffer 20%)',
+    );
 
     // 버퍼 20% 추가해서 화면 경계 클럽 누락 방지
     await ref
@@ -849,4 +974,3 @@ class _MyLocationDot extends StatelessWidget {
     );
   }
 }
-

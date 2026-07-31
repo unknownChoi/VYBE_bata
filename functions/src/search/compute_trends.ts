@@ -1,8 +1,7 @@
 // 검색 트렌드 집계 순수 로직 — Firestore/Admin SDK 의존 없음.
 //
-// 이 파일에 로직을 몰아넣는 이유: 실사용자 없이도 배열 리터럴만으로 전 케이스를
-// 검증할 수 있게 하기 위함. aggregate_search_trends.ts는 읽기/쓰기만 담당한다.
-// 검증 스크립트: node scripts/test_compute_trends.js
+// 이 파일에 로직을 몰아넣은 이유: 입력이 배열뿐이라 Firestore 없이도 전 케이스를
+// 검증할 수 있다. aggregate_search_trends.ts는 읽기/쓰기만 담당한다.
 
 export type TrendStatus = "up" | "down" | "newEntry" | "same";
 

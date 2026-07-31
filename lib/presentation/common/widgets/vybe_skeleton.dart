@@ -611,17 +611,19 @@ class NearbyListItemSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      // 글래스 시트 안 카드와 같은 골격 (ClubNearbyListItem: 좌우 4 · 상하 18,
+      // 구분선은 CG.hair = rgba(255,255,255,0.09)).
       decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: VybeColors.gray800, width: 1)),
+        border: Border(bottom: BorderSide(color: Color(0x17FFFFFF), width: 1)),
       ),
-      padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 24.h),
+      padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 18.h),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 이름 + 추천 뱃지
           Row(
             children: [
-              VybeSkel(width: 108.w, height: 18.h),
+              VybeSkel(width: 108.w, height: 20.h),
               SizedBox(width: 8.w),
               VybeSkel(width: 88.w, height: 18.h, radius: 999),
             ],
@@ -639,13 +641,13 @@ class NearbyListItemSkeleton extends StatelessWidget {
           ),
           SizedBox(height: 8.h),
           // 대표 이미지
-          VybeSkel(width: double.infinity, height: 152.h, radius: 12),
+          VybeSkel(width: double.infinity, height: 152.h, radius: 14),
           SizedBox(height: 8.h),
           // 주소
           VybeSkel(width: 220.w, height: 12.h),
-          SizedBox(height: 4.h),
+          SizedBox(height: 8.h),
           // 영업 정보
-          VybeSkel(width: 160.w, height: 12.h),
+          VybeSkel(width: 200.w, height: 12.h),
         ],
       ),
     );

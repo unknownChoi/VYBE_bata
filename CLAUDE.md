@@ -338,8 +338,8 @@ ElevatedButton(onPressed: () {}, child: Text('로그인'))
   후기 500자, 주의사항, 등록 완료 화면). 구 `write_review_sheet.dart` 바텀시트는 대체·삭제됨
 - **검색 화면 인기 해시태그 · 실시간 인기 검색어 실연동 (2026.07.31)** — 더미 상수 제거 완료.
   `searchLogs`(수집) → `aggregateSearchTrends`(집계) → `searchTrends/current`·`searchHashtags`(노출).
-  순수 로직은 `functions/src/search/compute_trends.ts`에 분리 — 실사용자 없이
-  `node scripts/test_compute_trends.js`로 33케이스 검증(되먹임 필터·고유유저·증감·fallback·스케줄)
+  순수 로직은 `functions/src/search/compute_trends.ts`에 분리(Firestore 의존 없음) —
+  되먹임 필터·고유유저 집계·증감·fallback·갱신주기 판단 전부 여기 있음
 
 ### 미구현 / 진행 중 ✗
 - 패스·지갑 탭 (`pass_wallet_screen.dart` 플레이스홀더 — 현재 탭 슬롯엔 미연결)
@@ -696,7 +696,6 @@ userId      : string    // == request.auth.uid
 source      : string    // 'input' | 'suggestion' | 'hashtag' | 'trend' | 'history' | 'map'
 createdAt   : timestamp // serverTimestamp
 expireAt    : timestamp // createdAt + 14d — Firestore TTL 정책이 자동 삭제
-isSynthetic : boolean   // (Admin 전용) 시드 스크립트가 넣은 합성 로그 표시. 클라는 Rules상 못 넣음
 ```
 > 인기 검색어 집계 원본. **클라는 create만, 읽기는 Admin SDK(집계 함수) 전용**.
 > 쓰기 지점은 `SearchViewModel.search()` + 화면의 예외 경로(지도 모드 제출, 연관 검색어→클럽 직행).

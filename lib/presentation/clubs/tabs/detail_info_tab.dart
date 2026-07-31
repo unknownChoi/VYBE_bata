@@ -140,7 +140,10 @@ class _DetailInfoTabState extends ConsumerState<DetailInfoTab> {
                     context,
                     lat: club?.lat ?? 0,
                     lng: club?.lng ?? 0,
-                    name: club?.name ?? '',
+                    // 목적지 라벨은 주소 — 주소가 비면 클럽 이름으로 폴백
+                    destination: address.isNotEmpty
+                        ? address
+                        : (club?.name ?? ''),
                   ),
                 ),
               ),
@@ -376,8 +379,13 @@ class _NaverMapCardState extends ConsumerState<_NaverMapCard> {
     final lat = club.lat;
     final lng = club.lng;
     final name = club.name;
-    // 앱 진입 시 설정된 내 위치 — 초기 카메라/내 위치 마커 기준.
+    // 앱 진입 시 설정된 내 위치 — 내 위치 마커 기준.
     final myLocation = ref.watch(userLocationProvider);
+    // 좌표가 없는 클럽(0,0)은 핀을 찍을 수 없어 내 위치를 중심으로 둔다.
+    final hasClubLocation = lat != 0 || lng != 0;
+    final center = hasClubLocation
+        ? NLatLng(lat, lng)
+        : NLatLng(myLocation.lat, myLocation.lng);
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(16.r),
@@ -389,11 +397,10 @@ class _NaverMapCardState extends ConsumerState<_NaverMapCard> {
           // 미지정 시 가로 드래그가 부모 PageView로 전달돼 탭이 넘어감.
           forceGesture: true,
           options: NaverMapViewOptions(
-            // 초기 위치 = 내 위치(화면 가운데).
-            initialCameraPosition: NCameraPosition(
-              target: NLatLng(myLocation.lat, myLocation.lng),
-              zoom: 16,
-            ),
+            // 초기 위치 = 클럽(화면 가운데). 매장 정보 탭의 지도라 클럽 핀이
+            // 항상 보여야 한다. 내 위치는 GPS 미연동(고정 기본 좌표)이라
+            // 중심으로 쓰면 클럽이 화면 밖으로 나간다.
+            initialCameraPosition: NCameraPosition(target: center, zoom: 16),
             mapType: NMapType.basic,
             activeLayerGroups: [NLayerGroup.building, NLayerGroup.transit],
             nightModeEnable: true,
@@ -407,43 +414,49 @@ class _NaverMapCardState extends ConsumerState<_NaverMapCard> {
             _mapController = controller;
             if (!mounted) return;
 
-            // 1) 내 위치 아이콘 표시 + 해당 위치를 화면 가운데로 (먼저 처리).
-            // locationOverlay 기본 아이콘이 환경에 따라 안 보여 커스텀 마커로 그림.
-            final myPos = NLatLng(myLocation.lat, myLocation.lng);
+            // 1) 클럽 핀을 먼저 올린다 — 이 지도의 주인공.
+            // 보라 라벨 + 핀을 하나의 마커 이미지로 생성해서,
+            // 지도를 움직여도 클럽 좌표에 정확히 붙어 따라간다.
             await controller.updateCamera(
-              NCameraUpdate.withParams(target: myPos, zoom: 16),
+              NCameraUpdate.withParams(target: center, zoom: 16),
             );
+            if (!mounted) return;
+            if (hasClubLocation) {
+              final overlayImage = _clubPinIcon ??=
+                  await NOverlayImage.fromWidget(
+                    widget: _PinWithLabel(label: name),
+                    size: Size(240.r, 64.r),
+                    context: context,
+                  );
+              if (!mounted) return;
+              await controller.addOverlay(
+                NMarker(
+                  id: 'club_marker',
+                  position: NLatLng(lat, lng),
+                  icon: overlayImage,
+                  // 핀 바닥(캔버스 하단 중앙)이 좌표를 가리키도록
+                  anchor: const NPoint(0.5, 1.0),
+                ),
+              );
+            }
+
+            // 2) 내 위치 점. locationOverlay 기본 아이콘이 환경에 따라
+            // 안 보여 커스텀 마커로 그린다. 클럽에서 멀면 화면 밖.
             if (!mounted) return;
             final myIcon = _myLocationIcon ??= await NOverlayImage.fromWidget(
               widget: const _MyLocationDot(),
               size: const Size(28, 28),
               context: context,
             );
-            final myMarker = NMarker(
-              id: 'my_location_marker',
-              position: myPos,
-              icon: myIcon,
-              anchor: const NPoint(0.5, 0.5),
-            );
-            await controller.addOverlay(myMarker);
-
-            // 2) 보라 라벨 + 핀을 하나의 마커 이미지로 생성.
-            // 지도를 움직여도 클럽 좌표에 정확히 붙어 따라간다.
             if (!mounted) return;
-            final overlayImage = _clubPinIcon ??=
-                await NOverlayImage.fromWidget(
-                  widget: _PinWithLabel(label: name),
-                  size: Size(240.r, 64.r),
-                  context: context,
-                );
-            final marker = NMarker(
-              id: 'club_marker',
-              position: NLatLng(lat, lng),
-              icon: overlayImage,
-              // 핀 바닥(캔버스 하단 중앙)이 좌표를 가리키도록
-              anchor: const NPoint(0.5, 1.0),
+            await controller.addOverlay(
+              NMarker(
+                id: 'my_location_marker',
+                position: NLatLng(myLocation.lat, myLocation.lng),
+                icon: myIcon,
+                anchor: const NPoint(0.5, 0.5),
+              ),
             );
-            await controller.addOverlay(marker);
           },
         ),
       ),
