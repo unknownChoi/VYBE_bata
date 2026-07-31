@@ -8,6 +8,7 @@ import 'package:vybe/presentation/auth/viewmodels/auth_viewmodel.dart';
 import 'package:vybe/presentation/auth/welcome/welcome_screen.dart';
 import 'package:vybe/presentation/common/widgets/ambient_backdrop.dart';
 import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
+import 'package:vybe/presentation/main_scaffold/nav_bar_hide_route.dart';
 import 'package:vybe/presentation/main_scaffold/nav_bar_visibility_provider.dart';
 import 'package:vybe/presentation/my_page/my_reviews_screen.dart';
 import 'package:vybe/presentation/my_page/profile_edit_screen.dart';
@@ -126,8 +127,10 @@ class _LoggedInView extends ConsumerWidget {
     'phone': '휴대폰으로 가입',
   };
 
-  void _push(BuildContext context, Widget screen) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
+  // 하위 페이지(프로필 수정·내 리뷰·설정)는 바텀 nav를 아래로 내린 채 연다.
+  // 돌아오면 다시 올라온다. (pushHidingNavBar 참고)
+  void _push(BuildContext context, WidgetRef ref, Widget screen) {
+    pushHidingNavBar<void>(context, ref, screen);
   }
 
   @override
@@ -179,7 +182,7 @@ class _LoggedInView extends ConsumerWidget {
             child: GestureDetector(
               onTap: user == null
                   ? null
-                  : () => _push(context, ProfileEditScreen(user: user)),
+                  : () => _push(context, ref, ProfileEditScreen(user: user)),
               child: Container(
                 height: 40.h,
                 padding: EdgeInsets.symmetric(horizontal: 20.w),
@@ -226,7 +229,7 @@ class _LoggedInView extends ConsumerWidget {
                     context,
                     label: '리뷰',
                     value: reviewCount,
-                    onTap: () => _push(context, const MyReviewsScreen()),
+                    onTap: () => _push(context, ref, const MyReviewsScreen()),
                   ),
                   VerticalDivider(width: 1, thickness: 1, color: hairColor),
                   _stat(
@@ -258,7 +261,7 @@ class _LoggedInView extends ConsumerWidget {
                       end: Alignment.bottomRight,
                       colors: [Color(0xFF7731FE), Color(0xFF4E24A0)],
                     ),
-                    onTap: () => _push(context, const MyReviewsScreen()),
+                    onTap: () => _push(context, ref, const MyReviewsScreen()),
                   ),
                 ),
                 SizedBox(width: 12.w),
@@ -305,7 +308,7 @@ class _LoggedInView extends ConsumerWidget {
                   context,
                   icon: Icons.settings_outlined,
                   label: '설정',
-                  onTap: () => _push(context, const SettingsScreen()),
+                  onTap: () => _push(context, ref, const SettingsScreen()),
                 ),
               ],
             ),

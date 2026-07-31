@@ -10,10 +10,15 @@ class ClubSearchPage {
   final Object? cursor;
   final bool hasMore;
 
+  /// 이번 페이지가 아닌 **검색어 전체** 매칭 수. 결과 개수 표시용
+  /// ([clubs].length는 지금까지 로드된 수라 "10, 20, 30…"으로 늘어남).
+  final int totalCount;
+
   const ClubSearchPage({
     required this.clubs,
     required this.cursor,
     required this.hasMore,
+    this.totalCount = 0,
   });
 
   static const empty = ClubSearchPage(clubs: [], cursor: null, hasMore: false);

@@ -74,22 +74,29 @@ class ClubRepositoryImpl implements ClubRepository {
 
     // Algolia 관련도순 검색: cursor = 다음 페이지 번호(int, 0부터).
     final page = cursor as int? ?? 0;
-    final result = await _searchDataSource.searchClubIds(
+    final result = await _searchDataSource.searchClubs(
       keyword,
       page: page,
       hitsPerPage: pageSize,
     );
 
-    // 인덱스엔 표시용 일부 필드만 있어 문서 본문은 Firestore에서 조인.
+    // hit에 목록/필터/지도용 필드가 전부 있으면 Firestore 조인 생략 → 검색 1회 read 0.
+    // Extension Indexable Fields가 아직 반영 안 됐으면(재색인 전) complete=false →
+    // 예전처럼 clubId로 조인해 화면이 깨지지 않게 한다. (조인 시 pageSize만큼 read)
+    final clubs = result.complete
+        ? result.clubs
+        : (await Future.wait(result.ids.map(_dataSource.getClub)))
+            .whereType<ClubModel>()
+            .toList();
+
     // Algolia 관련도 순서를 유지하고, 동기화 지연으로 삭제/비활성된 문서는 제외.
-    final clubs = await Future.wait(result.ids.map(_dataSource.getClub));
-    final visible =
-        clubs.whereType<ClubModel>().where((c) => c.isActive).toList();
+    final visible = clubs.where((c) => c.isActive).toList();
 
     return ClubSearchPage(
       clubs: visible,
       cursor: page + 1,
       hasMore: result.hasMore,
+      totalCount: result.totalHits,
     );
   }
 }

@@ -7,6 +7,7 @@ part 'club_filter_viewmodel.g.dart';
 /// 필터 칩 종류. FilterChipBar 토글 칩과 1:1 매핑.
 /// favorite은 런타임 찜 목록(favoritedIds) 의존 — clubMatchesFilters에 주입 필요.
 enum ClubFilter {
+  vybeRecommended,
   favorite,
   open,
   serviceDrink,
@@ -101,6 +102,8 @@ bool clubMatchesFilters(
 
 bool _matchesFilter(ClubModel c, ClubFilter f, Set<String> favoritedIds) {
   switch (f) {
+    case ClubFilter.vybeRecommended:
+      return c.isVybeRecommended;
     case ClubFilter.favorite:
       return favoritedIds.contains(c.clubId);
     case ClubFilter.open:

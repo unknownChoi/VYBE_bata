@@ -95,12 +95,14 @@ class _FilterChipBarState extends ConsumerState<FilterChipBar> {
 
     Widget toggle({
       required String label,
-      required IconData icon,
       required ClubFilter filter,
+      IconData? icon,
+      String? svgAsset,
     }) {
       return _buildToggleChip(
         label: label,
         icon: icon,
+        svgAsset: svgAsset,
         isActive: active.contains(filter),
         onTap: () => notifier.toggle(filter),
       );
@@ -119,6 +121,13 @@ class _FilterChipBarState extends ConsumerState<FilterChipBar> {
             margin: EdgeInsets.symmetric(horizontal: 9.w),
             color: VybeColors.gray800,
           ),
+          // 필터 칩 맨 앞 — 클럽 카드 리본과 같은 VYBE 추천 아이콘.
+          toggle(
+            label: 'VYBE 추천',
+            svgAsset: 'assets/icons/common/club_card/vybe_recommend.svg',
+            filter: ClubFilter.vybeRecommended,
+          ),
+          SizedBox(width: 8.w),
           if (widget.showFavorite) ...[
             toggle(
               label: '찜',
@@ -212,11 +221,13 @@ class _FilterChipBarState extends ConsumerState<FilterChipBar> {
   }
 
   // 입장비 무료 페이지 지역 칩(_RegionFilter) 스타일 pill + 아이콘.
+  // [svgAsset]을 주면 Material 아이콘 대신 SVG를 쓴다 (VYBE 추천 등 전용 아이콘).
   Widget _buildToggleChip({
     required String label,
     required bool isActive,
     required VoidCallback onTap,
-    required IconData icon,
+    IconData? icon,
+    String? svgAsset,
   }) {
     final fg = isActive ? Colors.white : VybeColors.gray300;
     return GestureDetector(
@@ -226,7 +237,15 @@ class _FilterChipBarState extends ConsumerState<FilterChipBar> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 14.r, color: fg),
+            if (svgAsset != null)
+              SvgPicture.asset(
+                svgAsset,
+                width: 14.r,
+                height: 14.r,
+                colorFilter: ColorFilter.mode(fg, BlendMode.srcIn),
+              )
+            else if (icon != null)
+              Icon(icon, size: 14.r, color: fg),
             SizedBox(width: 5.w),
             Text(
               label,

@@ -76,11 +76,16 @@ class FirebaseSearchHistoryDataSource {
         .get();
     if (snapshot.docs.isEmpty) return;
 
-    // 순차 await 대신 단일 batch 삭제 (getSearchHistory limit 20 → 500 제한 내).
-    final batch = _firestore.batch();
-    for (final doc in snapshot.docs) {
-      batch.delete(doc.reference);
+    // 순차 await 대신 batch 삭제. 문서는 검색어(중복 제거)마다 1개씩 쌓여
+    // 보통 수십 개지만, batch 쓰기 한도(500)를 넘지 않게 잘라서 커밋한다.
+    const chunkSize = 400;
+    for (var i = 0; i < snapshot.docs.length; i += chunkSize) {
+      final end = (i + chunkSize).clamp(0, snapshot.docs.length);
+      final batch = _firestore.batch();
+      for (final doc in snapshot.docs.sublist(i, end)) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
     }
-    await batch.commit();
   }
 }

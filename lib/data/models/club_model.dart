@@ -82,4 +82,72 @@ abstract class ClubModel with _$ClubModel {
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
+
+  /// Algolia 검색 hit → ClubModel (Firestore 조인 없이 목록/지도 렌더용).
+  ///
+  /// hit에는 Extension Indexable Fields로 지정된 필드만 들어있다.
+  /// 상세 화면은 clubId로 문서를 다시 읽으므로 여기 없는 필드(description,
+  /// imageUrls, menuBoardUrls 등)는 fromFirestore와 같은 기본값으로 둔다.
+  factory ClubModel.fromSearchHit(String objectID, Map<String, dynamic> data) {
+    final location = _asStringMap(data['location']);
+    return ClubModel(
+      clubId: objectID,
+      name: data['name'] as String? ?? '',
+      description: data['description'] as String? ?? '',
+      address: data['address'] as String? ?? '',
+      area: data['area'] as String? ?? '',
+      phone: data['phone'] as String? ?? '',
+      instagramUrl: data['instagramUrl'] as String? ?? '',
+      lat: (location['lat'] as num?)?.toDouble() ?? 0.0,
+      lng: (location['lng'] as num?)?.toDouble() ?? 0.0,
+      geohash: location['geohash'] as String? ?? '',
+      genre: data['genre'] as String? ?? '',
+      genreStyles: List<String>.from(data['genreStyles'] as List? ?? []),
+      rating: (data['rating'] as num?)?.toDouble() ?? 0.0,
+      reviewCount: (data['reviewCount'] as num?)?.toInt() ?? 0,
+      operatingHours:
+          OperatingHours.fromMap(_asStringMapOrNull(data['operatingHours'])),
+      entryFeeMin: (data['entryFeeMin'] as num?)?.toInt() ?? 0,
+      entryFeeMax: (data['entryFeeMax'] as num?)?.toInt() ?? 0,
+      imageUrls: List<String>.from(data['imageUrls'] as List? ?? []),
+      heroImageUrls: List<String>.from(data['heroImageUrls'] as List? ?? []),
+      thumbnailUrl: data['thumbnailUrl'] as String? ?? '',
+      menuBoardUrls: List<String>.from(data['menuBoardUrls'] as List? ?? []),
+      tags: List<String>.from(data['tags'] as List? ?? []),
+      favoriteCount: (data['favoriteCount'] as num?)?.toInt() ?? 0,
+      isActive: data['isActive'] as bool? ?? false,
+      isVybeRecommended: data['isVybeRecommended'] as bool? ?? false,
+      isNonSmoking: data['isNonSmoking'] as bool? ?? false,
+      serviceDrink:
+          ServiceDrink.fromMap(_asStringMapOrNull(data['serviceDrink'])),
+      freeEntryCondition: data['freeEntryCondition'] as String? ?? '',
+      createdAt: _parseSearchDate(data['createdAt']),
+      updatedAt: _parseSearchDate(data['updatedAt']),
+    );
+  }
+}
+
+/// 검색 hit의 중첩 객체를 안전하게 Map으로. JSON 디코드 결과가 아닌 값이면 빈 맵.
+Map<String, dynamic> _asStringMap(Object? v) =>
+    v is Map ? Map<String, dynamic>.from(v) : const {};
+
+Map<String, dynamic>? _asStringMapOrNull(Object? v) =>
+    v is Map ? Map<String, dynamic>.from(v) : null;
+
+/// 검색 hit의 시각 필드 파싱. Extension 버전에 따라 ISO 문자열 /
+/// epoch 초·밀리초 / `{_seconds, _nanoseconds}` 중 하나로 들어온다.
+/// 목록 UI에서 쓰지 않는 값이라 파싱 실패 시 현재 시각으로 둔다.
+DateTime _parseSearchDate(Object? v) {
+  if (v is String) return DateTime.tryParse(v) ?? DateTime.now();
+  if (v is num) {
+    final ms = v > 100000000000 ? v.toInt() : (v * 1000).toInt();
+    return DateTime.fromMillisecondsSinceEpoch(ms);
+  }
+  if (v is Map) {
+    final s = (v['_seconds'] ?? v['seconds']) as num?;
+    if (s != null) {
+      return DateTime.fromMillisecondsSinceEpoch((s * 1000).toInt());
+    }
+  }
+  return DateTime.now();
 }

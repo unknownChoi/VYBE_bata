@@ -1,27 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:vybe/data/models/search_trend_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 
-enum TrendStatus { up, down, newEntry, same }
-
-class TrendItem {
-  final int rank;
-  final String keyword;
-  final TrendStatus status;
-  final int? change;
-
-  const TrendItem({
-    required this.rank,
-    required this.keyword,
-    required this.status,
-    this.change,
-  });
-}
-
 class TrendRow extends StatelessWidget {
-  final TrendItem item;
+  final SearchTrendItem item;
   final VoidCallback? onTap;
 
   const TrendRow({super.key, required this.item, this.onTap});
@@ -76,6 +61,10 @@ class TrendRow extends StatelessWidget {
   }
 
   Widget _buildStatus() {
+    // fallback으로 채운 자리(실검색 데이터 아님)는 증감을 표시하지 않는다.
+    // 유저가 없는데 순위가 오르내리는 것처럼 보이면 안 되므로.
+    if (!item.isReal) return const SizedBox.shrink();
+
     final numStyle = TextStyle(
       fontFamily: 'Pretendard',
       fontWeight: FontWeight.w400,

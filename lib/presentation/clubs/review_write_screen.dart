@@ -12,7 +12,7 @@ import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
 import 'package:vybe/presentation/clubs/viewmodels/review_viewmodel.dart';
 import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
-import 'package:vybe/presentation/main_scaffold/nav_bar_visibility_provider.dart';
+import 'package:vybe/presentation/main_scaffold/nav_bar_hide_route.dart';
 
 // 디자인: review_write.jsx (WRITE REVIEW — LIQUID GLASS)
 
@@ -55,19 +55,18 @@ class ReviewWriteScreen extends ConsumerStatefulWidget {
   /// 리뷰 작성 페이지로 이동. 등록 성공 시 true 반환.
   ///
   /// MainScaffold의 floating 바텀 nav는 탭 Navigator 위(Stack)에 떠 있어
-  /// 이 페이지의 등록 버튼과 겹친다 → 페이지가 열려 있는 동안 화면 밖으로 내린다.
-  /// 내리는 시점은 페이지 전환이 끝난 뒤(화면 안에서) — [_ReviewWriteScreenState] 참고.
-  /// 복원은 pop 시점에 바로 해서 페이지가 내려가는 동안 nav가 같이 올라온다.
+  /// 이 페이지의 등록 버튼과 겹친다 → 열려 있는 동안 화면 밖으로 내린다.
+  /// (내리는/올리는 시점은 [pushHidingNavBar] 참고)
   static Future<bool?> push(
     BuildContext context,
     WidgetRef ref, {
     required String clubId,
   }) {
-    return Navigator.of(context)
-        .push<bool>(
-          MaterialPageRoute(builder: (_) => ReviewWriteScreen(clubId: clubId)),
-        )
-        .whenComplete(() => ref.read(navBarHiddenProvider.notifier).show());
+    return pushHidingNavBar<bool>(
+      context,
+      ref,
+      ReviewWriteScreen(clubId: clubId),
+    );
   }
 
   @override
@@ -82,46 +81,14 @@ class _ReviewWriteScreenState extends ConsumerState<ReviewWriteScreen> {
   final List<File> _photos = [];
   bool _submitting = false;
 
-  /// 페이지 전환 애니메이션. 완료를 감지해 그때 바텀 nav를 내린다.
-  Animation<double>? _routeAnimation;
-
   @override
   void initState() {
     super.initState();
     _controller.addListener(() => setState(() {}));
-    // 페이지 진입 애니메이션이 끝난 뒤 nav를 내려야 슬라이드가 화면 안에서 보인다.
-    // (push와 동시에 내리면 이 페이지가 덮기 전에 이미 사라져 있어 애니메이션을 놓친다)
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final animation = ModalRoute.of(context)?.animation;
-      if (animation == null || animation.isCompleted) {
-        _hideNavBar();
-        return;
-      }
-      _routeAnimation = animation..addStatusListener(_onRouteAnimation);
-    });
-  }
-
-  void _onRouteAnimation(AnimationStatus status) {
-    if (status != AnimationStatus.completed) return;
-    _clearRouteAnimation();
-    _hideNavBar();
-  }
-
-  void _hideNavBar() {
-    if (!mounted) return;
-    ref.read(navBarHiddenProvider.notifier).hide();
-  }
-
-  void _clearRouteAnimation() {
-    _routeAnimation?.removeStatusListener(_onRouteAnimation);
-    _routeAnimation = null;
   }
 
   @override
   void dispose() {
-    // 전환 도중 바로 뒤로가기 하면 completed가 안 와서 리스너가 남는다.
-    _clearRouteAnimation();
     _controller.dispose();
     super.dispose();
   }

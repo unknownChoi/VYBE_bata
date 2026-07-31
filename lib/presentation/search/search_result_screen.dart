@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/core/providers/auth_providers.dart';
+import 'package:vybe/data/models/search_trend_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
+import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 import 'package:vybe/presentation/search/viewmodels/club_filter_viewmodel.dart';
 import 'package:vybe/presentation/search/viewmodels/search_viewmodel.dart';
 import 'package:vybe/presentation/search/widgets/club_list_item.dart';
@@ -14,7 +16,14 @@ import 'package:vybe/presentation/search/widgets/result_gnb.dart';
 class SearchResultScreen extends ConsumerStatefulWidget {
   final String query;
 
-  const SearchResultScreen({super.key, required this.query});
+  /// 이 검색이 어디서 왔는지 — 인기 검색어 집계에서 되먹임을 걸러내는 데 쓰인다.
+  final SearchSource source;
+
+  const SearchResultScreen({
+    super.key,
+    required this.query,
+    this.source = SearchSource.input,
+  });
 
   @override
   ConsumerState<SearchResultScreen> createState() => _SearchResultScreenState();
@@ -29,7 +38,7 @@ class _SearchResultScreenState extends ConsumerState<SearchResultScreen> {
       final uid = ref.read(currentUidProvider);
       ref
           .read(searchViewModelProvider.notifier)
-          .search(widget.query, userId: uid);
+          .search(widget.query, userId: uid, source: widget.source);
     });
   }
 
@@ -57,14 +66,16 @@ class _SearchResultScreenState extends ConsumerState<SearchResultScreen> {
       ..addAll(optimistic.entries.where((e) => e.value).map((e) => e.key))
       ..removeAll(optimistic.entries.where((e) => !e.value).map((e) => e.key));
 
-    // 메타 행에 표시할 (필터/정렬 적용 후) 결과 수. 로딩 중엔 null.
+    // 메타 행 결과 수. 로딩 중엔 null.
+    // - 필터 없음: 검색어 전체 매칭 수(totalCount) — 10개씩 로드해도 숫자 안 변함.
+    // - 필터 있음: 서버는 필터를 모르므로 지금까지 로드된 것 중 통과 개수.
     final int? count = resultsAsync.maybeWhen(
       data: (results) {
-        final clubs = results.clubs
+        if (filters.isEmpty) return results.totalCount;
+        return results.clubs
             .where((c) =>
                 clubMatchesFilters(c, filters, favoritedIds: favoritedIds))
-            .toList();
-        return sortClubs(clubs, sort).length;
+            .length;
       },
       orElse: () => null,
     );
@@ -86,11 +97,7 @@ class _SearchResultScreenState extends ConsumerState<SearchResultScreen> {
             const FilterChipBar(),
             Expanded(
               child: resultsAsync.when(
-                loading: () => const Center(
-                  child: CircularProgressIndicator(
-                    color: VybeColors.mainPurple500,
-                  ),
-                ),
+                loading: _buildSkeletonList,
                 error: (e, _) => _buildMessage('검색 중 오류가 발생했어요\n\n$e'),
                 data: (results) {
                   // 로드된 결과에 필터 + 정렬 적용 (클라).
@@ -111,12 +118,10 @@ class _SearchResultScreenState extends ConsumerState<SearchResultScreen> {
                   }
 
                   if (clubs.isEmpty) {
+                    // 필터로 다 걸러진 채 다음 페이지를 받아오는 중 —
+                    // 스피너 대신 카드 골격 스켈레톤으로 채운다.
                     if (results.hasMore || results.loadingMore) {
-                      return const Center(
-                        child: CircularProgressIndicator(
-                          color: VybeColors.mainPurple500,
-                        ),
-                      );
+                      return _buildSkeletonList();
                     }
                     return _buildMessage(
                       filters.isEmpty
@@ -125,20 +130,22 @@ class _SearchResultScreenState extends ConsumerState<SearchResultScreen> {
                     );
                   }
 
-                  final showSpinner = results.hasMore || results.loadingMore;
+                  final showSkeleton = results.hasMore || results.loadingMore;
                   return NotificationListener<ScrollNotification>(
                     onNotification: _onScroll,
                     child: ListView.builder(
                       padding: EdgeInsets.only(top: 4.h),
-                      itemCount: clubs.length + (showSpinner ? 1 : 0),
+                      itemCount: clubs.length + (showSkeleton ? 1 : 0),
                       itemBuilder: (_, i) {
+                        // 다음 페이지 로드 자리 — 스피너 대신 카드 골격 스켈레톤.
                         if (i >= clubs.length) {
                           return Padding(
-                            padding: EdgeInsets.symmetric(vertical: 20.h),
-                            child: const Center(
-                              child: CircularProgressIndicator(
-                                color: VybeColors.mainPurple500,
-                              ),
+                            padding: EdgeInsets.only(top: 6.h),
+                            child: const Column(
+                              children: [
+                                SearchResultItemSkeleton(),
+                                SearchResultItemSkeleton(),
+                              ],
                             ),
                           );
                         }
@@ -167,6 +174,17 @@ class _SearchResultScreenState extends ConsumerState<SearchResultScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  // 결과 카드 자리를 채우는 스켈레톤 리스트 (최초 검색·필터 대기 중 표시).
+  // 화면 높이에 상관없이 아래가 잘리도록 넉넉히 4장.
+  Widget _buildSkeletonList() {
+    return ListView.builder(
+      padding: EdgeInsets.only(top: 4.h),
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: 4,
+      itemBuilder: (_, __) => const SearchResultItemSkeleton(),
     );
   }
 

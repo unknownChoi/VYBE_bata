@@ -1,8 +1,10 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/data/models/search_history_model.dart';
+import 'package:vybe/data/models/search_trend_model.dart';
 import 'package:vybe/data/repositories/club_repository_impl.dart';
 import 'package:vybe/data/repositories/search_history_repository_impl.dart';
+import 'package:vybe/data/repositories/search_trend_repository_impl.dart';
 
 part 'search_viewmodel.g.dart';
 
@@ -42,11 +44,15 @@ class SearchResults {
   final bool hasMore;
   final bool loadingMore;
 
+  /// 검색어 전체 매칭 수(로드된 페이지 수와 무관). 메타 행 "검색결과 N" 표시용.
+  final int totalCount;
+
   const SearchResults({
     required this.clubs,
     required this.cursor,
     required this.hasMore,
     required this.loadingMore,
+    this.totalCount = 0,
   });
 
   static const empty = SearchResults(
@@ -61,12 +67,14 @@ class SearchResults {
     Object? cursor,
     bool? hasMore,
     bool? loadingMore,
+    int? totalCount,
   }) {
     return SearchResults(
       clubs: clubs ?? this.clubs,
       cursor: cursor ?? this.cursor,
       hasMore: hasMore ?? this.hasMore,
       loadingMore: loadingMore ?? this.loadingMore,
+      totalCount: totalCount ?? this.totalCount,
     );
   }
 }
@@ -79,7 +87,11 @@ class SearchViewModel extends _$SearchViewModel {
   @override
   AsyncValue<SearchResults> build() => const AsyncData(SearchResults.empty);
 
-  Future<void> search(String keyword, {String? userId}) async {
+  Future<void> search(
+    String keyword, {
+    String? userId,
+    SearchSource source = SearchSource.input,
+  }) async {
     _keyword = keyword.trim();
     if (_keyword.isEmpty) {
       state = const AsyncData(SearchResults.empty);
@@ -95,6 +107,7 @@ class SearchViewModel extends _$SearchViewModel {
         cursor: page.cursor,
         hasMore: page.hasMore,
         loadingMore: false,
+        totalCount: page.totalCount,
       );
     });
 
@@ -109,7 +122,26 @@ class SearchViewModel extends _$SearchViewModel {
         // ignore: avoid_print
         print('[Search] 검색기록 저장 실패(무시): $e');
       }
+      logSearch(userId: userId, keyword: _keyword, source: source);
     }
+  }
+
+  /// 인기 검색어 집계용 로그 기록. 부가기능이라 await 하지 않고 실패도 무시한다.
+  ///
+  /// [SearchViewModel.search]를 거치지 않는 유입(지도 모드 제출, 연관 검색어에서
+  /// 클럽 상세로 직행)에서는 화면이 직접 호출한다.
+  void logSearch({
+    required String userId,
+    required String keyword,
+    required SearchSource source,
+  }) {
+    ref
+        .read(searchTrendRepositoryProvider)
+        .logSearch(userId: userId, keyword: keyword, source: source)
+        .catchError((Object e) {
+      // ignore: avoid_print
+      print('[Search] 검색로그 기록 실패(무시): $e');
+    });
   }
 
   /// 다음 페이지(10개) 추가 로드.
@@ -129,6 +161,7 @@ class SearchViewModel extends _$SearchViewModel {
         cursor: page.cursor,
         hasMore: page.hasMore,
         loadingMore: false,
+        totalCount: page.totalCount,
       ));
     } catch (_) {
       state = AsyncData(cur.copyWith(loadingMore: false));
@@ -143,12 +176,19 @@ class SearchViewModel extends _$SearchViewModel {
     ref.invalidate(searchHistoryProvider(userId));
   }
 
-  Future<void> clearHistory(String userId) async {
-    await ref
-        .read(searchHistoryRepositoryProvider)
-        .clearAllSearchHistory(userId);
-    if (!ref.mounted) return;
-    ref.invalidate(searchHistoryProvider(userId));
+  /// 최근 검색어 전체 삭제. 성공 여부를 반환한다 (화면에서 토스트 문구 분기용).
+  Future<bool> clearHistory(String userId) async {
+    try {
+      await ref
+          .read(searchHistoryRepositoryProvider)
+          .clearAllSearchHistory(userId);
+    } catch (e) {
+      // ignore: avoid_print
+      print('[Search] 검색기록 전체 삭제 실패: $e');
+      return false;
+    }
+    if (ref.mounted) ref.invalidate(searchHistoryProvider(userId));
+    return true;
   }
 
   void clear() => state = const AsyncData(SearchResults.empty);

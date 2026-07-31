@@ -184,15 +184,27 @@ onClubWritten 트리거·searchTokens 필드·전용 인덱스 전부 삭제됨.
 
 ```
 clubs 쓰기 → Firebase Extension(firestore-algolia-search) → Algolia `clubs` 인덱스 자동 동기화
-앱 검색   → algolia_club_search_datasource (Search-Only 키) → 관련도순 clubId 페이지
-          → clubId로 Firestore getClub 조인 (인덱스엔 표시용 일부 필드만)
+앱 검색   → algolia_club_search_datasource (Search-Only 키) → 관련도순 hit 페이지
+          → hit를 ClubModel.fromSearchHit로 직접 매핑 (Firestore read 0)
+상세 진입 → clubId로 getClub 1건만 조회
 ```
 
 - Extension 설정: Collection Path `clubs`, Index `clubs`, objectID = doc.id(= clubId),
-  Indexable Fields: name,area,genre,genreStyles,tags,address,rating,thumbnailUrl,entryFeeMin,isActive,favoriteCount
+  Indexable Fields: name,area,genre,genreStyles,tags,address,rating,reviewCount,
+  thumbnailUrl,entryFeeMin,entryFeeMax,operatingHours,isActive,isVybeRecommended,
+  isNonSmoking,favoriteCount,location
+- **Firestore 조인 제거 (2026.07.31)** — 목록 카드·필터·정렬·지도 핀에 필요한 필드를
+  전부 인덱싱해 검색 시 Firestore 문서 read가 0이 됨. 필요 필드 목록은
+  `AlgoliaClubSearchDataSource._requiredFields` (단일 소스).
+  hit에 하나라도 빠지면 `complete=false` → 예전 `getClub` 조인으로 자동 폴백(화면 안 깨짐).
+  ⚠ Indexable Fields를 바꾸면 기존 문서는 자동 반영 안 됨 → `node scripts/reindex_clubs.js`로
+  전체 touch 필요. `_requiredFields`에 필드를 추가할 때도 Extension 설정 + 재색인 동반 필수.
 - 진입점은 `ClubRepositoryImpl.searchClubsPage` 하나 — viewmodel/화면은 엔진 무관.
   cursor = Algolia 페이지 번호(int, 0부터).
-- 비활성 클럽 제외는 Firestore 조인 후 `isActive` 재확인으로 처리.
+- 결과 개수는 `ClubSearchPage.totalCount`(= Algolia `nbHits`, 검색어 전체 매칭 수).
+  응답에 이미 실려와 추가 비용 0. 검색 결과 화면 메타 행은 필터 없을 때 이 값을 쓰고,
+  필터가 걸리면 서버가 필터를 모르므로 로드된 것 중 통과 개수로 대체한다.
+- 비활성 클럽 제외는 hit의 `isActive` 값으로 처리(폴백 경로에선 조인 후 확인).
   (Algolia `filters`는 attributesForFaceting 미선언 속성이면 조용히 0건 — 사용 금지)
 - ⚠ .env에 ALGOLIA 키 없으면 검색 결과 빈 값 (fallback 없음 — 키 필수).
 - ⚠ 키 규칙: 앱에는 **Search-Only 키만**. Admin/Write 키는 Extension(서버)에서만 사용.
@@ -324,12 +336,19 @@ ElevatedButton(onPressed: () {}, child: Text('로그인'))
 - **리뷰 작성 페이지 (`clubs/review_write_screen.dart`) — review_write.jsx 글래스 디자인 기반**
   (별점 0.5 단위 반쪽 별, 추천 태그 칩 → `tags`, 사진 최대 4장 `image_picker` → Storage 업로드,
   후기 500자, 주의사항, 등록 완료 화면). 구 `write_review_sheet.dart` 바텀시트는 대체·삭제됨
+- **검색 화면 인기 해시태그 · 실시간 인기 검색어 실연동 (2026.07.31)** — 더미 상수 제거 완료.
+  `searchLogs`(수집) → `aggregateSearchTrends`(집계) → `searchTrends/current`·`searchHashtags`(노출).
+  순수 로직은 `functions/src/search/compute_trends.ts`에 분리 — 실사용자 없이
+  `node scripts/test_compute_trends.js`로 33케이스 검증(되먹임 필터·고유유저·증감·fallback·스케줄)
 
 ### 미구현 / 진행 중 ✗
 - 패스·지갑 탭 (`pass_wallet_screen.dart` 플레이스홀더 — 현재 탭 슬롯엔 미연결)
 - 주변 페이지 ↔ 상세 페이지 연동 마무리 (최근 커밋 진행 중)
 - 마이페이지 세부 — 리뷰 수정, 프로필 사진 변경(image_picker 설치됨 — 연결만 남음), 알림 화면
 - reviews collectionGroup 인덱스·Rules 배포 (`firebase deploy --only firestore` — 미배포 시 내 리뷰 관리 동작 안 함)
+- 검색 트렌드 배포 잔여 작업 — ① `firebase deploy --only firestore:rules,functions:aggregateSearchTrends`
+  ② `node scripts/seed_search_hashtags.js` (안 돌리면 두 섹션 다 빈 화면)
+  ③ 콘솔에서 `searchLogs.expireAt` TTL 정책 추가
 - Storage Security Rules 배포 검증 (Firestore Rules는 배포됨)
 - Apple 로그인 (이후 구현)
 
@@ -669,12 +688,69 @@ createdAt       : timestamp
 > 인덱스: `performances(genre, date, startAt)`. seed: `scripts/seed_performances.js`.
 > ⚠ favoriteCount·rating 같은 집계 없음 → Cloud Functions 트리거 불필요(live/lineup은 클라 머지 계산).
 
+#### searchLogs/{logId}
+```
+logId       : string    // PK (auto)
+keyword     : string    // 정규화된 검색어 (선행 '#' 제거·연속 공백 축약·2~30자, 대소문자 보존)
+userId      : string    // == request.auth.uid
+source      : string    // 'input' | 'suggestion' | 'hashtag' | 'trend' | 'history' | 'map'
+createdAt   : timestamp // serverTimestamp
+expireAt    : timestamp // createdAt + 14d — Firestore TTL 정책이 자동 삭제
+isSynthetic : boolean   // (Admin 전용) 시드 스크립트가 넣은 합성 로그 표시. 클라는 Rules상 못 넣음
+```
+> 인기 검색어 집계 원본. **클라는 create만, 읽기는 Admin SDK(집계 함수) 전용**.
+> 쓰기 지점은 `SearchViewModel.search()` + 화면의 예외 경로(지도 모드 제출, 연관 검색어→클럽 직행).
+> ⚠ **`source`가 설계 핵심** — 트렌드/해시태그 칩 탭 유입을 집계에 넣으면 1위가 계속 1위가 되는
+> 되먹임이 생긴다. 랭킹은 `input`/`suggestion`만 카운트(`RANKED_SOURCES`).
+> ⚠ 랭킹 기준은 raw count가 아닌 **고유 userId 수** — 1인이 반복 검색해도 1표(스팸·자기증폭 방지).
+> ⚠ 비로그인 검색은 Rules상 로깅 안 됨.
+> 인덱스 불필요(`createdAt` 단일 필드 = 자동 인덱스). `source`는 메모리 필터.
+> TTL 정책은 콘솔/gcloud로 별도 설정 — `firestore.indexes.json`으로는 설정 안 됨.
+
+#### searchTrends/{docId}  — 문서 2개 고정
+```
+// searchTrends/current — 집계 스냅샷. 앱은 이 문서 1개만 읽는다 (read 1회)
+items       : array     // [{ rank, keyword, status, change, uniqueUsers }]
+                        //   status: 'up'|'down'|'newEntry'|'same' (직전 스냅샷 대비)
+                        //   uniqueUsers: 0이면 fallback으로 채운 자리 (실데이터 아님)
+realCount   : number    // 실데이터로 채워진 항목 수
+sampleSize  : number    // 집계에 쓰인 로그 건수 (디버깅용)
+windowHours : number    // 집계 윈도우 (기본 24)
+runKey      : string    // KST yyyyMMddHH — 중복 실행 방어
+updatedAt   : timestamp // UI '07.31 22:00 기준' 표기 소스
+
+// searchTrends/fallback — 어드민 큐레이션 백업 목록
+items       : array     // [{ rank, keyword }] — 실데이터 부족 시 뒷자리를 채움
+```
+> ⚠ **fallback으로 채운 항목엔 증감을 표시하지 않는다** (`uniqueUsers == 0` → `TrendRow`가 숨김).
+> 유저가 없는데 순위가 오르내리는 것처럼 보이면 안 되므로.
+> `realCount == 0`이면 섹션 제목도 '실시간 인기 검색어' 대신 '인기 검색어'.
+
+#### searchHashtags/{tagId}
+```
+tagId          : string    // = doc.id (seed: tag_<slug>)
+label          : string    // '힙합' (UI 표시는 '#힙합')
+linkType       : string    // 'keyword' | 'page'
+linkValue      : string    // keyword: 검색어 / page: 화면 키
+                           //   freeEntry|serviceDrinks|hipHop|hotPlaces|vybeRecommend
+order          : number    // 큐레이션 기본 순서
+popularityRank : number?   // 집계가 채우는 검색량 순위. null이면 order로 정렬
+isActive       : boolean
+createdAt      : timestamp
+```
+> 인기 해시태그 데이터 소스. **큐레이션 문서가 필수인 이유**: '입장료 무료'·'서비스 음료'·'힙합'은
+> 검색어가 아니라 전용 화면(`FreeEntryScreen` 등)으로 가야 해서 검색 로그 자동 추출로는
+> 라우팅을 만들 수 없다. banners의 `linkType`/`linkValue` 패턴 재사용.
+> 정렬은 `popularityRank`(있는 것 우선) → `order`. **문서는 8개보다 많이 두고 상위 8개만 노출**해야
+> 검색량에 따라 순서가 실제로 바뀐다. seed: `scripts/seed_search_hashtags.js`.
+> ⚠ `popularityRank`는 집계 함수 소유 — seed 스크립트가 덮어쓰지 않음(updateMask에서 제외).
+
 ---
 
 ### Cloud Functions 목록
 
-총 **13개** 함수 (`functions/src/index.ts` export 기준). Firebase 관련 서버 로직은 모두 Cloud Functions으로 처리.
-구조: `functions/src/auth/` (7) · `favorites/` (2) · `reviews/` (3) · `performances/` (1) + `index.ts`.
+총 **14개** 함수 (`functions/src/index.ts` export 기준). Firebase 관련 서버 로직은 모두 Cloud Functions으로 처리.
+구조: `functions/src/auth/` (7) · `favorites/` (2) · `reviews/` (3) · `performances/` (1) · `search/` (1) + `index.ts`.
 (구 `search/onClubWritten`은 Algolia 전환으로 삭제 — 2026.07.19)
 
 #### HTTP 요청 함수 (앱에서 직접 호출, `https.onCall`)
@@ -704,8 +780,20 @@ createdAt       : timestamp
 | 함수명 | 스케줄 | 역할 |
 |--------|--------|------|
 | `cleanupPastPerformances` | 매일 KST 04:00 | 종료된 공연 문서 삭제. `startAt < now - 8h`(PERFORMANCE_DURATION_HOURS)인 공연만 삭제 → 예정/진행 중(새벽) 공연 보존. 500개씩 배치 삭제 |
+| `aggregateSearchTrends` | 매시 정각 KST (`0 * * * *`) | 검색 로그 집계 → `searchTrends/current` + `searchHashtags.popularityRank`. 매시 깨어나서 **갱신 대상 여부를 내부 판단**하고, 아니면 Firestore 접근 없이 즉시 종료 |
 
 > 새벽 공연 보호 로직: 공연은 `startAt`(Timestamp) 후 최대 8시간 진행으로 가정(클럽 마감 ~06:00). 8시간 안 지난 공연은 "진행 중"으로 보존 → 오늘 밤 새벽 공연/어제 이어진 공연 안전. 마감 더 늦으면 `PERFORMANCE_DURATION_HOURS` 상수만 조정.
+
+> **검색 트렌드 갱신 주기** (`scheduleDecision()` — `functions/src/search/compute_trends.ts`)
+> | 구간 | 실시간 인기 검색어 | 인기 해시태그 |
+> |------|------|------|
+> | 야간 20:00~09:00 (9시 포함) | 매시 | 매시 |
+> | 주간 10:00~19:00 | 2시간 (10·12·14·16·18) | 4시간 (12·16) |
+>
+> 주간 간격은 자정 기준 앵커(`hour % N`)라 **해시태그 갱신 시각은 항상 검색어 갱신 시각의 부분집합** →
+> 로그 스캔 1회로 둘 다 처리한다. 클럽 검색이 밤에 몰리므로 야간을 촘촘하게 잡음.
+> 중복 실행 방어: 스냅샷에 `runKey`(KST yyyyMMddHH) 저장 → 같은 시각 재실행 시 skip
+> (안 막으면 증감이 방금 쓴 결과와 비교돼 전부 `same`으로 뭉개짐).
 
 #### 구현 시 주의사항
 - `favoriteCount`, `ratingSum`, `reviewCount`, `rating` 은 반드시 Cloud Functions으로만 업데이트 (직접 수정 금지)
@@ -732,6 +820,8 @@ createdAt       : timestamp
 | `{path=**}/reviews` (collectionGroup) | 본인 리뷰만 | 불가 (마이페이지 내 리뷰 조회 전용) |
 | `favorites` | 본인만 | 생성·삭제: 본인만 |
 | `users/.../searchHistory` | 본인만 | 본인만 |
+| `searchLogs` | **불가** (Admin SDK 전용) | 생성만: 로그인 유저(본인 userId, keyword 2~30자, 필드 화이트리스트). 수정·삭제 불가 |
+| `searchTrends`, `searchHashtags` | 누구나 | 어드민만 |
 
 #### Storage Rules 요약
 | 경로 | 읽기 | 쓰기 |

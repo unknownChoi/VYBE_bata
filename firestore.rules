@@ -106,6 +106,36 @@ service cloud.firestore {
         && request.auth.token.admin == true;
     }
 
+    // searchLogs/{logId} — 검색 트렌드 집계용 원본 로그.
+    // 클라는 쓰기만, 읽기는 Admin SDK(집계 함수) 전용.
+    match /searchLogs/{logId} {
+      allow read: if false;
+
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.keyword is string
+        && request.resource.data.keyword.size() >= 2
+        && request.resource.data.keyword.size() <= 30
+        && request.resource.data.keys()
+            .hasOnly(['keyword', 'userId', 'source', 'createdAt', 'expireAt']);
+
+      allow update, delete: if false;
+    }
+
+    // searchTrends/{docId} — 집계 스냅샷(current) + 큐레이션 백업(fallback)
+    match /searchTrends/{docId} {
+      allow read: if true;
+      allow write: if request.auth != null
+        && request.auth.token.admin == true;
+    }
+
+    // searchHashtags/{tagId} — 인기 해시태그 큐레이션
+    match /searchHashtags/{tagId} {
+      allow read: if true;
+      allow write: if request.auth != null
+        && request.auth.token.admin == true;
+    }
+
     // favorites/{favoriteId}
     match /favorites/{favoriteId} {
       allow read: if request.auth != null

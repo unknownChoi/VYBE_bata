@@ -126,7 +126,7 @@ final class ReviewViewModelProvider
   }
 }
 
-String _$reviewViewModelHash() => r'7764e8e99bf5c018f3ac84b193840af926356f95';
+String _$reviewViewModelHash() => r'9e67f1b11fd66a2d63689d91baa51358c85a6a00';
 
 abstract class _$ReviewViewModel extends $Notifier<AsyncValue<void>> {
   AsyncValue<void> build();
