@@ -39,8 +39,6 @@ class SavedEntry {
     if (d < 30) return '${d ~/ 7}주 전 저장';
     return '${d ~/ 30}개월 전 저장';
   }
-
-  String? get tag => club.isVybeRecommended ? 'VYBE 추천' : null;
 }
 
 /// 찜한 클럽 목록 (favorites 스트림 → 각 클럽 fetch).

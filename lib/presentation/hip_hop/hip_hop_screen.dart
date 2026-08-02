@@ -1354,12 +1354,6 @@ class _PosterCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // VYBE 추천 뱃지 — 앱 전역 공통 디자인.
-                    if (club.vybe)
-                      Padding(
-                        padding: EdgeInsets.only(bottom: 8.h),
-                        child: const VybeRecommendBadge(),
-                      ),
                     if (club.live) ...[
                       Container(
                         margin: EdgeInsets.only(bottom: 8.h),
@@ -1414,6 +1408,11 @@ class _PosterCard extends StatelessWidget {
                             ),
                           ),
                         ),
+                        // VYBE 추천 뱃지 — 클럽 이름 옆.
+                        if (club.vybe) ...[
+                          SizedBox(width: 6.w),
+                          const VybeRecommendBadge(size: 10),
+                        ],
                         SizedBox(width: 6.w),
                         Icon(
                           Icons.star_rounded,

@@ -93,7 +93,7 @@ class ClubNearbyListItem extends StatelessWidget {
         ),
         if (club.isVybeRecommended) ...[
           SizedBox(width: 8.w),
-          const VybeRecommendBadge(size: 11),
+          const VybeRecommendBadge(),
         ],
       ],
     );

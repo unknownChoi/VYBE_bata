@@ -89,7 +89,6 @@ class ClubListItem extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (club.isVybeRecommended) _buildRecommendRibbon(),
                 _buildStatusPill(),
                 _buildSaveButton(),
                 _buildGlassBar(),
@@ -98,15 +97,6 @@ class ClubListItem extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-
-  // VYBE 추천 뱃지 (썸네일 좌상단) — 디자인은 앱 전역 공통.
-  Widget _buildRecommendRibbon() {
-    return Positioned(
-      top: 12.h,
-      left: 12.w,
-      child: const VybeRecommendBadge(size: 12),
     );
   }
 
@@ -222,6 +212,11 @@ class ClubListItem extends StatelessWidget {
                               .copyWith(color: Colors.white, height: 1.0),
                         ),
                       ),
+                      // VYBE 추천 뱃지 — 클럽 이름 옆.
+                      if (club.isVybeRecommended) ...[
+                        SizedBox(width: 6.w),
+                        const VybeRecommendBadge(size: 10),
+                      ],
                       SizedBox(width: 8.w),
                       Icon(Icons.star_rounded,
                           size: 12.r, color: VybeColors.mainLime500),

@@ -887,21 +887,25 @@ class _DrinkCard extends StatelessWidget {
                       child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // VYBE 추천 뱃지 (앱 전역 공통 디자인).
-                        if (club.isVybeRecommended) ...[
-                          const VybeRecommendBadge(size: 12),
-                          SizedBox(height: 7.h),
-                        ],
                         // 이름·별점·평점은 텍스트 baseline 정렬 유지.
                         Row(
                         crossAxisAlignment: CrossAxisAlignment.baseline,
                         textBaseline: TextBaseline.alphabetic,
                         children: [
-                          Text(
-                            club.name,
-                            style: VybeTypography.heading4
-                                .copyWith(color: Colors.white),
+                          Flexible(
+                            child: Text(
+                              club.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: VybeTypography.heading4
+                                  .copyWith(color: Colors.white),
+                            ),
                           ),
+                          // VYBE 추천 뱃지 — 클럽 이름 옆.
+                          if (club.isVybeRecommended) ...[
+                            SizedBox(width: 6.w),
+                            const VybeRecommendBadge(size: 10),
+                          ],
                           SizedBox(width: 8.w),
                           Icon(Icons.star_rounded,
                               size: 12.r, color: VybeColors.mainLime500),

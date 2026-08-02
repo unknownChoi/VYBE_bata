@@ -552,7 +552,7 @@ class _IdentityCard extends ConsumerWidget {
               ),
               if (club.isVybeRecommended) ...[
                 SizedBox(width: 8.w),
-                const VybeRecommendBadge(size: 11),
+                const VybeRecommendBadge(),
               ],
             ],
           ),

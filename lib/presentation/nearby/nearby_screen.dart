@@ -5,8 +5,10 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/core/providers/auth_providers.dart';
 import 'package:vybe/core/providers/location_providers.dart';
 import 'package:vybe/core/utils/geohash_utils.dart';
+import 'package:vybe/core/utils/naver_overlay_image_queue.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/design_system/colors.dart';
+import 'package:vybe/presentation/clubs/club_detail_screen.dart';
 import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
 import 'package:vybe/presentation/common/widgets/vybe_map_pin.dart';
 import 'package:vybe/presentation/nearby/viewmodels/nearby_viewmodel.dart';
@@ -15,7 +17,6 @@ import 'package:vybe/presentation/search/search_screen.dart';
 import 'package:vybe/presentation/search/viewmodels/club_filter_viewmodel.dart';
 import 'package:vybe/presentation/main_scaffold/nav_bar_visibility_provider.dart';
 import 'package:vybe/presentation/nearby/widgets/nearby_bottom_sheet.dart';
-import 'package:vybe/presentation/nearby/widgets/nearby_detail_sheet.dart';
 import 'package:vybe/presentation/nearby/widgets/nearby_glass.dart';
 import 'package:vybe/presentation/nearby/widgets/nearby_gnb.dart';
 
@@ -81,28 +82,32 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
   // 클럽별 마커 핸들 + 마지막 렌더된 클럽 목록 (선택 토글용).
   final Map<String, NMarker> _clubMarkers = {};
   String? _selectedClubId;
-  // 핀 탭 시 지도 위로 띄우는 상세 시트 대상 클럽 (null이면 시트 닫힘).
-  ClubModel? _detailClub;
 
   // 이름 라벨 + 핀 이미지 (선택 시 녹색). 캐시 키: clubId|selected
   Future<NOverlayImage> _getClubPinIcon(ClubModel club, bool selected) async {
     final key = '${club.clubId}|$selected';
     final cached = _clubPinCache[key];
     if (cached != null) return cached;
-    final img = await NOverlayImage.fromWidget(
-      widget: _NearbyPin(label: club.name, selected: selected),
-      size: Size(200.r, 56.r),
-      context: context,
+    // 마커 이미지 생성은 반드시 직렬화 — 동시 생성 시 플러그인이 temp 폴더를
+    // 서로 지워 네이티브 크래시가 난다 (NaverOverlayImageQueue 주석 참고).
+    final img = await NaverOverlayImageQueue.run(
+      () => NOverlayImage.fromWidget(
+        widget: _NearbyPin(label: club.name, selected: selected),
+        size: Size(200.r, 56.r),
+        context: context,
+      ),
     );
     _clubPinCache[key] = img;
     return img;
   }
 
   Future<NOverlayImage> _getMyLocationIcon() async {
-    return _myLocationIcon ??= await NOverlayImage.fromWidget(
-      widget: const _MyLocationDot(),
-      size: const Size(28, 28),
-      context: context,
+    return _myLocationIcon ??= await NaverOverlayImageQueue.run<NOverlayImage>(
+      () => NOverlayImage.fromWidget(
+        widget: const _MyLocationDot(),
+        size: const Size(28, 28),
+        context: context,
+      ),
     );
   }
 
@@ -122,47 +127,48 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
     await _mapController!.addOverlay(marker);
   }
 
-  // 핀 탭 → 이전 선택 보라/현재 선택 녹색으로 아이콘 교체 + 상세 시트 표시.
+  // 핀 탭 → 선택 표시(녹색) + 카메라 중앙 이동 + 클럽 상세 페이지로 이동.
   Future<void> _onPinTap(ClubModel club) async {
-    if (_selectedClubId != club.clubId) {
-      final prevId = _selectedClubId;
-      _selectedClubId = club.clubId;
-
-      final prevMarker = prevId == null ? null : _clubMarkers[prevId];
-      final prevClub = _clubById[prevId];
-      if (prevMarker != null && prevClub != null) {
-        prevMarker.setIcon(await _getClubPinIcon(prevClub, false));
-      }
-      final marker = _clubMarkers[club.clubId];
-      if (marker != null) {
-        marker.setIcon(await _getClubPinIcon(club, true));
-      }
-    }
+    await _selectPin(club);
 
     // 선택 핀이 카메라 중앙에 오도록 이동.
     await _mapController?.updateCamera(
       NCameraUpdate.scrollAndZoomTo(target: NLatLng(club.lat, club.lng)),
     );
     if (!mounted) return;
-    // 리스트 시트의 내용만 상세로 교체 — 새 시트를 띄우지 않으므로
-    // 현재 시트 높이가 그대로 유지된다 (animateTo 호출 금지).
-    setState(() => _detailClub = club);
+
+    // 리스트 카드 탭과 동일하게 클럽 상세 페이지로 이동.
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => ClubDetailScreen(clubId: club.clubId)),
+    );
+    if (!mounted) return;
+
+    // 상세에서 스크롤하며 축소된 하단 nav 복원.
+    ref.read(navBarVisibilityProvider.notifier).expand();
+    await _deselectPin(club);
   }
 
-  // 상세 닫기(X) → 시트 내용을 리스트로 되돌리고 선택 핀 보라로 복원.
-  // 시트 높이는 건드리지 않는다 (열 때와 마찬가지로 그대로 유지).
-  Future<void> _closeDetail() async {
-    final closed = _detailClub;
-    if (mounted) setState(() => _detailClub = null);
-    // 상세 닫힘 → 하단 nav 원래 크기로 복원.
-    ref.read(navBarVisibilityProvider.notifier).expand();
-    if (closed != null && _selectedClubId == closed.clubId) {
-      _selectedClubId = null;
-      final marker = _clubMarkers[closed.clubId];
-      if (marker != null) {
-        marker.setIcon(await _getClubPinIcon(closed, false));
-      }
-    }
+  // [club] 핀을 선택(녹색)으로 바꾸고 직전 선택은 기본색으로 되돌린다.
+  Future<void> _selectPin(ClubModel club) async {
+    if (_selectedClubId == club.clubId) return;
+    final prev = _clubById[_selectedClubId];
+    setState(() => _selectedClubId = club.clubId);
+    if (prev != null) await _setPinIcon(prev, selected: false);
+    await _setPinIcon(club, selected: true);
+  }
+
+  // [club]이 아직 선택 상태면 해제하고 핀을 기본색(보라)으로 되돌린다.
+  Future<void> _deselectPin(ClubModel club) async {
+    if (_selectedClubId != club.clubId) return;
+    setState(() => _selectedClubId = null);
+    await _setPinIcon(club, selected: false);
+  }
+
+  // 마커 아이콘 교체 — 해당 마커가 없으면(재렌더로 사라짐) 무시.
+  Future<void> _setPinIcon(ClubModel club, {required bool selected}) async {
+    final marker = _clubMarkers[club.clubId];
+    if (marker == null) return;
+    marker.setIcon(await _getClubPinIcon(club, selected));
   }
 
   // clubId → ClubModel 조회용 (탭 콜백에서 사용).
@@ -209,7 +215,17 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
 
   void _onSheetChanged() => setState(() {});
 
-  Future<void> _addMarkers(List<ClubModel> clubs) async {
+  // 마커 렌더 직렬화 — build 후처리·onMapReady·onCameraIdle에서 동시에 들어올 수
+  // 있는데, 겹치면 clearOverlays/addOverlayAll이 서로를 덮어써 마커가 사라진다.
+  Future<void> _renderJob = Future<void>.value();
+
+  Future<void> _addMarkers(List<ClubModel> clubs) {
+    final next = _renderJob.then((_) => _renderMarkers(clubs));
+    _renderJob = next.catchError((_) {});
+    return next;
+  }
+
+  Future<void> _renderMarkers(List<ClubModel> clubs) async {
     if (_mapController == null || !mounted) return;
 
     _clubById
@@ -303,10 +319,12 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
     final key = '$area|$count';
     final cached = _regionPinCache[key];
     if (cached != null) return cached;
-    final img = await NOverlayImage.fromWidget(
-      widget: _RegionCluster(area: area, count: count),
-      size: Size(88.r, 88.r),
-      context: context,
+    final img = await NaverOverlayImageQueue.run(
+      () => NOverlayImage.fromWidget(
+        widget: _RegionCluster(area: area, count: count),
+        size: Size(88.r, 88.r),
+        context: context,
+      ),
     );
     _regionPinCache[key] = img;
     return img;
@@ -607,7 +625,6 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
   }
 
   // 지도 우측 플로팅 컨트롤 — 내 위치 (디자인 NGControls).
-  // 상세도 같은 시트 안에 뜨므로(시트 높이 = 컨트롤 위치 기준) 계속 표시한다.
   Widget _buildMapControls() {
     final sheetSize = _sheetController.isAttached
         ? _sheetController.size
@@ -698,7 +715,7 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
   }
 
   Widget _buildReSearchButton() {
-    if (!_showReSearch || _detailClub != null) return const SizedBox.shrink();
+    if (!_showReSearch) return const SizedBox.shrink();
 
     final sheetSize = _sheetController.isAttached
         ? _sheetController.size
@@ -746,8 +763,7 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
     );
   }
 
-  // 리스트 시트. 핀이 선택되면 같은 시트 안에서 내용만 상세로 바뀐다
-  // (새 시트를 띄우지 않아 현재 시트 높이가 그대로 유지된다).
+  // 리스트 시트. 핀 탭은 시트를 바꾸지 않고 상세 페이지로 push한다.
   Widget _buildBottomSheet() {
     return DraggableScrollableSheet(
       key: _sheetKey,
@@ -757,22 +773,10 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
       maxChildSize: _kSheetMax,
       snap: true,
       snapSizes: const [_kSheetMin, _kSheetMid, _kSheetMax],
-      builder: (_, scrollController) {
-        final detail = _detailClub;
-        if (detail != null) {
-          return NearbyDetailSheetContent(
-            // clubId가 바뀌면 상세 내용 상태 초기화(스크롤 맨 위로).
-            key: ValueKey(detail.clubId),
-            clubId: detail.clubId,
-            scrollController: scrollController,
-            onClose: _closeDetail,
-          );
-        }
-        return NearbyBottomSheet(
-          scrollController: scrollController,
-          selectedClubId: _selectedClubId,
-        );
-      },
+      builder: (_, scrollController) => NearbyBottomSheet(
+        scrollController: scrollController,
+        selectedClubId: _selectedClubId,
+      ),
     );
   }
 

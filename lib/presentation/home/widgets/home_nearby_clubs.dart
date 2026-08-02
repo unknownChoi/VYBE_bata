@@ -205,9 +205,10 @@ class _ClubCard extends StatelessWidget {
                           ),
                         ),
                       ),
+                      // VYBE 추천 뱃지 — 클럽 이름 옆.
                       if (club.isVybeRecommended) ...[
                         SizedBox(width: 6.w),
-                        const VybeRecommendBadge(),
+                        const VybeRecommendBadge(size: 10),
                       ],
                     ],
                   ),

@@ -6,9 +6,9 @@ import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/domain/repositories/vybe_recommendation_repository.dart';
 import 'package:vybe/presentation/clubs/club_detail_screen.dart';
+import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
 import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
 import 'package:vybe/presentation/common/widgets/vybe_recommend_badge.dart';
-import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
 import 'package:vybe/presentation/recommend/viewmodels/vybe_recommend_viewmodel.dart';
 
 // ── 추천 기준 칩 ──
@@ -110,8 +110,6 @@ class _RecClub {
     );
   }
 }
-
-// VYBE 추천 뱃지는 앱 전역 공통 위젯 [VybeRecommendBadge] 사용.
 
 class VybeRecommendScreen extends ConsumerStatefulWidget {
   const VybeRecommendScreen({super.key});
@@ -441,10 +439,6 @@ class _Featured extends StatelessWidget {
                         color: VybeColors.mainLime500,
                       )),
                 ),
-                if (club.vybeRecommended) ...[
-                  SizedBox(width: 7.w),
-                  const VybeRecommendBadge(size: 12),
-                ],
               ],
             ),
           ),
@@ -495,9 +489,22 @@ class _Featured extends StatelessWidget {
                       .toList(),
                 ),
                 SizedBox(height: 8.h),
-                Text(club.name,
-                    style: VybeTypography.heading2
-                        .copyWith(fontSize: 27.sp, color: Colors.white)),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(club.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: VybeTypography.heading2
+                              .copyWith(fontSize: 27.sp, color: Colors.white)),
+                    ),
+                    // VYBE 추천 뱃지 — 클럽 이름 옆.
+                    if (club.vybeRecommended) ...[
+                      SizedBox(width: 7.w),
+                      const VybeRecommendBadge(size: 11),
+                    ],
+                  ],
+                ),
                 SizedBox(height: 8.h),
                 _metaRow(),
               ],
@@ -806,7 +813,7 @@ class _RankRow extends StatelessWidget {
                   ),
                   if (club.vybeRecommended) ...[
                     SizedBox(width: 6.w),
-                    const VybeRecommendBadge(size: 11),
+                    const VybeRecommendBadge(),
                   ],
                 ],
               ),

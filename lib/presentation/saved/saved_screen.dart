@@ -645,6 +645,7 @@ class _ListCard extends StatelessWidget {
                         child: Padding(
                           padding: EdgeInsets.only(top: 2.h),
                           child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Flexible(
                                 child: Text(
@@ -661,9 +662,10 @@ class _ListCard extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                              if (entry.tag != null) ...[
+                              // VYBE 추천 뱃지 — 클럽 이름 옆.
+                              if (club.isVybeRecommended) ...[
                                 SizedBox(width: 6.w),
-                                _TagBadge(tag: entry.tag!),
+                                const VybeRecommendBadge(size: 10),
                               ],
                             ],
                           ),
@@ -864,10 +866,10 @@ class _GridCard extends StatelessWidget {
                   ),
                 ),
               ),
-              if (entry.tag != null) ...[
+              // VYBE 추천 뱃지 — 클럽 이름 옆.
+              if (club.isVybeRecommended) ...[
                 SizedBox(width: 5.w),
-                // 그리드는 2열이라 폭이 좁다 — 아이콘만 남긴 compact 뱃지.
-                _TagBadge(tag: entry.tag!, compact: true),
+                const VybeRecommendBadge(size: 9),
               ],
             ],
           ),
@@ -1050,40 +1052,6 @@ class _Thumb extends StatelessWidget {
 
     if (isGrid) return thumb;
     return SizedBox(width: size.w, height: size.w, child: thumb);
-  }
-}
-
-/// 클럽 이름 옆 인라인 뱃지 (VYBE 추천 / HOT).
-/// VYBE 추천은 앱 전역 공통 뱃지([VybeRecommendBadge])를 그대로 쓴다.
-/// [compact] = 텍스트 없이 아이콘만 — 폭이 좁은 그리드 카드용.
-class _TagBadge extends StatelessWidget {
-  final String tag;
-  final bool compact;
-
-  const _TagBadge({required this.tag, this.compact = false});
-
-  @override
-  Widget build(BuildContext context) {
-    if (tag != 'HOT') return VybeRecommendBadge(size: 10, iconOnly: compact);
-
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 9.w, vertical: 4.h),
-      decoration: BoxDecoration(
-        color: const Color(0xE0FF3B6E),
-        borderRadius: BorderRadius.circular(999.r),
-        border: Border.all(color: const Color(0x47FFFFFF)),
-      ),
-      child: Text(
-        tag,
-        style: TextStyle(
-          fontFamily: 'Pretendard',
-          fontSize: 10.sp,
-          height: 12 / 10,
-          fontWeight: FontWeight.w800,
-          color: Colors.white,
-        ),
-      ),
-    );
   }
 }
 

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/core/providers/location_providers.dart';
 import 'package:vybe/core/utils/map_launcher.dart';
+import 'package:vybe/core/utils/naver_overlay_image_queue.dart';
 import 'package:vybe/core/utils/phone_launcher.dart';
 import 'package:vybe/core/utils/url_utils.dart';
 import 'package:vybe/data/models/club_info_model.dart';
@@ -422,11 +423,16 @@ class _NaverMapCardState extends ConsumerState<_NaverMapCard> {
             );
             if (!mounted) return;
             if (hasClubLocation) {
+              // 마커 이미지 생성은 반드시 직렬화 — 다른 지도(주변 탭)와 동시에
+              // 첫 생성이 겹치면 플러그인이 temp 폴더를 서로 지워 네이티브
+              // 크래시가 난다 (NaverOverlayImageQueue 주석 참고).
               final overlayImage = _clubPinIcon ??=
-                  await NOverlayImage.fromWidget(
-                    widget: _PinWithLabel(label: name),
-                    size: Size(240.r, 64.r),
-                    context: context,
+                  await NaverOverlayImageQueue.run(
+                    () => NOverlayImage.fromWidget(
+                      widget: _PinWithLabel(label: name),
+                      size: Size(240.r, 64.r),
+                      context: context,
+                    ),
                   );
               if (!mounted) return;
               await controller.addOverlay(
@@ -443,11 +449,14 @@ class _NaverMapCardState extends ConsumerState<_NaverMapCard> {
             // 2) 내 위치 점. locationOverlay 기본 아이콘이 환경에 따라
             // 안 보여 커스텀 마커로 그린다. 클럽에서 멀면 화면 밖.
             if (!mounted) return;
-            final myIcon = _myLocationIcon ??= await NOverlayImage.fromWidget(
-              widget: const _MyLocationDot(),
-              size: const Size(28, 28),
-              context: context,
-            );
+            final myIcon = _myLocationIcon ??=
+                await NaverOverlayImageQueue.run<NOverlayImage>(
+                  () => NOverlayImage.fromWidget(
+                    widget: const _MyLocationDot(),
+                    size: const Size(28, 28),
+                    context: context,
+                  ),
+                );
             if (!mounted) return;
             await controller.addOverlay(
               NMarker(
