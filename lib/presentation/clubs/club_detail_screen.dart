@@ -8,7 +8,6 @@ import 'package:vybe/core/providers/auth_providers.dart';
 import 'package:vybe/core/utils/map_launcher.dart';
 import 'package:vybe/core/utils/phone_launcher.dart';
 import 'package:vybe/data/models/club_model.dart';
-import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/tabs/detail_gallery_tab.dart';
 import 'package:vybe/presentation/clubs/tabs/detail_home_tab.dart';
 import 'package:vybe/presentation/clubs/tabs/detail_info_tab.dart';
@@ -19,6 +18,7 @@ import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
 import 'package:vybe/presentation/clubs/widgets/club_detail_skeleton.dart';
 import 'package:vybe/presentation/clubs/widgets/club_glass.dart';
 import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
+import 'package:vybe/presentation/common/widgets/vybe_recommend_badge.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
 
@@ -552,7 +552,7 @@ class _IdentityCard extends ConsumerWidget {
               ),
               if (club.isVybeRecommended) ...[
                 SizedBox(width: 8.w),
-                const _VybeRecommendBadge(),
+                const VybeRecommendBadge(size: 11),
               ],
             ],
           ),
@@ -614,58 +614,6 @@ class _IdentityCard extends ConsumerWidget {
                   .toList(),
             ),
           ],
-        ],
-      ),
-    );
-  }
-}
-
-/// VYBE 추천 클럽 뱃지 — 라임 그라데이션 pill.
-/// 라임 배경이라 아이콘·텍스트는 잉크(어두운 색)로 둬야 읽힌다.
-class _VybeRecommendBadge extends StatelessWidget {
-  const _VybeRecommendBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.fromLTRB(8.w, 5.h, 10.w, 5.h),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [VybeColors.mainLime500, VybeColors.mainLime700],
-        ),
-        borderRadius: BorderRadius.circular(999.r),
-        border: Border.all(color: const Color(0x3DFFFFFF)),
-        boxShadow: [
-          BoxShadow(
-            color: VybeColors.mainLime500.withValues(alpha: 0.32),
-            blurRadius: 18.r,
-            offset: Offset(0, 6.h),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SvgPicture.asset(
-            'assets/icons/common/club_card/vybe_recommend.svg',
-            width: 11.r,
-            height: 11.r,
-            colorFilter: const ColorFilter.mode(ClubGlass.ink, BlendMode.srcIn),
-          ),
-          SizedBox(width: 5.w),
-          Text(
-            'VYBE 추천클럽',
-            style: TextStyle(
-              fontFamily: 'Pretendard',
-              fontSize: 11.sp,
-              height: 12 / 11,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 11 * 0.02,
-              color: ClubGlass.ink,
-            ),
-          ),
         ],
       ),
     );

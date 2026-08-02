@@ -7,6 +7,7 @@ import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/clubs/club_detail_screen.dart';
+import 'package:vybe/presentation/common/widgets/vybe_recommend_badge.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 
 // 검색결과 카드 (search_results_v2 리뉴얼) — 이미지 중심 + 하단 유체 글래스 바.
@@ -100,48 +101,12 @@ class ClubListItem extends StatelessWidget {
     );
   }
 
-  // VYBE 추천 리본 (좌상단, 라임).
+  // VYBE 추천 뱃지 (썸네일 좌상단) — 디자인은 앱 전역 공통.
   Widget _buildRecommendRibbon() {
     return Positioned(
       top: 12.h,
       left: 12.w,
-      child: Container(
-        height: 32.r,
-        alignment: Alignment.center,
-        padding: EdgeInsets.symmetric(horizontal: 11.w),
-        decoration: BoxDecoration(
-          color: VybeColors.mainLime500,
-          borderRadius: BorderRadius.circular(10.r),
-          boxShadow: [
-            BoxShadow(
-              color: VybeColors.mainLime500.withValues(alpha: 0.3),
-              blurRadius: 18,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SvgPicture.asset(
-              'assets/icons/common/club_card/vybe_recommend.svg',
-              width: 12.r,
-              height: 12.r,
-              colorFilter:
-                  const ColorFilter.mode(VybeColors.background, BlendMode.srcIn),
-            ),
-            SizedBox(width: 5.w),
-            Text(
-              'VYBE 추천',
-              style: VybeTypography.caption.copyWith(
-                fontSize: 12.sp,
-                fontWeight: FontWeight.w800,
-                color: VybeColors.background,
-              ),
-            ),
-          ],
-        ),
-      ),
+      child: const VybeRecommendBadge(size: 12),
     );
   }
 

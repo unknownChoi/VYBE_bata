@@ -13,6 +13,7 @@ import 'package:vybe/presentation/clubs/club_detail_screen.dart';
 import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
 import 'package:vybe/presentation/common/widgets/vybe_genre_backdrop.dart';
 import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
+import 'package:vybe/presentation/common/widgets/vybe_recommend_badge.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 import 'package:vybe/presentation/service_drinks/viewmodels/service_drinks_viewmodel.dart';
 
@@ -886,39 +887,9 @@ class _DrinkCard extends StatelessWidget {
                       child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // VYBE 추천 뱃지 (다른 페이지 클럽 카드와 동일 스타일).
+                        // VYBE 추천 뱃지 (앱 전역 공통 디자인).
                         if (club.isVybeRecommended) ...[
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 7.w, vertical: 2.h),
-                            decoration: BoxDecoration(
-                              color: VybeColors.mainLime500
-                                  .withValues(alpha: 0.14),
-                              borderRadius: BorderRadius.circular(999.r),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                SvgPicture.asset(
-                                  'assets/icons/common/club_card/vybe_recommend.svg',
-                                  width: 12.r,
-                                  height: 12.r,
-                                ),
-                                SizedBox(width: 3.w),
-                                Text(
-                                  'VYBE 추천 클럽',
-                                  style: TextStyle(
-                                    fontFamily: 'Pretendard',
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 12.sp,
-                                    height: 14 / 12,
-                                    letterSpacing: 12 * -0.025,
-                                    color: VybeColors.mainLime500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                          const VybeRecommendBadge(size: 12),
                           SizedBox(height: 7.h),
                         ],
                         // 이름·별점·평점은 텍스트 baseline 정렬 유지.

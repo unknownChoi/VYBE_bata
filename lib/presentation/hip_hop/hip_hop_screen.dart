@@ -5,13 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/data/models/performance_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/clubs/club_detail_screen.dart';
 import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
+import 'package:vybe/presentation/common/widgets/vybe_recommend_badge.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 import 'package:vybe/presentation/hip_hop/hip_hop_gradients.dart';
 import 'package:vybe/presentation/hip_hop/today_lineup_screen.dart';
@@ -1354,43 +1354,11 @@ class _PosterCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // VYBE 추천 뱃지 — LIVE 칩과 동일한 컴팩트 칩 스타일(라임).
+                    // VYBE 추천 뱃지 — 앱 전역 공통 디자인.
                     if (club.vybe)
-                      Container(
-                        margin: EdgeInsets.only(bottom: 8.h),
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 8.w,
-                          vertical: 3.h,
-                        ),
-                        decoration: BoxDecoration(
-                          color:
-                              VybeColors.mainLime500.withValues(alpha: 0.14),
-                          borderRadius: BorderRadius.circular(7.r),
-                          border: Border.all(
-                            color:
-                                VybeColors.mainLime500.withValues(alpha: 0.36),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            SvgPicture.asset(
-                              'assets/icons/common/club_card/vybe_recommend.svg',
-                              width: 10.r,
-                              height: 10.r,
-                            ),
-                            SizedBox(width: 4.w),
-                            Text(
-                              'VYBE 추천 클럽',
-                              style: VybeTypography.caption.copyWith(
-                                fontSize: 10.sp,
-                                height: 11 / 10,
-                                fontWeight: FontWeight.w700,
-                                color: VybeColors.mainLime500,
-                              ),
-                            ),
-                          ],
-                        ),
+                      Padding(
+                        padding: EdgeInsets.only(bottom: 8.h),
+                        child: const VybeRecommendBadge(),
                       ),
                     if (club.live) ...[
                       Container(

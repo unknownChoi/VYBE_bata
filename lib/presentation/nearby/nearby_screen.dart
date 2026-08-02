@@ -144,16 +144,17 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
       NCameraUpdate.scrollAndZoomTo(target: NLatLng(club.lat, club.lng)),
     );
     if (!mounted) return;
-    // 기존 클럽 리스트 시트 안에 상세를 그대로 표시 + 시트를 펼침.
-    // 상세 패널 표시 (지도 위 커스텀 드래그 패널이 절반 높이로 슬라이드 인).
+    // 리스트 시트의 내용만 상세로 교체 — 새 시트를 띄우지 않으므로
+    // 현재 시트 높이가 그대로 유지된다 (animateTo 호출 금지).
     setState(() => _detailClub = club);
   }
 
-  // 상세 패널이 닫힌(슬라이드 아웃) 뒤 → 선택 핀 보라로 복원 + 상태 정리.
+  // 상세 닫기(X) → 시트 내용을 리스트로 되돌리고 선택 핀 보라로 복원.
+  // 시트 높이는 건드리지 않는다 (열 때와 마찬가지로 그대로 유지).
   Future<void> _closeDetail() async {
     final closed = _detailClub;
     if (mounted) setState(() => _detailClub = null);
-    // 패널 닫힘 → 하단 nav 원래 크기로 복원.
+    // 상세 닫힘 → 하단 nav 원래 크기로 복원.
     ref.read(navBarVisibilityProvider.notifier).expand();
     if (closed != null && _selectedClubId == closed.clubId) {
       _selectedClubId = null;
@@ -423,16 +424,6 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
               _buildBottomSheet(),
               // 상단 GNB·칩은 시트보다 위 (시트가 최대로 올라와도 검색바 유지).
               _buildTopOverlay(),
-              // 핀 탭 상세 패널 — 리스트 시트 위에 오버레이.
-              if (_detailClub != null)
-                Positioned.fill(
-                  child: NearbyDetailSheet(
-                    // clubId가 바뀌면 패널 상태 초기화(슬라이드 인 재생).
-                    key: ValueKey(_detailClub!.clubId),
-                    clubId: _detailClub!.clubId,
-                    onClosed: _closeDetail,
-                  ),
-                ),
             ],
           );
         },
@@ -615,10 +606,9 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
     ref.read(nearbySearchResultProvider.notifier).clear();
   }
 
-  // 지도 우측 플로팅 컨트롤 — 줌 인/아웃 + 내 위치 (디자인 NGControls).
+  // 지도 우측 플로팅 컨트롤 — 내 위치 (디자인 NGControls).
+  // 상세도 같은 시트 안에 뜨므로(시트 높이 = 컨트롤 위치 기준) 계속 표시한다.
   Widget _buildMapControls() {
-    // 상세 시트가 떠 있으면 지도 컨트롤 숨김.
-    if (_detailClub != null) return const SizedBox.shrink();
     final sheetSize = _sheetController.isAttached
         ? _sheetController.size
         : _kSheetMin;
@@ -626,60 +616,47 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
     return Positioned(
       right: 16.w,
       bottom: _stackHeight * sheetSize + 8.h,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          NearbyFloatSurface(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _zoomButton(Icons.add_rounded, 1),
-                Container(
-                  width: 44.r,
-                  height: 1,
-                  color: const Color(0x24FFFFFF),
-                ),
-                _zoomButton(Icons.remove_rounded, -1),
-              ],
-            ),
-          ),
-          SizedBox(height: 9.h),
-          NearbyRoundButton(
-            onTap: _onLocate,
-            child: Icon(
-              Icons.my_location_rounded,
-              size: 19.r,
-              color: Colors.white,
-            ),
-          ),
-        ],
+      child: NearbyRoundButton(
+        onTap: _onLocate,
+        child: Icon(
+          Icons.my_location_rounded,
+          size: 19.r,
+          color: Colors.white,
+        ),
       ),
     );
   }
 
-  Widget _zoomButton(IconData icon, int delta) {
-    return GestureDetector(
-      onTap: () => _onZoom(delta),
-      behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: 44.r,
-        height: 42.h,
-        child: Icon(icon, size: 17.r, color: Colors.white),
-      ),
-    );
+  // 검색 결과 카메라 여백 — 핀이 상단 GNB/하단 시트에 가리지 않고 화면 위쪽
+  // (실제로 보이는 지도 밴드) 가운데에 오도록. 검색 직후 시트는 _kSheetMid까지
+  // 펼쳐지므로 그 높이를 하단 여백으로 잡는다.
+  EdgeInsets _searchCameraPadding() {
+    // GNB + 필터 칩 줄 + 핀 라벨 높이.
+    final top = 170.h;
+    var bottom = _stackHeight > 0 ? _stackHeight * _kSheetMid + 16.h : 16.h;
+    // 화면이 짧으면 여백만으로 지도 밴드가 사라져 fit이 깨진다 — 최소 밴드 확보.
+    final minBand = 120.h;
+    if (_stackHeight > 0 && _stackHeight - top - bottom < minBand) {
+      bottom = (_stackHeight - top - minBand).clamp(0.0, bottom);
+    }
+    return EdgeInsets.only(left: 40.r, right: 40.r, top: top, bottom: bottom);
   }
 
-  Future<void> _onZoom(int delta) async {
-    await _mapController?.updateCamera(
-      delta > 0 ? NCameraUpdate.zoomIn() : NCameraUpdate.zoomOut(),
-    );
+  // 여백을 뺀 '보이는 지도 밴드'의 세로 중심 비율 (카메라 pivot용, 0~1).
+  double _searchPivotY() {
+    if (_stackHeight <= 0) return 0.5;
+    final pad = _searchCameraPadding();
+    final visibleBottom = _stackHeight - pad.bottom;
+    if (visibleBottom <= pad.top) return 0.5;
+    final centerY = (pad.top + visibleBottom) / 2;
+    return (centerY / _stackHeight).clamp(0.15, 0.5);
   }
 
   // 대한민국 전체가 보이도록 카메라 축소 (TOP 10 지도 보기).
   Future<void> _fitCountryCamera() async {
     if (_mapController == null) return;
     await _mapController!.updateCamera(
-      NCameraUpdate.fitBounds(_kKoreaBounds, padding: const EdgeInsets.all(16)),
+      NCameraUpdate.fitBounds(_kKoreaBounds, padding: _searchCameraPadding()),
     );
   }
 
@@ -687,11 +664,12 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
   Future<void> _fitCameraTo(List<ClubModel> clubs) async {
     if (_mapController == null || clubs.isEmpty) return;
     if (clubs.length == 1) {
+      // 핀 1개는 fitBounds가 안 되므로 pivot으로 화면 위쪽에 놓는다.
       await _mapController!.updateCamera(
         NCameraUpdate.withParams(
           target: NLatLng(clubs.first.lat, clubs.first.lng),
           zoom: 15,
-        ),
+        )..setPivot(NPoint(0.5, _searchPivotY())),
       );
       return;
     }
@@ -708,7 +686,7 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
       ),
     );
     await _mapController!.updateCamera(
-      NCameraUpdate.fitBounds(bounds, padding: EdgeInsets.all(64.r)),
+      NCameraUpdate.fitBounds(bounds, padding: _searchCameraPadding()),
     );
   }
 
@@ -768,6 +746,8 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
     );
   }
 
+  // 리스트 시트. 핀이 선택되면 같은 시트 안에서 내용만 상세로 바뀐다
+  // (새 시트를 띄우지 않아 현재 시트 높이가 그대로 유지된다).
   Widget _buildBottomSheet() {
     return DraggableScrollableSheet(
       key: _sheetKey,
@@ -777,10 +757,22 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
       maxChildSize: _kSheetMax,
       snap: true,
       snapSizes: const [_kSheetMin, _kSheetMid, _kSheetMax],
-      builder: (_, scrollController) => NearbyBottomSheet(
-        scrollController: scrollController,
-        selectedClubId: _selectedClubId,
-      ),
+      builder: (_, scrollController) {
+        final detail = _detailClub;
+        if (detail != null) {
+          return NearbyDetailSheetContent(
+            // clubId가 바뀌면 상세 내용 상태 초기화(스크롤 맨 위로).
+            key: ValueKey(detail.clubId),
+            clubId: detail.clubId,
+            scrollController: scrollController,
+            onClose: _closeDetail,
+          );
+        }
+        return NearbyBottomSheet(
+          scrollController: scrollController,
+          selectedClubId: _selectedClubId,
+        );
+      },
     );
   }
 

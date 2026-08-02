@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vybe/core/providers/auth_providers.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/domain/repositories/vybe_recommendation_repository.dart';
 import 'package:vybe/presentation/clubs/club_detail_screen.dart';
 import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
+import 'package:vybe/presentation/common/widgets/vybe_recommend_badge.dart';
 import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
 import 'package:vybe/presentation/recommend/viewmodels/vybe_recommend_viewmodel.dart';
 
@@ -111,53 +111,7 @@ class _RecClub {
   }
 }
 
-// ── VYBE 추천 뱃지 (다른 화면 club card와 동일 스타일 — club_nearby_list_item 참조) ──
-class _VybeRecommendBadge extends StatelessWidget {
-  const _VybeRecommendBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 2.h),
-      decoration: BoxDecoration(
-        color: VybeColors.mainLime500.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(999.r),
-      ),
-      child: const _VybeRecommendBadgeContent(),
-    );
-  }
-}
-
-// 뱃지 내용(아이콘 + 텍스트)만 — featured 히어로에선 글래스 컨테이너에 담아 재사용.
-class _VybeRecommendBadgeContent extends StatelessWidget {
-  const _VybeRecommendBadgeContent();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SvgPicture.asset(
-          'assets/icons/common/club_card/vybe_recommend.svg',
-          width: 12.r,
-          height: 12.r,
-        ),
-        SizedBox(width: 3.w),
-        Text(
-          'VYBE 추천 클럽',
-          style: TextStyle(
-            fontFamily: 'Pretendard',
-            fontWeight: FontWeight.w600,
-            fontSize: 12.sp,
-            height: 14 / 12,
-            letterSpacing: 12 * -0.025,
-            color: VybeColors.mainLime500,
-          ),
-        ),
-      ],
-    );
-  }
-}
+// VYBE 추천 뱃지는 앱 전역 공통 위젯 [VybeRecommendBadge] 사용.
 
 class VybeRecommendScreen extends ConsumerStatefulWidget {
   const VybeRecommendScreen({super.key});
@@ -489,7 +443,7 @@ class _Featured extends StatelessWidget {
                 ),
                 if (club.vybeRecommended) ...[
                   SizedBox(width: 7.w),
-                  _glassBadge(child: const _VybeRecommendBadgeContent()),
+                  const VybeRecommendBadge(size: 12),
                 ],
               ],
             ),
@@ -852,7 +806,7 @@ class _RankRow extends StatelessWidget {
                   ),
                   if (club.vybeRecommended) ...[
                     SizedBox(width: 6.w),
-                    const _VybeRecommendBadge(),
+                    const VybeRecommendBadge(size: 11),
                   ],
                 ],
               ),

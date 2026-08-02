@@ -6,6 +6,7 @@ import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/clubs/club_detail_screen.dart';
+import 'package:vybe/presentation/common/widgets/vybe_recommend_badge.dart';
 import 'package:vybe/presentation/home/viewmodels/home_nearby_viewmodel.dart';
 import 'package:vybe/presentation/main_scaffold/nav_bar_visibility_provider.dart';
 
@@ -190,14 +191,6 @@ class _ClubCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      if (club.isVybeRecommended) ...[
-                        SvgPicture.asset(
-                          'assets/icons/common/club_card/vybe_recommend.svg',
-                          width: 14.r,
-                          height: 14.r,
-                        ),
-                        SizedBox(width: 5.w),
-                      ],
                       Flexible(
                         child: Text(
                           club.name,
@@ -212,6 +205,10 @@ class _ClubCard extends StatelessWidget {
                           ),
                         ),
                       ),
+                      if (club.isVybeRecommended) ...[
+                        SizedBox(width: 6.w),
+                        const VybeRecommendBadge(),
+                      ],
                     ],
                   ),
                   SizedBox(height: 5.h),

@@ -6,6 +6,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/widgets/club_glass.dart';
+import 'package:vybe/presentation/common/widgets/vybe_recommend_badge.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 import 'package:vybe/presentation/nearby/widgets/nearby_glass.dart';
 
@@ -92,35 +93,7 @@ class ClubNearbyListItem extends StatelessWidget {
         ),
         if (club.isVybeRecommended) ...[
           SizedBox(width: 8.w),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
-            decoration: BoxDecoration(
-              color: VybeColors.mainLime500.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(999.r),
-              border: Border.all(
-                color: VybeColors.mainLime500.withValues(alpha: 0.28),
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SvgPicture.asset(
-                  'assets/icons/common/club_card/vybe_recommend.svg',
-                  width: 11.r,
-                  height: 11.r,
-                ),
-                SizedBox(width: 3.w),
-                Text(
-                  'VYBE 추천 클럽',
-                  style: ClubGlass.caption(
-                    color: VybeColors.mainLime500,
-                    size: 11,
-                    weight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          const VybeRecommendBadge(size: 11),
         ],
       ],
     );

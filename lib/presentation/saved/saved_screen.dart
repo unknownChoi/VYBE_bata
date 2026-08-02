@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/club_detail_screen.dart';
 import 'package:vybe/presentation/clubs/widgets/club_glass.dart';
+import 'package:vybe/presentation/common/widgets/vybe_recommend_badge.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 import 'package:vybe/presentation/main_scaffold/nav_bar_visibility_provider.dart';
 import 'package:vybe/presentation/saved/viewmodels/saved_viewmodel.dart';
@@ -643,18 +644,28 @@ class _ListCard extends StatelessWidget {
                       Expanded(
                         child: Padding(
                           padding: EdgeInsets.only(top: 2.h),
-                          child: Text(
-                            club.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontFamily: 'Pretendard',
-                              fontSize: 16.sp,
-                              height: 18 / 16,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 16 * -0.025,
-                              color: Colors.white,
-                            ),
+                          child: Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  club.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontFamily: 'Pretendard',
+                                    fontSize: 16.sp,
+                                    height: 18 / 16,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 16 * -0.025,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                              if (entry.tag != null) ...[
+                                SizedBox(width: 6.w),
+                                _TagBadge(tag: entry.tag!),
+                              ],
+                            ],
                           ),
                         ),
                       ),
@@ -836,18 +847,29 @@ class _GridCard extends StatelessWidget {
             ),
           ),
           SizedBox(height: 9.h),
-          Text(
-            club.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontFamily: 'Pretendard',
-              fontSize: 14.sp,
-              height: 16 / 14,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 14 * -0.025,
-              color: Colors.white,
-            ),
+          Row(
+            children: [
+              Flexible(
+                child: Text(
+                  club.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: 'Pretendard',
+                    fontSize: 14.sp,
+                    height: 16 / 14,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 14 * -0.025,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              if (entry.tag != null) ...[
+                SizedBox(width: 5.w),
+                // 그리드는 2열이라 폭이 좁다 — 아이콘만 남긴 compact 뱃지.
+                _TagBadge(tag: entry.tag!, compact: true),
+              ],
+            ],
           ),
           SizedBox(height: 3.h),
           Text(
@@ -1021,7 +1043,6 @@ class _Thumb extends StatelessWidget {
                 ),
               ),
             ],
-            if (entry.tag != null) _TagBadge(tag: entry.tag!),
           ],
         ),
       ),
@@ -1032,47 +1053,34 @@ class _Thumb extends StatelessWidget {
   }
 }
 
+/// 클럽 이름 옆 인라인 뱃지 (VYBE 추천 / HOT).
+/// VYBE 추천은 앱 전역 공통 뱃지([VybeRecommendBadge])를 그대로 쓴다.
+/// [compact] = 텍스트 없이 아이콘만 — 폭이 좁은 그리드 카드용.
 class _TagBadge extends StatelessWidget {
   final String tag;
+  final bool compact;
 
-  const _TagBadge({required this.tag});
+  const _TagBadge({required this.tag, this.compact = false});
 
   @override
   Widget build(BuildContext context) {
-    final isHot = tag == 'HOT';
-    return Positioned(
-      top: 8.h,
-      left: 8.w,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 9.w, vertical: 4.h),
-        decoration: BoxDecoration(
-          color: isHot ? const Color(0xE0FF3B6E) : const Color(0xB80E0D12),
-          borderRadius: BorderRadius.circular(999.r),
-          border: Border.all(
-            color: isHot
-                ? const Color(0x47FFFFFF)
-                : VybeColors.mainLime500.withValues(alpha: 0.42),
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (!isHot) ...[
-              Icon(Icons.star_rounded,
-                  size: 9.r, color: VybeColors.mainLime500),
-              SizedBox(width: 4.w),
-            ],
-            Text(
-              tag,
-              style: TextStyle(
-                fontFamily: 'Pretendard',
-                fontSize: 10.sp,
-                height: 12 / 10,
-                fontWeight: FontWeight.w800,
-                color: isHot ? Colors.white : VybeColors.mainLime500,
-              ),
-            ),
-          ],
+    if (tag != 'HOT') return VybeRecommendBadge(size: 10, iconOnly: compact);
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 9.w, vertical: 4.h),
+      decoration: BoxDecoration(
+        color: const Color(0xE0FF3B6E),
+        borderRadius: BorderRadius.circular(999.r),
+        border: Border.all(color: const Color(0x47FFFFFF)),
+      ),
+      child: Text(
+        tag,
+        style: TextStyle(
+          fontFamily: 'Pretendard',
+          fontSize: 10.sp,
+          height: 12 / 10,
+          fontWeight: FontWeight.w800,
+          color: Colors.white,
         ),
       ),
     );
