@@ -118,8 +118,8 @@ class _SearchBar extends StatelessWidget {
                     GestureDetector(
                       onTap: onClear,
                       behavior: HitTestBehavior.opaque,
-                      child: _tile(
-                        Icon(
+                      child: GlassCircleTile(
+                        child: Icon(
                           Icons.close_rounded,
                           size: 16.r,
                           color: Colors.white,
@@ -127,8 +127,8 @@ class _SearchBar extends StatelessWidget {
                       ),
                     )
                   else
-                    _tile(
-                      SvgPicture.asset(
+                    GlassCircleTile(
+                      child: SvgPicture.asset(
                         'assets/icons/common/search.svg',
                         width: 17.r,
                         height: 17.r,
@@ -140,21 +140,6 @@ class _SearchBar extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-
-  // pill 오른쪽 원형 타일 (아이콘 담는 자리).
-  Widget _tile(Widget child) {
-    return Container(
-      width: 34.r,
-      height: 34.r,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: ClubGlass.tileFill,
-        shape: BoxShape.circle,
-        border: Border.all(color: ClubGlass.tileBorder),
-      ),
-      child: child,
     );
   }
 }

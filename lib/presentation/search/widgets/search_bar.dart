@@ -164,13 +164,17 @@ class _SearchInputBarState extends State<SearchInputBar> {
                   GestureDetector(
                     onTap: _clear,
                     behavior: HitTestBehavior.opaque,
-                    child: _tile(
-                      Icon(Icons.close_rounded, size: 16.r, color: Colors.white),
+                    child: GlassCircleTile(
+                      child: Icon(
+                        Icons.close_rounded,
+                        size: 16.r,
+                        color: Colors.white,
+                      ),
                     ),
                   )
                 else
-                  _tile(
-                    SvgPicture.asset(
+                  GlassCircleTile(
+                    child: SvgPicture.asset(
                       'assets/icons/common/search.svg',
                       width: 17.r,
                       height: 17.r,
@@ -181,21 +185,6 @@ class _SearchInputBarState extends State<SearchInputBar> {
           ),
         ),
       ),
-    );
-  }
-
-  // pill 오른쪽 원형 타일 (아이콘 담는 자리) — 주변 GNB와 동일.
-  Widget _tile(Widget child) {
-    return Container(
-      width: 34.r,
-      height: 34.r,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: ClubGlass.tileFill,
-        shape: BoxShape.circle,
-        border: Border.all(color: ClubGlass.tileBorder),
-      ),
-      child: child,
     );
   }
 }

@@ -14,7 +14,8 @@ abstract class NoticeModel with _$NoticeModel {
     required String title,
     required String content, // plain text, \n 줄바꿈 그대로 렌더
     @Default(<String>[]) List<String> imageUrls,
-    @Default('notice') String category, // "notice" | "update" | "event"
+    // "notice" | "update" | "event" | "maint"
+    @Default('notice') String category,
     @Default(false) bool isPinned,
     @Default(true) bool isActive,
     required DateTime publishedAt, // 목록 정렬 키
@@ -27,6 +28,7 @@ abstract class NoticeModel with _$NoticeModel {
   String get categoryLabel => switch (category) {
         'update' => '업데이트',
         'event' => '이벤트',
+        'maint' => '점검',
         _ => '공지',
       };
 

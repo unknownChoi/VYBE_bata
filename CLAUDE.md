@@ -701,7 +701,8 @@ noticeId    : string     // PK (= doc.id fallback)
 title       : string     // 공지 제목
 content     : string     // 본문 plain text. \n 줄바꿈 그대로 렌더 (마크다운/HTML 파싱 안 함)
 imageUrls   : array      // 첨부 사진 URL 0~n장 — Storage notices/{noticeId}/{index}.{ext}
-category    : string     // "notice" | "update" | "event" — 목록 배지
+category    : string     // "notice" | "update" | "event" | "maint" — 목록 배지
+                         //   배지 색: 공지=흰색 / 업데이트=보라 / 이벤트=라임 / 점검=옐로
                          //   알 수 없는 값이면 '공지'로 폴백
 isPinned    : boolean    // 상단 고정 (정렬은 클라 메모리에서 처리)
 isActive    : boolean    // 노출 여부. 삭제 대신 false로 숨김

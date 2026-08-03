@@ -373,6 +373,50 @@ class GlassRoundButton extends StatelessWidget {
   }
 }
 
+/// 원형 글래스 타일 (CG.tile) — 아이콘 하나를 담는 작은 유리 원.
+///
+/// 검색 pill 우측 아이콘 자리(주변 GNB · 검색 화면)와 헤더 원형 버튼(알림)이 공유한다.
+/// 탭 동작은 호출측에서 감싼다 — 히트 영역이 화면마다 달라서.
+class GlassCircleTile extends StatelessWidget {
+  final Widget child;
+
+  /// 지름 (CSS px, `.r` 적용).
+  final double size;
+
+  /// 뒤 배경 블러. null이면 블러 없이 채움만 (이미 블러된 유리 위에 올릴 때).
+  final double? blurSigma;
+
+  const GlassCircleTile({
+    super.key,
+    required this.child,
+    this.size = 34,
+    this.blurSigma,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final tile = Container(
+      width: size.r,
+      height: size.r,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: ClubGlass.tileFill,
+        shape: BoxShape.circle,
+        border: Border.all(color: ClubGlass.tileBorder),
+      ),
+      child: child,
+    );
+
+    if (blurSigma == null) return tile;
+    return ClipOval(
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: blurSigma!, sigmaY: blurSigma!),
+        child: tile,
+      ),
+    );
+  }
+}
+
 // ============================================================================
 // 작은 조각들
 // ============================================================================
