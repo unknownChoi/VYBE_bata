@@ -43,7 +43,7 @@ Future<void> main() async {
   // 네이버맵 SDK 초기화
   await FlutterNaverMap().init(
     clientId: dotenv.env['NAVER_MAP_CLIENT_ID']!,
-    onAuthFailed: (ex) => print('[NaverMap] 인증 실패: $ex'),
+    onAuthFailed: (ex) => debugPrint('[NaverMap] 인증 실패: $ex'),
   );
 
   runApp(const ProviderScope(child: VybeApp()));

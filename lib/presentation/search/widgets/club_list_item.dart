@@ -6,6 +6,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/common/widgets/vybe_meta_dot.dart';
 import 'package:vybe/presentation/clubs/club_detail_screen.dart';
 import 'package:vybe/presentation/common/widgets/vybe_recommend_badge.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
@@ -28,7 +29,7 @@ class ClubListItem extends StatelessWidget {
 
   // clubId 해시 기반 일관 그라데이션 fallback (썸네일 없을 때).
   static const _fallbackGradients = <List<Color>>[
-    [Color(0xFF2B6BFF), Color(0xFF7731FE)],
+    [VybeColors.accentBlue500, VybeColors.mainPurple500],
     [Color(0xFFFF006E), Color(0xFF8338EC)],
     [Color(0xFF06FFA5), Color(0xFF3A86FF)],
     [Color(0xFFFB5607), Color(0xFFFFBE0B)],
@@ -251,14 +252,14 @@ class ClubListItem extends StatelessWidget {
                             fontWeight: FontWeight.w600,
                             color: VybeColors.gray300),
                       ),
-                      _dot(),
+                      const VybeMetaDot(),
                       Text(
                         club.genre,
                         style: VybeTypography.caption.copyWith(
                             fontSize: 12.sp, height: 1.0, color: VybeColors.gray400),
                       ),
                       if (_isOpen && _closeTime != null) ...[
-                        _dot(),
+                        const VybeMetaDot(),
                         Icon(Icons.access_time_rounded,
                             size: 11.r, color: VybeColors.gray400),
                         SizedBox(width: 3.w),
@@ -327,16 +328,6 @@ class ClubListItem extends StatelessWidget {
       ),
     );
   }
-
-  Widget _dot() => Padding(
-        padding: EdgeInsets.symmetric(horizontal: 6.w),
-        child: Container(
-          width: 2.r,
-          height: 2.r,
-          decoration: const BoxDecoration(
-              color: VybeColors.gray500, shape: BoxShape.circle),
-        ),
-      );
 
   String _formatPrice(int price) {
     if (price == 0) return '0';

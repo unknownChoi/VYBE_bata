@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:vybe/design_system/colors.dart';
 
 /// 지도 마커 핀 페인터.
 /// 내 주변 지도탭과 클럽 상세 위치 지도에서 공통 사용.
 class VybeMapPinPainter extends CustomPainter {
   final Color color;
-  const VybeMapPinPainter({this.color = const Color(0xFF622ACF)});
+  const VybeMapPinPainter({this.color = VybeColors.mainPurple700});
 
   @override
   void paint(Canvas canvas, Size size) {

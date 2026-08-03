@@ -7,8 +7,11 @@ import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/domain/repositories/vybe_recommendation_repository.dart';
 import 'package:vybe/presentation/clubs/club_detail_screen.dart';
 import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
-import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
+import 'package:vybe/presentation/common/widgets/vybe_footer_note.dart';
+import 'package:vybe/presentation/common/widgets/vybe_glass_header.dart';
+import 'package:vybe/presentation/common/widgets/vybe_meta_dot.dart';
 import 'package:vybe/presentation/common/widgets/vybe_recommend_badge.dart';
+import 'package:vybe/presentation/common/widgets/vybe_shimmer.dart';
 import 'package:vybe/presentation/recommend/viewmodels/vybe_recommend_viewmodel.dart';
 
 // ── 추천 기준 칩 ──
@@ -20,18 +23,18 @@ class _Criterion {
 }
 
 const _criteria = [
-  _Criterion('플로어 분위기', Icons.auto_awesome, Color(0xFF7731FE)),
-  _Criterion('사운드 퀄리티', Icons.graphic_eq, Color(0xFF2B6BFF)),
-  _Criterion('최근 리뷰', Icons.star_rounded, Color(0xFFB5FF60)),
+  _Criterion('플로어 분위기', Icons.auto_awesome, VybeColors.mainPurple500),
+  _Criterion('사운드 퀄리티', Icons.graphic_eq, VybeColors.accentBlue500),
+  _Criterion('최근 리뷰', Icons.star_rounded, VybeColors.mainLime500),
   _Criterion('혼잡도', Icons.groups_rounded, Color(0xFFFF8A3D)),
   _Criterion('재방문율', Icons.repeat_rounded, Color(0xFFFF4D8D)),
 ];
 
 // 이미지 없을 때 쓰는 그라데이션 폴백 팔레트 (rank 순으로 배정).
 const _bgPalette = <List<Color>>[
-  [Color(0xFF2B1655), Color(0xFF7731FE), Color(0xFFFF4D8D)],
+  [Color(0xFF2B1655), VybeColors.mainPurple500, Color(0xFFFF4D8D)],
   [Color(0xFF06FFA5), Color(0xFF3A86FF)],
-  [Color(0xFF2B6BFF), Color(0xFF7731FE)],
+  [VybeColors.accentBlue500, VybeColors.mainPurple500],
   [Color(0xFFFB5607), Color(0xFFFFBE0B)],
   [Color(0xFF2A2D34), Color(0xFF6C757D)],
 ];
@@ -141,14 +144,7 @@ class _VybeRecommendScreenState extends ConsumerState<VybeRecommendScreen> {
     final asyncRecs = ref.watch(vybeRecommendViewModelProvider);
 
     // 찜 상태(스트림 + 낙관적 오버라이드 머지) — search_result_screen과 동일.
-    final uid = ref.watch(currentUidProvider);
-    final streamFavIds = uid != null
-        ? ref.watch(favoritedClubIdsProvider(uid)).asData?.value ?? <String>{}
-        : <String>{};
-    final optimistic = ref.watch(favoriteViewModelProvider);
-    final favoritedIds = Set<String>.from(streamFavIds)
-      ..addAll(optimistic.entries.where((e) => e.value).map((e) => e.key))
-      ..removeAll(optimistic.entries.where((e) => !e.value).map((e) => e.key));
+    final favoritedIds = ref.watch(mergedFavoriteIdsProvider);
     return Scaffold(
       backgroundColor: VybeColors.background,
       // SizedBox.expand로 Stack을 화면 전체로 강제 → Positioned.fill 본문이
@@ -188,11 +184,11 @@ class _VybeRecommendScreenState extends ConsumerState<VybeRecommendScreen> {
                 data: (recs) => _body(recs, favoritedIds),
               ),
             ),
-            Positioned(
+            const Positioned(
               top: 0,
               left: 0,
               right: 0,
-              child: _Header(),
+              child: VybeGlassHeader(),
             ),
           ],
         ),
@@ -227,40 +223,17 @@ class _VybeRecommendScreenState extends ConsumerState<VybeRecommendScreen> {
             onSave: (id) => _toggleFavorite(id, favoritedIds.contains(id)),
             onOpen: _openDetail,
           ),
-        _FooterNote(),
+        VybeFooterNote(
+          icon: Icons.auto_awesome,
+          iconColor: VybeColors.mainLime500,
+          text: '추천 리스트는 매주 화요일, 최근 방문 데이터를 반영해 새롭게 업데이트돼요.',
+          iconSize: 16,
+          margin: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 8.h),
+          padding: EdgeInsets.all(16.r),
+        ),
         SizedBox(height: 28.h),
       ],
     );
-  }
-}
-
-// ── 헤더 (스크롤 시 타이틀+배경 등장) ──
-class _Header extends StatelessWidget {
-  const _Header();
-
-  @override
-  Widget build(BuildContext context) {
-    final top = MediaQuery.of(context).padding.top;
-    // 스크롤해도 배경/타이틀 등장 안 함 — 항상 투명, 버튼만 노출.
-    return Container(
-      height: top + 52.h,
-      padding: EdgeInsets.only(top: top, left: 16.w, right: 16.w),
-      color: Colors.transparent,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          _iconBtn(
-            Icons.arrow_back_ios_new_rounded,
-            () => Navigator.of(context).maybePop(),
-          ),
-          _iconBtn(Icons.share_outlined, () {}),
-        ],
-      ),
-    );
-  }
-
-  Widget _iconBtn(IconData icon, VoidCallback onTap) {
-    return VybeGlassButton(icon: icon, onTap: onTap);
   }
 }
 
@@ -527,11 +500,11 @@ class _Featured extends StatelessWidget {
         Text('리뷰 ${club.reviews}',
             style: VybeTypography.caption
                 .copyWith(height: 14 / 12, color: VybeColors.gray400)),
-        _dot(),
+        const VybeMetaDot(color: VybeColors.gray600),
         Text(club.area,
             style: VybeTypography.caption
                 .copyWith(height: 14 / 12, color: VybeColors.gray300)),
-        _dot(),
+        const VybeMetaDot(color: VybeColors.gray600),
         Text(club.genre,
             style: VybeTypography.caption
                 .copyWith(height: 14 / 12, color: VybeColors.gray300)),
@@ -630,16 +603,6 @@ class _Featured extends StatelessWidget {
       child: child,
     );
   }
-
-  Widget _dot() => Padding(
-        padding: EdgeInsets.symmetric(horizontal: 6.w),
-        child: Container(
-          width: 2.r,
-          height: 2.r,
-          decoration: const BoxDecoration(
-              color: VybeColors.gray600, shape: BoxShape.circle),
-        ),
-      );
 }
 
 // ── 순위 섹션 ──
@@ -841,15 +804,15 @@ class _RankRow extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                   color: VybeColors.mainPurple500,
                 )),
-            _dot(),
+            const VybeMetaDot(color: VybeColors.gray600),
             Text(club.area,
                 style: VybeTypography.caption
                     .copyWith(height: 14 / 12, color: VybeColors.gray500)),
-            _dot(),
+            const VybeMetaDot(color: VybeColors.gray600),
             Text(club.genre,
                 style: VybeTypography.caption
                     .copyWith(height: 14 / 12, color: VybeColors.gray500)),
-            _dot(),
+            const VybeMetaDot(color: VybeColors.gray600),
             Text(club.open ? '영업중' : '영업종료',
                 style: VybeTypography.caption.copyWith(
                   height: 14 / 12,
@@ -865,43 +828,6 @@ class _RankRow extends StatelessWidget {
             style: VybeTypography.caption
                 .copyWith(height: 18 / 12, color: VybeColors.gray400)),
       ],
-    );
-  }
-
-  Widget _dot() => Padding(
-        padding: EdgeInsets.symmetric(horizontal: 6.w),
-        child: Container(
-          width: 2.r,
-          height: 2.r,
-          decoration: const BoxDecoration(
-              color: VybeColors.gray600, shape: BoxShape.circle),
-        ),
-      );
-}
-
-// ── 하단 안내 ──
-class _FooterNote extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 8.h),
-      padding: EdgeInsets.all(16.r),
-      decoration: BoxDecoration(
-        color: VybeColors.gray900,
-        borderRadius: BorderRadius.circular(14.r),
-        border: Border.all(color: VybeColors.gray800),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.auto_awesome, size: 16.r, color: VybeColors.mainLime500),
-          SizedBox(width: 10.w),
-          Expanded(
-            child: Text('추천 리스트는 매주 화요일, 최근 방문 데이터를 반영해 새롭게 업데이트돼요.',
-                style: VybeTypography.caption
-                    .copyWith(height: 17 / 12, color: VybeColors.gray400)),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -972,11 +898,11 @@ class _Skeleton extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _Shimmer(width: 120.w, height: 28.h, radius: 999.r),
+                VybeShimmerBox(width: 120.w, height: 28.h, radius: 999.r),
                 SizedBox(height: 14.h),
-                _Shimmer(width: 280.w, height: 30.h, radius: 8.r),
+                VybeShimmerBox(width: 280.w, height: 30.h, radius: 8.r),
                 SizedBox(height: 14.h),
-                _Shimmer(width: 200.w, height: 18.h, radius: 6.r),
+                VybeShimmerBox(width: 200.w, height: 18.h, radius: 6.r),
               ],
             ),
           ),
@@ -984,12 +910,12 @@ class _Skeleton extends StatelessWidget {
             padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 0),
             child: Column(
               children: [
-                _Shimmer(
+                VybeShimmerBox(
                     width: double.infinity, height: 230.h, radius: 20.r),
                 SizedBox(height: 16.h),
-                _Shimmer(width: double.infinity, height: 14.h, radius: 6.r),
+                VybeShimmerBox(width: double.infinity, height: 14.h, radius: 6.r),
                 SizedBox(height: 12.h),
-                _Shimmer(width: double.infinity, height: 46.h, radius: 13.r),
+                VybeShimmerBox(width: double.infinity, height: 46.h, radius: 13.r),
               ],
             ),
           ),
@@ -999,19 +925,19 @@ class _Skeleton extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _Shimmer(width: 22.w, height: 24.h, radius: 6.r),
+                  VybeShimmerBox(width: 22.w, height: 24.h, radius: 6.r),
                   SizedBox(width: 14.w),
-                  _Shimmer(width: 84.r, height: 84.r, radius: 12.r),
+                  VybeShimmerBox(width: 84.r, height: 84.r, radius: 12.r),
                   SizedBox(width: 14.w),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _Shimmer(width: 120.w, height: 14.h, radius: 6.r),
+                        VybeShimmerBox(width: 120.w, height: 14.h, radius: 6.r),
                         SizedBox(height: 9.h),
-                        _Shimmer(width: 180.w, height: 11.h, radius: 6.r),
+                        VybeShimmerBox(width: 180.w, height: 11.h, radius: 6.r),
                         SizedBox(height: 9.h),
-                        _Shimmer(width: 240.w, height: 11.h, radius: 6.r),
+                        VybeShimmerBox(width: 240.w, height: 11.h, radius: 6.r),
                       ],
                     ),
                   ),
@@ -1019,71 +945,6 @@ class _Skeleton extends StatelessWidget {
               ),
             ),
         ],
-      ),
-    );
-  }
-}
-
-// 좌→우 흐르는 shimmer.
-class _Shimmer extends StatefulWidget {
-  final double width;
-  final double height;
-  final double radius;
-  const _Shimmer(
-      {required this.width, required this.height, required this.radius});
-
-  @override
-  State<_Shimmer> createState() => _ShimmerState();
-}
-
-class _ShimmerState extends State<_Shimmer>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _c;
-
-  @override
-  void initState() {
-    super.initState();
-    _c = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1300),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(widget.radius),
-      child: SizedBox(
-        width: widget.width,
-        height: widget.height,
-        child: AnimatedBuilder(
-          animation: _c,
-          builder: (_, __) {
-            return ShaderMask(
-              blendMode: BlendMode.srcIn,
-              shaderCallback: (rect) {
-                final dx = (_c.value * 2 - 1) * rect.width * 1.5;
-                return LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                  colors: const [
-                    VybeColors.gray900,
-                    VybeColors.gray800,
-                    VybeColors.gray900,
-                  ],
-                ).createShader(
-                    Rect.fromLTWH(dx, 0, rect.width, rect.height));
-              },
-              child: const ColoredBox(color: VybeColors.gray900),
-            );
-          },
-        ),
       ),
     );
   }

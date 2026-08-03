@@ -163,7 +163,7 @@ class _ToastWidgetState extends ConsumerState<_ToastWidget> {
                                 ? Icons.priority_high_rounded
                                 : Icons.check_rounded,
                             size: 11.r,
-                            color: const Color(0xFF101013),
+                            color: VybeColors.background,
                           ),
                         ),
                         SizedBox(width: 8.w),

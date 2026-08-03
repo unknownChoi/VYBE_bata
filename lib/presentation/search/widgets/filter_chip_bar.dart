@@ -285,7 +285,7 @@ class _SortDropdown extends StatelessWidget {
     required this.onSelect,
   });
 
-  static const _lime = Color(0xFFB5FF60);
+  static const _lime = VybeColors.mainLime500;
 
   @override
   Widget build(BuildContext context) {

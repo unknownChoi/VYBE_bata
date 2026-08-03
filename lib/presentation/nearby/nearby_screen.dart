@@ -127,25 +127,39 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
     await _mapController!.addOverlay(marker);
   }
 
-  // 핀 탭 → 선택 표시(녹색) + 카메라 중앙 이동 + 클럽 상세 페이지로 이동.
+  // 지도 쪽 후처리(핀 색 교체 + 카메라 이동) 작업 핸들.
+  // 상세를 먼저 열고 뒤에서 돌리기 때문에, 복귀 시 선택 해제 전에 이걸 기다려야
+  // 뒤늦게 끝난 선택이 핀을 녹색으로 남겨두는 걸 막는다.
+  Future<void>? _pinFocusJob;
+
+  // 핀 탭 → 클럽 상세 페이지 즉시 오픈. 핀 선택 표시·카메라 이동은 뒤에서 처리.
+  //
+  // 핀 아이콘 재생성(NOverlayImage 직렬 큐)과 카메라 애니메이션은 수백 ms가 걸려서
+  // 이걸 await한 뒤 push하면 탭 후 화면이 멈춘 것처럼 보인다. 상세 화면은 데이터가
+  // 없어도 스켈레톤을 그리므로 먼저 열고 로딩은 그 안에서 보여준다.
   Future<void> _onPinTap(ClubModel club) async {
-    await _selectPin(club);
-
-    // 선택 핀이 카메라 중앙에 오도록 이동.
-    await _mapController?.updateCamera(
-      NCameraUpdate.scrollAndZoomTo(target: NLatLng(club.lat, club.lng)),
-    );
-    if (!mounted) return;
-
-    // 리스트 카드 탭과 동일하게 클럽 상세 페이지로 이동.
-    await Navigator.of(context).push(
+    final detail = Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => ClubDetailScreen(clubId: club.clubId)),
     );
+
+    // 상세가 위에 떠 있는 동안 아래 지도에서 진행 (실패해도 상세 흐름과 무관).
+    _pinFocusJob = _focusPin(club).catchError((_) {});
+
+    await detail;
+    await _pinFocusJob;
     if (!mounted) return;
 
     // 상세에서 스크롤하며 축소된 하단 nav 복원.
     ref.read(navBarVisibilityProvider.notifier).expand();
     await _deselectPin(club);
+  }
+
+  // 핀을 선택 상태(녹색)로 바꾸고 카메라를 그 위치로 이동.
+  Future<void> _focusPin(ClubModel club) async {
+    await _selectPin(club);
+    await _mapController?.updateCamera(
+      NCameraUpdate.scrollAndZoomTo(target: NLatLng(club.lat, club.lng)),
+    );
   }
 
   // [club] 핀을 선택(녹색)으로 바꾸고 직전 선택은 기본색으로 되돌린다.
@@ -339,14 +353,7 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
     final activeFilters = ref.watch(clubFilterViewModelProvider);
 
     // 찜 필터용 favoritedIds (바텀시트와 동일 로직 — 마커도 동일 조건 적용).
-    final uid = ref.watch(currentUidProvider);
-    final streamFavIds = uid != null
-        ? ref.watch(favoritedClubIdsProvider(uid)).asData?.value ?? <String>{}
-        : <String>{};
-    final optimistic = ref.watch(favoriteViewModelProvider);
-    final favoritedIds = Set<String>.from(streamFavIds)
-      ..addAll(optimistic.entries.where((e) => e.value).map((e) => e.key))
-      ..removeAll(optimistic.entries.where((e) => !e.value).map((e) => e.key));
+    final favoritedIds = ref.watch(mergedFavoriteIdsProvider);
 
     // 주변 탭이 화면에 보일 때만 마커를 렌더한다.
     // (KeepAlive로 화면 밖에서도 build/mounted가 유지되는데, 이때
@@ -826,9 +833,9 @@ class _NearbyPin extends StatelessWidget {
   final bool selected;
   const _NearbyPin({required this.label, required this.selected});
 
-  static const _purple = Color(0xFF622ACF);
-  static const _lime = Color(0xFFB5FF60);
-  static const _bg = Color(0xFF101013);
+  static const _purple = VybeColors.mainPurple700;
+  static const _lime = VybeColors.mainLime500;
+  static const _bg = VybeColors.background;
 
   @override
   Widget build(BuildContext context) {
@@ -885,7 +892,7 @@ class _RegionCluster extends StatelessWidget {
   final int count;
   const _RegionCluster({required this.area, required this.count});
 
-  static const _purple = Color(0xFF622ACF);
+  static const _purple = VybeColors.mainPurple700;
 
   @override
   Widget build(BuildContext context) {
@@ -952,8 +959,8 @@ class _MyLocationDot extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Container(
-        width: 18,
-        height: 18,
+        width: 18.r,
+        height: 18.r,
         decoration: BoxDecoration(
           color: const Color(0xFF0086FF),
           shape: BoxShape.circle,

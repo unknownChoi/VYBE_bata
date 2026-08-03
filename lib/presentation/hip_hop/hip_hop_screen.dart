@@ -9,6 +9,7 @@ import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/data/models/performance_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/common/widgets/vybe_meta_dot.dart';
 import 'package:vybe/presentation/clubs/club_detail_screen.dart';
 import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
 import 'package:vybe/presentation/common/widgets/vybe_recommend_badge.dart';
@@ -258,12 +259,12 @@ class _HipHopScreenState extends ConsumerState<HipHopScreen> {
         child: Stack(
           children: [
             // 상단 골드/보라 백드롭 그라데이션
-            const Positioned(
+            Positioned(
               top: 0,
               left: 0,
               right: 0,
-              height: 560,
-              child: IgnorePointer(child: HipBackdrop()),
+              height: 560.h,
+              child: const IgnorePointer(child: HipBackdrop()),
             ),
             Positioned.fill(
               child: ListView(
@@ -777,7 +778,7 @@ class _HeroSlide extends StatelessWidget {
                     ),
                   ),
                   SizedBox(width: 8.w),
-                  _dot(),
+                  const VybeMetaDot(size: 3, gap: 0),
                   SizedBox(width: 8.w),
                   Text(
                     h.genre,
@@ -837,7 +838,7 @@ class _HeroSlide extends StatelessWidget {
                     ),
                   ),
                   SizedBox(width: 7.w),
-                  _dot(),
+                  const VybeMetaDot(size: 3, gap: 0),
                   SizedBox(width: 7.w),
                   Icon(
                     Icons.place_rounded,
@@ -856,7 +857,7 @@ class _HeroSlide extends StatelessWidget {
                     ),
                   ),
                   SizedBox(width: 7.w),
-                  _dot(),
+                  const VybeMetaDot(size: 3, gap: 0),
                   SizedBox(width: 7.w),
                   Text(
                     h.time,
@@ -872,15 +873,6 @@ class _HeroSlide extends StatelessWidget {
       ],
     );
   }
-
-  Widget _dot() => Container(
-    width: 3.r,
-    height: 3.r,
-    decoration: const BoxDecoration(
-      color: VybeColors.gray500,
-      shape: BoxShape.circle,
-    ),
-  );
 }
 
 // ── 섹션 헤더 ──

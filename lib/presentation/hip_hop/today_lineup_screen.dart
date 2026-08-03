@@ -167,12 +167,12 @@ class _TodayLineupScreenState extends ConsumerState<TodayLineupScreen> {
       body: Stack(
         children: [
           // 상단 골드/보라 백드롭 그라데이션
-          const Positioned(
+          Positioned(
             top: 0,
             left: 0,
             right: 0,
-            height: 560,
-            child: IgnorePointer(child: HipBackdrop()),
+            height: 560.h,
+            child: const IgnorePointer(child: HipBackdrop()),
           ),
           SafeArea(
         bottom: false,

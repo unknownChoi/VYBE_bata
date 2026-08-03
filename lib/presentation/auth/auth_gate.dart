@@ -6,6 +6,7 @@ import 'package:vybe/presentation/auth/welcome/welcome_screen.dart';
 import 'package:vybe/presentation/common/widgets/vybe_spinner.dart';
 import 'package:vybe/presentation/home/viewmodels/home_skeleton_provider.dart';
 import 'package:vybe/presentation/main_scaffold/main_scaffold.dart';
+import 'package:vybe/design_system/colors.dart';
 
 /// 앱 루트 라우트. 로그인 여부로 진입 화면을 강제한다.
 ///
@@ -61,7 +62,7 @@ class _AuthSplash extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF101013),
+      backgroundColor: VybeColors.background,
       body: Center(child: VybeSpinner(size: 36.r)),
     );
   }

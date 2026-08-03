@@ -133,7 +133,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
     );
 
     return Scaffold(
-      backgroundColor: const Color(0xFF101013),
+      backgroundColor: VybeColors.background,
       extendBodyBehindAppBar: true,
       body: Stack(
         children: [
@@ -186,7 +186,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                       ),
                       ShaderMask(
                         shaderCallback: (bounds) => const LinearGradient(
-                          colors: [Color(0xFF7731FE), Color(0xFFB377FF)],
+                          colors: [VybeColors.mainPurple500, Color(0xFFB377FF)],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ).createShader(bounds),
@@ -234,7 +234,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                     iconPath: _appleIconPath,
                     iconSize: 18.r,
                     label: 'Apple로 시작하기',
-                    labelColor: const Color(0xFF101013),
+                    labelColor: VybeColors.background,
                     isLoading: _loadingButton == 'apple',
                     disabled: _loadingButton != null,
                     onTap: () {},
@@ -388,7 +388,7 @@ class _HeroVisualState extends State<_HeroVisual> with TickerProviderStateMixin 
                     ),
                     child: _Blob(
                       size: 360.w,
-                      color: const Color(0xFF7731FE).withValues(alpha: 0.55),
+                      color: VybeColors.mainPurple500.withValues(alpha: 0.55),
                     ),
                   ),
                 ),
@@ -409,7 +409,7 @@ class _HeroVisualState extends State<_HeroVisual> with TickerProviderStateMixin 
                     ),
                     child: _Blob(
                       size: 320.w,
-                      color: const Color(0xFFB5FF60).withValues(alpha: 0.32),
+                      color: VybeColors.mainLime500.withValues(alpha: 0.32),
                     ),
                   ),
                 ),

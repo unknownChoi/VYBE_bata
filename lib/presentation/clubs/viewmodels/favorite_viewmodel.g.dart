@@ -92,6 +92,70 @@ final class FavoritedClubIdsFamily extends $Family
   String toString() => r'favoritedClubIdsProvider';
 }
 
+/// 화면이 실제로 그릴 찜 clubId Set.
+///
+/// Firestore 스트림([favoritedClubIds])에 낙관적 오버라이드([FavoriteViewModel])를
+/// 덮어 만든 값 — 서버 반영 전에도 하트가 즉시 바뀐다.
+/// 비로그인이면 항상 빈 Set.
+///
+/// 찜 목록을 보여주는 화면은 이 provider 하나만 watch 하면 된다.
+
+@ProviderFor(mergedFavoriteIds)
+final mergedFavoriteIdsProvider = MergedFavoriteIdsProvider._();
+
+/// 화면이 실제로 그릴 찜 clubId Set.
+///
+/// Firestore 스트림([favoritedClubIds])에 낙관적 오버라이드([FavoriteViewModel])를
+/// 덮어 만든 값 — 서버 반영 전에도 하트가 즉시 바뀐다.
+/// 비로그인이면 항상 빈 Set.
+///
+/// 찜 목록을 보여주는 화면은 이 provider 하나만 watch 하면 된다.
+
+final class MergedFavoriteIdsProvider
+    extends $FunctionalProvider<Set<String>, Set<String>, Set<String>>
+    with $Provider<Set<String>> {
+  /// 화면이 실제로 그릴 찜 clubId Set.
+  ///
+  /// Firestore 스트림([favoritedClubIds])에 낙관적 오버라이드([FavoriteViewModel])를
+  /// 덮어 만든 값 — 서버 반영 전에도 하트가 즉시 바뀐다.
+  /// 비로그인이면 항상 빈 Set.
+  ///
+  /// 찜 목록을 보여주는 화면은 이 provider 하나만 watch 하면 된다.
+  MergedFavoriteIdsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'mergedFavoriteIdsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$mergedFavoriteIdsHash();
+
+  @$internal
+  @override
+  $ProviderElement<Set<String>> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  Set<String> create(Ref ref) {
+    return mergedFavoriteIds(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(Set<String> value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<Set<String>>(value),
+    );
+  }
+}
+
+String _$mergedFavoriteIdsHash() => r'1b15f7d9b149c4f703d5cdb36ca3d273d882faba';
+
 /// 낙관적 오버라이드: clubId → true(찜) / false(찜취소)
 /// 스트림 업데이트 전까지 UI에 즉시 반영하기 위해 사용
 

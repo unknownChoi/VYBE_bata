@@ -83,13 +83,13 @@ const _dow = ['월', '화', '수', '목', '금', '토', '일'];
 
 // 아바타 배경 그라데이션 팔레트 (135deg). 아티스트명 해시로 결정론적 배정.
 const _gradients = <List<Color>>[
-  [Color(0xFF7731FE), Color(0xFFFF4D8D)],
+  [VybeColors.mainPurple500, Color(0xFFFF4D8D)],
   [Color(0xFFFB5607), Color(0xFFFFBE0B)],
   [Color(0xFF3A0CA3), Color(0xFF4361EE)],
   [Color(0xFF4A1E1E), Color(0xFFF72585)],
   [Color(0xFF1B3A3A), Color(0xFF2A9D8F)],
   [Color(0xFF3A2F0A), Color(0xFFF5B82E)],
-  [Color(0xFF2A1A3E), Color(0xFF7731FE)],
+  [Color(0xFF2A1A3E), VybeColors.mainPurple500],
   [Color(0xFF5A3A1A), Color(0xFFF5B82E)],
 ];
 

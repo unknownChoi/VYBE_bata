@@ -481,8 +481,8 @@ class _MyLocationDot extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Container(
-        width: 18,
-        height: 18,
+        width: 18.r,
+        height: 18.r,
         decoration: BoxDecoration(
           color: const Color(0xFF0086FF),
           shape: BoxShape.circle,

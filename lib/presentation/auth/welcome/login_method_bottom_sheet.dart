@@ -136,7 +136,7 @@ class _VerifySheet extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                       fontSize: 16.sp,
                       letterSpacing: -0.025 * 16,
-                      color: const Color(0xFF101013),
+                      color: VybeColors.background,
                     ),
                   ),
                 ],
@@ -194,8 +194,8 @@ class _IDIcon extends StatelessWidget {
               gradient: RadialGradient(
                 center: const Alignment(0, -0.3),
                 colors: [
-                  const Color(0xFFB5FF60).withValues(alpha: 0.22),
-                  const Color(0xFF7731FE).withValues(alpha: 0.18),
+                  VybeColors.mainLime500.withValues(alpha: 0.22),
+                  VybeColors.mainPurple500.withValues(alpha: 0.18),
                 ],
                 stops: const [0.0, 0.7],
               ),
@@ -205,7 +205,7 @@ class _IDIcon extends StatelessWidget {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFFB5FF60).withValues(alpha: 0.18),
+                  color: VybeColors.mainLime500.withValues(alpha: 0.18),
                   blurRadius: 24,
                 ),
               ],
@@ -304,7 +304,7 @@ class _IDCardIconPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final s = size.width / 24;
     final paint = Paint()
-      ..color = const Color(0xFF101013)
+      ..color = VybeColors.background
       ..strokeWidth = 2 * s
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round

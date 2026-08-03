@@ -53,9 +53,10 @@ View (Widget) → ViewModel (Notifier) → Repository → DataSource (Firebase)
 │   │   │       ├── firebase_search_history_datasource.dart
 │   │   │       ├── firebase_review_datasource.dart
 │   │   │       ├── firebase_favorite_datasource.dart
-│   │   │       └── firebase_banner_datasource.dart
+│   │   │       ├── firebase_banner_datasource.dart
+│   │   │       └── firebase_notice_datasource.dart
 │   │   ├── models/      # Freezed 모델 (user, club, club_info, menu, photo,
-│   │   │                #   review, favorite, banner, search_history, operating_hours)
+│   │   │                #   review, favorite, banner, notice, search_history, operating_hours)
 │   │   └── repositories/# domain 인터페이스 구현체 (*_repository_impl.dart, Riverpod provider 포함)
 │   ├── domain/
 │   │   └── repositories/    # repository 인터페이스 (Firebase 의존 금지)
@@ -340,6 +341,9 @@ ElevatedButton(onPressed: () {}, child: Text('로그인'))
   `searchLogs`(수집) → `aggregateSearchTrends`(집계) → `searchTrends/current`·`searchHashtags`(노출).
   순수 로직은 `functions/src/search/compute_trends.ts`에 분리(Firestore 의존 없음) —
   되먹임 필터·고유유저 집계·증감·fallback·갱신주기 판단 전부 여기 있음
+- **공지사항 (2026.08.03)** — `notices` 컬렉션 + 앱 읽기 전용 화면
+  (마이페이지 계정 메뉴 → `my_page/notices_screen.dart` 목록 → `notice_detail_screen.dart` 상세).
+  카테고리 배지·고정 공지·NEW(7일) 배지·사진 n장. **작성/수정은 어드민 페이지(별도 구축 예정) 전용**
 
 ### 미구현 / 진행 중 ✗
 - 패스·지갑 탭 (`pass_wallet_screen.dart` 플레이스홀더 — 현재 탭 슬롯엔 미연결)
@@ -349,6 +353,9 @@ ElevatedButton(onPressed: () {}, child: Text('로그인'))
 - 검색 트렌드 배포 잔여 작업 — ① `firebase deploy --only firestore:rules,functions:aggregateSearchTrends`
   ② `node scripts/seed_search_hashtags.js` (안 돌리면 두 섹션 다 빈 화면)
   ③ 콘솔에서 `searchLogs.expireAt` TTL 정책 추가
+- 공지사항 배포 잔여 작업 — ① `firebase deploy --only firestore:rules,firestore:indexes,storage`
+  (notices 규칙 + `notices(isActive, publishedAt DESC)` 인덱스) ② 샘플 데이터 `node scripts/seed_notices.js`
+  ③ 어드민 페이지(작성 UI) 별도 구축
 - Storage Security Rules 배포 검증 (Firestore Rules는 배포됨)
 - Apple 로그인 (이후 구현)
 
@@ -688,6 +695,31 @@ createdAt       : timestamp
 > 인덱스: `performances(genre, date, startAt)`. seed: `scripts/seed_performances.js`.
 > ⚠ favoriteCount·rating 같은 집계 없음 → Cloud Functions 트리거 불필요(live/lineup은 클라 머지 계산).
 
+#### notices/{noticeId}
+```
+noticeId    : string     // PK (= doc.id fallback)
+title       : string     // 공지 제목
+content     : string     // 본문 plain text. \n 줄바꿈 그대로 렌더 (마크다운/HTML 파싱 안 함)
+imageUrls   : array      // 첨부 사진 URL 0~n장 — Storage notices/{noticeId}/{index}.{ext}
+category    : string     // "notice" | "update" | "event" — 목록 배지
+                         //   알 수 없는 값이면 '공지'로 폴백
+isPinned    : boolean    // 상단 고정 (정렬은 클라 메모리에서 처리)
+isActive    : boolean    // 노출 여부. 삭제 대신 false로 숨김
+publishedAt : timestamp  // 노출 기준 시각 = 목록 정렬 키 (createdAt과 분리 → 예약/소급 게시)
+authorName  : string     // 표시 작성자 (기본 "VYBE 운영팀")
+createdAt   : timestamp
+updatedAt   : timestamp
+```
+> 마이페이지 '계정 → 공지사항' 데이터 소스. **top-level** — 클럽·유저에 종속 안 되는
+> 전역 콘텐츠(banners와 동급). **쓰기는 어드민 페이지(별도 구축 예정) 전용 — 앱은 읽기만.**
+> 쿼리: `where isActive==true orderBy publishedAt desc limit 50`.
+> 인덱스: `notices(isActive ASC, publishedAt DESC)`.
+> ⚠ `isPinned`는 서버 orderBy에 넣지 않고 받아온 뒤 메모리에서 위로 올린다 — 공지 건수가
+> 적어 3필드 인덱스를 유지할 이유가 없고, 정렬 규칙을 바꿔도 인덱스 재배포가 불필요.
+> ⚠ **읽음 상태는 저장하지 않는다.** `users/{uid}/noticeReads` 방식은 공지 열 때마다 write가
+> 발생 → 베타 규모에 과함. 목록 `NEW` 배지는 `publishedAt`이 7일 이내인지로만 판정.
+> 집계 필드 없음 → Cloud Functions 트리거 불필요. seed(샘플): `scripts/seed_notices.js`.
+
 #### searchLogs/{logId}
 ```
 logId       : string    // PK (auto)
@@ -819,6 +851,7 @@ createdAt      : timestamp
 | `{path=**}/reviews` (collectionGroup) | 본인 리뷰만 | 불가 (마이페이지 내 리뷰 조회 전용) |
 | `favorites` | 본인만 | 생성·삭제: 본인만 |
 | `users/.../searchHistory` | 본인만 | 본인만 |
+| `notices` | 누구나 (isActive=true만) | 어드민만 (어드민 페이지 전용) |
 | `searchLogs` | **불가** (Admin SDK 전용) | 생성만: 로그인 유저(본인 userId, keyword 2~30자, 필드 화이트리스트). 수정·삭제 불가 |
 | `searchTrends`, `searchHashtags` | 누구나 | 어드민만 |
 
@@ -828,6 +861,7 @@ createdAt      : timestamp
 | `clubs/**` | 누구나 | 어드민만, 10MB 이하, 이미지만 |
 | `reviews/**` | 누구나 | 로그인 유저, 10MB 이하, 이미지만 |
 | `users/{uid}/**` | 누구나 | 본인만, 5MB 이하, 이미지만 |
+| `notices/**` | 누구나 | 어드민만, 10MB 이하, 이미지만 |
 
 #### 어드민 권한 설정
 ```typescript
@@ -852,6 +886,7 @@ clubs/{clubId}/menus/{menuId}.{jpg|png}     // 개별 메뉴 이미지
 clubs/{clubId}/menus/boards/board_{n}.png   // 메뉴판 이미지 (menuBoardUrls)
 reviews/{clubId}/{reviewId}/{index}.{ext}   // 리뷰 첨부 이미지 (0~3, 최대 4장)
 users/{uid}/profile.jpg                     // 프로필 이미지 (덮어쓰기)
+notices/{noticeId}/{index}.{ext}            // 공지 첨부 이미지 (어드민 업로드)
 ```
 
 > **URL 토큰 차이**: `thumbnail`은 다운로드 토큰(`?alt=media&token=…`) 포함, `gallery`/`menus`는 토큰 없이 `?alt=media`만 → Storage 규칙 `clubs/** read: if true`(공개 읽기)에 의존.

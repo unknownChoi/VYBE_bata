@@ -16,6 +16,7 @@ import 'package:vybe/data/models/search_hashtag_model.dart';
 import 'package:vybe/data/models/search_history_model.dart';
 import 'package:vybe/data/models/search_trend_model.dart';
 import 'package:vybe/design_system/colors.dart';
+import 'package:vybe/presentation/common/widgets/ambient_backdrop.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/search/viewmodels/search_trend_viewmodel.dart';
 import 'package:vybe/presentation/search/viewmodels/search_viewmodel.dart';
@@ -102,7 +103,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         children: [
           // 앰비언트 클럽 조명 백드롭
           const Positioned.fill(
-            child: IgnorePointer(child: _AmbientBackdrop()),
+            child: IgnorePointer(
+              child: AmbientBackdrop(gradientStops: [0.0, 0.30, 1.0]),
+            ),
           ),
           GestureDetector(
             // 검색창 밖 탭 시 키보드 닫기
@@ -361,11 +364,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           ),
         ),
         historyAsync.when(
-          loading: () => const Center(
+          loading: () => Center(
             child: SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
+              width: 20.r,
+              height: 20.r,
+              child: const CircularProgressIndicator(
                 strokeWidth: 2,
                 color: VybeColors.mainLime500,
               ),
@@ -521,60 +524,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     _navigateToResult(it.keyword, source: SearchSource.trend),
               ))
           .toList(),
-    );
-  }
-}
-
-class _AmbientBackdrop extends StatelessWidget {
-  const _AmbientBackdrop();
-
-  @override
-  Widget build(BuildContext context) {
-    return const DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF120F1A), Color(0xFF101013), Color(0xFF0E0D12)],
-          stops: [0.0, 0.30, 1.0],
-        ),
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 420,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  center: Alignment(-0.9, -1),
-                  radius: 1.4,
-                  colors: [Color(0x8A7731FE), Color(0x00000000)],
-                  stops: [0.0, 0.78],
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 420,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  center: Alignment(1, -0.9),
-                  radius: 1.4,
-                  colors: [Color(0x4DB5FF60), Color(0x00000000)],
-                  stops: [0.0, 0.8],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

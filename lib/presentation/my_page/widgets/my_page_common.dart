@@ -123,7 +123,7 @@ class MyAvatar extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF8B52FF), Color(0xFF7731FE), Color(0xFF4E24A0)],
+          colors: [Color(0xFF8B52FF), VybeColors.mainPurple500, VybeColors.mainPurple900],
         ),
       ),
       alignment: Alignment.center,

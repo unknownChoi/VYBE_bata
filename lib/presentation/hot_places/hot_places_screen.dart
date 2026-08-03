@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
-import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
+import 'package:vybe/presentation/common/widgets/vybe_glass_header.dart';
+import 'package:vybe/presentation/common/widgets/vybe_meta_dot.dart';
+import 'package:vybe/presentation/common/widgets/vybe_shimmer.dart';
 
 // 핫플레이스 — 실시간 방문자/혼잡도 기반 클럽 랭킹.
 // claude.ai/design hot_places.html 디자인을 하드코딩 프론트로 구현.
@@ -72,8 +74,8 @@ class _Club {
 const List<String> _areas = ['전체', '내 주변', '홍대', '강남', '이태원', '압구정', '건대'];
 
 const List<_Club> _top = [
-  _Club(id: 1, rank: 1, name: '어썸레드', area: '홍대', genre: '힙합', dist: 0.4, visitors: '2.4천', rating: 4.76, crowd: _Crowd.packed, bg: [Color(0xFF2B1655), Color(0xFF7731FE), Color(0xFFFF4D8D)]),
-  _Club(id: 2, rank: 2, name: 'OCTAGON', area: '강남', genre: 'EDM', dist: 5.2, visitors: '2.1천', rating: 4.80, crowd: _Crowd.packed, bg: [Color(0xFF2B6BFF), Color(0xFF7731FE)]),
+  _Club(id: 1, rank: 1, name: '어썸레드', area: '홍대', genre: '힙합', dist: 0.4, visitors: '2.4천', rating: 4.76, crowd: _Crowd.packed, bg: [Color(0xFF2B1655), VybeColors.mainPurple500, Color(0xFFFF4D8D)]),
+  _Club(id: 2, rank: 2, name: 'OCTAGON', area: '강남', genre: 'EDM', dist: 5.2, visitors: '2.1천', rating: 4.80, crowd: _Crowd.packed, bg: [VybeColors.accentBlue500, VybeColors.mainPurple500]),
   _Club(id: 3, rank: 3, name: '버뮤다', area: '홍대', genre: '힙합', dist: 0.7, visitors: '1.8천', rating: 4.62, crowd: _Crowd.busy, bg: [Color(0xFF06FFA5), Color(0xFF3A86FF)]),
 ];
 
@@ -209,36 +211,9 @@ class _HotPlacesScreenState extends State<HotPlacesScreen> {
                     ),
             ),
             // 상단 투명 헤더 오버레이 (뒤로가기 버튼).
-            const Positioned(top: 0, left: 0, right: 0, child: _Header()),
+            const Positioned(top: 0, left: 0, right: 0, child: VybeGlassHeader()),
           ],
         ),
-      ),
-    );
-  }
-}
-
-// ── 헤더 (투명 오버레이, 뒤로가기 버튼) ──
-class _Header extends StatelessWidget {
-  const _Header();
-
-  @override
-  Widget build(BuildContext context) {
-    final top = MediaQuery.of(context).padding.top;
-    return Container(
-      height: top + 52.h,
-      padding: EdgeInsets.only(top: top, left: 16.w, right: 16.w),
-      color: Colors.transparent,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          VybeGlassButton(
-            onTap: () => Navigator.of(context).maybePop(),
-          ),
-          VybeGlassButton(
-            icon: Icons.share_outlined,
-            onTap: () {},
-          ),
-        ],
       ),
     );
   }
@@ -668,7 +643,7 @@ class _PodiumCard extends StatelessWidget {
                         color: Colors.white,
                       ),
                     ),
-                    _dot(),
+                    const VybeMetaDot(color: VybeColors.gray600),
                     if (big) ...[
                       Icon(Icons.people, size: 11.r, color: VybeColors.gray300),
                       SizedBox(width: 3.w),
@@ -681,7 +656,7 @@ class _PodiumCard extends StatelessWidget {
                           color: VybeColors.gray300,
                         ),
                       ),
-                      _dot(),
+                      const VybeMetaDot(color: VybeColors.gray600),
                       Text(
                         club.area,
                         style: VybeTypography.caption.copyWith(
@@ -949,7 +924,8 @@ class _ListRow extends StatelessWidget {
 
   Widget _metaRow() {
     final children = <Widget>[];
-    void dot() => children.add(_dot());
+    void dot() =>
+        children.add(const VybeMetaDot(color: VybeColors.gray600));
 
     if (near) {
       children.addAll([
@@ -1012,16 +988,6 @@ class _Footer extends StatelessWidget {
   }
 }
 
-// ── 메타 구분점 ──
-Widget _dot() => Padding(
-      padding: EdgeInsets.symmetric(horizontal: 6.w),
-      child: Container(
-        width: 2.r,
-        height: 2.r,
-        decoration: const BoxDecoration(color: VybeColors.gray600, shape: BoxShape.circle),
-      ),
-    );
-
 // ── 불꽃 아이콘 ──
 class _Flame extends StatelessWidget {
   final double size;
@@ -1071,9 +1037,9 @@ class _Skeleton extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _Shimmer(w: 0.75, h: 28, fraction: true),
+              VybeShimmerBox(widthFactor: 0.75, height: 28.h, radius: 6.r),
               SizedBox(height: 12.h),
-              _Shimmer(w: 150, h: 26, r: 999),
+              VybeShimmerBox(width: 150.w, height: 26.h, radius: 999.r),
             ],
           ),
         ),
@@ -1082,7 +1048,7 @@ class _Skeleton extends StatelessWidget {
           child: Row(
             children: [
               for (final w in [52.0, 60.0, 60.0, 70.0, 56.0]) ...[
-                _Shimmer(w: w, h: 34, r: 999),
+                VybeShimmerBox(width: w.w, height: 34.h, radius: 999.r),
                 SizedBox(width: 8.w),
               ],
             ],
@@ -1094,15 +1060,15 @@ class _Skeleton extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(flex: 58, child: _Shimmer(h: 188, r: 16)),
+                Expanded(flex: 58, child: VybeShimmerBox(height: 188.h, radius: 16.r)),
                 SizedBox(width: 10.w),
                 Expanded(
                   flex: 42,
                   child: Column(
                     children: [
-                      _Shimmer(h: 89, r: 16),
+                      VybeShimmerBox(height: 89.h, radius: 16.r),
                       SizedBox(height: 10.h),
-                      _Shimmer(h: 89, r: 16),
+                      VybeShimmerBox(height: 89.h, radius: 16.r),
                     ],
                   ),
                 ),
@@ -1115,19 +1081,19 @@ class _Skeleton extends StatelessWidget {
             padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 14.h),
             child: Row(
               children: [
-                _Shimmer(w: 20, h: 20),
+                VybeShimmerBox(width: 20.w, height: 20.h, radius: 6.r),
                 SizedBox(width: 13.w),
-                _Shimmer(w: 72, h: 72, r: 12),
+                VybeShimmerBox(width: 72.w, height: 72.h, radius: 12.r),
                 SizedBox(width: 13.w),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _Shimmer(w: 0.45, h: 14, fraction: true),
+                      VybeShimmerBox(widthFactor: 0.45, height: 14.h, radius: 6.r),
                       SizedBox(height: 9.h),
-                      _Shimmer(w: 0.75, h: 11, fraction: true),
+                      VybeShimmerBox(widthFactor: 0.75, height: 11.h, radius: 6.r),
                       SizedBox(height: 9.h),
-                      _Shimmer(w: 1, h: 5, r: 99, fraction: true),
+                      VybeShimmerBox(widthFactor: 1, height: 5.h, radius: 99.r),
                     ],
                   ),
                 ),
@@ -1136,54 +1102,5 @@ class _Skeleton extends StatelessWidget {
           ),
       ],
     );
-  }
-}
-
-class _Shimmer extends StatefulWidget {
-  final double w;
-  final double h;
-  final double r;
-  final bool fraction; // w를 비율(0~1)로 해석.
-  const _Shimmer({this.w = 0, required this.h, this.r = 6, this.fraction = false});
-  @override
-  State<_Shimmer> createState() => _ShimmerState();
-}
-
-class _ShimmerState extends State<_Shimmer> with SingleTickerProviderStateMixin {
-  late final AnimationController _c =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 1300))..repeat();
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final box = AnimatedBuilder(
-      animation: _c,
-      builder: (_, __) {
-        return Container(
-          height: widget.h.h,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(widget.r.r),
-            gradient: LinearGradient(
-              begin: Alignment(-1 + 2 * _c.value, 0),
-              end: Alignment(1 + 2 * _c.value, 0),
-              colors: const [VybeColors.gray900, VybeColors.gray800, VybeColors.gray900],
-            ),
-          ),
-        );
-      },
-    );
-    if (widget.fraction) {
-      return FractionallySizedBox(
-        alignment: Alignment.centerLeft,
-        widthFactor: widget.w,
-        child: box,
-      );
-    }
-    return SizedBox(width: widget.w.w, child: box);
   }
 }

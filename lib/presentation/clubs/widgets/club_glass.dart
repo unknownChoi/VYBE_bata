@@ -98,12 +98,12 @@ class ClubAurora extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const DecoratedBox(
+    return DecoratedBox(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF120F1A), Color(0xFF101013), Color(0xFF0D0C11)],
+          colors: [Color(0xFF120F1A), VybeColors.background, Color(0xFF0D0C11)],
           stops: [0.0, 0.38, 1.0],
         ),
       ),
@@ -113,8 +113,8 @@ class ClubAurora extends StatelessWidget {
             top: 0,
             left: 0,
             right: 0,
-            height: 300,
-            child: DecoratedBox(
+            height: 300.h,
+            child: const DecoratedBox(
               decoration: BoxDecoration(
                 gradient: RadialGradient(
                   center: Alignment(-0.92, -0.96),
@@ -129,8 +129,8 @@ class ClubAurora extends StatelessWidget {
             top: 0,
             left: 0,
             right: 0,
-            height: 420,
-            child: DecoratedBox(
+            height: 420.h,
+            child: const DecoratedBox(
               decoration: BoxDecoration(
                 gradient: RadialGradient(
                   center: Alignment(1, -0.56),
@@ -145,8 +145,8 @@ class ClubAurora extends StatelessWidget {
             left: 0,
             right: 0,
             bottom: 0,
-            height: 380,
-            child: DecoratedBox(
+            height: 380.h,
+            child: const DecoratedBox(
               decoration: BoxDecoration(
                 gradient: RadialGradient(
                   center: Alignment(0.64, 0.92),

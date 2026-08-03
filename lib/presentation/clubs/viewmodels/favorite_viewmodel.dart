@@ -1,4 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:vybe/core/providers/auth_providers.dart';
 import 'package:vybe/data/repositories/favorite_repository_impl.dart';
 
 part 'favorite_viewmodel.g.dart';
@@ -10,6 +11,27 @@ Stream<Set<String>> favoritedClubIds(Ref ref, String userId) {
       .watch(favoriteRepositoryProvider)
       .watchUserFavorites(userId)
       .map((list) => list.map((f) => f.clubId).toSet());
+}
+
+/// 화면이 실제로 그릴 찜 clubId Set.
+///
+/// Firestore 스트림([favoritedClubIds])에 낙관적 오버라이드([FavoriteViewModel])를
+/// 덮어 만든 값 — 서버 반영 전에도 하트가 즉시 바뀐다.
+/// 비로그인이면 항상 빈 Set.
+///
+/// 찜 목록을 보여주는 화면은 이 provider 하나만 watch 하면 된다.
+@riverpod
+Set<String> mergedFavoriteIds(Ref ref) {
+  final uid = ref.watch(currentUidProvider);
+  if (uid == null) return const <String>{};
+
+  final streamIds =
+      ref.watch(favoritedClubIdsProvider(uid)).asData?.value ?? <String>{};
+  final optimistic = ref.watch(favoriteViewModelProvider);
+
+  return Set<String>.from(streamIds)
+    ..addAll(optimistic.entries.where((e) => e.value).map((e) => e.key))
+    ..removeAll(optimistic.entries.where((e) => !e.value).map((e) => e.key));
 }
 
 /// 낙관적 오버라이드: clubId → true(찜) / false(찜취소)

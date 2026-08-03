@@ -45,14 +45,14 @@ class _SignupSuccessScreenState extends ConsumerState<SignupSuccessScreen> {
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [
-      Color(0xFFB5FF60), // lime
+      VybeColors.mainLime500, // lime
       Color(0xFFC8E77F),
       Color(0xFFDACA9E),
       Color(0xFFFF9EDB), // pink
       Color(0xFFDD82E4),
       Color(0xFFBB67ED),
       Color(0xFF994CF5),
-      Color(0xFF7731FE), // purple
+      VybeColors.mainPurple500, // purple
     ],
     stops: [0.0, 0.142, 0.285, 0.569, 0.677, 0.785, 0.892, 1.0],
   );

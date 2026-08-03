@@ -200,7 +200,7 @@ class FirebaseClubDataSource {
           .collection('clubs')
           .where('isActive', isEqualTo: true)
           .where('location.geohash', isGreaterThanOrEqualTo: prefix)
-          .where('location.geohash', isLessThan: '${prefix}{')
+          .where('location.geohash', isLessThan: '$prefix{')
           .get()),
     );
 

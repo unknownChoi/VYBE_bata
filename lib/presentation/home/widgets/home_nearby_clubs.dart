@@ -5,6 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/common/widgets/vybe_meta_dot.dart';
 import 'package:vybe/presentation/clubs/club_detail_screen.dart';
 import 'package:vybe/presentation/common/widgets/vybe_recommend_badge.dart';
 import 'package:vybe/presentation/home/viewmodels/home_nearby_viewmodel.dart';
@@ -103,7 +104,7 @@ class HomeNearbyClubs extends ConsumerWidget {
 
 // 썸네일 없을 때 클럽별 일관된 그라데이션 (clubId 해시 기반).
 const _fallbackGradients = [
-  [Color(0xFF2B1655), Color(0xFF7731FE), Color(0xFFFF4D8D)],
+  [Color(0xFF2B1655), VybeColors.mainPurple500, Color(0xFFFF4D8D)],
   [Color(0xFF06FFA5), Color(0xFF3A86FF), Color(0xFF3A86FF)],
   [Color(0xFFFB5607), Color(0xFFFFBE0B), Color(0xFFFFBE0B)],
   [Color(0xFF06FFA5), Color(0xFF1B9AAA), Color(0xFF1B9AAA)],
@@ -221,7 +222,7 @@ class _ClubCard extends StatelessWidget {
                           color: VybeColors.gray300,
                         ),
                       ),
-                      _dot(),
+                      const VybeMetaDot(),
                       Text(
                         club.genre,
                         style: VybeTypography.caption.copyWith(
@@ -238,18 +239,6 @@ class _ClubCard extends StatelessWidget {
       ),
     );
   }
-
-  Widget _dot() => Padding(
-    padding: EdgeInsets.symmetric(horizontal: 6.w),
-    child: Container(
-      width: 2.r,
-      height: 2.r,
-      decoration: const BoxDecoration(
-        color: VybeColors.gray500,
-        shape: BoxShape.circle,
-      ),
-    ),
-  );
 }
 
 final _badgeText = TextStyle(

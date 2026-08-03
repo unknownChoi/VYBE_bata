@@ -191,7 +191,7 @@ final class SearchViewModelProvider
   }
 }
 
-String _$searchViewModelHash() => r'37daae098769e97d11d9088065c05d5cacd1471c';
+String _$searchViewModelHash() => r'19cde820e2eea512f49dbcc786c0fe093a1c2f13';
 
 abstract class _$SearchViewModel extends $Notifier<AsyncValue<SearchResults>> {
   AsyncValue<SearchResults> build();

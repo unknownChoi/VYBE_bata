@@ -304,6 +304,7 @@
   <a href="#banners" class="sub">banners</a>
   <a href="#vybe-recommendations" class="sub">vybeRecommendations</a>
   <a href="#performances" class="sub">performances</a>
+  <a href="#notices" class="sub">notices</a>
 
   <a class="group">Cloud Functions</a>
   <a href="#functions-http" class="sub">HTTP onCall (6)</a>
@@ -476,7 +477,9 @@ logFirebaseAccess(
 
 📁 vybeRecommendations/{recId}                <span class="cmt"># VYBE 추천 페이지 큐레이션 (clubs 조인)</span>
 
-📁 performances/{performanceId}              <span class="cmt"># 공연 일정 (장르 페이지 — 힙합 등, top-level, clubs 조인)</span></div>
+📁 performances/{performanceId}              <span class="cmt"># 공연 일정 (장르 페이지 — 힙합 등, top-level, clubs 조인)</span>
+
+📁 notices/{noticeId}                         <span class="cmt"># 공지사항 (마이페이지 노출, 어드민 페이지에서 작성)</span></div>
   <div class="note"><strong>자동 집계 필드:</strong> <code>favoriteCount</code> · <code>ratingSum</code> · <code>reviewCount</code> · <code>rating</code> 는 Cloud Functions 트리거로만 갱신. 클라이언트 직접 수정 금지.</div>
 </section>
 
@@ -681,6 +684,28 @@ logFirebaseAccess(
   <div class="note">장르 페이지(힙합 등) 공연 일정 데이터 소스. <strong>top-level</strong> 컬렉션 — DJ rail·hero가 "오늘 모든 힙합 클럽 공연을 시간순"으로 가져오는 크로스-클럽 쿼리이기 때문(서브컬렉션이면 collectionGroup 필요). 문서 1개 = (클럽 × 날짜 × 공연), 같은 클럽이 여러 날 공연하면 doc 여러 개 → 멀티-날짜 저장. 쿼리: <code>genre== + date==&lt;today&gt; + isActive==true orderBy(startAt asc)</code> → hero=isFeatured만 / rail=전체. 포스터 그리드의 live·lineup은 오늘 공연 목록을 clubId로 머지해 도출(클럽에 저장 안 함). 인덱스: <code>performances(genre, date, startAt)</code>. seed: <code>scripts/seed_performances.js</code>. 집계 없음 → Cloud Functions 트리거 불필요.</div>
 </section>
 
+<!-- notices -->
+<section id="notices">
+  <h2>📁 notices/{noticeId} <span style="font-size:13px;color:var(--muted);">(top-level)</span></h2>
+  <table>
+    <tr><th>필드</th><th>타입</th><th>설명</th></tr>
+    <tr><td class="field-name">noticeId</td><td class="ftype">string</td><td><span class="pill pk">PK</span> (= doc.id fallback)</td></tr>
+    <tr><td class="field-name">title</td><td class="ftype">string</td><td>공지 제목 (목록·상세 상단)</td></tr>
+    <tr><td class="field-name">content</td><td class="ftype">string</td><td>본문 plain text. <code>\n</code> 줄바꿈 그대로 렌더 (마크다운/HTML 파싱 안 함)</td></tr>
+    <tr><td class="field-name">imageUrls</td><td class="ftype">array</td><td>첨부 사진 URL 0~n장 — Storage <code>notices/{noticeId}/{index}.{ext}</code></td></tr>
+    <tr><td class="field-name">category</td><td class="ftype">string</td><td><code>"notice" | "update" | "event"</code> — 목록 배지. 미지정/알 수 없는 값이면 '공지'로 표시</td></tr>
+    <tr><td class="field-name">isPinned</td><td class="ftype">boolean</td><td>상단 고정. 정렬은 <strong>클라 메모리</strong>에서 처리 (인덱스 절약)</td></tr>
+    <tr><td class="field-name">isActive</td><td class="ftype">boolean</td><td>노출 여부. 삭제 대신 <code>false</code> 로 숨김</td></tr>
+    <tr><td class="field-name">publishedAt</td><td class="ftype">timestamp</td><td>노출 기준 시각 = <strong>목록 정렬 키</strong>. createdAt과 분리해 예약/소급 게시 가능</td></tr>
+    <tr><td class="field-name">authorName</td><td class="ftype">string</td><td>표시 작성자 (기본 "VYBE 운영팀")</td></tr>
+    <tr><td class="field-name">createdAt</td><td class="ftype">timestamp</td><td>생성 시각</td></tr>
+    <tr><td class="field-name">updatedAt</td><td class="ftype">timestamp</td><td>수정 시각</td></tr>
+  </table>
+  <div class="note">마이페이지 '계정 → 공지사항' 데이터 소스. <strong>top-level</strong> — 클럽·유저에 종속되지 않는 전역 콘텐츠(banners와 동급). 쓰기는 <strong>어드민 페이지(별도 구축 예정)</strong> 전용 — 앱은 읽기만 한다.</div>
+  <div class="note"><strong>쿼리:</strong> <code>where isActive==true orderBy publishedAt desc limit 50</code> → 인덱스 <code>notices(isActive ASC, publishedAt DESC)</code>. <code>isPinned</code> 은 서버 정렬에 넣지 않고 받아온 뒤 메모리에서 위로 올린다 — 공지 건수가 적어 3필드 인덱스를 유지할 이유가 없고, 정렬 규칙을 바꿔도 인덱스 재배포가 필요 없다.</div>
+  <div class="note"><strong>읽음 상태는 저장하지 않는다.</strong> <code>users/{uid}/noticeReads</code> 방식은 공지를 열 때마다 write가 발생 → 베타 규모에 과함. 목록의 <code>NEW</code> 배지는 <code>publishedAt</code> 이 7일 이내인지로만 판정(읽기 전용, 저장소 0). <strong>집계 필드 없음 → Cloud Functions 트리거 불필요.</strong></div>
+</section>
+
 <!-- ========================= CLOUD FUNCTIONS ========================= -->
 <section id="functions-http">
   <h2>Cloud Functions <span style="font-size:14px;color:var(--muted);">— 총 13개 (TypeScript)</span></h2>
@@ -773,7 +798,8 @@ clubs/{clubId}/gallery/{n}.{jpg|png}        <span class="cmt">// 갤러리 이�
 clubs/{clubId}/menus/{menuId}.{jpg|png}     <span class="cmt">// 개별 메뉴 이미지</span>
 clubs/{clubId}/menus/boards/board_{n}.png   <span class="cmt">// 메뉴판 이미지 (menuBoardUrls)</span>
 reviews/{clubId}/{reviewId}/{index}.{ext}   <span class="cmt">// 리뷰 첨부 이미지 (0~3, 최대 4장)</span>
-users/{uid}/profile.jpg                     <span class="cmt">// 프로필 이미지 (덮어쓰기)</span></div>
+users/{uid}/profile.jpg                     <span class="cmt">// 프로필 이미지 (덮어쓰기)</span>
+notices/{noticeId}/{index}.{ext}            <span class="cmt">// 공지 첨부 이미지 (어드민 업로드)</span></div>
   <div class="note"><strong>URL 토큰 차이:</strong> <code>thumbnail</code> 은 다운로드 토큰(<code>?alt=media&amp;token=…</code>) 포함, <code>gallery</code>/<code>menus</code> 는 토큰 없이 <code>?alt=media</code> 만 → Storage 규칙 <code>clubs/** read: if true</code>(공개 읽기)에 의존.</div>
   <div class="note"><strong>사진탭 photos 서브컬렉션:</strong> 현재 seed 데이터는 기존 <code>gallery/</code> URL 재활용(별도 업로드 없음). 추후 유저 업로드 기능 추가 시 권장 경로 <code>clubs/{clubId}/photos/{photoId}.{ext}</code>.</div>
 </section>
@@ -791,6 +817,7 @@ users/{uid}/profile.jpg                     <span class="cmt">// 프로필 이�
     <tr><td><code>{path=**}/reviews</code> (collectionGroup)</td><td>본인 리뷰만</td><td>불가 (마이페이지 내 리뷰 조회 전용)</td></tr>
     <tr><td><code>favorites</code></td><td>본인만</td><td>생성·삭제: 본인만</td></tr>
     <tr><td><code>users/.../searchHistory</code></td><td>본인만</td><td>본인만</td></tr>
+    <tr><td><code>notices/{noticeId}</code></td><td>누구나 (isActive=true만)</td><td>어드민만</td></tr>
   </table>
 </section>
 
@@ -801,6 +828,7 @@ users/{uid}/profile.jpg                     <span class="cmt">// 프로필 이�
     <tr><td><code>clubs/**</code></td><td>누구나</td><td>어드민만, 10MB 이하, 이미지만</td></tr>
     <tr><td><code>reviews/**</code></td><td>누구나</td><td>로그인 유저, 10MB 이하, 이미지만</td></tr>
     <tr><td><code>users/{uid}/**</code></td><td>누구나</td><td>본인만, 5MB 이하, 이미지만</td></tr>
+    <tr><td><code>notices/**</code></td><td>누구나</td><td>어드민만, 10MB 이하, 이미지만</td></tr>
   </table>
 </section>
 

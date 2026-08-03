@@ -27,12 +27,12 @@ const Map<_SortOption, String> _kSortLabels = {
 
 /// 그라데이션 fallback 색 — 썸네일 없을 때/로딩 중 placeholder.
 const List<List<Color>> _kGradients = [
-  [Color(0xFF7731FE), Color(0xFFFF4D8D)],
+  [VybeColors.mainPurple500, Color(0xFFFF4D8D)],
   [Color(0xFFFF006E), Color(0xFF8338EC)],
   [Color(0xFF06FFA5), Color(0xFF3A86FF)],
   [Color(0xFFFB5607), Color(0xFFFFBE0B)],
   [Color(0xFF2A2D34), Color(0xFF6C757D)],
-  [Color(0xFF2B6BFF), Color(0xFF7731FE)],
+  [VybeColors.accentBlue500, VybeColors.mainPurple500],
 ];
 
 List<Color> _gradientFor(String key) =>

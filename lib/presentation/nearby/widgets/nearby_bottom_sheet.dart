@@ -49,17 +49,7 @@ class NearbyBottomSheet extends ConsumerWidget {
     // 지역 클러스터에서 선택한 area (null이면 전체).
     final selectedArea = ref.watch(selectedAreaProvider);
     final uid = ref.watch(currentUidProvider);
-
-    // 찜 목록 스트림 1번만 구독 → Set<clubId>
-    final streamFavIds = uid != null
-        ? ref.watch(favoritedClubIdsProvider(uid)).asData?.value ?? {}
-        : <String>{};
-
-    // 낙관적 오버라이드 머지 (스트림 업데이트 전 즉시 반영)
-    final optimistic = ref.watch(favoriteViewModelProvider);
-    final favoritedIds = Set<String>.from(streamFavIds)
-      ..addAll(optimistic.entries.where((e) => e.value).map((e) => e.key))
-      ..removeAll(optimistic.entries.where((e) => !e.value).map((e) => e.key));
+    final favoritedIds = ref.watch(mergedFavoriteIdsProvider);
 
     // 지역 선택 → 칩 필터(찜 포함) → 정렬 순으로 적용.
     final filteredAsync = clubsAsync.whenData((clubs) {

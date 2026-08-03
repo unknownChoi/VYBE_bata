@@ -11,6 +11,7 @@ import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
 import 'package:vybe/presentation/main_scaffold/nav_bar_hide_route.dart';
 import 'package:vybe/presentation/main_scaffold/nav_bar_visibility_provider.dart';
 import 'package:vybe/presentation/my_page/my_reviews_screen.dart';
+import 'package:vybe/presentation/my_page/notices_screen.dart';
 import 'package:vybe/presentation/my_page/profile_edit_screen.dart';
 import 'package:vybe/presentation/my_page/settings_screen.dart';
 import 'package:vybe/presentation/my_page/viewmodels/my_page_viewmodel.dart';
@@ -259,7 +260,7 @@ class _LoggedInView extends ConsumerWidget {
                     gradient: const LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: [Color(0xFF7731FE), Color(0xFF4E24A0)],
+                      colors: [VybeColors.mainPurple500, VybeColors.mainPurple900],
                     ),
                     onTap: () => _push(context, ref, const MyReviewsScreen()),
                   ),
@@ -302,6 +303,14 @@ class _LoggedInView extends ConsumerWidget {
                   label: '알림',
                   onTap: () =>
                       VybeToast.show(context, message: '알림은 준비 중이에요'),
+                ),
+                Divider(height: 1, thickness: 1, color: hairColor),
+                Divider(height: 1, thickness: 1, color: hairColor),
+                _accountRow(
+                  context,
+                  icon: Icons.campaign_outlined,
+                  label: '공지사항',
+                  onTap: () => _push(context, ref, const NoticesScreen()),
                 ),
                 Divider(height: 1, thickness: 1, color: hairColor),
                 _accountRow(

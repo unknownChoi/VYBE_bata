@@ -106,6 +106,14 @@ service cloud.firestore {
         && request.auth.token.admin == true;
     }
 
+    // notices/{noticeId} — 공지사항. 작성/수정은 어드민 페이지 전용, 앱은 읽기만.
+    // 목록 쿼리가 isActive==true 로 필터하므로 resource 기반 read 규칙과 맞물린다.
+    match /notices/{noticeId} {
+      allow read: if resource.data.isActive == true;
+      allow write: if request.auth != null
+        && request.auth.token.admin == true;
+    }
+
     // searchLogs/{logId} — 검색 트렌드 집계용 원본 로그.
     // 클라는 쓰기만, 읽기는 Admin SDK(집계 함수) 전용.
     match /searchLogs/{logId} {

@@ -58,13 +58,7 @@ class _SearchResultScreenState extends ConsumerState<SearchResultScreen> {
 
     // 찜 상태(스트림 + 낙관적 오버라이드 머지).
     final uid = ref.watch(currentUidProvider);
-    final streamFavIds = uid != null
-        ? ref.watch(favoritedClubIdsProvider(uid)).asData?.value ?? <String>{}
-        : <String>{};
-    final optimistic = ref.watch(favoriteViewModelProvider);
-    final favoritedIds = Set<String>.from(streamFavIds)
-      ..addAll(optimistic.entries.where((e) => e.value).map((e) => e.key))
-      ..removeAll(optimistic.entries.where((e) => !e.value).map((e) => e.key));
+    final favoritedIds = ref.watch(mergedFavoriteIdsProvider);
 
     // 메타 행 결과 수. 로딩 중엔 null.
     // - 필터 없음: 검색어 전체 매칭 수(totalCount) — 10개씩 로드해도 숫자 안 변함.
@@ -230,8 +224,8 @@ class _SearchResultScreenState extends ConsumerState<SearchResultScreen> {
 class _ResultBackdrop extends StatelessWidget {
   const _ResultBackdrop();
 
-  static const _purple = Color(0xFF7731FE); // 119,49,254
-  static const _lime = Color(0xFFB5FF60); // 181,255,96
+  static const _purple = VybeColors.mainPurple500; // 119,49,254
+  static const _lime = VybeColors.mainLime500; // 181,255,96
 
   @override
   Widget build(BuildContext context) {
@@ -241,7 +235,7 @@ class _ResultBackdrop extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF14101F), Color(0xFF101013), Color(0xFF0D0A0C)],
+          colors: [Color(0xFF14101F), VybeColors.background, Color(0xFF0D0A0C)],
           stops: [0.0, 0.4, 1.0],
         ),
       ),

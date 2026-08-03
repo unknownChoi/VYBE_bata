@@ -281,7 +281,7 @@ class _Divider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 32.h),
-      child: const Divider(color: Color(0xFF2F2F33), thickness: 1),
+      child: const Divider(color: VybeColors.gray900, thickness: 1),
     );
   }
 }

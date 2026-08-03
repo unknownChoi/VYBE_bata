@@ -952,12 +952,12 @@ class _ReviewAurora extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const DecoratedBox(
+    return DecoratedBox(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF120F1A), Color(0xFF101013), Color(0xFF0E0D12)],
+          colors: [Color(0xFF120F1A), VybeColors.background, Color(0xFF0E0D12)],
           stops: [0.0, 0.34, 1.0],
         ),
       ),
@@ -968,8 +968,8 @@ class _ReviewAurora extends StatelessWidget {
             top: 0,
             left: 0,
             right: 0,
-            height: 260,
-            child: DecoratedBox(
+            height: 260.h,
+            child: const DecoratedBox(
               decoration: BoxDecoration(
                 gradient: RadialGradient(
                   center: Alignment(-0.88, -1),
@@ -985,8 +985,8 @@ class _ReviewAurora extends StatelessWidget {
             top: 0,
             left: 0,
             right: 0,
-            height: 240,
-            child: DecoratedBox(
+            height: 240.h,
+            child: const DecoratedBox(
               decoration: BoxDecoration(
                 gradient: RadialGradient(
                   center: Alignment(1, -0.88),
@@ -1002,8 +1002,8 @@ class _ReviewAurora extends StatelessWidget {
             left: 0,
             right: 0,
             bottom: 0,
-            height: 340,
-            child: DecoratedBox(
+            height: 340.h,
+            child: const DecoratedBox(
               decoration: BoxDecoration(
                 gradient: RadialGradient(
                   center: Alignment(0.6, 0.88),

@@ -1,10 +1,19 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/clubs/widgets/club_glass.dart';
 import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
 
+/// 검색 화면 상단 입력창 (리퀴드 글래스).
+///
+/// 주변 페이지 GNB(`NearbyGnb._SearchBar`)와 같은 글래스 pill 형태 —
+/// 블러 + 반투명 채움 + 우측 원형 타일(검색 아이콘 / 입력 중이면 X).
+/// 주변 GNB는 탭 전용 표시 위젯이라 포커스 개념이 없지만, 여기는 실제 입력창이므로
+/// 포커스 시 테두리를 라임으로 바꿔 입력 상태를 드러낸다.
 class SearchInputBar extends StatefulWidget {
   final TextEditingController? controller;
   final FocusNode? focusNode;
@@ -88,77 +97,105 @@ class _SearchInputBarState extends State<SearchInputBar> {
   }
 
   Widget _buildField() {
-    final accent = _focused ? VybeColors.mainLime500 : VybeColors.gray400;
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
+    final r = BorderRadius.circular(999.r);
+
+    return DecoratedBox(
       decoration: BoxDecoration(
-        color: VybeColors.gray800,
-        borderRadius: BorderRadius.circular(999.r),
-        border: Border.all(
-          color: _focused ? VybeColors.mainLime500 : Colors.transparent,
-          width: 1.5,
-        ),
-        boxShadow: _focused
-            ? [
-                BoxShadow(
-                  color: VybeColors.mainLime500.withValues(alpha: 0.12),
-                  blurRadius: 0,
-                  spreadRadius: 4,
-                ),
-              ]
-            : null,
-      ),
-      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 11.h),
-      child: Row(
-        children: [
-          SvgPicture.asset(
-            'assets/icons/common/search.svg',
-            width: 18.r,
-            height: 18.r,
-            colorFilter: ColorFilter.mode(accent, BlendMode.srcIn),
+        borderRadius: r,
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0x5C000000),
+            blurRadius: 30.r,
+            offset: Offset(0, 10.h),
           ),
-          SizedBox(width: 10.w),
-          Expanded(
-            child: TextField(
-              controller: widget.controller,
-              focusNode: widget.focusNode,
-              autofocus: widget.autofocus,
-              cursorColor: VybeColors.mainLime500,
-              style: VybeTypography.body3.copyWith(color: Colors.white),
-              onChanged: widget.onChanged,
-              onSubmitted: widget.onSubmitted,
-              decoration: InputDecoration(
-                hintText: '지역 / 클럽 이름 검색',
-                hintStyle:
-                    VybeTypography.body3.copyWith(color: VybeColors.gray500),
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.zero,
-              ),
-            ),
-          ),
-          if (_hasText) ...[
-            SizedBox(width: 8.w),
-            GestureDetector(
-              onTap: _clear,
-              behavior: HitTestBehavior.opaque,
-              child: Container(
-                width: 18.r,
-                height: 18.r,
-                decoration: const BoxDecoration(
-                  color: VybeColors.gray700,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.close_rounded,
-                  size: 12.r,
-                  color: VybeColors.gray300,
-                ),
-              ),
-            ),
-          ],
         ],
       ),
+      child: ClipRRect(
+        borderRadius: r,
+        child: BackdropFilter(
+          filter: ui.ImageFilter.blur(
+            sigmaX: ClubGlass.blurSigma,
+            sigmaY: ClubGlass.blurSigma,
+          ),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            height: 48.h,
+            padding: EdgeInsets.fromLTRB(18.w, 0, 7.w, 0),
+            decoration: BoxDecoration(
+              color: ClubGlass.cardFill,
+              borderRadius: r,
+              border: Border.all(
+                color: _focused
+                    ? VybeColors.mainLime500.withValues(alpha: 0.55)
+                    : ClubGlass.cardBorder,
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: widget.controller,
+                    focusNode: widget.focusNode,
+                    autofocus: widget.autofocus,
+                    cursorColor: VybeColors.mainLime500,
+                    // 48 고정 높이 pill 안에서 세로 정렬이 어긋나지 않게
+                    // 타이포 기본 line-height(16/14) 대신 여유 있는 값을 쓴다.
+                    style: VybeTypography.body4.copyWith(
+                      color: Colors.white,
+                      height: 1.25,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    onChanged: widget.onChanged,
+                    onSubmitted: widget.onSubmitted,
+                    decoration: InputDecoration(
+                      hintText: '클럽, 지역, 장르 검색',
+                      hintStyle: VybeTypography.body4.copyWith(
+                        color: ClubGlass.t3,
+                        height: 1.25,
+                      ),
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                ),
+                SizedBox(width: 10.w),
+                if (_hasText)
+                  GestureDetector(
+                    onTap: _clear,
+                    behavior: HitTestBehavior.opaque,
+                    child: _tile(
+                      Icon(Icons.close_rounded, size: 16.r, color: Colors.white),
+                    ),
+                  )
+                else
+                  _tile(
+                    SvgPicture.asset(
+                      'assets/icons/common/search.svg',
+                      width: 17.r,
+                      height: 17.r,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // pill 오른쪽 원형 타일 (아이콘 담는 자리) — 주변 GNB와 동일.
+  Widget _tile(Widget child) {
+    return Container(
+      width: 34.r,
+      height: 34.r,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: ClubGlass.tileFill,
+        shape: BoxShape.circle,
+        border: Border.all(color: ClubGlass.tileBorder),
+      ),
+      child: child,
     );
   }
 }

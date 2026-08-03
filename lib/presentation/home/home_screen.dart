@@ -6,11 +6,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/common/widgets/ambient_backdrop.dart';
 import 'package:vybe/presentation/home/viewmodels/home_skeleton_provider.dart';
-import 'package:vybe/presentation/home/widgets/home_banner.dart';
 import 'package:vybe/presentation/home/widgets/home_category_grid.dart';
 import 'package:vybe/presentation/home/widgets/home_gnb.dart';
-import 'package:vybe/presentation/home/widgets/home_location_greeting.dart';
-import 'package:vybe/presentation/home/widgets/home_nearby_clubs.dart';
 import 'package:vybe/presentation/home/widgets/home_screen_skeleton.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -85,11 +82,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           top: top + 52.h,
                           bottom: MediaQuery.of(context).padding.bottom + 100.h,
                         ),
+                        // HomeLocationGreeting / HomeBanner / HomeNearbyClubs는
+                        // 현재 노출 보류 상태 — 위젯 파일은 그대로 남아 있으므로
+                        // 재노출 시 이 리스트에 다시 추가하면 된다.
                         children: const [
-                          // HomeLocationGreeting(),
-                          // HomeBanner(),
                           HomeCategoryGrid(),
-                          // HomeNearbyClubs(),
                         ],
                       ),
                     ),

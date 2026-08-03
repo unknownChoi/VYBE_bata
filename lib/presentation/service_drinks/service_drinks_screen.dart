@@ -1,60 +1,47 @@
-import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:vybe/core/constants/app_geo.dart';
 import 'package:vybe/core/providers/auth_providers.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/clubs/club_detail_screen.dart';
 import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
+import 'package:vybe/presentation/common/club_list_sorting.dart';
+import 'package:vybe/presentation/common/widgets/vybe_footer_note.dart';
 import 'package:vybe/presentation/common/widgets/vybe_genre_backdrop.dart';
-import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
+import 'package:vybe/presentation/common/widgets/vybe_glass_header.dart';
+import 'package:vybe/presentation/common/widgets/vybe_location_sort_bar.dart';
+import 'package:vybe/presentation/common/widgets/vybe_meta_dot.dart';
 import 'package:vybe/presentation/common/widgets/vybe_recommend_badge.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 import 'package:vybe/presentation/service_drinks/viewmodels/service_drinks_viewmodel.dart';
 
-// 서비스 음료(무료 음료) 제공 클럽 모음 — mock UI.
-// ClubModel에 perk/제공음료 필드가 없어 현재는 더미 데이터. 추후 스키마 확장 시 연동.
+// 서비스 음료(무료 음료) 제공 클럽 모음 — clubs.serviceDrink 실데이터.
 const _drink = Color(0xFF38D6EC); // 서비스음료 액센트 (cyan)
 const _drinkInk = Color(0xFF042027); // cyan 위 어두운 텍스트
 
-// 위치 칩 애니메이션 시간 — 홈(home_location_greeting)과 동일 패턴.
-const _kShrinkDuration = Duration(milliseconds: 320); // 칩 원형 축소
-const _kSearchDuration = Duration(milliseconds: 1600); // 핀 플립 노출 구간
+// 핀 플립 노출 구간 (칩 축소는 VybeLocationSortBar.shrinkDuration).
+const _kSearchDuration = Duration(milliseconds: 1600);
 
-const _types = ['전체', '양주', '샴페인', '칵테일', '맥주', '와인'];
+const _types = [kFilterAll, '양주', '샴페인', '칵테일', '맥주', '와인'];
 
-// 정렬 옵션. 기본값 '거리순'. (내 위치는 탭 시 로딩 후 '홍대'로 인식)
-const _sorts = ['거리순', '평점순', '추천순'];
-
-// 내 위치별 → 클럽 지역까지 대략 거리(km).
-const _areaDist = <String, Map<String, double>>{
-  '홍대': {'홍대': 0.4, '강남': 11.2, '이태원': 7.1, '압구정': 9.3, '건대': 12.8},
-  '강남': {'홍대': 11.0, '강남': 0.5, '이태원': 4.8, '압구정': 2.9, '건대': 7.9},
-  '이태원': {'홍대': 7.0, '강남': 4.9, '이태원': 0.4, '압구정': 3.6, '건대': 8.8},
-  '압구정': {'홍대': 9.1, '강남': 3.0, '이태원': 3.7, '압구정': 0.5, '건대': 6.2},
-  '건대': {'홍대': 12.5, '강남': 7.8, '이태원': 8.7, '압구정': 6.1, '건대': 0.4},
-};
-
-// 내 위치 기준 클럽까지 거리(결정적 미세 편차 포함 → 안정 정렬).
-double _distFor(_DrinkClub c, String loc, int idx) {
-  final base = _areaDist[loc]?[c.area] ?? c.dist;
-  return ((base + (idx % 5) * 0.16) * 10).round() / 10;
-}
-
-class _DrinkClub {
+class _DrinkClub implements ClubSortable {
   final String id;
   final String name;
+  @override
   final String area;
   final String genre;
+  @override
   final double dist;
+  @override
   final double rating;
   final String perk;
   final List<String> drinks;
+  @override
   final bool open;
   final String hours;
   final String thumbnailUrl;
@@ -96,7 +83,7 @@ class _DrinkClub {
 
 // 썸네일 없을 때 clubId 해시 기반 일관 그라데이션 fallback.
 const _fallbackGradients = <List<Color>>[
-  [Color(0xFF2B6BFF), Color(0xFF7731FE)],
+  [VybeColors.accentBlue500, VybeColors.mainPurple500],
   [Color(0xFFFF006E), Color(0xFF8338EC)],
   [Color(0xFFF72585), Color(0xFFB5179E)],
   [Color(0xFF3A0CA3), Color(0xFF4361EE)],
@@ -145,9 +132,9 @@ class ServiceDrinksScreen extends ConsumerStatefulWidget {
 
 class _ServiceDrinksScreenState extends ConsumerState<ServiceDrinksScreen>
     with SingleTickerProviderStateMixin {
-  String _type = '전체';
-  String _loc = '홍대';
-  String _sort = '거리순';
+  String _type = kFilterAll;
+  String _loc = AppGeo.hongdaeLabel;
+  String _sort = kClubSorts.first;
   bool _locLoading = false;
 
   // 지도 핀 3D 플립 컨트롤러 (Y축 회전 반복) — 홈과 동일.
@@ -174,7 +161,7 @@ class _ServiceDrinksScreenState extends ConsumerState<ServiceDrinksScreen>
     setState(() => _locLoading = true);
 
     // 칩이 원형으로 줄어드는 애니메이션 완료 후 핀 플립 시작.
-    await Future.delayed(_kShrinkDuration);
+    await Future.delayed(VybeLocationSortBar.shrinkDuration);
     if (!mounted) return;
     _flip.repeat();
 
@@ -185,29 +172,18 @@ class _ServiceDrinksScreenState extends ConsumerState<ServiceDrinksScreen>
     _flip.reset();
     setState(() {
       _locLoading = false;
-      _loc = '홍대';
+      _loc = AppGeo.hongdaeLabel;
     });
   }
 
   // source(실데이터) → 내 위치 기준 거리 재계산 → 종류 필터 → 정렬.
-  List<_DrinkClub> _filtered(List<_DrinkClub> source) {
-    final mapped = <_DrinkClub>[];
-    for (var i = 0; i < source.length; i++) {
-      mapped.add(source[i].copyWithDist(_distFor(source[i], _loc, i)));
-    }
-    final list = mapped
-        .where((c) => _type == '전체' || c.drinks.contains(_type))
-        .toList();
-    list.sort((a, b) {
-      if (_sort == '평점순') return b.rating.compareTo(a.rating);
-      if (_sort == '추천순') {
-        final o = (b.open ? 1 : 0) - (a.open ? 1 : 0);
-        return o != 0 ? o : b.rating.compareTo(a.rating);
-      }
-      return a.dist.compareTo(b.dist); // 거리순
-    });
-    return list;
-  }
+  List<_DrinkClub> _filtered(List<_DrinkClub> source) => buildClubList(
+        source,
+        loc: _loc,
+        sort: _sort,
+        withDist: (c, d) => c.copyWithDist(d),
+        keep: (c) => _type == kFilterAll || c.drinks.contains(_type),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -217,15 +193,8 @@ class _ServiceDrinksScreenState extends ConsumerState<ServiceDrinksScreen>
     final source = clubsAsync.asData?.value.map(_fromClub).toList() ?? [];
     final list = _filtered(source);
 
-    // 찜 상태 (스트림 + 낙관적 오버라이드 머지) — 다른 화면과 동일 로직.
     final uid = ref.watch(currentUidProvider);
-    final streamFavIds = uid != null
-        ? ref.watch(favoritedClubIdsProvider(uid)).asData?.value ?? <String>{}
-        : <String>{};
-    final optimistic = ref.watch(favoriteViewModelProvider);
-    final favoritedIds = Set<String>.from(streamFavIds)
-      ..addAll(optimistic.entries.where((e) => e.value).map((e) => e.key))
-      ..removeAll(optimistic.entries.where((e) => !e.value).map((e) => e.key));
+    final favoritedIds = ref.watch(mergedFavoriteIdsProvider);
 
     return Scaffold(
       backgroundColor: VybeColors.background,
@@ -233,24 +202,26 @@ class _ServiceDrinksScreenState extends ConsumerState<ServiceDrinksScreen>
         child: Stack(
           children: [
             // 상단 cyan/보라 백드롭.
-            const Positioned(
+            Positioned(
               top: 0,
               left: 0,
               right: 0,
-              height: 560,
-              child: IgnorePointer(child: _Backdrop()),
+              height: 560.h,
+              child: const IgnorePointer(child: _Backdrop()),
             ),
             ListView(
               padding: EdgeInsets.only(top: top + 52.h, bottom: bottomPad),
               children: [
                 _Intro(count: list.length, loc: _loc),
-                _LocationBar(
+                VybeLocationSortBar(
                   loc: _loc,
                   sort: _sort,
+                  sorts: kClubSorts,
                   locLoading: _locLoading,
                   flip: _flip,
                   onLocTap: _onLocationTap,
                   onSort: (s) => setState(() => _sort = s),
+                  accent: _drink,
                 ),
                 _TypeFilter(
                   active: _type,
@@ -304,40 +275,22 @@ class _ServiceDrinksScreenState extends ConsumerState<ServiceDrinksScreen>
                       style: VybeTypography.body4.copyWith(color: VybeColors.gray500),
                     ),
                   ),
-                _FooterNote(),
+                const VybeFooterNote(
+                  icon: Icons.local_bar_rounded,
+                  iconColor: _drink,
+                  text: '서비스 음료는 매장 사정에 따라 변동될 수 있어요. 방문 전 확인해 주세요.',
+                ),
               ],
             ),
-            // 상단 헤더 (글래스 뒤로가기 + 타이틀 + 글래스 공유).
-            Positioned(
+            // 상단 헤더 (글래스 뒤로가기 + 글래스 공유).
+            const Positioned(
               top: 0,
               left: 0,
               right: 0,
-              child: _Header(),
+              child: VybeGlassHeader(),
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-// ── 헤더 ──
-class _Header extends StatelessWidget {
-  const _Header();
-
-  @override
-  Widget build(BuildContext context) {
-    final top = MediaQuery.of(context).padding.top;
-    return Container(
-      height: top + 52.h,
-      padding: EdgeInsets.only(top: top, left: 16.w, right: 16.w),
-      color: Colors.transparent,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          VybeGlassButton(onTap: () => Navigator.of(context).maybePop()),
-          VybeGlassButton(icon: Icons.share_outlined, onTap: () {}),
-        ],
       ),
     );
   }
@@ -349,7 +302,7 @@ class _Backdrop extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const VybeGenreBackdrop(
-      baseColors: [Color(0xFF081417), Color(0xFF101013), Color(0xFF0A0E10)],
+      baseColors: [Color(0xFF081417), VybeColors.background, Color(0xFF0A0E10)],
       accent1: Color(0x7338D6EC),
       accent2: Color(0x4D7731FE),
     );
@@ -444,195 +397,6 @@ class _Intro extends StatelessWidget {
   }
 }
 
-// ── 내 위치 + 정렬 바 ──
-class _LocationBar extends StatelessWidget {
-  final String loc;
-  final String sort;
-  final bool locLoading;
-  final Animation<double> flip;
-  final VoidCallback onLocTap;
-  final ValueChanged<String> onSort;
-  const _LocationBar({
-    required this.loc,
-    required this.sort,
-    required this.locLoading,
-    required this.flip,
-    required this.onLocTap,
-    required this.onSort,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(24.w, 4.h, 24.w, 10.h),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          // 내 위치 — 탭하면 칩 원형 축소 + 핀 플립 후 내 위치 인식 (홈과 동일).
-          GestureDetector(
-            onTap: onLocTap,
-            behavior: HitTestBehavior.opaque,
-            child: AnimatedContainer(
-              duration: _kShrinkDuration,
-              curve: Curves.easeInOut,
-              // 로딩 중엔 사방 동일 패딩 → 핀을 감싸는 원형.
-              padding: locLoading
-                  ? EdgeInsets.all(7.r)
-                  : EdgeInsets.fromLTRB(10.w, 6.h, 12.w, 6.h),
-              decoration: BoxDecoration(
-                color: _drink.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(999.r),
-                border: Border.all(color: _drink.withValues(alpha: 0.34)),
-              ),
-              child: AnimatedSize(
-                duration: _kShrinkDuration,
-                curve: Curves.easeInOut,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _PinFlip(animation: flip),
-                    // 로딩 중엔 텍스트 제거 → 너비 축소.
-                    if (!locLoading) ...[
-                      SizedBox(width: 5.w),
-                      Text(
-                        loc,
-                        style: VybeTypography.caption.copyWith(
-                            height: 14 / 12,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-          ),
-          // 정렬 (gray).
-          _Dropdown<String>(
-            value: sort,
-            items: _sorts,
-            onSelected: onSort,
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-              decoration: BoxDecoration(
-                color: VybeColors.gray900,
-                borderRadius: BorderRadius.circular(999.r),
-                border: Border.all(color: VybeColors.gray800),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    sort,
-                    style: VybeTypography.caption.copyWith(
-                        height: 14 / 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white),
-                  ),
-                  SizedBox(width: 4.w),
-                  Icon(Icons.keyboard_arrow_down_rounded,
-                      size: 14.r, color: Colors.white),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// 지도 핀 3D 플립 — Y축 회전 (홈 home_location_greeting과 동일 패턴).
-// 앞면 cyan, 뒷면 보라.
-class _PinFlip extends StatelessWidget {
-  final Animation<double> animation;
-  const _PinFlip({required this.animation});
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: animation,
-      builder: (context, _) {
-        final angle = animation.value * 2 * math.pi; // 0 → 360도 반복
-        final isFront = math.cos(angle) >= 0;
-        final color = isFront ? _drink : VybeColors.mainPurple500;
-
-        return Transform(
-          alignment: Alignment.center,
-          // 원근감(3D) — setEntry(3,2,..)로 perspective 부여.
-          transform: Matrix4.identity()
-            ..setEntry(3, 2, 0.0015)
-            ..rotateY(angle),
-          child: Transform(
-            // 뒷면일 때 좌우 반전 보정(아이콘 거울상 방지).
-            alignment: Alignment.center,
-            transform: Matrix4.identity()..rotateY(isFront ? 0 : math.pi),
-            child: SvgPicture.asset(
-              'assets/icons/home_screen/loaction_pin.svg',
-              width: 13.r,
-              height: 13.r,
-              colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-// 공통 드롭다운 — 선택값 체크 표시.
-class _Dropdown<T> extends StatelessWidget {
-  final T value;
-  final List<T> items;
-  final ValueChanged<T> onSelected;
-  final Widget child;
-  const _Dropdown({
-    required this.value,
-    required this.items,
-    required this.onSelected,
-    required this.child,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return PopupMenuButton<T>(
-      onSelected: onSelected,
-      color: VybeColors.gray800,
-      elevation: 12,
-      position: PopupMenuPosition.under,
-      offset: Offset(0, 6.h),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.r),
-        side: const BorderSide(color: VybeColors.gray700),
-      ),
-      itemBuilder: (_) => items.map((it) {
-        final on = it == value;
-        return PopupMenuItem<T>(
-          value: it,
-          height: 40.h,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '$it',
-                style: VybeTypography.caption.copyWith(
-                  fontWeight: on ? FontWeight.w700 : FontWeight.w500,
-                  color: on ? _drink : Colors.white,
-                ),
-              ),
-              if (on) ...[
-                SizedBox(width: 12.w),
-                Icon(Icons.check_rounded, size: 14.r, color: _drink),
-              ],
-            ],
-          ),
-        );
-      }).toList(),
-      child: child,
-    );
-  }
-}
-
 // ── 종류 필터 ──
 class _TypeFilter extends StatelessWidget {
   final String active;
@@ -651,7 +415,7 @@ class _TypeFilter extends StatelessWidget {
         itemBuilder: (_, i) {
           final t = _types[i];
           final sel = t == active;
-          final isAll = t == '전체';
+          final isAll = t == kFilterAll;
           return GestureDetector(
             onTap: () => onChange(t),
             child: Container(
@@ -932,7 +696,7 @@ class _DrinkCard extends StatelessWidget {
                             fontWeight: FontWeight.w600,
                             color: VybeColors.gray300),
                       ),
-                      _dot(),
+                      const VybeMetaDot(),
                       Text(
                         club.genre,
                         style: VybeTypography.caption.copyWith(
@@ -953,43 +717,5 @@ class _DrinkCard extends StatelessWidget {
       ),
     );
   }
-
-  Widget _dot() => Padding(
-        padding: EdgeInsets.symmetric(horizontal: 6.w),
-        child: Container(
-          width: 2.r,
-          height: 2.r,
-          decoration: const BoxDecoration(
-              color: VybeColors.gray500, shape: BoxShape.circle),
-        ),
-      );
 }
 
-// ── 하단 안내 ──
-class _FooterNote extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.fromLTRB(24.w, 18.h, 24.w, 8.h),
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
-      decoration: BoxDecoration(
-        color: VybeColors.gray900,
-        borderRadius: BorderRadius.circular(14.r),
-        border: Border.all(color: VybeColors.gray800),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.local_bar_rounded, size: 15.r, color: _drink),
-          SizedBox(width: 10.w),
-          Expanded(
-            child: Text(
-              '서비스 음료는 매장 사정에 따라 변동될 수 있어요. 방문 전 확인해 주세요.',
-              style: VybeTypography.caption.copyWith(
-                  color: VybeColors.gray400, height: 17 / 12),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

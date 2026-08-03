@@ -36,7 +36,7 @@ class _DetailReviewTabState extends ConsumerState<DetailReviewTab> {
     Color(0xFF3A86FF),
     Color(0xFF8338EC),
     Color(0xFFFB5607),
-    Color(0xFF94CF51),
+    VybeColors.mainLime700,
     Color(0xFFFF006E),
     Color(0xFFFFBE0B),
   ];

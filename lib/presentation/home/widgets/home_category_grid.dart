@@ -12,14 +12,14 @@ const _borderGradient = LinearGradient(
   begin: Alignment.topLeft,
   end: Alignment.bottomRight,
   colors: [
-    Color(0xFFB5FF60),
+    VybeColors.mainLime500,
     Color(0xFFC8E77F),
     Color(0xFFDACA9E),
     Color(0xFFFF9EDB),
     Color(0xFFDD82E4),
     Color(0xFFBB67ED),
     Color(0xFF994CF5),
-    Color(0xFF7731FE),
+    VybeColors.mainPurple500,
   ],
   stops: [0.0, 0.142, 0.285, 0.569, 0.677, 0.785, 0.892, 1.0],
 );
