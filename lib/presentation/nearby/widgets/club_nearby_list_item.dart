@@ -217,14 +217,14 @@ class ClubNearbyListItem extends StatelessWidget {
                       shape: BoxShape.circle,
                       border: Border.all(color: const Color(0x2EFFFFFF)),
                     ),
-                    child: SvgPicture.asset(
-                      'assets/icons/common/club_card/favorite.svg',
-                      width: 20.r,
-                      height: 20.r,
-                      colorFilter: ColorFilter.mode(
-                        isFavorited ? ClubGlass.saved : Colors.white,
-                        BlendMode.srcIn,
-                      ),
+                    // favorite.svg는 stroke만 있는 외곽선이라 찜해도 안이 비어 보인다
+                    // → 검색 결과 카드(club_list_item)와 동일하게 Material 하트로 통일.
+                    child: Icon(
+                      isFavorited
+                          ? Icons.favorite_rounded
+                          : Icons.favorite_border_rounded,
+                      size: 20.r,
+                      color: isFavorited ? ClubGlass.saved : Colors.white,
                     ),
                   ),
                 ),

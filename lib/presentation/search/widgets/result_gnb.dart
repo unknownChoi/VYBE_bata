@@ -31,12 +31,13 @@ class ResultGnb extends StatelessWidget {
               onTap: back,
               behavior: HitTestBehavior.opaque,
               child: Container(
-                height: 44.h,
+                // 좌측 뒤로가기 글래스 버튼(VybeGlassButton size: 34)과 같은 높이.
+                height: 34.h,
                 decoration: BoxDecoration(
                   color: VybeColors.gray800,
                   borderRadius: BorderRadius.circular(999.r),
                 ),
-                padding: EdgeInsets.symmetric(horizontal: 16.w),
+                padding: EdgeInsets.symmetric(horizontal: 14.w),
                 child: Row(
                   children: [
                     Expanded(

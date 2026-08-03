@@ -119,8 +119,9 @@ class _SearchInputBarState extends State<SearchInputBar> {
           ),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),
-            height: 48.h,
-            padding: EdgeInsets.fromLTRB(18.w, 0, 7.w, 0),
+            // 좌측 뒤로가기 글래스 버튼(VybeGlassButton size: 34)과 같은 높이.
+            height: 34.h,
+            padding: EdgeInsets.fromLTRB(14.w, 0, 4.w, 0),
             decoration: BoxDecoration(
               color: ClubGlass.cardFill,
               borderRadius: r,
@@ -138,7 +139,7 @@ class _SearchInputBarState extends State<SearchInputBar> {
                     focusNode: widget.focusNode,
                     autofocus: widget.autofocus,
                     cursorColor: VybeColors.mainLime500,
-                    // 48 고정 높이 pill 안에서 세로 정렬이 어긋나지 않게
+                    // 34 고정 높이 pill 안에서 세로 정렬이 어긋나지 않게
                     // 타이포 기본 line-height(16/14) 대신 여유 있는 값을 쓴다.
                     style: VybeTypography.body4.copyWith(
                       color: Colors.white,
@@ -159,25 +160,28 @@ class _SearchInputBarState extends State<SearchInputBar> {
                     ),
                   ),
                 ),
-                SizedBox(width: 10.w),
+                SizedBox(width: 8.w),
+                // pill 높이가 34로 줄어 기본 34 타일은 테두리에 붙는다 → 26으로 축소.
                 if (_hasText)
                   GestureDetector(
                     onTap: _clear,
                     behavior: HitTestBehavior.opaque,
                     child: GlassCircleTile(
+                      size: 26,
                       child: Icon(
                         Icons.close_rounded,
-                        size: 16.r,
+                        size: 14.r,
                         color: Colors.white,
                       ),
                     ),
                   )
                 else
                   GlassCircleTile(
+                    size: 26,
                     child: SvgPicture.asset(
                       'assets/icons/common/search.svg',
-                      width: 17.r,
-                      height: 17.r,
+                      width: 15.r,
+                      height: 15.r,
                     ),
                   ),
               ],

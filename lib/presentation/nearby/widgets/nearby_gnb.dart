@@ -91,8 +91,9 @@ class _SearchBar extends StatelessWidget {
               sigmaY: ClubGlass.blurSigma,
             ),
             child: Container(
-              height: 48.h,
-              padding: EdgeInsets.fromLTRB(18.w, 0, 7.w, 0),
+              // 검색 입력창 공통 높이 — 뒤로가기 글래스 버튼(size: 34)과 동일.
+              height: 34.h,
+              padding: EdgeInsets.fromLTRB(14.w, 0, 4.w, 0),
               decoration: BoxDecoration(
                 color: ClubGlass.cardFill,
                 borderRadius: r,
@@ -113,25 +114,28 @@ class _SearchBar extends StatelessWidget {
                       ),
                     ),
                   ),
-                  SizedBox(width: 10.w),
+                  SizedBox(width: 8.w),
+                  // pill 높이가 34로 줄어 기본 34 타일은 테두리에 붙는다 → 26으로 축소.
                   if (hasKeyword)
                     GestureDetector(
                       onTap: onClear,
                       behavior: HitTestBehavior.opaque,
                       child: GlassCircleTile(
+                        size: 26,
                         child: Icon(
                           Icons.close_rounded,
-                          size: 16.r,
+                          size: 14.r,
                           color: Colors.white,
                         ),
                       ),
                     )
                   else
                     GlassCircleTile(
+                      size: 26,
                       child: SvgPicture.asset(
                         'assets/icons/common/search.svg',
-                        width: 17.r,
-                        height: 17.r,
+                        width: 15.r,
+                        height: 15.r,
                       ),
                     ),
                 ],

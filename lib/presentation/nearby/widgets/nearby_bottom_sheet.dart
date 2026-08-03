@@ -14,9 +14,9 @@ import 'package:vybe/presentation/main_scaffold/main_scaffold.dart';
 import 'package:vybe/presentation/nearby/viewmodels/nearby_search_provider.dart';
 import 'package:vybe/presentation/nearby/viewmodels/nearby_viewmodel.dart';
 import 'package:vybe/presentation/nearby/widgets/club_nearby_list_item.dart';
-import 'package:vybe/presentation/nearby/widgets/nearby_filter_chips.dart';
 import 'package:vybe/presentation/nearby/widgets/nearby_glass.dart';
 import 'package:vybe/presentation/search/viewmodels/club_filter_viewmodel.dart';
+import 'package:vybe/presentation/search/widgets/filter_chip_bar.dart';
 
 /// 주변 페이지 리스트 시트 (리퀴드 글래스).
 ///
@@ -98,7 +98,11 @@ class NearbyBottomSheet extends ConsumerWidget {
                   searchKeyword: searchResult?.keyword,
                   loading: filteredAsync.isLoading,
                 ),
-                const NearbyFilterChipBar(),
+                // 검색 결과 화면과 같은 칩 줄 (디자인·동작 공유).
+                FilterChipBar(
+                  showFavorite: true,
+                  padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 0),
+                ),
                 SizedBox(height: 12.h),
               ],
             ),
