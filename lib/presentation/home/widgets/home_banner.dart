@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vybe/core/navigation/banner_link_handler.dart';
 import 'package:vybe/data/models/banner_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/home/viewmodels/banner_viewmodel.dart';
@@ -105,7 +106,8 @@ class _BannerCarouselState extends State<_BannerCarousel> {
   }
 }
 
-class _BannerCard extends StatelessWidget {
+// 바텀 nav를 내린 채 열어야 해서 ref가 필요 → ConsumerWidget.
+class _BannerCard extends ConsumerWidget {
   final BannerModel banner;
   final int index;
   final int total;
@@ -117,7 +119,18 @@ class _BannerCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // 링크 없는 배너는 탭 자체를 막는다 (눌리는데 아무 일 없는 상태 방지).
+    return GestureDetector(
+      onTap: banner.isTappable
+          ? () => openBannerLink(context, ref, banner)
+          : null,
+      behavior: HitTestBehavior.opaque,
+      child: _card(),
+    );
+  }
+
+  Widget _card() {
     return ClipRRect(
       borderRadius: BorderRadius.circular(20.r),
       child: DecoratedBox(

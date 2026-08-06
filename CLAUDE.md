@@ -54,7 +54,8 @@ View (Widget) → ViewModel (Notifier) → Repository → DataSource (Firebase)
 │   │   │       ├── firebase_review_datasource.dart
 │   │   │       ├── firebase_favorite_datasource.dart
 │   │   │       ├── firebase_banner_datasource.dart
-│   │   │       └── firebase_notice_datasource.dart
+│   │   │       ├── firebase_notice_datasource.dart
+│   │   │       └── firebase_promotion_datasource.dart
 │   │   ├── models/      # Freezed 모델 (user, club, club_info, menu, photo,
 │   │   │                #   review, favorite, banner, notice, search_history, operating_hours)
 │   │   └── repositories/# domain 인터페이스 구현체 (*_repository_impl.dart, Riverpod provider 포함)
@@ -64,6 +65,7 @@ View (Widget) → ViewModel (Notifier) → Repository → DataSource (Firebase)
 │   │   ├── common/widgets/  # 공통 위젯 (Vybe prefix)
 │   │   ├── main_scaffold/   # 루트 IndexedStack + 하단 탭바
 │   │   ├── home/            # 홈
+│   │   ├── promotion/       # 배너 상세 (promotions 콘텐츠 렌더)
 │   │   ├── nearby/          # 내 주변 (지도 기반)
 │   │   ├── saved/           # 찜 (favorites, viewmodels/)
 │   │   ├── pass_wallet/     # 패스/지갑 (플레이스홀더, 현재 탭에서 미연결)
@@ -341,6 +343,11 @@ ElevatedButton(onPressed: () {}, child: Text('로그인'))
   `searchLogs`(수집) → `aggregateSearchTrends`(집계) → `searchTrends/current`·`searchHashtags`(노출).
   순수 로직은 `functions/src/search/compute_trends.ts`에 분리(Firestore 의존 없음) —
   되먹임 필터·고유유저 집계·증감·fallback·갱신주기 판단 전부 여기 있음
+- **홈 배너 → 프로모션 상세 (2026.08.06)** — `promotions` 컬렉션 + 범용 상세 화면
+  (`presentation/promotion/promotion_detail_screen.dart`). 배너 탭 → `banner_link_handler`가
+  `linkType`으로 분기 → `promotion`이면 promotionId로 문서 1건 조회해 히어로·제목·기간·본문·
+  사진 n장·하단 CTA(클럽 상세 / 외부 URL)를 렌더. **배너마다 다른 광고 페이지를 앱 배포 없이
+  DB만으로 추가** 가능. 배너 카드에 없던 `onTap` 신설(기존엔 링크 필드가 죽어 있었음)
 - **공지사항 (2026.08.03)** — `notices` 컬렉션 + 앱 읽기 전용 화면
   (마이페이지 계정 메뉴 → `my_page/notices_screen.dart` 목록 → `notice_detail_screen.dart` 상세).
   카테고리 배지·고정 공지·NEW(7일) 배지·사진 n장. **작성/수정은 어드민 페이지(별도 구축 예정) 전용**
@@ -353,6 +360,10 @@ ElevatedButton(onPressed: () {}, child: Text('로그인'))
 - 검색 트렌드 배포 잔여 작업 — ① `firebase deploy --only firestore:rules,functions:aggregateSearchTrends`
   ② `node scripts/seed_search_hashtags.js` (안 돌리면 두 섹션 다 빈 화면)
   ③ 콘솔에서 `searchLogs.expireAt` TTL 정책 추가
+- 홈 배너 링크 잔여 작업 — ① `firebase deploy --only firestore:rules,storage`
+  (promotions 규칙 + Storage `promotions/**`) ② 샘플 데이터 `node scripts/seed_promotions.js`
+  (안 돌리면 기존 배너 4개가 `linkType:'screen'` 플레이스홀더라 탭해도 아무 일 없음)
+  ③ 배너 `linkType`의 club·page·url 분기 연결 (`banner_link_handler.dart`) ④ 어드민 작성 UI
 - 공지사항 배포 잔여 작업 — ① `firebase deploy --only firestore:rules,firestore:indexes,storage`
   (notices 규칙 + `notices(isActive, publishedAt DESC)` 인덱스) ② 샘플 데이터 `node scripts/seed_notices.js`
   ③ 어드민 페이지(작성 UI) 별도 구축
@@ -642,8 +653,10 @@ createdAt       : timestamp
 ```
 bannerId        : string    // PK (= doc.id fallback)
 imageUrl        : string    // 배너 이미지 URL
-linkType        : string    // 링크 종류 (예: "club", "url" 등)
+linkType        : string    // "promotion" | "club" | "page" | "url" — 탭 시 이동 방식
+                            //   BannerLinkType enum. 알 수 없는 값은 none(이동 없음)으로 폴백
 linkValue       : string    // 링크 대상 값
+                            //   promotion: promotionId / club: clubId / page: 화면 키 / url: URL
 order           : number    // 정렬 순서 (오름차순)
 isActive        : boolean   // 노출 여부
 startAt         : timestamp // 노출 시작
@@ -652,6 +665,40 @@ createdAt       : timestamp
 ```
 > 홈 배너 데이터 소스. `firebase_banner_datasource.getActiveBanners()`는
 > `isActive=true` 쿼리 후 클라이언트에서 `startAt < now < endAt` 필터 + `order` 정렬.
+> 탭 라우팅은 `core/navigation/banner_link_handler.dart` 한 곳에서 `linkType`으로 분기.
+> 광고 페이지는 전체화면이라 `pushHidingNavBar`로 열어 하단 nav 바를 내린다(돌아오면 복원).
+> **현재 연결된 건 `promotion` 뿐** — club·page·url은 미연결이라 조용히 무시된다
+> (잘못된 곳으로 보내는 것보다 낫다).
+
+#### promotions/{promotionId}
+```
+promotionId  : string     // PK (= doc.id fallback)
+title        : string     // 상세 제목
+subtitle     : string     // 제목 아래 한 줄 요약. 비면 미표시
+heroImageUrl : string     // 상세 상단 히어로 이미지. 비면 히어로 없이 제목부터 시작
+                          //   (배너 imageUrl은 목록용 비율이라 상세에서 재사용 안 함)
+content      : string     // 본문 plain text. \n 줄바꿈 그대로 렌더 (마크다운/HTML 파싱 안 함)
+imageUrls    : array      // 본문 아래 첨부 사진 0~n장 — Storage promotions/{promotionId}/{index}.{ext}
+ctaType      : string     // "none" | "club" | "url" — 하단 고정 버튼 동작
+ctaValue     : string     // club: clubId / url: URL
+ctaLabel     : string     // 버튼 문구. 비면 타입별 기본값('클럽 보러가기' / '자세히 보기')
+isActive     : boolean    // 노출 여부. false면 상세에서 '종료된 이벤트' 표시
+startAt      : timestamp  // 표시용 진행 기간 시작 (선택)
+endAt        : timestamp  // 표시용 진행 기간 종료 (선택) — 둘 다 없으면 기간 pill 미표시
+createdAt    : timestamp
+updatedAt    : timestamp
+```
+> 홈 배너(`linkType: "promotion"`) 탭 시 열리는 상세 콘텐츠. **top-level**(banners와 동급).
+> 화면은 `presentation/promotion/promotion_detail_screen.dart` **하나뿐**이고 내용만 이 문서에서
+> 갈아 끼운다 → 배너별로 사진·본문이 다른 광고 페이지를 **앱 배포 없이** 늘릴 수 있다.
+> **쓰기는 어드민 페이지(별도 구축 예정) 전용 — 앱은 읽기만.**
+> ⚠ **배너 doc에 본문을 넣지 않는 이유** — 홈 진입마다 배너 N개를 읽는데 안 여는 사용자까지
+> 본문·사진 배열을 내려받게 된다. 탭했을 때만 doc 1건 조회(`getPromotion`).
+> 쿼리는 단건 get뿐 → **인덱스 불필요**. 집계 필드 없음 → Cloud Functions 트리거 불필요.
+> ⚠ **Rules에서 `isActive`를 read 조건에 넣지 않는다**(notices와 다른 점) — 단건 get이라
+> 규칙으로 막으면 permission-denied가 되어 앱이 '없음'과 '오류'를 구분할 수 없다.
+> 노출 여부는 datasource에서 필터해 null로 돌린다. seed(샘플): `scripts/seed_promotions.js`
+> (프로모션 4건 생성 + 기존 배너 4개의 linkType/linkValue를 그 문서로 연결).
 
 #### vybeRecommendations/{recId}
 ```
@@ -701,9 +748,14 @@ noticeId    : string     // PK (= doc.id fallback)
 title       : string     // 공지 제목
 content     : string     // 본문 plain text. \n 줄바꿈 그대로 렌더 (마크다운/HTML 파싱 안 함)
 imageUrls   : array      // 첨부 사진 URL 0~n장 — Storage notices/{noticeId}/{index}.{ext}
-category    : string     // "notice" | "update" | "event" | "maint" — 목록 배지
-                         //   배지 색: 공지=흰색 / 업데이트=보라 / 이벤트=라임 / 점검=옐로
+category    : string     // "notice" | "update" | "event" | "maint" | "ad" — 목록 배지
+                         //   배지 색: 공지=흰색 / 업데이트=보라 / 이벤트=라임 / 점검=옐로 / 광고=스카이블루
                          //   알 수 없는 값이면 '공지'로 폴백
+promotionId : string     // 연결된 promotions 문서 id. 비어 있지 않으면 목록/이전·다음에서
+                         //   탭했을 때 공지 상세가 아니라 PromotionDetailScreen으로 직행
+                         //   (광고 공지 = 홈 배너와 같은 목적지 → 같은 내용 두 번 안 보게)
+                         //   category와 분리 — 프로모션 없는 광고 공지도, 광고 아닌 공지의
+                         //   이벤트 페이지 링크도 가능해야 하므로
 isPinned    : boolean    // 상단 고정 (정렬은 클라 메모리에서 처리)
 isActive    : boolean    // 노출 여부. 삭제 대신 false로 숨김
 publishedAt : timestamp  // 노출 기준 시각 = 목록 정렬 키 (createdAt과 분리 → 예약/소급 게시)
@@ -853,6 +905,7 @@ createdAt      : timestamp
 | `favorites` | 본인만 | 생성·삭제: 본인만 |
 | `users/.../searchHistory` | 본인만 | 본인만 |
 | `notices` | 누구나 (isActive=true만) | 어드민만 (어드민 페이지 전용) |
+| `promotions` | 누구나 (isActive는 클라 필터) | 어드민만 (어드민 페이지 전용) |
 | `searchLogs` | **불가** (Admin SDK 전용) | 생성만: 로그인 유저(본인 userId, keyword 2~30자, 필드 화이트리스트). 수정·삭제 불가 |
 | `searchTrends`, `searchHashtags` | 누구나 | 어드민만 |
 
@@ -863,6 +916,7 @@ createdAt      : timestamp
 | `reviews/**` | 누구나 | 로그인 유저, 10MB 이하, 이미지만 |
 | `users/{uid}/**` | 누구나 | 본인만, 5MB 이하, 이미지만 |
 | `notices/**` | 누구나 | 어드민만, 10MB 이하, 이미지만 |
+| `promotions/**` | 누구나 | 어드민만, 10MB 이하, 이미지만 |
 
 #### 어드민 권한 설정
 ```typescript
@@ -888,6 +942,7 @@ clubs/{clubId}/menus/boards/board_{n}.png   // 메뉴판 이미지 (menuBoardUrl
 reviews/{clubId}/{reviewId}/{index}.{ext}   // 리뷰 첨부 이미지 (0~3, 최대 4장)
 users/{uid}/profile.jpg                     // 프로필 이미지 (덮어쓰기)
 notices/{noticeId}/{index}.{ext}            // 공지 첨부 이미지 (어드민 업로드)
+promotions/{promotionId}/{index}.{ext}      // 배너 상세 히어로·본문 이미지 (어드민 업로드)
 ```
 
 > **URL 토큰 차이**: `thumbnail`은 다운로드 토큰(`?alt=media&token=…`) 포함, `gallery`/`menus`는 토큰 없이 `?alt=media`만 → Storage 규칙 `clubs/** read: if true`(공개 읽기)에 의존.

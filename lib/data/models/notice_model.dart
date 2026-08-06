@@ -14,8 +14,13 @@ abstract class NoticeModel with _$NoticeModel {
     required String title,
     required String content, // plain text, \n 줄바꿈 그대로 렌더
     @Default(<String>[]) List<String> imageUrls,
-    // "notice" | "update" | "event" | "maint"
+    // "notice" | "update" | "event" | "maint" | "ad"
     @Default('notice') String category,
+    /// 연결된 프로모션 문서 id. 비어 있지 않으면 목록에서 탭했을 때 공지 상세가
+    /// 아니라 `PromotionDetailScreen`으로 바로 보낸다 (광고 공지 = 배너와 같은 목적지).
+    /// category와 분리한 이유 — 프로모션 문서가 없는 광고 공지도 있을 수 있고,
+    /// 반대로 광고가 아닌 공지에서 이벤트 페이지로 보내고 싶을 수도 있다.
+    @Default('') String promotionId,
     @Default(false) bool isPinned,
     @Default(true) bool isActive,
     required DateTime publishedAt, // 목록 정렬 키
@@ -29,8 +34,12 @@ abstract class NoticeModel with _$NoticeModel {
         'update' => '업데이트',
         'event' => '이벤트',
         'maint' => '점검',
+        'ad' => '광고',
         _ => '공지',
       };
+
+  /// 탭했을 때 공지 상세 대신 프로모션(광고) 페이지로 보낼지.
+  bool get opensPromotion => promotionId.isNotEmpty;
 
   /// NEW 배지 — 게시 7일 이내. 읽음 상태를 저장하지 않는 대신 쓰는 기준.
   bool get isNew =>
@@ -55,6 +64,7 @@ abstract class NoticeModel with _$NoticeModel {
           (data['imageUrls'] as List?)?.map((e) => e.toString()).toList() ??
               const [],
       category: data['category'] as String? ?? 'notice',
+      promotionId: data['promotionId'] as String? ?? '',
       isPinned: data['isPinned'] as bool? ?? false,
       isActive: data['isActive'] as bool? ?? true,
       // publishedAt 미기입 문서는 createdAt으로 대체 — 목록에서 사라지지 않게.

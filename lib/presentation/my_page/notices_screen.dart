@@ -12,6 +12,7 @@ import 'package:vybe/presentation/common/widgets/vybe_glass_surface.dart';
 import 'package:vybe/presentation/common/widgets/vybe_shimmer.dart';
 import 'package:vybe/presentation/my_page/notice_detail_screen.dart';
 import 'package:vybe/presentation/my_page/viewmodels/notice_viewmodel.dart';
+import 'package:vybe/presentation/promotion/promotion_detail_screen.dart';
 import 'package:vybe/presentation/my_page/widgets/notice_glass.dart';
 
 // ============================================================
@@ -71,6 +72,19 @@ class NoticesScreen extends ConsumerWidget {
     );
   }
 
+  /// 공지 탭 → 상세. 단, 프로모션이 연결된 공지(광고)는 공지 본문을 거치지 않고
+  /// 배너와 같은 광고 페이지로 바로 보낸다 — 같은 내용을 두 번 보게 하지 않으려고.
+  /// 바텀 nav는 이 화면에 들어올 때 이미 내려가 있어 여기선 평범하게 push한다.
+  void _open(BuildContext context, NoticeModel notice) {
+    Navigator.of(context).push(
+      SwipeBackPageRoute<void>(
+        builder: (_) => notice.opensPromotion
+            ? PromotionDetailScreen(promotionId: notice.promotionId)
+            : NoticeDetailScreen(notice: notice),
+      ),
+    );
+  }
+
   List<Widget> _listSlivers(BuildContext context, List<NoticeModel> notices) {
     return [
       SliverList.builder(
@@ -81,11 +95,7 @@ class NoticesScreen extends ConsumerWidget {
           child: NoticeCard(
             notice: notices[i],
             appearDelay: _kStagger * i,
-            onTap: () => Navigator.of(context).push(
-              SwipeBackPageRoute<void>(
-                builder: (_) => NoticeDetailScreen(notice: notices[i]),
-              ),
-            ),
+            onTap: () => _open(context, notices[i]),
           ),
         ),
       ),

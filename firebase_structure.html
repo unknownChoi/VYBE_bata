@@ -302,14 +302,18 @@
   <a href="#favorites" class="sub">favorites</a>
   <a href="#search-history" class="sub">searchHistory</a>
   <a href="#banners" class="sub">banners</a>
+  <a href="#promotions" class="sub">promotions</a>
   <a href="#vybe-recommendations" class="sub">vybeRecommendations</a>
   <a href="#performances" class="sub">performances</a>
   <a href="#notices" class="sub">notices</a>
+  <a href="#search-logs" class="sub">searchLogs</a>
+  <a href="#search-trends" class="sub">searchTrends</a>
+  <a href="#search-hashtags" class="sub">searchHashtags</a>
 
   <a class="group">Cloud Functions</a>
   <a href="#functions-http" class="sub">HTTP onCall (6)</a>
   <a href="#functions-trigger" class="sub">자동 트리거 (6)</a>
-  <a href="#functions-trigger" class="sub">스케줄 (1)</a>
+  <a href="#functions-trigger" class="sub">스케줄 (2)</a>
   <a href="#functions-notes" class="sub">구현 주의사항</a>
 
   <a class="group">검색</a>
@@ -337,7 +341,7 @@
     <span class="badge">Firestore</span>
     <span class="badge">Auth</span>
     <span class="badge">Storage</span>
-    <span class="badge">Cloud Functions ×13</span>
+    <span class="badge">Cloud Functions ×14</span>
     <span class="badge">Security Rules</span>
     <span class="badge">MVVM + Riverpod</span>
   </div>
@@ -475,11 +479,19 @@ logFirebaseAccess(
 
 📁 banners/{bannerId}                         <span class="cmt"># 홈 배너</span>
 
+📁 promotions/{promotionId}                   <span class="cmt"># 배너 상세 콘텐츠 (배너별 사진·본문, 어드민 페이지에서 작성)</span>
+
 📁 vybeRecommendations/{recId}                <span class="cmt"># VYBE 추천 페이지 큐레이션 (clubs 조인)</span>
 
 📁 performances/{performanceId}              <span class="cmt"># 공연 일정 (장르 페이지 — 힙합 등, top-level, clubs 조인)</span>
 
-📁 notices/{noticeId}                         <span class="cmt"># 공지사항 (마이페이지 노출, 어드민 페이지에서 작성)</span></div>
+📁 notices/{noticeId}                         <span class="cmt"># 공지사항 (마이페이지 노출, 어드민 페이지에서 작성)</span>
+
+📁 searchLogs/{logId}                         <span class="cmt"># 검색 로그 원본 (클라 create만, TTL 14일)</span>
+
+📁 searchTrends/{docId}                       <span class="cmt"># 실시간 인기 검색어 스냅샷 (current · fallback 2개 고정)</span>
+
+📁 searchHashtags/{tagId}                     <span class="cmt"># 인기 해시태그 큐레이션 (화면 라우팅 포함)</span></div>
   <div class="note"><strong>자동 집계 필드:</strong> <code>favoriteCount</code> · <code>ratingSum</code> · <code>reviewCount</code> · <code>rating</code> 는 Cloud Functions 트리거로만 갱신. 클라이언트 직접 수정 금지.</div>
 </section>
 
@@ -634,8 +646,8 @@ logFirebaseAccess(
     <tr><th>필드</th><th>타입</th><th>설명</th></tr>
     <tr><td class="field-name">bannerId</td><td class="ftype">string</td><td><span class="pill pk">PK</span> (= doc.id fallback)</td></tr>
     <tr><td class="field-name">imageUrl</td><td class="ftype">string</td><td>배너 이미지 URL</td></tr>
-    <tr><td class="field-name">linkType</td><td class="ftype">string</td><td>링크 종류 (예: "club", "url")</td></tr>
-    <tr><td class="field-name">linkValue</td><td class="ftype">string</td><td>링크 대상 값</td></tr>
+    <tr><td class="field-name">linkType</td><td class="ftype">string</td><td><code>"promotion" | "club" | "page" | "url"</code> — 탭 시 이동 방식. 알 수 없는 값은 <strong>이동 없음</strong>으로 폴백</td></tr>
+    <tr><td class="field-name">linkValue</td><td class="ftype">string</td><td>링크 대상 값 — promotion: promotionId / club: clubId / page: 화면 키 / url: URL</td></tr>
     <tr><td class="field-name">order</td><td class="ftype">number</td><td>정렬 순서 (오름차순)</td></tr>
     <tr><td class="field-name">isActive</td><td class="ftype">boolean</td><td>노출 여부</td></tr>
     <tr><td class="field-name">startAt</td><td class="ftype">timestamp</td><td>노출 시작</td></tr>
@@ -643,6 +655,32 @@ logFirebaseAccess(
     <tr><td class="field-name">createdAt</td><td class="ftype">timestamp</td><td>생성 시각</td></tr>
   </table>
   <div class="note">홈 배너 데이터 소스. <code>getActiveBanners()</code>는 <code>isActive=true</code> 쿼리 후 클라이언트에서 <code>startAt &lt; now &lt; endAt</code> 필터 + <code>order</code> 정렬.</div>
+  <div class="note"><strong>탭 라우팅</strong>은 <code>core/navigation/banner_link_handler.dart</code> 한 곳에서 <code>linkType</code> 으로 분기한다. 현재 연결된 것은 <code>promotion</code> 뿐 — club·page·url 은 미연결이라 조용히 무시된다.</div>
+</section>
+
+<!-- promotions -->
+<section id="promotions">
+  <h2>📁 promotions/{promotionId} <span style="font-size:13px;color:var(--muted);">(top-level)</span></h2>
+  <table>
+    <tr><th>필드</th><th>타입</th><th>설명</th></tr>
+    <tr><td class="field-name">promotionId</td><td class="ftype">string</td><td><span class="pill pk">PK</span> (= doc.id fallback)</td></tr>
+    <tr><td class="field-name">title</td><td class="ftype">string</td><td>상세 제목</td></tr>
+    <tr><td class="field-name">subtitle</td><td class="ftype">string</td><td>제목 아래 한 줄 요약. 비면 미표시</td></tr>
+    <tr><td class="field-name">heroImageUrl</td><td class="ftype">string</td><td>상세 상단 히어로 이미지. 비면 히어로 없이 제목부터 시작 (배너 이미지는 목록용 비율이라 재사용 안 함)</td></tr>
+    <tr><td class="field-name">content</td><td class="ftype">string</td><td>본문 plain text. <code>\n</code> 줄바꿈 그대로 렌더 (마크다운/HTML 파싱 안 함)</td></tr>
+    <tr><td class="field-name">imageUrls</td><td class="ftype">array</td><td>본문 아래 첨부 사진 0~n장 — Storage <code>promotions/{promotionId}/{index}.{ext}</code></td></tr>
+    <tr><td class="field-name">ctaType</td><td class="ftype">string</td><td><code>"none" | "club" | "url"</code> — 하단 고정 버튼 동작</td></tr>
+    <tr><td class="field-name">ctaValue</td><td class="ftype">string</td><td>club: clubId / url: URL</td></tr>
+    <tr><td class="field-name">ctaLabel</td><td class="ftype">string</td><td>버튼 문구. 비면 타입별 기본값('클럽 보러가기' / '자세히 보기')</td></tr>
+    <tr><td class="field-name">isActive</td><td class="ftype">boolean</td><td>노출 여부. false면 상세에서 '종료된 이벤트' 표시</td></tr>
+    <tr><td class="field-name">startAt</td><td class="ftype">timestamp</td><td>표시용 진행 기간 시작 (선택)</td></tr>
+    <tr><td class="field-name">endAt</td><td class="ftype">timestamp</td><td>표시용 진행 기간 종료 (선택) — 둘 다 없으면 기간 pill 미표시</td></tr>
+    <tr><td class="field-name">createdAt</td><td class="ftype">timestamp</td><td>생성 시각</td></tr>
+    <tr><td class="field-name">updatedAt</td><td class="ftype">timestamp</td><td>수정 시각</td></tr>
+  </table>
+  <div class="note">홈 배너(<code>linkType: "promotion"</code>) 탭 시 열리는 상세 콘텐츠. 화면은 <code>PromotionDetailScreen</code> <strong>하나뿐</strong>이고 내용만 이 문서에서 갈아 끼운다 → 배너별로 사진·본문이 다른 광고 페이지를 <strong>앱 배포 없이</strong> 늘릴 수 있다. 쓰기는 <strong>어드민 페이지(별도 구축 예정)</strong> 전용.</div>
+  <div class="note"><strong>배너 doc에 본문을 넣지 않는 이유</strong> — 홈 진입마다 배너 N개를 읽는데, 안 여는 사용자까지 본문·사진 배열을 내려받게 된다. 탭했을 때만 doc 1건 조회(<code>getPromotion</code>). <strong>쿼리는 단건 get뿐 → 인덱스 불필요.</strong> 집계 필드 없음 → Cloud Functions 트리거 불필요.</div>
+  <div class="note"><strong>Rules에서 <code>isActive</code> 를 read 조건에 넣지 않는다</strong> (notices와 다른 점) — 단건 get이라 비활성 문서를 규칙으로 막으면 permission-denied가 되어 앱이 '없음'과 '오류'를 구분할 수 없다. 노출 여부는 datasource에서 필터해 null로 돌린다. seed(샘플): <code>scripts/seed_promotions.js</code></div>
 </section>
 
 <!-- vybeRecommendations -->
@@ -693,7 +731,8 @@ logFirebaseAccess(
     <tr><td class="field-name">title</td><td class="ftype">string</td><td>공지 제목 (목록·상세 상단)</td></tr>
     <tr><td class="field-name">content</td><td class="ftype">string</td><td>본문 plain text. <code>\n</code> 줄바꿈 그대로 렌더 (마크다운/HTML 파싱 안 함)</td></tr>
     <tr><td class="field-name">imageUrls</td><td class="ftype">array</td><td>첨부 사진 URL 0~n장 — Storage <code>notices/{noticeId}/{index}.{ext}</code></td></tr>
-    <tr><td class="field-name">category</td><td class="ftype">string</td><td><code>"notice" | "update" | "event" | "maint"</code> — 목록 배지(공지·업데이트·이벤트·점검). 미지정/알 수 없는 값이면 '공지'로 표시</td></tr>
+    <tr><td class="field-name">category</td><td class="ftype">string</td><td><code>"notice" | "update" | "event" | "maint" | "ad"</code> — 목록 배지. 색: 공지=흰색 / 업데이트=보라 / 이벤트=라임 / 점검=옐로 / <strong>광고=스카이블루</strong>. 미지정/알 수 없는 값이면 '공지'로 표시</td></tr>
+    <tr><td class="field-name">promotionId</td><td class="ftype">string</td><td>연결된 <code>promotions</code> 문서 id. 비어 있지 않으면 목록·이전/다음에서 탭했을 때 공지 상세가 아니라 <code>PromotionDetailScreen</code>으로 직행 (광고 공지 = 홈 배너와 같은 목적지). <strong>category와 분리</strong> — 프로모션 없는 광고 공지도, 광고가 아닌 공지의 이벤트 페이지 링크도 가능해야 하므로</td></tr>
     <tr><td class="field-name">isPinned</td><td class="ftype">boolean</td><td>상단 고정. 정렬은 <strong>클라 메모리</strong>에서 처리 (인덱스 절약)</td></tr>
     <tr><td class="field-name">isActive</td><td class="ftype">boolean</td><td>노출 여부. 삭제 대신 <code>false</code> 로 숨김</td></tr>
     <tr><td class="field-name">publishedAt</td><td class="ftype">timestamp</td><td>노출 기준 시각 = <strong>목록 정렬 키</strong>. createdAt과 분리해 예약/소급 게시 가능</td></tr>
@@ -706,10 +745,66 @@ logFirebaseAccess(
   <div class="note"><strong>읽음 상태는 저장하지 않는다.</strong> <code>users/{uid}/noticeReads</code> 방식은 공지를 열 때마다 write가 발생 → 베타 규모에 과함. 목록의 <code>NEW</code> 배지는 <code>publishedAt</code> 이 7일 이내인지로만 판정(읽기 전용, 저장소 0). <strong>집계 필드 없음 → Cloud Functions 트리거 불필요.</strong></div>
 </section>
 
+<!-- searchLogs -->
+<section id="search-logs">
+  <h2>📁 searchLogs/{logId} <span style="font-size:13px;color:var(--muted);">(top-level)</span></h2>
+  <table>
+    <tr><th>필드</th><th>타입</th><th>설명</th></tr>
+    <tr><td class="field-name">logId</td><td class="ftype">string</td><td><span class="pill pk">PK</span> (auto)</td></tr>
+    <tr><td class="field-name">keyword</td><td class="ftype">string</td><td>정규화된 검색어 (선행 <code>#</code> 제거 · 연속 공백 축약 · 2~30자, 대소문자 보존)</td></tr>
+    <tr><td class="field-name">userId</td><td class="ftype">string</td><td><code>== request.auth.uid</code></td></tr>
+    <tr><td class="field-name">source</td><td class="ftype">string</td><td><code>'input' | 'suggestion' | 'hashtag' | 'trend' | 'history' | 'map'</code></td></tr>
+    <tr><td class="field-name">createdAt</td><td class="ftype">timestamp</td><td>serverTimestamp</td></tr>
+    <tr><td class="field-name">expireAt</td><td class="ftype">timestamp</td><td>createdAt + 14d — Firestore <strong>TTL 정책</strong>이 자동 삭제</td></tr>
+  </table>
+  <div class="note">인기 검색어 집계 원본. <strong>클라는 create만, 읽기는 Admin SDK(집계 함수) 전용.</strong> 쓰기 지점은 <code>SearchViewModel.search()</code> + 화면의 예외 경로(지도 모드 제출, 연관 검색어 → 클럽 직행).</div>
+  <div class="note danger"><strong><code>source</code>가 설계 핵심</strong> — 트렌드/해시태그 칩 탭 유입을 집계에 넣으면 1위가 계속 1위가 되는 되먹임이 생긴다. 랭킹은 <code>input</code>/<code>suggestion</code>만 카운트(<code>RANKED_SOURCES</code>). 랭킹 기준도 raw count가 아닌 <strong>고유 userId 수</strong> — 1인이 반복 검색해도 1표(스팸·자기증폭 방지).</div>
+  <div class="note">비로그인 검색은 Rules상 로깅 안 됨. 인덱스 불필요(<code>createdAt</code> 단일 필드 = 자동 인덱스), <code>source</code>는 메모리 필터. <strong>TTL 정책은 콘솔/gcloud로 별도 설정</strong> — <code>firestore.indexes.json</code>으로는 설정 안 된다.</div>
+</section>
+
+<!-- searchTrends -->
+<section id="search-trends">
+  <h2>📁 searchTrends/{docId} <span style="font-size:13px;color:var(--muted);">(문서 2개 고정)</span></h2>
+  <h3><code>searchTrends/current</code> — 집계 스냅샷 (앱은 이 문서 1개만 읽는다, read 1회)</h3>
+  <table>
+    <tr><th>필드</th><th>타입</th><th>설명</th></tr>
+    <tr><td class="field-name">items</td><td class="ftype">array</td><td><code>[{ rank, keyword, status, change, uniqueUsers }]</code> — status: <code>'up'|'down'|'newEntry'|'same'</code> (직전 스냅샷 대비). <code>uniqueUsers: 0</code>이면 fallback으로 채운 자리(실데이터 아님)</td></tr>
+    <tr><td class="field-name">realCount</td><td class="ftype">number</td><td>실데이터로 채워진 항목 수</td></tr>
+    <tr><td class="field-name">sampleSize</td><td class="ftype">number</td><td>집계에 쓰인 로그 건수 (디버깅용)</td></tr>
+    <tr><td class="field-name">windowHours</td><td class="ftype">number</td><td>집계 윈도우 (기본 24)</td></tr>
+    <tr><td class="field-name">runKey</td><td class="ftype">string</td><td>KST yyyyMMddHH — 중복 실행 방어</td></tr>
+    <tr><td class="field-name">updatedAt</td><td class="ftype">timestamp</td><td>UI '07.31 22:00 기준' 표기 소스</td></tr>
+  </table>
+  <h3><code>searchTrends/fallback</code> — 어드민 큐레이션 백업 목록</h3>
+  <table>
+    <tr><th>필드</th><th>타입</th><th>설명</th></tr>
+    <tr><td class="field-name">items</td><td class="ftype">array</td><td><code>[{ rank, keyword }]</code> — 실데이터 부족 시 뒷자리를 채움</td></tr>
+  </table>
+  <div class="note danger"><strong>fallback으로 채운 항목엔 증감을 표시하지 않는다</strong> (<code>uniqueUsers == 0</code> → <code>TrendRow</code>가 숨김). 유저가 없는데 순위가 오르내리는 것처럼 보이면 안 되므로. <code>realCount == 0</code>이면 섹션 제목도 '실시간 인기 검색어' 대신 '인기 검색어'.</div>
+</section>
+
+<!-- searchHashtags -->
+<section id="search-hashtags">
+  <h2>📁 searchHashtags/{tagId} <span style="font-size:13px;color:var(--muted);">(top-level)</span></h2>
+  <table>
+    <tr><th>필드</th><th>타입</th><th>설명</th></tr>
+    <tr><td class="field-name">tagId</td><td class="ftype">string</td><td><span class="pill pk">PK</span> (= doc.id, seed: <code>tag_&lt;slug&gt;</code>)</td></tr>
+    <tr><td class="field-name">label</td><td class="ftype">string</td><td><code>'힙합'</code> (UI 표시는 <code>#힙합</code>)</td></tr>
+    <tr><td class="field-name">linkType</td><td class="ftype">string</td><td><code>'keyword' | 'page'</code></td></tr>
+    <tr><td class="field-name">linkValue</td><td class="ftype">string</td><td>keyword: 검색어 / page: 화면 키 (<code>freeEntry|serviceDrinks|hipHop|hotPlaces|vybeRecommend</code>)</td></tr>
+    <tr><td class="field-name">order</td><td class="ftype">number</td><td>큐레이션 기본 순서</td></tr>
+    <tr><td class="field-name">popularityRank</td><td class="ftype">number?</td><td>집계가 채우는 검색량 순위. null이면 <code>order</code>로 정렬</td></tr>
+    <tr><td class="field-name">isActive</td><td class="ftype">boolean</td><td>노출 여부</td></tr>
+    <tr><td class="field-name">createdAt</td><td class="ftype">timestamp</td><td>생성 시각</td></tr>
+  </table>
+  <div class="note"><strong>큐레이션 문서가 필수인 이유</strong>: '입장료 무료'·'서비스 음료'·'힙합'은 검색어가 아니라 전용 화면(<code>FreeEntryScreen</code> 등)으로 가야 해서 검색 로그 자동 추출로는 라우팅을 만들 수 없다. banners의 <code>linkType</code>/<code>linkValue</code> 패턴 재사용.</div>
+  <div class="note">정렬은 <code>popularityRank</code>(있는 것 우선) → <code>order</code>. <strong>문서는 8개보다 많이 두고 상위 8개만 노출</strong>해야 검색량에 따라 순서가 실제로 바뀐다. seed: <code>scripts/seed_search_hashtags.js</code> — <code>popularityRank</code>는 집계 함수 소유라 seed가 덮어쓰지 않는다(updateMask에서 제외).</div>
+</section>
+
 <!-- ========================= CLOUD FUNCTIONS ========================= -->
 <section id="functions-http">
-  <h2>Cloud Functions <span style="font-size:14px;color:var(--muted);">— 총 13개 (TypeScript)</span></h2>
-  <p>구조: <code>functions/src/auth/</code> (7) · <code>favorites/</code> (2) · <code>reviews/</code> (3) · <code>performances/</code> (1) + <code>index.ts</code>. Firebase 서버 로직은 모두 Cloud Functions으로 처리. (구 <code>search/onClubWritten</code>은 Algolia 전환으로 삭제)</p>
+  <h2>Cloud Functions <span style="font-size:14px;color:var(--muted);">— 총 14개 (TypeScript)</span></h2>
+  <p>구조: <code>functions/src/auth/</code> (7) · <code>favorites/</code> (2) · <code>reviews/</code> (3) · <code>performances/</code> (1) · <code>search/</code> (1) + <code>index.ts</code>. Firebase 서버 로직은 모두 Cloud Functions으로 처리. (구 <code>search/onClubWritten</code>은 Algolia 전환으로 삭제)</p>
 
   <h3>HTTP 요청 함수 — <code>https.onCall</code> (앱 직접 호출)</h3>
   <table>
@@ -739,8 +834,18 @@ logFirebaseAccess(
   <table>
     <tr><th>함수명</th><th>스케줄</th><th>역할</th></tr>
     <tr><td class="field-name">cleanupPastPerformances</td><td>매일 KST 04:00</td><td>종료된 공연 문서 삭제. <code>startAt &lt; now - 8h</code>(PERFORMANCE_DURATION_HOURS)인 공연만 삭제 → 예정·진행 중(새벽) 공연 보존. 500개씩 배치 삭제</td></tr>
+    <tr><td class="field-name">aggregateSearchTrends</td><td>매시 정각 KST (<code>0 * * * *</code>)</td><td>검색 로그 집계 → <code>searchTrends/current</code> + <code>searchHashtags.popularityRank</code>. 매시 깨어나 <strong>갱신 대상인지 내부 판단</strong>하고, 아니면 Firestore 접근 없이 즉시 종료</td></tr>
   </table>
   <div class="note">공연은 <code>startAt</code>(Timestamp) 후 최대 8시간 진행으로 가정(클럽 마감 ~06:00). 8시간 안 지난 공연은 "진행 중"으로 보존 → 오늘 밤 새벽 공연/어제 이어진 공연 안전. <code>date</code>(YYYYMMDD)가 아닌 <code>startAt</code> 기준 삭제가 핵심. 마감 더 늦으면 <code>PERFORMANCE_DURATION_HOURS</code> 상수만 조정.</div>
+
+  <h4 style="margin:18px 0 8px;">검색 트렌드 갱신 주기 <span style="font-size:13px;color:var(--muted);">(<code>scheduleDecision()</code> — <code>functions/src/search/compute_trends.ts</code>)</span></h4>
+  <table>
+    <tr><th>구간</th><th>실시간 인기 검색어</th><th>인기 해시태그</th></tr>
+    <tr><td>야간 20:00~09:00 (9시 포함)</td><td>매시</td><td>매시</td></tr>
+    <tr><td>주간 10:00~19:00</td><td>2시간 (10·12·14·16·18)</td><td>4시간 (12·16)</td></tr>
+  </table>
+  <div class="note">주간 간격은 자정 기준 앵커(<code>hour % N</code>)라 <strong>해시태그 갱신 시각은 항상 검색어 갱신 시각의 부분집합</strong> → 로그 스캔 1회로 둘 다 처리한다. 클럽 검색이 밤에 몰리므로 야간을 촘촘하게 잡음. 순수 로직은 <code>compute_trends.ts</code>에 Firestore 의존 없이 분리 — 되먹임 필터·고유유저 집계·증감·fallback·갱신주기 판단 전부 여기 있음.</div>
+  <div class="note danger"><strong>중복 실행 방어:</strong> 스냅샷에 <code>runKey</code>(KST yyyyMMddHH)를 저장해 같은 시각 재실행 시 skip. 안 막으면 증감이 방금 쓴 결과와 비교돼 전부 <code>same</code>으로 뭉개진다.</div>
 </section>
 
 <section id="functions-notes">
@@ -799,7 +904,8 @@ clubs/{clubId}/menus/{menuId}.{jpg|png}     <span class="cmt">// 개별 메뉴 �
 clubs/{clubId}/menus/boards/board_{n}.png   <span class="cmt">// 메뉴판 이미지 (menuBoardUrls)</span>
 reviews/{clubId}/{reviewId}/{index}.{ext}   <span class="cmt">// 리뷰 첨부 이미지 (0~3, 최대 4장)</span>
 users/{uid}/profile.jpg                     <span class="cmt">// 프로필 이미지 (덮어쓰기)</span>
-notices/{noticeId}/{index}.{ext}            <span class="cmt">// 공지 첨부 이미지 (어드민 업로드)</span></div>
+notices/{noticeId}/{index}.{ext}            <span class="cmt">// 공지 첨부 이미지 (어드민 업로드)</span>
+promotions/{promotionId}/{index}.{ext}      <span class="cmt">// 배너 상세 히어로·본문 이미지 (어드민 업로드)</span></div>
   <div class="note"><strong>URL 토큰 차이:</strong> <code>thumbnail</code> 은 다운로드 토큰(<code>?alt=media&amp;token=…</code>) 포함, <code>gallery</code>/<code>menus</code> 는 토큰 없이 <code>?alt=media</code> 만 → Storage 규칙 <code>clubs/** read: if true</code>(공개 읽기)에 의존.</div>
   <div class="note"><strong>사진탭 photos 서브컬렉션:</strong> 현재 seed 데이터는 기존 <code>gallery/</code> URL 재활용(별도 업로드 없음). 추후 유저 업로드 기능 추가 시 권장 경로 <code>clubs/{clubId}/photos/{photoId}.{ext}</code>.</div>
 </section>
@@ -818,6 +924,9 @@ notices/{noticeId}/{index}.{ext}            <span class="cmt">// 공지 첨부 �
     <tr><td><code>favorites</code></td><td>본인만</td><td>생성·삭제: 본인만</td></tr>
     <tr><td><code>users/.../searchHistory</code></td><td>본인만</td><td>본인만</td></tr>
     <tr><td><code>notices/{noticeId}</code></td><td>누구나 (isActive=true만)</td><td>어드민만</td></tr>
+    <tr><td><code>promotions/{promotionId}</code></td><td>누구나 (isActive는 클라 필터)</td><td>어드민만</td></tr>
+    <tr><td><code>searchLogs/{logId}</code></td><td><strong>불가</strong> (Admin SDK 전용)</td><td>생성만: 로그인 유저(본인 userId, keyword 2~30자, 필드 화이트리스트). 수정·삭제 불가</td></tr>
+    <tr><td><code>searchTrends</code>, <code>searchHashtags</code></td><td>누구나</td><td>어드민만</td></tr>
   </table>
 </section>
 
@@ -829,6 +938,7 @@ notices/{noticeId}/{index}.{ext}            <span class="cmt">// 공지 첨부 �
     <tr><td><code>reviews/**</code></td><td>누구나</td><td>로그인 유저, 10MB 이하, 이미지만</td></tr>
     <tr><td><code>users/{uid}/**</code></td><td>누구나</td><td>본인만, 5MB 이하, 이미지만</td></tr>
     <tr><td><code>notices/**</code></td><td>누구나</td><td>어드민만, 10MB 이하, 이미지만</td></tr>
+    <tr><td><code>promotions/**</code></td><td>누구나</td><td>어드민만, 10MB 이하, 이미지만</td></tr>
   </table>
 </section>
 

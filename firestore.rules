@@ -92,6 +92,15 @@ service cloud.firestore {
         && request.auth.token.admin == true;
     }
 
+    // promotions/{promotionId} — 배너 전용 상세 콘텐츠. 앱은 읽기만.
+    // isActive를 read 조건에 넣지 않는다 — 비활성 문서를 permission-denied로
+    // 막으면 앱에서 '없음'과 '오류'를 구분할 수 없다. 노출 여부는 클라에서 필터.
+    match /promotions/{promotionId} {
+      allow read: if true;
+      allow write: if request.auth != null
+        && request.auth.token.admin == true;
+    }
+
     // vybeRecommendations/{recId} — vybe 추천 페이지 큐레이션
     match /vybeRecommendations/{recId} {
       allow read: if true;

@@ -18,14 +18,28 @@ const https = require('https');
 const PROJECT = 'vybe-bata-c07aa';
 const DRY = process.argv.includes('--dry');
 
+const BUCKET_BASE =
+  'https://firebasestorage.googleapis.com/v0/b/vybe-bata-c07aa.firebasestorage.app/o/';
+
 // 샘플 이미지는 별도 업로드 없이 기존 clubs/{clubId}/gallery/ URL 재활용.
 // (Storage 규칙 clubs/** read: if true — 공개 읽기라 앱에서 그대로 렌더된다)
 const SAMPLE_IMG = (clubId, n) =>
-  'https://firebasestorage.googleapis.com/v0/b/vybe-bata-c07aa.firebasestorage.app/o/'
-  + `clubs%2F${clubId}%2Fgallery%2F${n}.png?alt=media`;
+  `${BUCKET_BASE}clubs%2F${clubId}%2Fgallery%2F${n}.png?alt=media`;
 
 const CLUB_A = '0xhYvbbj3GlVgSHKpqOB'; // 홍대 클럽 레이저
 const CLUB_B = '1kX6M1jUZBhRRQJ6ZRFb'; // 클럽 오메가
+
+// 홈 배너 원본 이미지 — category:'ad' 공지가 어떤 배너 얘기인지 바로 알아보게
+// 같은 그림을 붙인다. 배너·프로모션 쪽 소스는 scripts/seed_promotions.js.
+// (banners/ 는 토큰이 있어야 열린다 — clubs/ 와 달리 공개 읽기 규칙이 없음)
+const BANNER_TOKEN = {
+  1: 'f939cfa4-addd-416b-981b-a11cacc70a25',
+  2: 'c690a69f-fa83-453b-ac2f-d42007d516f1',
+  3: '12f6f56e-73a9-4196-8030-1fca6348ef46',
+  4: '14ef12df-8c8c-4de4-8e2a-79da8566382e',
+};
+const BANNER_IMG = (n) =>
+  `${BUCKET_BASE}banners%2Fbanner_ad_${n}.png?alt=media&token=${BANNER_TOKEN[n]}`;
 
 // publishedAt: 오늘 기준 N일 전 (NEW 배지는 7일 이내 기준)
 const NOTICES = [
@@ -136,6 +150,90 @@ const NOTICES = [
     daysAgo: 25,
     imageUrls: [],
   },
+  {
+    id: 'notice_009',
+    title: '[광고] 여름 시즌 파티 프로모션',
+    content:
+      '제휴 클럽에서 진행하는 여름 시즌 파티를 소개합니다.\n\n'
+      + '· 기간: 8월 한 달간 매주 금·토\n'
+      + '· 혜택: vybe 앱 화면 제시 시 웰컴 드링크 1잔\n\n'
+      + '본 게시물은 광고이며, 상세 조건은 각 클럽 운영 정책에 따릅니다.',
+    category: 'ad',
+    promotionId: 'promo_003',
+    isPinned: false,
+    daysAgo: 2,
+    imageUrls: [SAMPLE_IMG(CLUB_B, 1)],
+  },
+
+  // ── 홈 배너 광고 연동 공지 (promotions/promo_001~004 와 1:1) ──────────────
+  // 배너를 놓친 사용자도 공지 목록에서 같은 내용을 볼 수 있게 한다.
+  // 첨부 사진은 해당 배너 이미지 그대로 — 어떤 배너 얘기인지 바로 알아보게.
+  // daysAgo 는 프로모션 startAt(seed_promotions.js) 과 맞춰 시점이 어긋나지 않게 했다.
+  {
+    id: 'notice_010',
+    title: '[광고] vybe 첫 방문 웰컴 이벤트',
+    content:
+      'vybe에 처음 오신 분들을 위한 웰컴 이벤트를 진행합니다.\n\n'
+      + '· 대상: vybe 신규 가입 회원\n'
+      + '· 혜택: 제휴 클럽 입장 시 웰컴 드링크 1잔\n'
+      + '· 사용 방법: 입장 시 vybe 마이페이지 화면을 보여주세요\n\n'
+      + '혜택은 1인 1회 적용되며, 클럽 사정에 따라 조기 종료될 수 있습니다.\n'
+      + '자세한 내용은 홈 화면 배너에서 확인하실 수 있습니다.\n\n'
+      + '본 게시물은 광고입니다.',
+    category: 'ad',
+    promotionId: 'promo_001',
+    isPinned: false,
+    daysAgo: 5,
+    imageUrls: [BANNER_IMG(1)],
+  },
+  {
+    id: 'notice_011',
+    title: '[광고] 홍대 클럽 레이저 위켄드 파티',
+    content:
+      '이번 주말 홍대 클럽 레이저에서 위켄드 파티가 열립니다.\n\n'
+      + '· 일시: 금요일·토요일 22:00 ~ 06:00\n'
+      + '· 장소: 홍대 클럽 레이저\n'
+      + '· 라인업: 헤드라이너 DJ 세트 + 게스트 세션\n\n'
+      + '입장료와 테이블 정보는 홈 배너 또는 클럽 상세 페이지에서 확인해 주세요.\n\n'
+      + '본 게시물은 광고입니다.',
+    category: 'ad',
+    promotionId: 'promo_002',
+    isPinned: false,
+    daysAgo: 2,
+    imageUrls: [BANNER_IMG(2)],
+  },
+  {
+    id: 'notice_012',
+    title: '[광고] 여름 나이트 페스티벌',
+    content:
+      '여름 시즌을 맞아 제휴 클럽에서 페스티벌이 이어집니다.\n\n'
+      + '· 기간: 8월 한 달\n'
+      + '· 참여 클럽: 홍대 · 강남 · 이태원 제휴 클럽\n'
+      + '· 내용: 주차별 테마 파티, 게스트 DJ 초청\n\n'
+      + '클럽별 상세 일정은 각 클럽 상세 페이지의 오늘의 라인업에서 확인할 수 있습니다.\n\n'
+      + '본 게시물은 광고입니다.',
+    category: 'ad',
+    promotionId: 'promo_003',
+    isPinned: false,
+    daysAgo: 6,
+    imageUrls: [BANNER_IMG(3)],
+  },
+  {
+    id: 'notice_013',
+    title: '[광고] 리뷰 쓰고 경품 받아가세요',
+    content:
+      '다녀온 클럽에 리뷰를 남겨주세요.\n\n'
+      + '· 대상: 사진을 1장 이상 첨부한 리뷰\n'
+      + '· 경품: 추첨을 통해 제휴 클럽 입장권 증정\n'
+      + '· 발표: 이벤트 종료 후 공지사항에서 안내\n\n'
+      + '광고성이거나 방문 사실과 무관한 리뷰는 추첨에서 제외됩니다.\n\n'
+      + '본 게시물은 광고입니다.',
+    category: 'ad',
+    promotionId: 'promo_004',
+    isPinned: false,
+    daysAgo: 1,
+    imageUrls: [BANNER_IMG(4)],
+  },
 ];
 
 function request(options, body) {
@@ -191,6 +289,8 @@ async function writeNotice(token, notice) {
       },
     },
     category: { stringValue: notice.category },
+    // 연결된 프로모션. 빈 문자열이면 앱이 평소대로 공지 상세를 연다.
+    promotionId: { stringValue: notice.promotionId ?? '' },
     isPinned: { booleanValue: notice.isPinned },
     isActive: { booleanValue: true },
     publishedAt: { timestampValue: daysAgoIso(notice.daysAgo) },

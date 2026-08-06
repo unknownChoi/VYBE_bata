@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
 
 // ============================================================
 // 마이페이지 공통 스타일/위젯 (my.html 디자인 기반)
@@ -145,7 +146,17 @@ class MyAvatar extends StatelessWidget {
 class SubScreenHeader extends StatelessWidget {
   final String title;
 
-  const SubScreenHeader({super.key, required this.title});
+  /// 뒤로가기를 앱 공통 리퀴드 글래스 버튼([VybeGlassButton])으로 그릴지.
+  ///
+  /// 화면별로 글래스 디자인을 순차 적용하는 중이라 기본값은 기존 아이콘.
+  /// 적용된 화면: 설정.
+  final bool glassBack;
+
+  const SubScreenHeader({
+    super.key,
+    required this.title,
+    this.glassBack = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -156,19 +167,28 @@ class SubScreenHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => Navigator.of(context).maybePop(),
-            child: SizedBox(
-              width: 40.w,
-              height: 40.h,
-              child: Icon(
-                Icons.arrow_back_ios_new_rounded,
-                size: 20.r,
-                color: Colors.white,
+          if (glassBack)
+            // hitSize 40 — 기존 아이콘 탭 영역과 같은 폭이라 제목 위치가 안 밀린다.
+            VybeGlassButton(
+              onTap: () => Navigator.of(context).maybePop(),
+              size: 36,
+              iconSize: 16,
+              hitSize: 40,
+            )
+          else
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => Navigator.of(context).maybePop(),
+              child: SizedBox(
+                width: 40.w,
+                height: 40.h,
+                child: Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  size: 20.r,
+                  color: Colors.white,
+                ),
               ),
             ),
-          ),
           SizedBox(width: 2.w),
           Text(
             title,

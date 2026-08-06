@@ -9,6 +9,7 @@ import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
 import 'package:vybe/presentation/common/widgets/vybe_glass_surface.dart';
 import 'package:vybe/presentation/my_page/viewmodels/notice_viewmodel.dart';
 import 'package:vybe/presentation/my_page/widgets/notice_glass.dart';
+import 'package:vybe/presentation/promotion/promotion_detail_screen.dart';
 
 // ============================================================
 // 공지사항 상세
@@ -196,9 +197,12 @@ class _NavRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      // 목록과 같은 규칙 — 프로모션이 걸린 광고 공지는 광고 페이지로 보낸다.
       onTap: () => Navigator.of(context).pushReplacement(
         SwipeBackPageRoute<void>(
-          builder: (_) => NoticeDetailScreen(notice: notice),
+          builder: (_) => notice.opensPromotion
+              ? PromotionDetailScreen(promotionId: notice.promotionId)
+              : NoticeDetailScreen(notice: notice),
         ),
       ),
       behavior: HitTestBehavior.opaque,

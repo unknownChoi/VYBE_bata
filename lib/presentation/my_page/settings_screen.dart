@@ -48,7 +48,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SubScreenHeader(title: '설정'),
+                const SubScreenHeader(title: '설정', glassBack: true),
                 Expanded(
                   child: SingleChildScrollView(
                     padding: EdgeInsets.only(bottom: 28.h),

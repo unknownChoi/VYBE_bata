@@ -53,6 +53,14 @@ const _kCatStyles = <String, NoticeCatStyle>{
     Color(0x29FFC94D), // rgba(255,201,77,0.16)
     Color(0x5CFFC94D), // rgba(255,201,77,0.36)
   ),
+  // 광고 — 보라(업데이트)·라임(이벤트)·옐로(점검)와 겹치지 않게 스카이 블루.
+  // accentBlue500(0xFF2B6BFF)은 어두운 배경에서 라벨 가독성이 떨어져 밝은 톤으로 올림.
+  'ad': NoticeCatStyle(
+    '광고',
+    Color(0xFF7FC4FF),
+    Color(0x382B6BFF), // rgba(43,107,255,0.22)
+    Color(0x732B6BFF), // rgba(43,107,255,0.45)
+  ),
 };
 
 /// 알 수 없는 category는 '공지' 스타일로 폴백 (모델 [NoticeModel.categoryLabel]과 동일 규칙).
@@ -64,7 +72,7 @@ const Color _kTeamHue = Color(0xFFC7A6FF);
 const Color _kTeamFill = Color(0x387731FE); // rgba(119,49,254,0.22)
 const Color _kTeamBorder = Color(0x6B7731FE); // rgba(119,49,254,0.42)
 
-/// 카테고리 pill — 공지 / 업데이트 / 이벤트 / 점검.
+/// 카테고리 pill — 공지 / 업데이트 / 이벤트 / 점검 / 광고.
 class NoticeCategoryPill extends StatelessWidget {
   final NoticeCatStyle style;
 

@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$BannerModel {
 
- String get bannerId; String get imageUrl; String get linkType; String get linkValue; int get order; bool get isActive; DateTime get startAt; DateTime get endAt; DateTime get createdAt;
+ String get bannerId; String get imageUrl; BannerLinkType get linkType; String get linkValue; int get order; bool get isActive; DateTime get startAt; DateTime get endAt; DateTime get createdAt;
 /// Create a copy of BannerModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -45,7 +45,7 @@ abstract mixin class $BannerModelCopyWith<$Res>  {
   factory $BannerModelCopyWith(BannerModel value, $Res Function(BannerModel) _then) = _$BannerModelCopyWithImpl;
 @useResult
 $Res call({
- String bannerId, String imageUrl, String linkType, String linkValue, int order, bool isActive, DateTime startAt, DateTime endAt, DateTime createdAt
+ String bannerId, String imageUrl, BannerLinkType linkType, String linkValue, int order, bool isActive, DateTime startAt, DateTime endAt, DateTime createdAt
 });
 
 
@@ -67,7 +67,7 @@ class _$BannerModelCopyWithImpl<$Res>
 bannerId: null == bannerId ? _self.bannerId : bannerId // ignore: cast_nullable_to_non_nullable
 as String,imageUrl: null == imageUrl ? _self.imageUrl : imageUrl // ignore: cast_nullable_to_non_nullable
 as String,linkType: null == linkType ? _self.linkType : linkType // ignore: cast_nullable_to_non_nullable
-as String,linkValue: null == linkValue ? _self.linkValue : linkValue // ignore: cast_nullable_to_non_nullable
+as BannerLinkType,linkValue: null == linkValue ? _self.linkValue : linkValue // ignore: cast_nullable_to_non_nullable
 as String,order: null == order ? _self.order : order // ignore: cast_nullable_to_non_nullable
 as int,isActive: null == isActive ? _self.isActive : isActive // ignore: cast_nullable_to_non_nullable
 as bool,startAt: null == startAt ? _self.startAt : startAt // ignore: cast_nullable_to_non_nullable
@@ -158,7 +158,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String bannerId,  String imageUrl,  String linkType,  String linkValue,  int order,  bool isActive,  DateTime startAt,  DateTime endAt,  DateTime createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String bannerId,  String imageUrl,  BannerLinkType linkType,  String linkValue,  int order,  bool isActive,  DateTime startAt,  DateTime endAt,  DateTime createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _BannerModel() when $default != null:
 return $default(_that.bannerId,_that.imageUrl,_that.linkType,_that.linkValue,_that.order,_that.isActive,_that.startAt,_that.endAt,_that.createdAt);case _:
@@ -179,7 +179,7 @@ return $default(_that.bannerId,_that.imageUrl,_that.linkType,_that.linkValue,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String bannerId,  String imageUrl,  String linkType,  String linkValue,  int order,  bool isActive,  DateTime startAt,  DateTime endAt,  DateTime createdAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String bannerId,  String imageUrl,  BannerLinkType linkType,  String linkValue,  int order,  bool isActive,  DateTime startAt,  DateTime endAt,  DateTime createdAt)  $default,) {final _that = this;
 switch (_that) {
 case _BannerModel():
 return $default(_that.bannerId,_that.imageUrl,_that.linkType,_that.linkValue,_that.order,_that.isActive,_that.startAt,_that.endAt,_that.createdAt);case _:
@@ -199,7 +199,7 @@ return $default(_that.bannerId,_that.imageUrl,_that.linkType,_that.linkValue,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String bannerId,  String imageUrl,  String linkType,  String linkValue,  int order,  bool isActive,  DateTime startAt,  DateTime endAt,  DateTime createdAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String bannerId,  String imageUrl,  BannerLinkType linkType,  String linkValue,  int order,  bool isActive,  DateTime startAt,  DateTime endAt,  DateTime createdAt)?  $default,) {final _that = this;
 switch (_that) {
 case _BannerModel() when $default != null:
 return $default(_that.bannerId,_that.imageUrl,_that.linkType,_that.linkValue,_that.order,_that.isActive,_that.startAt,_that.endAt,_that.createdAt);case _:
@@ -219,7 +219,7 @@ class _BannerModel extends BannerModel {
 
 @override final  String bannerId;
 @override final  String imageUrl;
-@override final  String linkType;
+@override final  BannerLinkType linkType;
 @override final  String linkValue;
 @override final  int order;
 @override final  bool isActive;
@@ -257,7 +257,7 @@ abstract mixin class _$BannerModelCopyWith<$Res> implements $BannerModelCopyWith
   factory _$BannerModelCopyWith(_BannerModel value, $Res Function(_BannerModel) _then) = __$BannerModelCopyWithImpl;
 @override @useResult
 $Res call({
- String bannerId, String imageUrl, String linkType, String linkValue, int order, bool isActive, DateTime startAt, DateTime endAt, DateTime createdAt
+ String bannerId, String imageUrl, BannerLinkType linkType, String linkValue, int order, bool isActive, DateTime startAt, DateTime endAt, DateTime createdAt
 });
 
 
@@ -279,7 +279,7 @@ class __$BannerModelCopyWithImpl<$Res>
 bannerId: null == bannerId ? _self.bannerId : bannerId // ignore: cast_nullable_to_non_nullable
 as String,imageUrl: null == imageUrl ? _self.imageUrl : imageUrl // ignore: cast_nullable_to_non_nullable
 as String,linkType: null == linkType ? _self.linkType : linkType // ignore: cast_nullable_to_non_nullable
-as String,linkValue: null == linkValue ? _self.linkValue : linkValue // ignore: cast_nullable_to_non_nullable
+as BannerLinkType,linkValue: null == linkValue ? _self.linkValue : linkValue // ignore: cast_nullable_to_non_nullable
 as String,order: null == order ? _self.order : order // ignore: cast_nullable_to_non_nullable
 as int,isActive: null == isActive ? _self.isActive : isActive // ignore: cast_nullable_to_non_nullable
 as bool,startAt: null == startAt ? _self.startAt : startAt // ignore: cast_nullable_to_non_nullable
