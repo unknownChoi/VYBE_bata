@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
 import 'package:vybe/presentation/notifications/notification_screen.dart';
@@ -58,7 +59,7 @@ class HomeGnb extends StatelessWidget {
                       VybeGlassButton(
                         icon: Icons.notifications_none_rounded,
                         onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(
+                          SwipeBackPageRoute(
                             builder: (_) => const NotificationScreen(),
                           ),
                         ),

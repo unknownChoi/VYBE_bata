@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/auth/terms/terms_detail_screen.dart';
@@ -58,7 +59,7 @@ class _TermsAgreementSheetState extends State<TermsAgreementSheet> {
   void _openDetail(String title) {
     Navigator.push(
       context,
-      MaterialPageRoute(
+      SwipeBackPageRoute(
         builder: (_) => TermsDetailScreen(title: title),
       ),
     );

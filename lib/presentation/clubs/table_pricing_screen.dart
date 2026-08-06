@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/presentation/clubs/widgets/club_glass.dart';
 import 'package:vybe/presentation/clubs/widgets/table_pricing_section.dart';
 
@@ -14,7 +15,7 @@ class TablePricingScreen extends StatelessWidget {
 
   static Future<void> push(BuildContext context, {required String clubName}) {
     return Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => TablePricingScreen(clubName: clubName)),
+      SwipeBackPageRoute(builder: (_) => TablePricingScreen(clubName: clubName)),
     );
   }
 

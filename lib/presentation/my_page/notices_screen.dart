@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/data/models/notice_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
@@ -81,7 +82,7 @@ class NoticesScreen extends ConsumerWidget {
             notice: notices[i],
             appearDelay: _kStagger * i,
             onTap: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
+              SwipeBackPageRoute<void>(
                 builder: (_) => NoticeDetailScreen(notice: notices[i]),
               ),
             ),

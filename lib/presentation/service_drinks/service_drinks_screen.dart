@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/core/constants/app_geo.dart';
+import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/core/providers/auth_providers.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/design_system/colors.dart';
@@ -243,7 +244,7 @@ class _ServiceDrinksScreenState extends ConsumerState<ServiceDrinksScreen>
                                   favoritedIds.contains(c.id),
                                 ),
                         onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(
+                          SwipeBackPageRoute(
                             builder: (_) => ClubDetailScreen(clubId: c.id),
                           ),
                         ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/free_entry/free_entry_screen.dart';
 import 'package:vybe/presentation/hip_hop/hip_hop_screen.dart';
@@ -177,24 +178,24 @@ class HomeCategoryGrid extends StatelessWidget {
     return GestureDetector(
       onTap: isVybe
           ? () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const VybeRecommendScreen()),
+              SwipeBackPageRoute(builder: (_) => const VybeRecommendScreen()),
             )
           : isHot
           ? () => Navigator.of(
               context,
-            ).push(MaterialPageRoute(builder: (_) => const HotPlacesScreen()))
+            ).push(SwipeBackPageRoute(builder: (_) => const HotPlacesScreen()))
           : isDrink
           ? () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const ServiceDrinksScreen()),
+              SwipeBackPageRoute(builder: (_) => const ServiceDrinksScreen()),
             )
           : isFree
           ? () => Navigator.of(
               context,
-            ).push(MaterialPageRoute(builder: (_) => const FreeEntryScreen()))
+            ).push(SwipeBackPageRoute(builder: (_) => const FreeEntryScreen()))
           : isHiphop
           ? () => Navigator.of(
               context,
-            ).push(MaterialPageRoute(builder: (_) => const HipHopScreen()))
+            ).push(SwipeBackPageRoute(builder: (_) => const HipHopScreen()))
           : null,
       behavior: HitTestBehavior.opaque,
       child: Column(

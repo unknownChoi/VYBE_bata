@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/core/providers/auth_providers.dart';
 import 'package:vybe/core/providers/location_providers.dart';
 import 'package:vybe/core/utils/geohash_utils.dart';
@@ -129,7 +130,7 @@ class NearbyBottomSheet extends ConsumerWidget {
                           myLocation.lng,
                         ),
                         onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(
+                          SwipeBackPageRoute(
                             builder: (_) =>
                                 ClubDetailScreen(clubId: clubs[i].clubId),
                           ),

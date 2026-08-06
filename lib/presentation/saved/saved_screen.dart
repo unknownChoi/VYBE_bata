@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/club_detail_screen.dart';
 import 'package:vybe/presentation/clubs/widgets/club_glass.dart';
@@ -44,7 +45,7 @@ const int _kHomeTabIndex = 0;
 /// 탭 내부 Navigator로 클럽 상세 push.
 void _openClubDetail(BuildContext context, String clubId) {
   Navigator.of(context).push(
-    MaterialPageRoute(builder: (_) => ClubDetailScreen(clubId: clubId)),
+    SwipeBackPageRoute(builder: (_) => ClubDetailScreen(clubId: clubId)),
   );
 }
 

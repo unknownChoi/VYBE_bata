@@ -17,10 +17,22 @@ import 'package:vybe/presentation/search/search_screen.dart';
 const double _navBarHeight = 64;
 const double _navBarBottomGap = 12;
 
+/// 축소(collapse) 상태 배율. 바닥을 기준으로 줄어들어 높이만 낮아진다.
+const double _navBarCollapsedScale = 0.7;
+
+/// nav 바 축소 애니메이션 (바를 따라 움직이는 오버레이가 같은 값을 쓴다).
+const Duration navBarResizeDuration = Duration(milliseconds: 250);
+const Curve navBarResizeCurve = Curves.easeOutCubic;
+
 /// 바가 실제로 차지하는 세로 공간(바 높이 + 아래 여백 + 시스템 인셋).
 /// 토스트 등 오버레이가 바에 가리지 않게 띄울 때 참조한다.
-double navBarTotalHeight(BuildContext context) =>
-    _navBarHeight.h + _navBarBottomGap.h + MediaQuery.of(context).padding.bottom;
+///
+/// [expanded]가 false면 축소된 실제 높이를 돌려준다 — 바 위에 붙어 따라
+/// 내려가야 하는 오버레이(주변 탭 핀 카드 등)는 이 값을 써야 여백이 유지된다.
+double navBarTotalHeight(BuildContext context, {bool expanded = true}) =>
+    _navBarHeight.h * (expanded ? 1.0 : _navBarCollapsedScale) +
+    _navBarBottomGap.h +
+    MediaQuery.of(context).padding.bottom;
 
 /// 탭별 중첩 Navigator.
 /// 상세 페이지 등 화면 전환이 탭 영역(IndexedStack) 안에서만 일어나
@@ -116,7 +128,7 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
     _pageController.jumpToPage(index);
   }
 
-  // 스와이프/이동으로 페이지가 바뀐 시점 처리.
+  // 페이지가 바뀐 시점 처리 (탭 클릭 · tabSwitchRequest).
   void _onPageChanged(int index) {
     setState(() {
       _currentIndex = index;
@@ -126,8 +138,8 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
     ref.read(currentTabIndexProvider.notifier).set(index);
     // 탭 전환 시 축소된 nav를 원래 크기로 복원.
     ref.read(navBarVisibilityProvider.notifier).expand();
-    // 탭 안에서 nav를 숨긴 화면(리뷰 작성 등)을 열어둔 채 가로 스와이프로
-    // 다른 탭에 가면 nav가 숨은 상태로 남는다 → 탭이 바뀌면 항상 복원.
+    // 탭 안에서 nav를 숨긴 화면(리뷰 작성 등)을 열어둔 채 다른 탭으로 가면
+    // nav가 숨은 상태로 남는다 → 탭이 바뀌면 항상 복원.
     ref.read(navBarHiddenProvider.notifier).show();
     // 검색 탭 진입 시 키보드 자동 노출 (KeepAlive라 autofocus는 최초 1회뿐).
     if (index == _searchTabIndex) {
@@ -215,8 +227,10 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
                 child: PageView(
                   controller: _pageController,
                   onPageChanged: _onPageChanged,
-                  // 주변 탭의 지도는 forceGesture로 팬을 선점하고, 시트 영역에선
-                  // 이 PageView가 가로 스와이프를 받아 탭 전환된다.
+                  // 가로 스와이프로는 탭이 바뀌지 않는다 — 가로 드래그는
+                  // 이전 페이지로 돌아가는 제스처(SwipeBackPageRoute) 전용.
+                  // 탭 전환은 하단 바 탭 또는 _goToTab 호출로만 일어난다.
+                  physics: const NeverScrollableScrollPhysics(),
                   // 미방문 탭은 빈 위젯으로 두어 데이터 접근을 막고,
                   // 방문 후에는 KeepAlive로 살아남는다.
                   children: List.generate(
@@ -286,10 +300,10 @@ class _BottomNavBar extends StatelessWidget {
         bottomInset + _navBarBottomGap.h,
       ),
       child: AnimatedScale(
-        scale: expanded ? 1.0 : 0.7,
+        scale: expanded ? 1.0 : _navBarCollapsedScale,
         alignment: Alignment.bottomCenter,
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOutCubic,
+        duration: navBarResizeDuration,
+        curve: navBarResizeCurve,
         // 배경 캡슐 + 활성 탭 indicator 캡슐을 같은 레이어에서 블렌드 →
         // 유리끼리 녹아드는 iOS Liquid Glass 탭 강조 효과.
         child: LiquidGlassLayer(

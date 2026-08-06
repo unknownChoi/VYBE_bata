@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/core/utils/number_format.dart';
 import 'package:vybe/core/utils/url_utils.dart';
 import 'package:vybe/data/models/club_info_model.dart';
@@ -250,7 +251,7 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
                 title: day.dday == 0 ? '오늘의 라인업' : '다가오는 라인업',
                 sub: '${day.month}월 ${day.day}일 (${day.dow})',
                 onAction: () => Navigator.of(context).push(
-                  MaterialPageRoute(
+                  SwipeBackPageRoute(
                     builder: (_) => PerformanceScheduleScreen(
                       clubId: widget.clubId,
                       clubName: club?.name,
@@ -643,7 +644,7 @@ class _DetailHomeTabState extends ConsumerState<DetailHomeTab> {
     Navigator.of(
       context,
       rootNavigator: true,
-    ).push(MaterialPageRoute(builder: (_) => ClubDetailScreen(clubId: clubId)));
+    ).push(SwipeBackPageRoute(builder: (_) => ClubDetailScreen(clubId: clubId)));
   }
 }
 

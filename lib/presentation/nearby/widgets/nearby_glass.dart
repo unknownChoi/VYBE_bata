@@ -2,6 +2,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vybe/data/models/operating_hours.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/widgets/club_glass.dart';
 
@@ -347,4 +348,20 @@ int walkMinutes(double meters) {
 String? walkLabel(double? meters) {
   if (meters == null) return null;
   return '도보 ${walkMinutes(meters)}분 · ${formatDistance(meters)}';
+}
+
+// ============================================================================
+// 영업 시간 표기
+// ============================================================================
+
+/// 오늘 영업 안내 한 줄 (디자인 `club.hours`: `02:00에 영업 종료`).
+///
+/// 영업 중이면 마감 시각, 영업 전이면 오픈 시각을 안내한다.
+/// 주변 리스트 카드와 핀 카드가 같은 문구를 쓰므로 여기 둔다.
+String todayHoursLabel(DayHours today) {
+  if (!today.isOpen) return '오늘 휴무';
+  if (today.isCurrentlyOpen) {
+    return today.close != null ? '${today.close}에 영업 종료' : '영업 시간 미등록';
+  }
+  return today.open != null ? '${today.open} 오픈' : '영업 시간 미등록';
 }

@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
+import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/auth/identity_verification/identity_verification_screen.dart';
 import 'package:vybe/presentation/auth/viewmodels/auth_viewmodel.dart';
@@ -73,7 +74,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
       if (isNewUser) {
         Navigator.push(
           context,
-          MaterialPageRoute(
+          SwipeBackPageRoute(
               builder: (_) => const IdentityVerificationScreen()),
         );
       } else {
@@ -109,7 +110,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
       if (isNewUser) {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const IdentityVerificationScreen()),
+          SwipeBackPageRoute(builder: (_) => const IdentityVerificationScreen()),
         );
       } else {
         await _navigateHome();
@@ -250,7 +251,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                                 Navigator.pop(context);
                                 Navigator.push(
                                   context,
-                                  MaterialPageRoute(
+                                  SwipeBackPageRoute(
                                     builder: (_) =>
                                         const IdentityVerificationScreen(),
                                   ),

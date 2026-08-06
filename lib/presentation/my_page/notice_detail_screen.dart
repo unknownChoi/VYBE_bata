@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/data/models/notice_model.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/clubs/widgets/club_glass.dart';
@@ -196,7 +197,7 @@ class _NavRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () => Navigator.of(context).pushReplacement(
-        MaterialPageRoute<void>(
+        SwipeBackPageRoute<void>(
           builder: (_) => NoticeDetailScreen(notice: notice),
         ),
       ),

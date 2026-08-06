@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/presentation/main_scaffold/nav_bar_visibility_provider.dart';
 
 /// 탭 안에서 전체화면 페이지를 열면서 floating 바텀 nav를 화면 밖으로 내린다.
@@ -16,7 +17,7 @@ Future<T?> pushHidingNavBar<T>(
 ) {
   return Navigator.of(context)
       .push<T>(
-        MaterialPageRoute(
+        SwipeBackPageRoute(
           builder: (_) => _NavBarHideScope(child: screen),
         ),
       )

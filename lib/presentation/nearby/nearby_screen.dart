@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_naver_map/flutter_naver_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/core/providers/auth_providers.dart';
 import 'package:vybe/core/providers/location_providers.dart';
 import 'package:vybe/core/utils/geohash_utils.dart';
+import 'package:vybe/core/utils/map_launcher.dart';
 import 'package:vybe/core/utils/naver_overlay_image_queue.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/design_system/colors.dart';
@@ -15,7 +17,9 @@ import 'package:vybe/presentation/nearby/viewmodels/nearby_viewmodel.dart';
 import 'package:vybe/presentation/nearby/viewmodels/nearby_search_provider.dart';
 import 'package:vybe/presentation/search/search_screen.dart';
 import 'package:vybe/presentation/search/viewmodels/club_filter_viewmodel.dart';
+import 'package:vybe/presentation/main_scaffold/main_scaffold.dart';
 import 'package:vybe/presentation/main_scaffold/nav_bar_visibility_provider.dart';
+import 'package:vybe/presentation/nearby/widgets/club_pin_card.dart';
 import 'package:vybe/presentation/nearby/widgets/nearby_bottom_sheet.dart';
 import 'package:vybe/presentation/nearby/widgets/nearby_glass.dart';
 import 'package:vybe/presentation/nearby/widgets/nearby_gnb.dart';
@@ -43,6 +47,10 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
   );
   // 주변 탭 인덱스 (MainScaffold PageView 기준).
   static const int _kNearbyTabIndex = 1;
+  // 핀 카드 대략 높이 — 카메라 pivot 계산용(내용에 따라 달라져 근사치로 쓴다).
+  static const double _kPinCardApproxHeight = 380;
+  // 핀 탭 시 확대할 줌. 이미 이보다 더 확대돼 있으면 줄이지 않는다.
+  static const double _kPinFocusZoom = 17.0;
   // 화면 밖에서 마커 변경이 생겨 렌더를 보류한 상태 (다시 보일 때 렌더).
   bool _renderWhenVisible = false;
   // 직전 build에서 주변 탭이 활성이었는지 (숨김→재진입 감지용).
@@ -83,17 +91,29 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
   final Map<String, NMarker> _clubMarkers = {};
   String? _selectedClubId;
 
-  // 이름 라벨 + 핀 이미지 (선택 시 녹색). 캐시 키: clubId|selected
+  // 핀 탭으로 하단에 떠 있는 클럽 카드. null이면 카드 없음(= 리스트 시트 표시).
+  ClubModel? _pinCardClub;
+
+  // 이름 라벨 + 핀 이미지 (선택 시 라임 + 별점·영업여부 확장).
+  // 캐시 키에 평점·영업여부까지 넣는다 — 영업 상태는 시간이 지나면 뒤집히므로
+  // clubId만으로 캐시하면 라벨이 옛 상태로 굳는다.
   Future<NOverlayImage> _getClubPinIcon(ClubModel club, bool selected) async {
-    final key = '${club.clubId}|$selected';
+    final isOpen = club.operatingHours.today.isCurrentlyOpen;
+    final key = '${club.clubId}|$selected|${club.rating}|$isOpen';
     final cached = _clubPinCache[key];
     if (cached != null) return cached;
     // 마커 이미지 생성은 반드시 직렬화 — 동시 생성 시 플러그인이 temp 폴더를
     // 서로 지워 네이티브 크래시가 난다 (NaverOverlayImageQueue 주석 참고).
     final img = await NaverOverlayImageQueue.run(
       () => NOverlayImage.fromWidget(
-        widget: _NearbyPin(label: club.name, selected: selected),
-        size: Size(200.r, 56.r),
+        widget: _NearbyPin(
+          label: club.name,
+          selected: selected,
+          rating: club.rating,
+          reviewCount: club.reviewCount,
+          isOpen: isOpen,
+        ),
+        size: Size(_NearbyPin.canvasWidth.r, _NearbyPin.canvasHeight.r),
         context: context,
       ),
     );
@@ -132,34 +152,87 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
   // 뒤늦게 끝난 선택이 핀을 녹색으로 남겨두는 걸 막는다.
   Future<void>? _pinFocusJob;
 
-  // 핀 탭 → 클럽 상세 페이지 즉시 오픈. 핀 선택 표시·카메라 이동은 뒤에서 처리.
+  // 핀 탭 → 하단 클럽 요약 카드 오픈 (상세 이동은 카드 탭).
   //
-  // 핀 아이콘 재생성(NOverlayImage 직렬 큐)과 카메라 애니메이션은 수백 ms가 걸려서
-  // 이걸 await한 뒤 push하면 탭 후 화면이 멈춘 것처럼 보인다. 상세 화면은 데이터가
-  // 없어도 스켈레톤을 그리므로 먼저 열고 로딩은 그 안에서 보여준다.
+  // 디자인 nearby_glass.jsx: 핀을 고르면 리스트 시트를 내리고 요약 카드를 띄운다.
+  // 카드는 즉시 그리고, 핀 아이콘 교체(NOverlayImage 직렬 큐)·카메라 이동처럼
+  // 수백 ms 걸리는 지도 작업은 뒤에서 진행한다.
   Future<void> _onPinTap(ClubModel club) async {
-    final detail = Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => ClubDetailScreen(clubId: club.clubId)),
-    );
-
-    // 상세가 위에 떠 있는 동안 아래 지도에서 진행 (실패해도 상세 흐름과 무관).
+    setState(() => _pinCardClub = club);
+    // 시트는 감춰지지만 높이는 남아 있어, 카드를 닫았을 때 최소 높이로 돌아오도록
+    // 미리 접어둔다 (디자인 closePin → SNAPS[0]).
+    if (_sheetController.isAttached && _sheetController.size > _kSheetMin) {
+      _sheetController.animateTo(
+        _kSheetMin,
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOut,
+      );
+    }
     _pinFocusJob = _focusPin(club).catchError((_) {});
-
-    await detail;
     await _pinFocusJob;
-    if (!mounted) return;
+  }
 
+  // 핀 카드 탭 → 클럽 상세. 돌아오면 카드는 그대로 유지한다.
+  Future<void> _openDetail(ClubModel club) async {
+    await Navigator.of(context).push(
+      SwipeBackPageRoute(builder: (_) => ClubDetailScreen(clubId: club.clubId)),
+    );
+    if (!mounted) return;
     // 상세에서 스크롤하며 축소된 하단 nav 복원.
     ref.read(navBarVisibilityProvider.notifier).expand();
+  }
+
+  // 카드 닫기 → 핀 선택 해제 + 리스트 시트 복귀.
+  Future<void> _closePinCard() async {
+    final club = _pinCardClub;
+    if (club == null) return;
+    setState(() => _pinCardClub = null);
+    // 선택 표시 작업이 늦게 끝나 핀이 녹색으로 남는 걸 막는다.
+    await _pinFocusJob;
+    if (!mounted) return;
     await _deselectPin(club);
   }
 
-  // 핀을 선택 상태(녹색)로 바꾸고 카메라를 그 위치로 이동.
+  // 핀을 선택 상태(녹색)로 바꾸고 카메라를 그 핀으로 확대 이동.
+  // 하단 카드에 핀이 가리지 않도록 pivot을 위로 올린다.
   Future<void> _focusPin(ClubModel club) async {
+    // pivot은 context를 쓰므로 await 전에 계산.
+    final pivotY = _pinCardPivotY();
     await _selectPin(club);
-    await _mapController?.updateCamera(
-      NCameraUpdate.scrollAndZoomTo(target: NLatLng(club.lat, club.lng)),
+    final controller = _mapController;
+    if (controller == null) return;
+
+    // 이미 더 확대해서 보고 있으면 그 줌을 유지 (탭이 축소로 느껴지지 않게).
+    final current = await controller.getCameraPosition();
+    final zoom = current.zoom < _kPinFocusZoom ? _kPinFocusZoom : current.zoom;
+
+    // 프로그램 이동이라 '현재 지역에서 재검색' 유도는 띄우지 않는다.
+    _ignoreNextIdle = true;
+    await controller.updateCamera(
+      NCameraUpdate.scrollAndZoomTo(
+          target: NLatLng(club.lat, club.lng),
+          zoom: zoom,
+        )
+        ..setPivot(NPoint(0.5, pivotY))
+        ..setAnimation(
+          animation: NCameraAnimation.easing,
+          duration: const Duration(milliseconds: 450),
+        ),
     );
+  }
+
+  // 핀 카드가 떠 있을 때 '보이는 지도 밴드'의 세로 중심 비율 (0~1).
+  double _pinCardPivotY() {
+    if (_stackHeight <= 0) return 0.3;
+    final top = 170.h; // 상단 GNB 스크림 높이
+    final navExpanded = ref.read(navBarVisibilityProvider);
+    final cardTop =
+        _stackHeight -
+        (_kPinCardApproxHeight.h +
+            navBarTotalHeight(context, expanded: navExpanded) +
+            10.h);
+    if (cardTop <= top) return 0.3;
+    return (((top + cardTop) / 2) / _stackHeight).clamp(0.15, 0.5);
   }
 
   // [club] 핀을 선택(녹색)으로 바꾸고 직전 선택은 기본색으로 되돌린다.
@@ -183,6 +256,14 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
     final marker = _clubMarkers[club.clubId];
     if (marker == null) return;
     marker.setIcon(await _getClubPinIcon(club, selected));
+    marker.setZIndex(_pinZIndex(club, selected));
+  }
+
+  // 핀 겹침 순서 (디자인 zIndex: 선택 7 > VYBE 추천 5 > 기본 2).
+  // 선택된 핀의 이름 라벨이 옆 핀에 가리지 않도록 위로 올린다.
+  int _pinZIndex(ClubModel club, bool selected) {
+    if (selected) return 7;
+    return club.isVybeRecommended ? 5 : 2;
   }
 
   // clubId → ClubModel 조회용 (탭 콜백에서 사용).
@@ -245,9 +326,12 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
     _clubById
       ..clear()
       ..addEntries(clubs.map((c) => MapEntry(c.clubId, c)));
-    // 목록에서 사라진 선택 클럽은 선택 해제.
+    // 목록에서 사라진 선택 클럽은 선택 해제 (떠 있던 핀 카드도 함께 닫는다).
     if (_selectedClubId != null && !_clubById.containsKey(_selectedClubId)) {
-      _selectedClubId = null;
+      setState(() {
+        _selectedClubId = null;
+        _pinCardClub = null;
+      });
     }
 
     await _mapController!.clearOverlays();
@@ -276,6 +360,7 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
         // 핀 바닥(라벨+핀 캔버스 하단)이 좌표를 가리키도록.
         anchor: const NPoint(0.5, 1.0),
       );
+      marker.setZIndex(_pinZIndex(c, selected));
       marker.setOnTapListener((_) => _onPinTap(c));
       markers.add(marker);
       _clubMarkers[c.clubId] = marker;
@@ -447,6 +532,8 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
               _buildReSearchButton(),
               _buildMapControls(),
               _buildBottomSheet(),
+              // 핀 카드는 리스트 시트 위 (디자인 zIndex 32).
+              _buildPinCard(),
               // 상단 GNB·칩은 시트보다 위 (시트가 최대로 올라와도 검색바 유지).
               _buildTopOverlay(),
             ],
@@ -627,12 +714,18 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
 
   // 검색 모드 해제 → geo 핀 복귀.
   void _clearSearch() {
-    _selectedClubId = null;
+    setState(() {
+      _selectedClubId = null;
+      _pinCardClub = null;
+    });
     ref.read(nearbySearchResultProvider.notifier).clear();
   }
 
   // 지도 우측 플로팅 컨트롤 — 내 위치 (디자인 NGControls).
+  // 핀 카드가 떠 있으면 숨긴다 (디자인 `{!pinClub && <NGControls/>}`).
   Widget _buildMapControls() {
+    if (_pinCardClub != null) return const SizedBox.shrink();
+
     final sheetSize = _sheetController.isAttached
         ? _sheetController.size
         : _kSheetMin;
@@ -642,11 +735,7 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
       bottom: _stackHeight * sheetSize + 8.h,
       child: NearbyRoundButton(
         onTap: _onLocate,
-        child: Icon(
-          Icons.my_location_rounded,
-          size: 19.r,
-          color: Colors.white,
-        ),
+        child: Icon(Icons.my_location_rounded, size: 19.r, color: Colors.white),
       ),
     );
   }
@@ -722,7 +811,7 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
   }
 
   Widget _buildReSearchButton() {
-    if (!_showReSearch) return const SizedBox.shrink();
+    if (!_showReSearch || _pinCardClub != null) return const SizedBox.shrink();
 
     final sheetSize = _sheetController.isAttached
         ? _sheetController.size
@@ -770,21 +859,95 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
     );
   }
 
-  // 리스트 시트. 핀 탭은 시트를 바꾸지 않고 상세 페이지로 push한다.
+  // 리스트 시트. 핀 카드가 떠 있는 동안은 아래로 밀어 감춘다
+  // (디자인은 시트 높이를 0으로 만들지만 DraggableScrollableSheet는 minChildSize
+  //  아래로 못 내려가므로 슬라이드로 처리 — 시트 상태/스크롤은 그대로 보존된다).
   Widget _buildBottomSheet() {
-    return DraggableScrollableSheet(
-      key: _sheetKey,
-      controller: _sheetController,
-      initialChildSize: _kSheetMin,
-      minChildSize: _kSheetMin,
-      maxChildSize: _kSheetMax,
-      snap: true,
-      snapSizes: const [_kSheetMin, _kSheetMid, _kSheetMax],
-      builder: (_, scrollController) => NearbyBottomSheet(
-        scrollController: scrollController,
-        selectedClubId: _selectedClubId,
+    final hidden = _pinCardClub != null;
+    return IgnorePointer(
+      ignoring: hidden,
+      child: AnimatedSlide(
+        offset: Offset(0, hidden ? 1 : 0),
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOutCubic,
+        child: DraggableScrollableSheet(
+          key: _sheetKey,
+          controller: _sheetController,
+          initialChildSize: _kSheetMin,
+          minChildSize: _kSheetMin,
+          maxChildSize: _kSheetMax,
+          snap: true,
+          snapSizes: const [_kSheetMin, _kSheetMid, _kSheetMax],
+          builder: (_, scrollController) => NearbyBottomSheet(
+            scrollController: scrollController,
+            selectedClubId: _selectedClubId,
+          ),
+        ),
       ),
     );
+  }
+
+  // 핀 탭으로 뜨는 클럽 요약 카드 (디자인 NGPinCard). 카드 탭 → 클럽 상세.
+  //
+  // 카드가 닫혀도(_pinCardClub == null) Positioned는 남겨둔다 —
+  // ClubPinCardTransition이 옛 카드를 붙잡고 퇴장 애니메이션을 돌린다.
+  Widget _buildPinCard() {
+    final club = _pinCardClub;
+    // nav 바가 축소되면 그만큼 카드도 내려가 바와의 여백(10)을 유지한다.
+    // 카드가 없을 땐 구독하지 않는다 — nav 축소마다 화면 전체가 리빌드되는 걸 막고,
+    // 퇴장 애니메이션(240ms) 동안은 마지막 위치를 그대로 쓰면 충분하다.
+    final navExpanded = club != null
+        ? ref.watch(navBarVisibilityProvider)
+        : ref.read(navBarVisibilityProvider);
+
+    return AnimatedPositioned(
+      duration: navBarResizeDuration,
+      curve: navBarResizeCurve,
+      left: 12.w,
+      right: 12.w,
+      bottom: navBarTotalHeight(context, expanded: navExpanded) + 10.h,
+      // 사라지는 중인 카드는 탭을 받지 않는다 (닫자마자 상세로 들어가는 사고 방지).
+      child: IgnorePointer(
+        ignoring: club == null,
+        child: ClubPinCardTransition(
+          child: club == null ? null : _buildPinCardBody(club),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPinCardBody(ClubModel club) {
+    final uid = ref.watch(currentUidProvider);
+    final favoritedIds = ref.watch(mergedFavoriteIdsProvider);
+    final myLocation = ref.watch(userLocationProvider);
+    final isFavorited = favoritedIds.contains(club.clubId);
+
+    return ClubPinCard(
+      // 다른 핀으로 갈아탈 때 새 카드로 인식돼 전환 애니메이션이 다시 돈다.
+      key: ValueKey(club.clubId),
+      club: club,
+      isFavorited: isFavorited,
+      distanceMeters: _distanceM(club, myLocation.lat, myLocation.lng),
+      onTap: () => _openDetail(club),
+      onClose: _closePinCard,
+      onDirectionsTap: () => launchDirections(
+        context,
+        lat: club.lat,
+        lng: club.lng,
+        destination: club.address,
+      ),
+      onFavoriteTap: uid == null
+          ? null
+          : () => ref
+                .read(favoriteViewModelProvider.notifier)
+                .toggleFavorite(uid, club.clubId, isFavorited),
+    );
+  }
+
+  // 좌표가 없는 클럽(0,0)은 거리 표기를 생략한다.
+  double? _distanceM(ClubModel club, double lat, double lng) {
+    if (club.lat == 0 && club.lng == 0) return null;
+    return GeohashUtils.haversineKm(lat, lng, club.lat, club.lng) * 1000;
   }
 
   Future<void> _onReSearch() async {
@@ -826,64 +989,155 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
 }
 
 // 내 위치 점 (파란 점 + 흰 테두리). fromWidget으로 마커 이미지화.
-// 지도 마커: 이름 라벨 pill + 핀. 선택 시 녹색(LIME), 평소 보라.
+// 지도 마커: 이름 라벨 pill + 핀. 선택 시 라임, 평소 보라.
 // fromWidget으로 이미지화 → 핀 바닥이 캔버스 하단(=좌표)에 오도록 하단 정렬.
+//
+// 디자인 nearby_glass_shell.jsx `NGMap` 핀 라벨 — 선택되면 이름표가
+// 보라 그라데이션 → 라임 그라데이션으로 바뀌고, 글자색이 배경색(어두운)으로
+// 반전되며, 테두리가 밝아지고 라임 글로우 + 1.06배 확대가 걸린다.
+//
+// 디자인의 라벨은 이름 한 줄뿐이지만, 선택된 핀은 지도만 보고도 고를 수 있도록
+// 별점·영업여부 줄을 덧붙인다 (디자인에 없는 추가 사양).
 class _NearbyPin extends StatelessWidget {
   final String label;
   final bool selected;
-  const _NearbyPin({required this.label, required this.selected});
+  final double rating;
+  final int reviewCount;
+  final bool isOpen;
+
+  const _NearbyPin({
+    required this.label,
+    required this.selected,
+    required this.rating,
+    required this.reviewCount,
+    required this.isOpen,
+  });
+
+  /// 마커 이미지 캔버스 크기.
+  /// 선택 라벨(2줄) + 간격 + 핀 + 1.06배 확대분까지 담기는 높이로 잡는다.
+  static const double canvasWidth = 200;
+  static const double canvasHeight = 84;
 
   static const _purple = VybeColors.mainPurple700;
   static const _lime = VybeColors.mainLime500;
   static const _bg = VybeColors.background;
 
+  /// 선택 라벨 — linear-gradient(135deg, LIME500, LIME700)
+  static const _selectedFill = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [VybeColors.mainLime500, VybeColors.mainLime700],
+  );
+
+  /// 기본 라벨 — linear-gradient(135deg, purple500 96%, purple700 86%)
+  static const _defaultFill = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xF57731FE), Color(0xDB622ACF)],
+  );
+
   @override
   Widget build(BuildContext context) {
     final pinColor = selected ? _lime : _purple;
     return SizedBox(
-      width: 200.r,
-      height: 56.r,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
-            decoration: BoxDecoration(
-              color: pinColor,
-              borderRadius: BorderRadius.circular(8.r),
-              boxShadow: [
-                BoxShadow(
-                  color: pinColor.withValues(alpha: 0.4),
-                  blurRadius: selected ? 20.r : 12.r,
-                  offset: Offset(0, 4.h),
+      width: canvasWidth.r,
+      height: canvasHeight.r,
+      // 선택된 핀만 살짝 커진다 (디자인 transform: scale(1.06)).
+      // 좌표는 캔버스 하단이므로 아래를 기준으로 키워야 핀 끝이 안 밀린다.
+      child: Transform.scale(
+        scale: selected ? 1.06 : 1.0,
+        alignment: Alignment.bottomCenter,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 9.w, vertical: 4.h),
+              decoration: BoxDecoration(
+                gradient: selected ? _selectedFill : _defaultFill,
+                borderRadius: BorderRadius.circular(9.r),
+                // 선택 시 테두리가 밝아져 지도 위에서 한 번 더 떠 보인다.
+                border: Border.all(
+                  color: selected
+                      ? const Color(0x8CFFFFFF)
+                      : const Color(0x3DFFFFFF),
                 ),
-              ],
-            ),
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontFamily: 'Pretendard',
-                fontSize: 12.sp,
-                fontWeight: FontWeight.w700,
-                height: 14 / 12,
-                letterSpacing: 12 * -0.025,
-                color: selected ? _bg : Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: selected
+                        ? const Color(0x6BB5FF60)
+                        : const Color(0x80622ACF),
+                    blurRadius: selected ? 22.r : 16.r,
+                    offset: Offset(0, selected ? 8.h : 6.h),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: 'Pretendard',
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w700,
+                      height: 14 / 12,
+                      letterSpacing: 12 * -0.025,
+                      color: selected ? _bg : Colors.white,
+                    ),
+                  ),
+                  // 선택된 핀만 별점·영업여부를 펼친다.
+                  if (selected) ...[SizedBox(height: 3.h), _buildMetaRow()],
+                ],
               ),
             ),
-          ),
-          SizedBox(height: 4.h),
-          SizedBox(
-            width: 24.r,
-            height: 27.r,
-            child: CustomPaint(painter: VybeMapPinPainter(color: pinColor)),
-          ),
-        ],
+            SizedBox(height: 3.h),
+            SizedBox(
+              width: 24.r,
+              height: 27.r,
+              child: CustomPaint(painter: VybeMapPinPainter(color: pinColor)),
+            ),
+          ],
+        ),
       ),
     );
   }
+
+  // 선택 라벨 둘째 줄 — `★ 4.76 · 영업중`.
+  // 라임 배경 위라 라임 별/라임 '영업중'은 안 보인다 → 전부 배경색(어두운)으로,
+  // 영업종료만 투명도를 낮춰 구분한다.
+  Widget _buildMetaRow() {
+    final hasRating = reviewCount > 0;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (hasRating) ...[
+          Icon(Icons.star_rounded, size: 11.r, color: _bg),
+          SizedBox(width: 2.w),
+          Text(rating.toStringAsFixed(2), style: _metaStyle(_bg)),
+          SizedBox(width: 4.w),
+          Text('·', style: _metaStyle(const Color(0x8C101013))),
+          SizedBox(width: 4.w),
+        ],
+        Text(
+          isOpen ? '영업중' : '영업종료',
+          style: _metaStyle(isOpen ? _bg : const Color(0x99101013)),
+        ),
+      ],
+    );
+  }
+
+  TextStyle _metaStyle(Color color) => TextStyle(
+    fontFamily: 'Pretendard',
+    fontSize: 10.sp,
+    fontWeight: FontWeight.w700,
+    height: 12 / 10,
+    letterSpacing: 10 * -0.025,
+    color: color,
+  );
 }
 
 // 지역 클러스터 동그라미. 보라 원 + 지역명(작게) + 클럽 수(크게) + glow.

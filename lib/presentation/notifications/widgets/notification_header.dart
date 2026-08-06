@@ -2,6 +2,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/clubs/widgets/club_glass.dart';
@@ -40,7 +41,7 @@ class NotificationHeader extends StatelessWidget {
                 iconSize: 18,
                 iconColor: ClubGlass.t2,
                 onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                  SwipeBackPageRoute(builder: (_) => const SettingsScreen()),
                 ),
               ),
             ],

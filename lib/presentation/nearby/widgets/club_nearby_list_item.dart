@@ -287,7 +287,10 @@ class ClubNearbyListItem extends StatelessWidget {
             SizedBox(width: 6.w),
             const GlassDot(),
             SizedBox(width: 6.w),
-            Text(_hoursLabel(), style: ClubGlass.caption(color: ClubGlass.t3)),
+            Text(
+              todayHoursLabel(today),
+              style: ClubGlass.caption(color: ClubGlass.t3),
+            ),
           ],
         ),
         Row(
@@ -307,16 +310,6 @@ class ClubNearbyListItem extends StatelessWidget {
         ),
       ],
     );
-  }
-
-  // 오늘 휴무 / 마감 시각. 영업 전이면 오픈 시각을 안내한다.
-  String _hoursLabel() {
-    final today = club.operatingHours.today;
-    if (!today.isOpen) return '오늘 휴무';
-    if (today.isCurrentlyOpen) {
-      return today.close != null ? '${today.close}에 영업 종료' : '영업 시간 미등록';
-    }
-    return today.open != null ? '${today.open} 오픈' : '영업 시간 미등록';
   }
 }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/core/constants/app_geo.dart';
+import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/core/providers/auth_providers.dart';
 import 'package:vybe/core/utils/number_format.dart';
 import 'package:vybe/data/models/club_model.dart';
@@ -231,7 +232,7 @@ class _FreeEntryScreenState extends ConsumerState<FreeEntryScreen>
                                   favoritedIds.contains(c.id),
                                 ),
                         onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(
+                          SwipeBackPageRoute(
                             builder: (_) => ClubDetailScreen(clubId: c.id),
                           ),
                         ),

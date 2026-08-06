@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/core/providers/auth_providers.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
@@ -89,7 +90,7 @@ class _LoggedOutView extends StatelessWidget {
           SizedBox(height: 24.h),
           GestureDetector(
             onTap: () => Navigator.of(context, rootNavigator: true).push(
-              MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+              SwipeBackPageRoute(builder: (_) => const WelcomeScreen()),
             ),
             child: Container(
               height: 48.h,

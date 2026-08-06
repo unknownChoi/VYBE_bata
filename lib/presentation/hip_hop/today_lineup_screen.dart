@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/data/models/performance_model.dart';
 import 'package:vybe/design_system/colors.dart';
@@ -106,7 +107,7 @@ _TypeMeta _metaOf(bool isDj) => isDj
 void _openClub(BuildContext context, String clubId) {
   if (clubId.isEmpty) return;
   Navigator.of(context).push(
-    MaterialPageRoute(builder: (_) => ClubDetailScreen(clubId: clubId)),
+    SwipeBackPageRoute(builder: (_) => ClubDetailScreen(clubId: clubId)),
   );
 }
 

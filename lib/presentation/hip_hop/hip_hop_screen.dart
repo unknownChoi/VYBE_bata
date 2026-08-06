@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/data/models/performance_model.dart';
 import 'package:vybe/design_system/colors.dart';
@@ -287,7 +288,7 @@ class _HipHopScreenState extends ConsumerState<HipHopScreen> {
                       title: '오늘의 공연 아티스트',
                       sub: '내 주변 힙합 클럽 · 공연 시간순',
                       onAllTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(
+                        SwipeBackPageRoute(
                           builder: (_) => const TodayLineupScreen(),
                         ),
                       ),
@@ -401,7 +402,7 @@ class _HipHopScreenState extends ConsumerState<HipHopScreen> {
                                 onSave: () => _toggleSave(c.id),
                                 // 카드 탭 → 클럽 상세.
                                 onTap: () => Navigator.of(context).push(
-                                  MaterialPageRoute(
+                                  SwipeBackPageRoute(
                                     builder: (_) =>
                                         ClubDetailScreen(clubId: c.id),
                                   ),
@@ -1050,7 +1051,7 @@ class _DjCircle extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       // 아티스트 탭 → 해당 클럽 상세.
       onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => ClubDetailScreen(clubId: d.clubId)),
+        SwipeBackPageRoute(builder: (_) => ClubDetailScreen(clubId: d.clubId)),
       ),
       child: SizedBox(
         width: 76.w,

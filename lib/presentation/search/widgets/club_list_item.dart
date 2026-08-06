@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
@@ -39,7 +40,7 @@ class ClubListItem extends StatelessWidget {
 
   void _openDetail(BuildContext context) {
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => ClubDetailScreen(clubId: club.clubId)),
+      SwipeBackPageRoute(builder: (_) => ClubDetailScreen(clubId: club.clubId)),
     );
   }
 
