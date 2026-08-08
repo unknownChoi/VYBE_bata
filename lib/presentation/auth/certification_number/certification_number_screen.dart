@@ -1,4 +1,3 @@
-// TODO: certification_number_screen.dart
 // 인증번호 입력 화면 진입점
 // - StatefulWidget 선언 및 State 필드 관리
 // - 계산 로직은 certification_number_logic.dart (LogicMixin)
@@ -143,12 +142,12 @@ class _CertificationNumberScreenState extends ConsumerState<CertificationNumberS
             RichText(
               text: TextSpan(
                 style: VybeTypography.heading3.copyWith(color: Colors.white),
-                children: [
+                children: const [
                   TextSpan(
                     text: '인증번호',
                     style: TextStyle(color: VybeColors.mainLime500),
                   ),
-                  const TextSpan(text: '를 입력해주세요'),
+                  TextSpan(text: '를 입력해주세요'),
                 ],
               ),
             ),

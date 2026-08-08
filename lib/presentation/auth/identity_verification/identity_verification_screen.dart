@@ -1,4 +1,3 @@
-// TODO: identity_verification_screen.dart
 // 본인 인증 화면 진입점 — StatefulWidget 선언 및 State 필드 관리
 // - 단계별 입력 (이름 → 생년월일 → 전화번호 → 통신사)
 // - 계산 로직은 identity_verification_logic.dart (LogicMixin)
@@ -135,7 +134,7 @@ class _IdentityVerificationScreenState extends ConsumerState<IdentityVerificatio
     // 키보드 표시 여부에 따라 확인 버튼 스타일 전환
     // - 표시 중: withKeyboard (borderRadius 없음, 화면 전체 너비)
     // - 숨김: default (borderRadius 있음, 좌우 패딩 포함)
-    final keyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
+    final keyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
 
     return VybeLoadingOverlay(
       isLoading: _isLoading,

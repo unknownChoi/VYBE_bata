@@ -62,15 +62,20 @@ View (Widget) → ViewModel (Notifier) → Repository → DataSource (Firebase)
 │   ├── domain/
 │   │   └── repositories/    # repository 인터페이스 (Firebase 의존 금지)
 │   ├── presentation/
-│   │   ├── common/widgets/  # 공통 위젯 (Vybe prefix)
+│   │   ├── common/          # 화면 공용 — widgets/(Vybe prefix) + location_flip_mixin.dart
 │   │   ├── main_scaffold/   # 루트 IndexedStack + 하단 탭바
-│   │   ├── home/            # 홈
+│   │   ├── home/            # 홈 (widgets/, viewmodels/)
 │   │   ├── promotion/       # 배너 상세 (promotions 콘텐츠 렌더)
-│   │   ├── nearby/          # 내 주변 (지도 기반)
-│   │   ├── saved/           # 찜 (favorites, viewmodels/)
+│   │   ├── nearby/          # 내 주변 (지도 기반, widgets/)
+│   │   ├── saved/           # 찜 (favorites, saved_common.dart, widgets/, viewmodels/)
 │   │   ├── pass_wallet/     # 패스/지갑 (플레이스홀더, 현재 탭에서 미연결)
-│   │   ├── search/          # 검색
+│   │   ├── search/          # 검색 (widgets/, viewmodels/)
 │   │   ├── clubs/           # 클럽 상세 (tabs/, widgets/, viewmodels/)
+│   │   ├── hip_hop/         # 장르 페이지 + 오늘의 라인업 (widgets/, *_models.dart)
+│   │   ├── hot_places/      # 핫플레이스 (더미 데이터, widgets/)
+│   │   ├── recommend/       # VYBE 추천 (widgets/, recommend_models.dart)
+│   │   ├── free_entry/      # 입장비 무료
+│   │   ├── service_drinks/  # 서비스 음료
 │   │   ├── my_page/         # 마이페이지
 │   │   ├── profile/         # 프로필
 │   │   └── auth/            # 인증 플로우
@@ -86,6 +91,22 @@ View (Widget) → ViewModel (Notifier) → Repository → DataSource (Firebase)
     │   └── social/      # 소셜 로그인 아이콘
     └── fonts/
 ```
+
+### 화면 파일 구성 규칙
+
+| 두는 곳 | 무엇을 |
+|---------|--------|
+| `<feature>/<name>_screen.dart` | 화면 조립 + 상태(State/ViewModel 연결)만 |
+| `<feature>/widgets/` | 그 화면 전용 하위 위젯 |
+| `<feature>/<feature>_models.dart` | 표시 전용 모델 + `ClubModel` → 카드 모델 매퍼 |
+| `<feature>/<feature>_style.dart` | 화면 전용 색·상수 |
+| `presentation/common/widgets/` | **두 화면 이상**이 쓰는 위젯 (`Vybe` prefix) |
+
+- 화면 파일이 **300줄을 넘으면 분리 신호**. 위젯을 `widgets/`로 빼고 화면엔 조립만 남긴다.
+- 같은 위젯을 두 번째 화면에서 복붙하게 되면 그때 `common/widgets/`로 승격한다
+  (색·크기가 화면마다 다르면 파라미터로 받되, 기본값은 원래 화면 값 유지).
+- 긴 목록은 `ListView(children: [...])`가 아니라 `SliverList.builder` — 전부 즉시 빌드하지 않는다.
+- `MediaQuery.of(context).padding` 대신 `MediaQuery.paddingOf(context)` (구독 범위 축소).
 
 ---
 
@@ -121,8 +142,11 @@ flutter run
 # 테스트
 flutter test
 
-# 코드 분석
+# 코드 분석 (경고 0 유지 — analysis_options.yaml에 const·정렬 린트 추가돼 있음)
 flutter analyze
+
+# 린트 자동 수정 (const 누락, import 정렬, 미사용 import 등)
+dart fix --apply lib
 
 # 코드 생성 (Freezed, Riverpod, JSON)
 flutter pub run build_runner build --delete-conflicting-outputs
@@ -351,6 +375,9 @@ ElevatedButton(onPressed: () {}, child: Text('로그인'))
 - **공지사항 (2026.08.03)** — `notices` 컬렉션 + 앱 읽기 전용 화면
   (마이페이지 계정 메뉴 → `my_page/notices_screen.dart` 목록 → `notice_detail_screen.dart` 상세).
   카테고리 배지·고정 공지·NEW(7일) 배지·사진 n장. **작성/수정은 어드민 페이지(별도 구축 예정) 전용**
+  - **게시 기간·게시 상태 (2026.08.07)** — 예약 게시(`publishedAt` 미래) / 게시 종료(`endAt`) /
+    게시중단(`isActive=false`, 기간보다 우선) 3조건으로 노출 제어.
+    판정은 `NoticeModel.isVisibleAt(now)` 단일 소스, 목록·단건 조회 양쪽에 적용
 
 ### 미구현 / 진행 중 ✗
 - 패스·지갑 탭 (`pass_wallet_screen.dart` 플레이스홀더 — 현재 탭 슬롯엔 미연결)
@@ -757,16 +784,30 @@ promotionId : string     // 연결된 promotions 문서 id. 비어 있지 않으
                          //   category와 분리 — 프로모션 없는 광고 공지도, 광고 아닌 공지의
                          //   이벤트 페이지 링크도 가능해야 하므로
 isPinned    : boolean    // 상단 고정 (정렬은 클라 메모리에서 처리)
-isActive    : boolean    // 노출 여부. 삭제 대신 false로 숨김
-publishedAt : timestamp  // 노출 기준 시각 = 목록 정렬 키 (createdAt과 분리 → 예약/소급 게시)
+isActive    : boolean    // 게시 상태 — true: 게시 / false: 게시중단.
+                         //   게시중단이면 게시 기간 안이어도 노출 안 됨 (기간보다 우선)
+publishedAt : timestamp  // 게시 시작 시각 = 목록 정렬 키 (createdAt과 분리 → 예약/소급 게시)
+                         //   미래 시각이면 그 시각이 될 때까지 노출 안 됨
+endAt       : timestamp? // 게시 종료 시각. 없으면(null) 무기한 게시
+                         //   지나면 문서를 지우지 않고 목록에서만 사라짐
 authorName  : string     // 표시 작성자 (기본 "VYBE 운영팀")
 createdAt   : timestamp
 updatedAt   : timestamp
 ```
 > 마이페이지 '계정 → 공지사항' 데이터 소스. **top-level** — 클럽·유저에 종속 안 되는
 > 전역 콘텐츠(banners와 동급). **쓰기는 어드민 페이지(별도 구축 예정) 전용 — 앱은 읽기만.**
-> 쿼리: `where isActive==true orderBy publishedAt desc limit 50`.
-> 인덱스: `notices(isActive ASC, publishedAt DESC)`.
+> 쿼리: `where isActive==true + where publishedAt <= now orderBy publishedAt desc limit 50`.
+> 인덱스: `notices(isActive ASC, publishedAt DESC)` — `publishedAt <= now`는 정렬 키와
+> 같은 필드라 **기존 인덱스로 그대로 처리**된다(추가 인덱스 불필요).
+> **노출 조건 3가지** — ① `isActive==true`(게시상태) ② `publishedAt <= now`(게시 시작)
+> ③ `endAt == null || endAt > now`(게시 종료). 판정은 `NoticeModel.isVisibleAt(now)` 한 곳에만 둔다.
+> ⚠ `endAt`은 **메모리에서 필터** — 서로 다른 필드에 범위 조건을 하나 더 걸면 복합 인덱스가
+> 추가로 필요한데 공지 건수가 적어 얻는 게 없다. 대신 `limit`이 종료된 공지까지 세므로
+> 실제 노출 건수가 limit보다 적어질 수 있다.
+> ⚠ 게시 기간은 **Rules에 넣지 않는다** — 클라 시계가 서버보다 조금이라도 앞서면 쿼리 범위가
+> `request.time`을 넘어 목록 전체가 permission-denied가 된다. Rules는 `isActive`만 막는다
+> (게시중단 공지는 문서 ID를 알아도 못 읽음. 예약 공지는 ID를 알면 읽힐 수 있음 — 앱 경로에선
+> `getNotice`가 같은 기준으로 null 처리).
 > ⚠ `isPinned`는 서버 orderBy에 넣지 않고 받아온 뒤 메모리에서 위로 올린다 — 공지 건수가
 > 적어 3필드 인덱스를 유지할 이유가 없고, 정렬 규칙을 바꿔도 인덱스 재배포가 불필요.
 > ⚠ **읽음 상태는 저장하지 않는다.** `users/{uid}/noticeReads` 방식은 공지 열 때마다 write가
@@ -904,7 +945,7 @@ createdAt      : timestamp
 | `{path=**}/reviews` (collectionGroup) | 본인 리뷰만 | 불가 (마이페이지 내 리뷰 조회 전용) |
 | `favorites` | 본인만 | 생성·삭제: 본인만 |
 | `users/.../searchHistory` | 본인만 | 본인만 |
-| `notices` | 누구나 (isActive=true만) | 어드민만 (어드민 페이지 전용) |
+| `notices` | 누구나 (isActive=true만 — 게시 기간은 앱에서 필터) | 어드민만 (어드민 페이지 전용) |
 | `promotions` | 누구나 (isActive는 클라 필터) | 어드민만 (어드민 페이지 전용) |
 | `searchLogs` | **불가** (Admin SDK 전용) | 생성만: 로그인 유저(본인 userId, keyword 2~30자, 필드 화이트리스트). 수정·삭제 불가 |
 | `searchTrends`, `searchHashtags` | 누구나 | 어드민만 |

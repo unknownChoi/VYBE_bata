@@ -6,8 +6,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:liquid_glass_renderer/liquid_glass_renderer.dart';
 import 'package:vybe/design_system/colors.dart';
-import 'package:vybe/presentation/main_scaffold/nav_bar_visibility_provider.dart';
 import 'package:vybe/presentation/home/home_screen.dart';
+import 'package:vybe/presentation/main_scaffold/nav_bar_visibility_provider.dart';
 import 'package:vybe/presentation/my_page/my_page_screen.dart';
 import 'package:vybe/presentation/nearby/nearby_screen.dart';
 import 'package:vybe/presentation/saved/saved_screen.dart';
@@ -32,7 +32,7 @@ const Curve navBarResizeCurve = Curves.easeOutCubic;
 double navBarTotalHeight(BuildContext context, {bool expanded = true}) =>
     _navBarHeight.h * (expanded ? 1.0 : _navBarCollapsedScale) +
     _navBarBottomGap.h +
-    MediaQuery.of(context).padding.bottom;
+    MediaQuery.paddingOf(context).bottom;
 
 /// 탭별 중첩 Navigator.
 /// 상세 페이지 등 화면 전환이 탭 영역(IndexedStack) 안에서만 일어나
@@ -291,7 +291,7 @@ class _BottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).padding.bottom;
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
     return Padding(
       padding: EdgeInsets.fromLTRB(
         16.w,
@@ -307,10 +307,10 @@ class _BottomNavBar extends StatelessWidget {
         // 배경 캡슐 + 활성 탭 indicator 캡슐을 같은 레이어에서 블렌드 →
         // 유리끼리 녹아드는 iOS Liquid Glass 탭 강조 효과.
         child: LiquidGlassLayer(
-          settings: LiquidGlassSettings(
+          settings: const LiquidGlassSettings(
             thickness: 16,
             blur: 8,
-            glassColor: const Color(0x14FFFFFF),
+            glassColor: Color(0x14FFFFFF),
             refractiveIndex: 1.25,
             chromaticAberration: 0.03,
             lightAngle: 1.2,

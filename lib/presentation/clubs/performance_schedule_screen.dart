@@ -141,7 +141,7 @@ class _PerformanceScheduleScreenState
   Widget _header() {
     return Padding(
       padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 6.h,
+        top: MediaQuery.paddingOf(context).top + 6.h,
         bottom: 12.h,
         left: 8.w,
         right: 8.w,

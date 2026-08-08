@@ -99,7 +99,7 @@ class _ToastWidgetState extends ConsumerState<_ToastWidget> {
     // (MainScaffold 밖 화면 — 인증 플로우 등 — 은 바가 없으므로 기본 위치)
     final navBarShown = widget.hasNavBar && !ref.watch(navBarHiddenProvider);
     // 키보드가 올라와 있으면 바는 키보드 뒤에 가려지므로 키보드 위로만 띄운다.
-    final keyboard = MediaQuery.of(context).viewInsets.bottom;
+    final keyboard = MediaQuery.viewInsetsOf(context).bottom;
     final bottomOffset = keyboard > 0
         ? keyboard + 12.h
         : navBarShown

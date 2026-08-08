@@ -41,7 +41,12 @@ const BANNER_TOKEN = {
 const BANNER_IMG = (n) =>
   `${BUCKET_BASE}banners%2Fbanner_ad_${n}.png?alt=media&token=${BANNER_TOKEN[n]}`;
 
-// publishedAt: 오늘 기준 N일 전 (NEW 배지는 7일 이내 기준)
+// 게시 필드 (어드민 페이지에서 입력할 값들의 시드 표현)
+//   daysAgo    : publishedAt = 오늘 기준 N일 전. 음수면 N일 뒤 = 예약 게시
+//                (NEW 배지는 게시 7일 이내 기준)
+//   endInDays  : endAt = 오늘 기준 N일 뒤. 음수면 이미 종료. 생략하면 무기한 게시
+//   isActive   : 게시 상태. 생략하면 true(게시). false면 게시중단 —
+//                게시 기간 안이어도 앱에 안 보인다
 const NOTICES = [
   {
     id: 'notice_001',
@@ -234,6 +239,45 @@ const NOTICES = [
     daysAgo: 1,
     imageUrls: [BANNER_IMG(4)],
   },
+
+  // ── 게시 기간·상태 검증용 샘플 3건 ────────────────────────────────────
+  // 셋 다 앱 공지 목록에 보이면 안 된다. 보이면 필터가 깨진 것.
+  {
+    id: 'notice_101',
+    title: '[검증] 예약 게시 — 3일 뒤 공개',
+    content:
+      '게시 시작일이 아직 오지 않은 공지입니다.\n\n'
+      + '앱 목록에 보이면 publishedAt 필터가 동작하지 않는 것입니다.',
+    category: 'notice',
+    isPinned: false,
+    daysAgo: -3, // 3일 뒤 게시
+    imageUrls: [],
+  },
+  {
+    id: 'notice_102',
+    title: '[검증] 게시 종료 — 어제 종료됨',
+    content:
+      '게시 종료일이 지난 공지입니다.\n\n'
+      + '앱 목록에 보이면 endAt 필터가 동작하지 않는 것입니다.',
+    category: 'notice',
+    isPinned: false,
+    daysAgo: 10,
+    endInDays: -1, // 어제 종료
+    imageUrls: [],
+  },
+  {
+    id: 'notice_103',
+    title: '[검증] 게시중단 — 기간은 유효',
+    content:
+      '게시 기간 안이지만 게시 상태가 "게시중단"인 공지입니다.\n\n'
+      + '앱 목록에 보이면 isActive가 기간보다 우선한다는 규칙이 깨진 것입니다.',
+    category: 'notice',
+    isPinned: true, // 고정 공지여도 게시중단이면 안 보여야 한다
+    daysAgo: 1,
+    endInDays: 30,
+    isActive: false,
+    imageUrls: [],
+  },
 ];
 
 function request(options, body) {
@@ -292,8 +336,15 @@ async function writeNotice(token, notice) {
     // 연결된 프로모션. 빈 문자열이면 앱이 평소대로 공지 상세를 연다.
     promotionId: { stringValue: notice.promotionId ?? '' },
     isPinned: { booleanValue: notice.isPinned },
-    isActive: { booleanValue: true },
+    // 게시 상태 — false면 게시 기간 안이어도 앱에 노출되지 않는다.
+    isActive: { booleanValue: notice.isActive ?? true },
     publishedAt: { timestampValue: daysAgoIso(notice.daysAgo) },
+    // 게시 종료. 없으면 null(무기한) — 필드를 빼면 이전 실행의 endAt이 남으므로
+    // 항상 써서 재실행 결과를 결정적으로 만든다.
+    endAt:
+      notice.endInDays === undefined
+        ? { nullValue: null }
+        : { timestampValue: daysAgoIso(-notice.endInDays) },
     authorName: { stringValue: 'VYBE 운영팀' },
     updatedAt: { timestampValue: now },
   };
@@ -328,7 +379,22 @@ async function main() {
   console.log(`[seed_notices] 공지 ${NOTICES.length}건`);
   NOTICES.forEach((n) => {
     const pin = n.isPinned ? '[고정] ' : '';
-    console.log(`  ${n.id}  ${pin}${n.title}  (${n.category}, ${n.daysAgo}일 전)`);
+    // 앱에 실제로 보이는지 = NoticeModel.isVisibleAt 과 같은 판정
+    const stopped = n.isActive === false;
+    const notYet = n.daysAgo < 0;
+    const ended = n.endInDays !== undefined && n.endInDays <= 0;
+    const state = stopped
+      ? '게시중단'
+      : notYet
+        ? `예약(${-n.daysAgo}일 뒤)`
+        : ended
+          ? '종료됨'
+          : '게시중';
+    const period =
+      n.endInDays === undefined ? '무기한' : `~${n.endInDays}일 뒤`;
+    console.log(
+      `  ${n.id}  ${pin}${n.title}  (${n.category}, ${n.daysAgo}일 전, ${period}, ${state})`
+    );
   });
 
   if (DRY) {

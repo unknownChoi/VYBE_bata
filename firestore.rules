@@ -117,6 +117,10 @@ service cloud.firestore {
 
     // notices/{noticeId} — 공지사항. 작성/수정은 어드민 페이지 전용, 앱은 읽기만.
     // 목록 쿼리가 isActive==true 로 필터하므로 resource 기반 read 규칙과 맞물린다.
+    // 게시상태(isActive=false, 게시중단)는 여기서 막고,
+    // 게시 기간(publishedAt/endAt)은 규칙에 넣지 않는다 — 클라 시계가 서버보다
+    // 조금이라도 앞서면 쿼리 범위가 request.time을 넘어 목록 전체가 거부된다.
+    // 기간 판정은 NoticeModel.isVisibleAt 한 곳에서만 한다.
     match /notices/{noticeId} {
       allow read: if resource.data.isActive == true;
       allow write: if request.auth != null

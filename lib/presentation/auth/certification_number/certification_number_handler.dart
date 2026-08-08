@@ -1,4 +1,3 @@
-// TODO: certification_number_handler.dart
 // 인증번호 화면 이벤트 핸들러
 // - 타이머 시작/정지 (_startTimer)
 // - 포커스 변경 감지 (_onFocusChanged)

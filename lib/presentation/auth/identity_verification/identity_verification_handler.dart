@@ -1,4 +1,3 @@
-// TODO: identity_verification_handler.dart
 // 본인 인증 화면 이벤트 핸들러
 // - 생년월일 앞 6자리 자동 포커스 이동 (_onBirthFrontChanged)
 // - 확인 버튼 처리 — 단계 전진 또는 약관 시트 표시 (_onConfirm)

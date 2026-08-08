@@ -21,7 +21,7 @@ class NotificationHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final top = MediaQuery.of(context).padding.top;
+    final top = MediaQuery.paddingOf(context).top;
 
     return Padding(
       padding: EdgeInsets.fromLTRB(16.w, top + 8.h, 16.w, 16.h),

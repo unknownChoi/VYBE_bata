@@ -72,7 +72,7 @@ class _VerifySheet extends StatelessWidget {
                 color: VybeColors.gray500,
                 height: 22 / 14,
               ),
-              children: [
+              children: const [
                 TextSpan(
                   text: 'V',
                   style: TextStyle(
@@ -101,7 +101,7 @@ class _VerifySheet extends StatelessWidget {
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                const TextSpan(
+                TextSpan(
                   text: '는 19세 이상만 이용할 수 있어요.\n안전한 이용을 위해 본인 인증을 진행해주세요.',
                 ),
               ],

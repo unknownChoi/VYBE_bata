@@ -1,4 +1,3 @@
-// TODO: certification_number_logic.dart
 // 인증번호 화면 순수 계산 로직 (Computed Properties)
 // - 확인 버튼 활성화 여부 (_canConfirm)
 // - 서브타이틀 텍스트·색상·아이콘 (_subtitleText, _subtitleColor, _subtitleIconPath)

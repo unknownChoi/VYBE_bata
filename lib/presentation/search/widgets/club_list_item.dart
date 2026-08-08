@@ -4,12 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vybe/core/navigation/swipe_back_page_route.dart';
+import 'package:vybe/core/utils/gradient_palette.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
-import 'package:vybe/presentation/common/widgets/vybe_meta_dot.dart';
 import 'package:vybe/presentation/clubs/club_detail_screen.dart';
+import 'package:vybe/presentation/common/widgets/vybe_meta_dot.dart';
 import 'package:vybe/presentation/common/widgets/vybe_recommend_badge.dart';
+import 'package:vybe/presentation/common/widgets/vybe_save_button.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 
 // 검색결과 카드 (search_results_v2 리뉴얼) — 이미지 중심 + 하단 유체 글래스 바.
@@ -47,7 +49,7 @@ class ClubListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final grad =
-        _fallbackGradients[club.clubId.hashCode.abs() % _fallbackGradients.length];
+        gradientForKey(_fallbackGradients, club.clubId);
     return GestureDetector(
       onTap: () => _openDetail(context),
       behavior: HitTestBehavior.opaque,
@@ -150,23 +152,7 @@ class ClubListItem extends StatelessWidget {
     return Positioned(
       top: 12.h,
       right: 12.w,
-      child: GestureDetector(
-        onTap: onFavoriteTap,
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          width: 32.r,
-          height: 32.r,
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.42),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            isFavorited ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-            size: 17.r,
-            color: isFavorited ? VybeColors.mainPurple500 : Colors.white,
-          ),
-        ),
-      ),
+      child: VybeSaveButton(saved: isFavorited, onTap: onFavoriteTap),
     );
   }
 

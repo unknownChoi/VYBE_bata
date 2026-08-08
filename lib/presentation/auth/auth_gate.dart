@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/auth/viewmodels/auth_viewmodel.dart';
 import 'package:vybe/presentation/auth/welcome/welcome_screen.dart';
 import 'package:vybe/presentation/common/widgets/vybe_spinner.dart';
 import 'package:vybe/presentation/home/viewmodels/home_skeleton_provider.dart';
 import 'package:vybe/presentation/main_scaffold/main_scaffold.dart';
-import 'package:vybe/design_system/colors.dart';
 
 /// 앱 루트 라우트. 로그인 여부로 진입 화면을 강제한다.
 ///

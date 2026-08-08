@@ -80,7 +80,7 @@ class _TermsAgreementSheetState extends State<TermsAgreementSheet> {
         20.w,
         60.h,
         20.w,
-        40.h + MediaQuery.of(context).padding.bottom,
+        40.h + MediaQuery.paddingOf(context).bottom,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,

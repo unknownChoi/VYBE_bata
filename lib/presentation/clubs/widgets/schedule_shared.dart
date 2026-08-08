@@ -293,7 +293,7 @@ class _ActRow extends StatelessWidget {
       padding: EdgeInsets.only(top: first ? 0 : 10.h, bottom: 10.h),
       decoration: first
           ? null
-          : BoxDecoration(
+          : const BoxDecoration(
               border: Border(top: BorderSide(color: VybeColors.gray900)),
             ),
       child: Row(

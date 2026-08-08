@@ -1,4 +1,3 @@
-// TODO: signup_success_screen.dart
 // 회원가입 완료 화면 (SignupSuccessScreen)
 // - 배경 동영상 무한 반복 재생 (assets/videos/signup_succes.mp4)
 // - VYBE 로고 + "와 함께" 텍스트

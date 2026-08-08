@@ -4,19 +4,18 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:vybe/core/providers/auth_providers.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
 import 'package:vybe/presentation/clubs/viewmodels/review_viewmodel.dart';
+import 'package:vybe/presentation/clubs/widgets/review_star_rating.dart';
+import 'package:vybe/presentation/clubs/widgets/review_write_glass.dart';
 import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
 import 'package:vybe/presentation/main_scaffold/nav_bar_hide_route.dart';
 
 // 디자인: review_write.jsx (WRITE REVIEW — LIQUID GLASS)
-
-const _kStarAsset = 'assets/icons/common/club_card/star.svg';
 
 /// 별점 라벨 — rating.ceil() 인덱스로 조회.
 /// 0.5 단위라 0.5~1.0 → '별로예요', 1.5~2.0 → '아쉬워요' … 로 묶인다.
@@ -33,14 +32,6 @@ const _kCautions = [
 const _kMaxPhotos = 4;
 const _kMaxLength = 500;
 const _kMinLength = 5;
-
-// 글래스 톤 (디자인 RG_GLASS / RG_TILE)
-const _glassFill = Color(0x29787880); // rgba(120,120,128,0.16)
-const _glassBorder = Color(0x1AFFFFFF); // rgba(255,255,255,0.10)
-const _tileFill = Color(0x14FFFFFF); // rgba(255,255,255,0.08)
-const _tileBorder = Color(0x1FFFFFFF); // rgba(255,255,255,0.12)
-const _barFill = Color(0x8C0E0D12); // rgba(14,13,18,0.55)
-const _ink = Color(0xFF0E0D12);
 
 /// 리뷰 작성 페이지.
 ///
@@ -175,11 +166,11 @@ class _ReviewWriteScreenState extends ConsumerState<ReviewWriteScreen> {
     final club = ref.watch(clubDetailProvider(widget.clubId)).value;
 
     return Scaffold(
-      backgroundColor: _ink,
+      backgroundColor: kReviewInk,
       resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
-          const Positioned.fill(child: _ReviewAurora()),
+          const Positioned.fill(child: ReviewAurora()),
           SafeArea(
             child: Column(
               children: [
@@ -205,7 +196,7 @@ class _ReviewWriteScreenState extends ConsumerState<ReviewWriteScreen> {
         child: Container(
           padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
           decoration: const BoxDecoration(
-            color: _barFill,
+            color: kReviewBarFill,
             border: Border(bottom: BorderSide(color: Color(0x14FFFFFF))),
           ),
           child: Row(
@@ -217,9 +208,9 @@ class _ReviewWriteScreenState extends ConsumerState<ReviewWriteScreen> {
                   width: 34.r,
                   height: 34.r,
                   decoration: BoxDecoration(
-                    color: _tileFill,
+                    color: kReviewTileFill,
                     shape: BoxShape.circle,
-                    border: Border.all(color: _tileBorder),
+                    border: Border.all(color: kReviewTileBorder),
                   ),
                   child: Icon(
                     Icons.arrow_back_ios_new_rounded,
@@ -275,7 +266,7 @@ class _ReviewWriteScreenState extends ConsumerState<ReviewWriteScreen> {
         '${now.year}.${now.month.toString().padLeft(2, '0')}'
         '.${now.day.toString().padLeft(2, '0')} 방문';
 
-    return _GlassCard(
+    return ReviewGlassCard(
       padding: 14,
       radius: 18,
       child: Row(
@@ -339,7 +330,7 @@ class _ReviewWriteScreenState extends ConsumerState<ReviewWriteScreen> {
   Widget _buildRatingCard() {
     final label = _kRatingLabels[_rating.ceil()];
 
-    return _GlassCard(
+    return ReviewGlassCard(
       padding: 22,
       child: Column(
         children: [
@@ -352,7 +343,7 @@ class _ReviewWriteScreenState extends ConsumerState<ReviewWriteScreen> {
             ),
           ),
           SizedBox(height: 14.h),
-          _HalfStarRating(
+          ReviewHalfStarRating(
             rating: _rating,
             onChanged: (v) => setState(() => _rating = v),
           ),
@@ -375,7 +366,7 @@ class _ReviewWriteScreenState extends ConsumerState<ReviewWriteScreen> {
   }
 
   Widget _buildPhotoCard() {
-    return _GlassCard(
+    return ReviewGlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -431,7 +422,7 @@ class _ReviewWriteScreenState extends ConsumerState<ReviewWriteScreen> {
       onTap: _pickPhotos,
       behavior: HitTestBehavior.opaque,
       child: CustomPaint(
-        painter: _DashedBorderPainter(radius: 14.r),
+        painter: ReviewDashedBorderPainter(radius: 14.r),
         child: Container(
           width: 72.r,
           height: 72.r,
@@ -505,7 +496,7 @@ class _ReviewWriteScreenState extends ConsumerState<ReviewWriteScreen> {
   Widget _buildContentCard() {
     final length = _controller.text.characters.length;
 
-    return _GlassCard(
+    return ReviewGlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -629,7 +620,7 @@ class _ReviewWriteScreenState extends ConsumerState<ReviewWriteScreen> {
         child: Container(
           padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 20.h),
           decoration: const BoxDecoration(
-            color: _barFill,
+            color: kReviewBarFill,
             border: Border(top: BorderSide(color: Color(0x14FFFFFF))),
           ),
           child: GestureDetector(
@@ -672,7 +663,7 @@ class _ReviewWriteScreenState extends ConsumerState<ReviewWriteScreen> {
                       height: 18.r,
                       child: CircularProgressIndicator(
                         strokeWidth: 2.r,
-                        color: _ink,
+                        color: kReviewInk,
                       ),
                     )
                   : Text(
@@ -681,7 +672,7 @@ class _ReviewWriteScreenState extends ConsumerState<ReviewWriteScreen> {
                         fontFamily: 'Pretendard',
                         fontSize: 16.sp,
                         fontWeight: FontWeight.w700,
-                        color: enabled ? _ink : const Color(0x4DFFFFFF),
+                        color: enabled ? kReviewInk : const Color(0x4DFFFFFF),
                       ),
                     ),
             ),
@@ -726,296 +717,3 @@ class _ReviewWriteScreenState extends ConsumerState<ReviewWriteScreen> {
 // =============================================================================
 // 별점 — 0.5 단위
 // =============================================================================
-
-/// 별 하나를 반쪽 단위까지 채우는 별점 입력.
-///
-/// 별의 왼쪽 절반을 누르면 x.5, 오른쪽 절반을 누르면 x.0.
-/// 가로로 드래그하면 값이 이어서 바뀐다. 최소 0.5, 최대 5.0.
-class _HalfStarRating extends StatelessWidget {
-  final double rating;
-  final ValueChanged<double> onChanged;
-
-  const _HalfStarRating({required this.rating, required this.onChanged});
-
-  static const _count = 5;
-
-  @override
-  Widget build(BuildContext context) {
-    final star = 40.r;
-    final gap = 10.w;
-    final width = star * _count + gap * (_count - 1);
-
-    void update(double dx) {
-      final unit = star + gap;
-      final index = (dx / unit).floor().clamp(0, _count - 1);
-      final inStar = dx - index * unit;
-      // 별 안쪽 왼쪽 절반이면 반 개, 그 외(오른쪽 절반·별 사이 간격)면 한 개.
-      final fill = inStar <= star / 2 ? 0.5 : 1.0;
-      final next = index + fill;
-      if (next != rating) onChanged(next);
-    }
-
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTapDown: (d) => update(d.localPosition.dx),
-      onHorizontalDragUpdate: (d) => update(d.localPosition.dx),
-      child: SizedBox(
-        width: width,
-        height: star,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (var i = 0; i < _count; i++) ...[
-              _StarIcon(size: star, fill: (rating - i).clamp(0.0, 1.0)),
-              if (i != _count - 1) SizedBox(width: gap),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _StarIcon extends StatelessWidget {
-  final double size;
-
-  /// 0.0(빈 별) ~ 1.0(꽉 찬 별). 0.5면 왼쪽 절반만 채워진다.
-  final double fill;
-
-  const _StarIcon({required this.size, required this.fill});
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedScale(
-      scale: fill > 0 ? 1.06 : 1.0,
-      duration: const Duration(milliseconds: 180),
-      curve: Curves.easeOut,
-      child: SizedBox(
-        width: size,
-        height: size,
-        child: Stack(
-          children: [
-            SvgPicture.asset(
-              _kStarAsset,
-              width: size,
-              height: size,
-              colorFilter: const ColorFilter.mode(
-                Color(0x24FFFFFF), // rgba(255,255,255,0.14)
-                BlendMode.srcIn,
-              ),
-            ),
-            if (fill > 0)
-              ClipRect(
-                clipper: _StarFillClipper(fill),
-                child: SvgPicture.asset(
-                  _kStarAsset,
-                  width: size,
-                  height: size,
-                  colorFilter: const ColorFilter.mode(
-                    VybeColors.mainLime500,
-                    BlendMode.srcIn,
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _StarFillClipper extends CustomClipper<Rect> {
-  final double fraction;
-
-  const _StarFillClipper(this.fraction);
-
-  @override
-  Rect getClip(Size size) =>
-      Rect.fromLTWH(0, 0, size.width * fraction, size.height);
-
-  @override
-  bool shouldReclip(_StarFillClipper oldClipper) =>
-      oldClipper.fraction != fraction;
-}
-
-// =============================================================================
-// 공통 조각
-// =============================================================================
-
-/// 리퀴드 글래스 카드 (디자인 RG_GLASS + 좌상단 하이라이트).
-class _GlassCard extends StatelessWidget {
-  final Widget child;
-  final double padding;
-  final double radius;
-
-  const _GlassCard({required this.child, this.padding = 18, this.radius = 20});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(radius.r),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0x5C000000),
-            blurRadius: 30.r,
-            offset: Offset(0, 10.h),
-          ),
-        ],
-      ),
-      // 테두리는 하이라이트 위에 그린다.
-      foregroundDecoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(radius.r),
-        border: Border.all(color: _glassBorder),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(radius.r),
-        child: BackdropFilter(
-          // CSS blur(18px) ≈ sigma 9.
-          filter: ui.ImageFilter.blur(sigmaX: 9, sigmaY: 9),
-          // 채움색과 하이라이트는 레이어를 나눈다 — 한 BoxDecoration에
-          // color·gradient를 같이 주면 gradient가 color를 덮어 카드가 사라진다.
-          child: ColoredBox(
-            color: _glassFill,
-            child: Stack(
-              fit: StackFit.passthrough,
-              children: [
-                // 좌상단에서 번지는 유리 하이라이트.
-                const Positioned.fill(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: RadialGradient(
-                        center: Alignment(-0.76, -1),
-                        radius: 1.1,
-                        colors: [Color(0x1AFFFFFF), Color(0x00FFFFFF)],
-                        stops: [0.0, 0.58],
-                      ),
-                    ),
-                  ),
-                ),
-                const Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: 1,
-                  child: ColoredBox(color: Color(0x29FFFFFF)),
-                ),
-                Padding(padding: EdgeInsets.all(padding.r), child: child),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// 사진 추가 버튼의 점선 테두리 (Flutter 기본 Border에 dashed가 없어 직접 그림).
-class _DashedBorderPainter extends CustomPainter {
-  final double radius;
-
-  const _DashedBorderPainter({required this.radius});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color =
-          const Color(0x38FFFFFF) // rgba(255,255,255,0.22)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
-
-    final path = Path()
-      ..addRRect(
-        RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(radius)),
-      );
-
-    const dash = 4.0;
-    const space = 3.0;
-    for (final metric in path.computeMetrics()) {
-      var distance = 0.0;
-      while (distance < metric.length) {
-        final end = (distance + dash).clamp(0.0, metric.length);
-        canvas.drawPath(metric.extractPath(distance, end), paint);
-        distance = end + space;
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(_DashedBorderPainter oldDelegate) =>
-      oldDelegate.radius != radius;
-}
-
-/// 리뷰 작성 페이지 배경 (디자인 RG_AURORA).
-class _ReviewAurora extends StatelessWidget {
-  const _ReviewAurora();
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF120F1A), VybeColors.background, Color(0xFF0E0D12)],
-          stops: [0.0, 0.34, 1.0],
-        ),
-      ),
-      child: Stack(
-        children: [
-          // 좌상단 보라 글로우
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 260.h,
-            child: const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  center: Alignment(-0.88, -1),
-                  radius: 1.3,
-                  colors: [Color(0x577731FE), Color(0x00000000)],
-                  stops: [0.0, 0.6],
-                ),
-              ),
-            ),
-          ),
-          // 우상단 라임 글로우
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 240.h,
-            child: const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  center: Alignment(1, -0.88),
-                  radius: 1.3,
-                  colors: [Color(0x21B5FF60), Color(0x00000000)],
-                  stops: [0.0, 0.62],
-                ),
-              ),
-            ),
-          ),
-          // 우하단 보라 글로우
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            height: 340.h,
-            child: const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  center: Alignment(0.6, 0.88),
-                  radius: 1.4,
-                  colors: [Color(0x247731FE), Color(0x00000000)],
-                  stops: [0.0, 0.66],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

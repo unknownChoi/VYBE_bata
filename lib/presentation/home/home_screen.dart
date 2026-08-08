@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
-import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
 import 'package:vybe/presentation/common/widgets/ambient_backdrop.dart';
 import 'package:vybe/presentation/home/viewmodels/home_skeleton_provider.dart';
 import 'package:vybe/presentation/home/widgets/home_banner.dart';
@@ -58,7 +57,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final top = MediaQuery.of(context).padding.top;
+    final top = MediaQuery.paddingOf(context).top;
 
     return Scaffold(
       backgroundColor: VybeColors.background,
@@ -84,7 +83,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       child: ListView(
                         padding: EdgeInsets.only(
                           top: top + 52.h,
-                          bottom: MediaQuery.of(context).padding.bottom + 100.h,
+                          bottom: MediaQuery.paddingOf(context).bottom + 100.h,
                         ),
                         // HomeLocationGreeting / HomeBanner / HomeNearbyClubs는
                         // 현재 노출 보류 상태 — 위젯 파일은 그대로 남아 있으므로

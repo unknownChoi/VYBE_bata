@@ -16,7 +16,7 @@ class HomeGnb extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final top = MediaQuery.of(context).padding.top;
+    final top = MediaQuery.paddingOf(context).top;
 
     return ClipRect(
       child: BackdropFilter(

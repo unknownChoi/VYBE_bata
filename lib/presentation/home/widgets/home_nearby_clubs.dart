@@ -3,11 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vybe/core/navigation/swipe_back_page_route.dart';
+import 'package:vybe/core/utils/gradient_palette.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
-import 'package:vybe/presentation/common/widgets/vybe_meta_dot.dart';
 import 'package:vybe/presentation/clubs/club_detail_screen.dart';
+import 'package:vybe/presentation/common/widgets/vybe_meta_dot.dart';
 import 'package:vybe/presentation/common/widgets/vybe_recommend_badge.dart';
 import 'package:vybe/presentation/home/viewmodels/home_nearby_viewmodel.dart';
 import 'package:vybe/presentation/main_scaffold/nav_bar_visibility_provider.dart';
@@ -119,8 +120,7 @@ class _ClubCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final grad =
-        _fallbackGradients[club.clubId.hashCode.abs() %
-            _fallbackGradients.length];
+        gradientForKey(_fallbackGradients, club.clubId);
 
     return GestureDetector(
       onTap: () => Navigator.of(context).push(

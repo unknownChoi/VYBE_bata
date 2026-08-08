@@ -12,8 +12,8 @@ import 'package:vybe/presentation/common/widgets/vybe_glass_surface.dart';
 import 'package:vybe/presentation/common/widgets/vybe_shimmer.dart';
 import 'package:vybe/presentation/my_page/notice_detail_screen.dart';
 import 'package:vybe/presentation/my_page/viewmodels/notice_viewmodel.dart';
-import 'package:vybe/presentation/promotion/promotion_detail_screen.dart';
 import 'package:vybe/presentation/my_page/widgets/notice_glass.dart';
+import 'package:vybe/presentation/promotion/promotion_detail_screen.dart';
 
 // ============================================================
 // 공지사항 목록 (마이페이지 → 계정 → 공지사항)
@@ -35,7 +35,7 @@ class NoticesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final noticesAsync = ref.watch(noticesProvider);
-    final bottomPad = 30.h + MediaQuery.of(context).padding.bottom;
+    final bottomPad = 30.h + MediaQuery.paddingOf(context).bottom;
 
     return Scaffold(
       backgroundColor: ClubGlass.ink,
@@ -115,7 +115,7 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final top = MediaQuery.of(context).padding.top;
+    final top = MediaQuery.paddingOf(context).top;
 
     return Padding(
       padding: EdgeInsets.fromLTRB(16.w, top + 8.h, 16.w, 18.h),

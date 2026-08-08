@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/data/models/search_history_model.dart';
@@ -119,8 +120,7 @@ class SearchViewModel extends _$SearchViewModel {
             .addSearchHistory(userId, _keyword);
         if (ref.mounted) ref.invalidate(searchHistoryProvider(userId));
       } catch (e) {
-        // ignore: avoid_print
-        print('[Search] 검색기록 저장 실패(무시): $e');
+        debugPrint('[Search] 검색기록 저장 실패(무시): $e');
       }
       logSearch(userId: userId, keyword: _keyword, source: source);
     }
@@ -139,8 +139,7 @@ class SearchViewModel extends _$SearchViewModel {
         .read(searchTrendRepositoryProvider)
         .logSearch(userId: userId, keyword: keyword, source: source)
         .catchError((Object e) {
-      // ignore: avoid_print
-      print('[Search] 검색로그 기록 실패(무시): $e');
+      debugPrint('[Search] 검색로그 기록 실패(무시): $e');
     });
   }
 
@@ -195,8 +194,7 @@ class SearchViewModel extends _$SearchViewModel {
       ref.invalidate(searchHistoryProvider(userId));
       return true;
     } catch (e) {
-      // ignore: avoid_print
-      print('[Search] 검색기록 전체 삭제 실패: $e');
+      debugPrint('[Search] 검색기록 전체 삭제 실패: $e');
       return false;
     } finally {
       link.close();

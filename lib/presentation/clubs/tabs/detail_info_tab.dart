@@ -16,6 +16,7 @@ import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
 import 'package:vybe/presentation/clubs/widgets/club_detail_skeleton.dart';
 import 'package:vybe/presentation/clubs/widgets/club_glass.dart';
 import 'package:vybe/presentation/common/widgets/vybe_map_pin.dart';
+import 'package:vybe/presentation/common/widgets/vybe_my_location_dot.dart';
 import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
 
 /// 클럽 상세 · 매장 정보 탭 (리퀴드 글래스).
@@ -452,7 +453,7 @@ class _NaverMapCardState extends ConsumerState<_NaverMapCard> {
             final myIcon = _myLocationIcon ??=
                 await NaverOverlayImageQueue.run<NOverlayImage>(
                   () => NOverlayImage.fromWidget(
-                    widget: const _MyLocationDot(),
+                    widget: const VybeMyLocationDot(),
                     size: const Size(28, 28),
                     context: context,
                   ),
@@ -473,32 +474,6 @@ class _NaverMapCardState extends ConsumerState<_NaverMapCard> {
   }
 }
 
-// 내 위치 점 (파란 점 + 흰 테두리). fromWidget으로 마커 이미지화.
-class _MyLocationDot extends StatelessWidget {
-  const _MyLocationDot();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Container(
-        width: 18.r,
-        height: 18.r,
-        decoration: BoxDecoration(
-          color: const Color(0xFF0086FF),
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white, width: 3),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF0086FF).withValues(alpha: 0.4),
-              blurRadius: 6,
-              spreadRadius: 1,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 // 지도 마커용 보라 라벨 + 핀 (디자인의 main pin).
 // fromWidget으로 이미지화 → 핀 바닥이 캔버스 하단(=좌표)에 오도록 하단 정렬.

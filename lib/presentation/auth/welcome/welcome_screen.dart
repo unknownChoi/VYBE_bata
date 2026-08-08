@@ -15,8 +15,8 @@ import 'package:vybe/presentation/auth/identity_verification/identity_verificati
 import 'package:vybe/presentation/auth/viewmodels/auth_viewmodel.dart';
 import 'package:vybe/presentation/auth/welcome/login_method_bottom_sheet.dart';
 import 'package:vybe/presentation/common/widgets/vybe_spinner.dart';
-import 'package:vybe/presentation/home/viewmodels/banner_viewmodel.dart';
 import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
+import 'package:vybe/presentation/home/viewmodels/banner_viewmodel.dart';
 
 class WelcomeScreen extends ConsumerStatefulWidget {
   const WelcomeScreen({super.key});
@@ -158,12 +158,12 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                         letterSpacing: -0.025 * 28,
                         height: 30 / 28,
                       ),
-                      children: [
+                      children: const [
                         TextSpan(
                           text: '바이브',
                           style: TextStyle(color: VybeColors.mainLime500),
                         ),
-                        const TextSpan(
+                        TextSpan(
                           text: ' 탈 준비 됐어?',
                           style: TextStyle(color: Colors.white),
                         ),
@@ -286,8 +286,8 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                         color: VybeColors.gray600,
                         height: 1.5,
                       ),
-                      children: [
-                        const TextSpan(text: '가입 시 '),
+                      children: const [
+                        TextSpan(text: '가입 시 '),
                         TextSpan(
                           text: '서비스 약관',
                           style: TextStyle(
@@ -296,7 +296,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                             decorationColor: VybeColors.gray400,
                           ),
                         ),
-                        const TextSpan(text: ' 및 '),
+                        TextSpan(text: ' 및 '),
                         TextSpan(
                           text: '개인정보 처리방침',
                           style: TextStyle(
@@ -305,7 +305,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                             decorationColor: VybeColors.gray400,
                           ),
                         ),
-                        const TextSpan(text: '에 동의합니다.'),
+                        TextSpan(text: '에 동의합니다.'),
                       ],
                     ),
                     textAlign: TextAlign.center,

@@ -16,6 +16,7 @@ import 'package:vybe/presentation/nearby/viewmodels/nearby_search_provider.dart'
 import 'package:vybe/presentation/nearby/viewmodels/nearby_viewmodel.dart';
 import 'package:vybe/presentation/nearby/widgets/club_nearby_list_item.dart';
 import 'package:vybe/presentation/nearby/widgets/nearby_glass.dart';
+import 'package:vybe/presentation/nearby/widgets/nearby_list_item_skeleton.dart';
 import 'package:vybe/presentation/search/viewmodels/club_filter_viewmodel.dart';
 import 'package:vybe/presentation/search/widgets/filter_chip_bar.dart';
 
@@ -150,7 +151,7 @@ class NearbyBottomSheet extends ConsumerWidget {
                 itemCount: 3,
                 itemBuilder: (_, __) => const NearbyListItemSkeleton(),
               ),
-              error: (e, _) => SliverToBoxAdapter(
+              error: (e, _) => const SliverToBoxAdapter(
                 child: _MessageCard(
                   icon: Icons.cloud_off_rounded,
                   title: '클럽 정보를 불러올 수 없어요',
@@ -240,7 +241,7 @@ class _EmptyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (searching) {
-      return _MessageCard(
+      return const _MessageCard(
         icon: Icons.search_rounded,
         title: '검색 결과가 없어요',
         message: '다른 키워드로 검색하거나\n지도를 움직여 재검색해보세요',

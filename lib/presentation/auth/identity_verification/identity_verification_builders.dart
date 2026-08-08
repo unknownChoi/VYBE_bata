@@ -1,4 +1,3 @@
-// TODO: identity_verification_builders.dart
 // 본인 인증 화면 UI 빌더 헬퍼
 // - 단계별 페이지 타이틀 (_buildTitle)
 // - 활성/완료 필드 전환 빌더 (_buildFieldForStep)

@@ -69,33 +69,33 @@ class _ComponentGalleryState extends State<ComponentGallery> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ─────────────────── Button ───────────────────
-            _SectionHeader('Button'),
-            _Label('Default'),
+            const _SectionHeader('Button'),
+            const _Label('Default'),
             VybeButton(label: '버튼', onTap: () {}),
             SizedBox(height: 12.h),
-            _Label('Special (라임 테두리)'),
+            const _Label('Special (라임 테두리)'),
             VybeButton(label: '버튼', onTap: () {}, variant: VybeButtonVariant.special),
             SizedBox(height: 12.h),
-            _Label('withKeyboard (radius 없음)'),
+            const _Label('withKeyboard (radius 없음)'),
             VybeButton(label: '버튼', onTap: () {}, variant: VybeButtonVariant.withKeyboard),
             SizedBox(height: 12.h),
-            _Label('Disabled'),
-            VybeButton(label: '버튼', onTap: null),
+            const _Label('Disabled'),
+            const VybeButton(label: '버튼', onTap: null),
             SizedBox(height: 12.h),
-            _Label('TextButton'),
+            const _Label('TextButton'),
             VybeButton(label: '텍스트 버튼', onTap: () {}, variant: VybeButtonVariant.textButton),
             _Divider(),
 
             // ─────────────────── TextField ───────────────────
-            _SectionHeader('TextField'),
-            _Label('Default (입력해보세요)'),
+            const _SectionHeader('TextField'),
+            const _Label('Default (입력해보세요)'),
             VybeTextField(
               hint: 'placeholder',
               controller: _textController,
               onClear: () => setState(() {}),
             ),
             SizedBox(height: 24.h),
-            _Label('Error'),
+            const _Label('Error'),
             VybeTextField(
               hint: 'placeholder',
               controller: _errorController,
@@ -103,7 +103,7 @@ class _ComponentGalleryState extends State<ComponentGallery> {
               onClear: () => setState(() {}),
             ),
             SizedBox(height: 24.h),
-            _Label('Disabled'),
+            const _Label('Disabled'),
             VybeTextField(
               hint: 'placeholder',
               controller: _disabledController,
@@ -113,8 +113,8 @@ class _ComponentGalleryState extends State<ComponentGallery> {
             _Divider(),
 
             // ─────────────────── Dropdown ───────────────────
-            _SectionHeader('Dropdown'),
-            _Label('Default'),
+            const _SectionHeader('Dropdown'),
+            const _Label('Default'),
             VybeDropdown(
               hint: 'placeholder',
               items: const ['아이템 1', '아이템 2', '아이템 3'],
@@ -122,7 +122,7 @@ class _ComponentGalleryState extends State<ComponentGallery> {
               onChanged: (val) => setState(() => _dropdownValue = val),
             ),
             SizedBox(height: 24.h),
-            _Label('Error'),
+            const _Label('Error'),
             VybeDropdown(
               hint: 'placeholder',
               items: const ['아이템 1', '아이템 2'],
@@ -131,27 +131,27 @@ class _ComponentGalleryState extends State<ComponentGallery> {
               errorText: '상태 관련 메시지를 입력하세요.',
             ),
             SizedBox(height: 24.h),
-            _Label('Disabled'),
+            const _Label('Disabled'),
             const VybeDropdown(hint: 'placeholder', items: []),
             _Divider(),
 
             // ─────────────────── Status Message ───────────────────
-            _SectionHeader('Status Message'),
-            VybeStatusMessage(message: '상태 관련 메시지를 입력하세요.'),
+            const _SectionHeader('Status Message'),
+            const VybeStatusMessage(message: '상태 관련 메시지를 입력하세요.'),
             SizedBox(height: 12.h),
-            VybeStatusMessage(message: '상태 관련 메시지를 입력하세요.', type: VybeStatusType.warn),
+            const VybeStatusMessage(message: '상태 관련 메시지를 입력하세요.', type: VybeStatusType.warn),
             SizedBox(height: 12.h),
-            VybeStatusMessage(message: '상태 관련 메시지를 입력하세요.', type: VybeStatusType.error),
+            const VybeStatusMessage(message: '상태 관련 메시지를 입력하세요.', type: VybeStatusType.error),
             SizedBox(height: 12.h),
-            VybeStatusMessage(message: '상태 관련 메시지를 입력하세요.', type: VybeStatusType.success),
+            const VybeStatusMessage(message: '상태 관련 메시지를 입력하세요.', type: VybeStatusType.success),
             _Divider(),
 
             // ─────────────────── Page Title ───────────────────
-            _SectionHeader('Page Title'),
-            _Label('Default'),
+            const _SectionHeader('Page Title'),
+            const _Label('Default'),
             const VybePageTitle(highlightText: '타이틀', regularText: '을 입력해주세요.'),
             SizedBox(height: 24.h),
-            _Label('With Caption'),
+            const _Label('With Caption'),
             const VybePageTitle(
               highlightText: '타이틀',
               regularText: '을 입력해주세요.',
@@ -161,7 +161,7 @@ class _ComponentGalleryState extends State<ComponentGallery> {
             _Divider(),
 
             // ─────────────────── Select Item ───────────────────
-            _SectionHeader('Select Item'),
+            const _SectionHeader('Select Item'),
             Container(
               decoration: BoxDecoration(
                 color: VybeColors.surface,
@@ -178,42 +178,42 @@ class _ComponentGalleryState extends State<ComponentGallery> {
             _Divider(),
 
             // ─────────────────── Certificate Input ───────────────────
-            _SectionHeader('Certificate Input'),
-            _Label('Default (탭해서 입력)'),
+            const _SectionHeader('Certificate Input'),
+            const _Label('Default (탭해서 입력)'),
             VybeCertificateInput(
               controller: _certController,
               onCompleted: (val) => setState(() {}),
             ),
             SizedBox(height: 24.h),
-            _Label('Error'),
+            const _Label('Error'),
             const VybeCertificateInput(errorText: '인증번호가 올바르지 않습니다.'),
             SizedBox(height: 24.h),
-            _Label('Disabled'),
+            const _Label('Disabled'),
             const VybeCertificateInput(enabled: false),
             _Divider(),
 
             // ─────────────────── Checkbox ───────────────────
-            _SectionHeader('Checkbox'),
-            _Label('미선택'),
+            const _SectionHeader('Checkbox'),
+            const _Label('미선택'),
             VybeCheckbox(
               value: _checkbox1,
               onChanged: (val) => setState(() => _checkbox1 = val),
               label: '전체 동의하기',
             ),
             SizedBox(height: 16.h),
-            _Label('선택됨'),
+            const _Label('선택됨'),
             VybeCheckbox(
               value: _checkbox2,
               onChanged: (val) => setState(() => _checkbox2 = val),
               label: '전체 동의하기',
             ),
             SizedBox(height: 16.h),
-            _Label('Disabled'),
+            const _Label('Disabled'),
             const VybeCheckbox(value: false, onChanged: null, label: '전체 동의하기'),
             _Divider(),
 
             // ─────────────────── Terms List ───────────────────
-            _SectionHeader('Terms List'),
+            const _SectionHeader('Terms List'),
             VybeTermsList(
               items: _terms,
               checkedIds: _checkedTerms,

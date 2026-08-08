@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/common/location_flip_mixin.dart';
 import 'package:vybe/presentation/common/widgets/vybe_accent_dropdown.dart';
 import 'package:vybe/presentation/common/widgets/vybe_pin_flip.dart';
 
@@ -12,7 +13,7 @@ import 'package:vybe/presentation/common/widgets/vybe_pin_flip.dart';
 /// 위치 인식 로직 자체는 화면(ViewModel) 소유 — 이 위젯은 표시만 한다.
 class VybeLocationSortBar extends StatelessWidget {
   /// 칩 원형 축소 전환 시간. 화면의 위치 인식 시퀀스와 맞춰 쓴다.
-  static const shrinkDuration = Duration(milliseconds: 320);
+  static const shrinkDuration = kLocationChipShrinkDuration;
 
   /// 현재 위치 라벨 (예: '홍대').
   final String loc;

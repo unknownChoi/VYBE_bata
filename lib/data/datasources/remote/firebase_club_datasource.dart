@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:vybe/core/utils/firebase_logger.dart';
 import 'package:vybe/core/utils/geohash_utils.dart';
 import 'package:vybe/data/models/club_info_model.dart';
@@ -189,11 +190,13 @@ class FirebaseClubDataSource {
     final precision = GeohashUtils.precisionForRadius(radiusKm);
     final prefixes = GeohashUtils.neighborPrefixes(lat, lng, precision);
 
-    // ignore: avoid_print
-    print('[NearbySearch] query center=($lat, $lng) '
-        'radius=${radiusKm.toStringAsFixed(3)}km '
-        'precision=$precision '
-        'prefixes(${prefixes.length})=$prefixes');
+    // 릴리즈에선 문자열 조립까지 통째로 제거되도록 kDebugMode로 감싼다.
+    if (kDebugMode) {
+      debugPrint('[NearbySearch] query center=($lat, $lng) '
+          'radius=${radiusKm.toStringAsFixed(3)}km '
+          'precision=$precision '
+          'prefixes(${prefixes.length})=$prefixes');
+    }
 
     final snapshots = await Future.wait(
       prefixes.map((prefix) => _firestore
@@ -214,9 +217,10 @@ class FirebaseClubDataSource {
             GeohashUtils.haversineKm(lat, lng, c.lat, c.lng) <= radiusKm)
         .toList();
 
-    // ignore: avoid_print
-    print('[NearbySearch] result count=${result.length} '
-        'clubs=${result.map((c) => '${c.name}@(${c.lat},${c.lng},${c.geohash})').toList()}');
+    if (kDebugMode) {
+      debugPrint('[NearbySearch] result count=${result.length} '
+          'clubs=${result.map((c) => '${c.name}@(${c.lat},${c.lng},${c.geohash})').toList()}');
+    }
 
     return result;
   }

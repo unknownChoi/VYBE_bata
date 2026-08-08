@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/core/constants/app_geo.dart';
 import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/core/providers/auth_providers.dart';
+import 'package:vybe/core/utils/gradient_palette.dart';
 import 'package:vybe/core/utils/number_format.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/design_system/colors.dart';
@@ -11,12 +12,15 @@ import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/clubs/club_detail_screen.dart';
 import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
 import 'package:vybe/presentation/common/club_list_sorting.dart';
+import 'package:vybe/presentation/common/location_flip_mixin.dart';
 import 'package:vybe/presentation/common/widgets/vybe_footer_note.dart';
 import 'package:vybe/presentation/common/widgets/vybe_genre_backdrop.dart';
 import 'package:vybe/presentation/common/widgets/vybe_glass_header.dart';
 import 'package:vybe/presentation/common/widgets/vybe_location_sort_bar.dart';
 import 'package:vybe/presentation/common/widgets/vybe_meta_dot.dart';
+import 'package:vybe/presentation/common/widgets/vybe_open_now_pill.dart';
 import 'package:vybe/presentation/common/widgets/vybe_recommend_badge.dart';
+import 'package:vybe/presentation/common/widgets/vybe_save_button.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 import 'package:vybe/presentation/free_entry/viewmodels/free_entry_viewmodel.dart';
 
@@ -26,9 +30,6 @@ const _entry = Color(0xFFFF4D8D); // 무료입장 액센트 (hot pink)
 const _entryInk = Color(0xFF2A0712); // pink 위 어두운 텍스트
 
 const _regions = [kFilterAll, '홍대', '강남', '이태원', '압구정', '건대'];
-
-// 핀 플립 노출 구간 (칩 축소는 VybeLocationSortBar.shrinkDuration).
-const _kSearchDuration = Duration(milliseconds: 1600);
 
 class _EntryClub implements ClubSortable {
   final String id;
@@ -93,8 +94,7 @@ const _fallbackGradients = <List<Color>>[
 
 // ClubModel → 카드 뷰모델. dist는 화면에서 _loc 기준으로 재계산.
 _EntryClub _fromClub(ClubModel c) {
-  final grad =
-      _fallbackGradients[c.clubId.hashCode.abs() % _fallbackGradients.length];
+  final grad = gradientForKey(_fallbackGradients, c.clubId);
   return _EntryClub(
     id: c.clubId,
     name: c.name,
@@ -119,51 +119,17 @@ class FreeEntryScreen extends ConsumerStatefulWidget {
 }
 
 class _FreeEntryScreenState extends ConsumerState<FreeEntryScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, LocationFlipMixin {
   String _region = kFilterAll;
   String _loc = AppGeo.hongdaeLabel;
   String _sort = kClubSorts.first;
-  bool _locLoading = false;
-
-  // 지도 핀 3D 플립 컨트롤러 (Y축 회전 반복) — 서비스 음료와 동일.
-  late final AnimationController _flip;
-
-  @override
-  void initState() {
-    super.initState();
-    _flip = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 700),
-    );
-  }
-
-  @override
-  void dispose() {
-    _flip.dispose();
-    super.dispose();
-  }
 
   // 위치 칩 탭 → 칩 원형 축소 후 핀 플립 → 내 위치 인식 (서비스 음료와 동일 패턴).
-  Future<void> _onLocationTap() async {
-    if (_locLoading) return;
+  void _onLocationTap() {
     // 홍대 좌표로 인식 → 검색 로딩 시작. (홈·주변 페이지 최초 로딩 좌표와 동일)
     debugPrint(
         '위치 선택: ${AppGeo.hongdaeLabel} (${AppGeo.hongdaeLat}, ${AppGeo.hongdaeLng})');
-    setState(() => _locLoading = true);
-
-    await Future.delayed(VybeLocationSortBar.shrinkDuration);
-    if (!mounted) return;
-    _flip.repeat();
-
-    await Future.delayed(_kSearchDuration);
-    if (!mounted) return;
-
-    _flip.stop();
-    _flip.reset();
-    setState(() {
-      _locLoading = false;
-      _loc = AppGeo.hongdaeLabel;
-    });
+    runLocationFlip(onResolved: () => _loc = AppGeo.hongdaeLabel);
   }
 
   // source(실데이터) → 내 위치 기준 거리 재계산 → 지역 필터 → 정렬.
@@ -177,8 +143,8 @@ class _FreeEntryScreenState extends ConsumerState<FreeEntryScreen>
 
   @override
   Widget build(BuildContext context) {
-    final top = MediaQuery.of(context).padding.top;
-    final bottomPad = MediaQuery.of(context).padding.bottom + 100.h;
+    final top = MediaQuery.paddingOf(context).top;
+    final bottomPad = MediaQuery.paddingOf(context).bottom + 100.h;
     final clubsAsync = ref.watch(freeEntryViewModelProvider);
     final source = clubsAsync.asData?.value.map(_fromClub).toList() ?? [];
     final list = _filtered(source);
@@ -198,78 +164,100 @@ class _FreeEntryScreenState extends ConsumerState<FreeEntryScreen>
               height: 560.h,
               child: const IgnorePointer(child: _Backdrop()),
             ),
-            ListView(
-              padding: EdgeInsets.only(top: top + 52.h, bottom: bottomPad),
-              children: [
-                _Intro(count: list.length, region: _region),
-                VybeLocationSortBar(
-                  loc: _loc,
-                  sort: _sort,
-                  sorts: kClubSorts,
-                  locLoading: _locLoading,
-                  flip: _flip,
-                  onLocTap: _onLocationTap,
-                  onSort: (s) => setState(() => _sort = s),
-                  accent: _entry,
+            // 카드 목록은 SliverList.builder로 화면에 보이는 만큼만 만든다
+            // (ListView(children: [...])는 클럽 전부를 즉시 빌드해 진입이 무거워진다).
+            CustomScrollView(
+              slivers: [
+                SliverPadding(
+                  padding: EdgeInsets.only(top: top + 52.h),
+                  sliver: SliverList.list(
+                    children: [
+                      _Intro(count: list.length, region: _region),
+                      VybeLocationSortBar(
+                        loc: _loc,
+                        sort: _sort,
+                        sorts: kClubSorts,
+                        locLoading: locLoading,
+                        flip: flip,
+                        onLocTap: _onLocationTap,
+                        onSort: (s) => setState(() => _sort = s),
+                        accent: _entry,
+                      ),
+                      _RegionFilter(
+                        active: _region,
+                        onChange: (r) => setState(() => _region = r),
+                      ),
+                      SizedBox(height: 4.h),
+                    ],
+                  ),
                 ),
-                _RegionFilter(
-                  active: _region,
-                  onChange: (r) => setState(() => _region = r),
-                ),
-                SizedBox(height: 4.h),
-                ...list.map((c) => Padding(
+                SliverList.builder(
+                  itemCount: list.length,
+                  itemBuilder: (_, i) {
+                    final c = list[i];
+                    final saved = favoritedIds.contains(c.id);
+                    return Padding(
                       padding: EdgeInsets.fromLTRB(24.w, 0, 24.w, 14.h),
                       child: _EntryCard(
                         club: c,
-                        saved: favoritedIds.contains(c.id),
+                        saved: saved,
                         onSave: uid == null
                             ? null
                             : () => ref
                                 .read(favoriteViewModelProvider.notifier)
-                                .toggleFavorite(
-                                  uid,
-                                  c.id,
-                                  favoritedIds.contains(c.id),
-                                ),
+                                .toggleFavorite(uid, c.id, saved),
                         onTap: () => Navigator.of(context).push(
                           SwipeBackPageRoute(
                             builder: (_) => ClubDetailScreen(clubId: c.id),
                           ),
                         ),
                       ),
-                    )),
-                if (clubsAsync.isLoading)
-                  ...List.generate(
-                    3,
-                    (_) => Padding(
-                      padding: EdgeInsets.fromLTRB(24.w, 0, 24.w, 14.h),
-                      child: VybeSkel(height: 208.h, radius: 18),
-                    ),
-                  )
-                else if (clubsAsync.hasError)
-                  Padding(
-                    padding: EdgeInsets.symmetric(vertical: 60.h, horizontal: 24.w),
-                    child: Text(
-                      '입장비 무료 클럽을 불러오지 못했어요',
-                      textAlign: TextAlign.center,
-                      style: VybeTypography.body4.copyWith(color: VybeColors.gray500),
-                    ),
-                  )
-                else if (list.isEmpty)
-                  Padding(
-                    padding: EdgeInsets.symmetric(vertical: 60.h, horizontal: 24.w),
-                    child: Text(
-                      _region == kFilterAll
-                          ? '입장비 무료 클럽이 아직 없어요'
-                          : '$_region 지역에 입장비 무료 클럽이 없어요',
-                      textAlign: TextAlign.center,
-                      style: VybeTypography.body4.copyWith(color: VybeColors.gray500),
-                    ),
+                    );
+                  },
+                ),
+                SliverPadding(
+                  padding: EdgeInsets.only(bottom: bottomPad),
+                  sliver: SliverList.list(
+                    children: [
+                      if (clubsAsync.isLoading)
+                        ...List.generate(
+                          3,
+                          (_) => Padding(
+                            padding: EdgeInsets.fromLTRB(24.w, 0, 24.w, 14.h),
+                            child: VybeSkel(height: 208.h, radius: 18),
+                          ),
+                        )
+                      else if (clubsAsync.hasError)
+                        Padding(
+                          padding:
+                              EdgeInsets.symmetric(vertical: 60.h, horizontal: 24.w),
+                          child: Text(
+                            '입장비 무료 클럽을 불러오지 못했어요',
+                            textAlign: TextAlign.center,
+                            style: VybeTypography.body4
+                                .copyWith(color: VybeColors.gray500),
+                          ),
+                        )
+                      else if (list.isEmpty)
+                        Padding(
+                          padding:
+                              EdgeInsets.symmetric(vertical: 60.h, horizontal: 24.w),
+                          child: Text(
+                            _region == kFilterAll
+                                ? '입장비 무료 클럽이 아직 없어요'
+                                : '$_region 지역에 입장비 무료 클럽이 없어요',
+                            textAlign: TextAlign.center,
+                            style: VybeTypography.body4
+                                .copyWith(color: VybeColors.gray500),
+                          ),
+                        ),
+                      const VybeFooterNote(
+                        icon: Icons.confirmation_number_rounded,
+                        iconColor: _entry,
+                        text: '입장 정책은 요일·시간대에 따라 달라질 수 있어요. 방문 전 확인해 주세요.',
+                      ),
+                    ],
                   ),
-                const VybeFooterNote(
-                  icon: Icons.confirmation_number_rounded,
-                  iconColor: _entry,
-                  text: '입장 정책은 요일·시간대에 따라 달라질 수 있어요. 방문 전 확인해 주세요.',
                 ),
               ],
             ),
@@ -537,68 +525,13 @@ class _EntryCard extends StatelessWidget {
             Positioned(
               top: 12.h,
               right: 52.w,
-              child: Container(
-                height: 32.r,
-                alignment: Alignment.center,
-                padding: EdgeInsets.symmetric(horizontal: 11.w),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.45),
-                  borderRadius: BorderRadius.circular(99.r),
-                  border: Border.all(
-                    color: club.open
-                        ? VybeColors.mainLime500.withValues(alpha: 0.5)
-                        : VybeColors.gray700,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 6.r,
-                      height: 6.r,
-                      decoration: BoxDecoration(
-                        color: club.open
-                            ? VybeColors.mainLime500
-                            : VybeColors.gray500,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    SizedBox(width: 5.w),
-                    Text(
-                      club.open ? '영업 중' : '영업 종료',
-                      style: VybeTypography.caption.copyWith(
-                        fontSize: 11.sp,
-                        fontWeight: FontWeight.w700,
-                        color: club.open
-                            ? VybeColors.mainLime500
-                            : VybeColors.gray400,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              child: VybeOpenNowPill(open: club.open),
             ),
             // 찜.
             Positioned(
               top: 12.h,
               right: 12.w,
-              child: GestureDetector(
-                onTap: onSave,
-                behavior: HitTestBehavior.opaque,
-                child: Container(
-                  width: 32.r,
-                  height: 32.r,
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.42),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    saved ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                    size: 17.r,
-                    color: saved ? VybeColors.mainPurple500 : Colors.white,
-                  ),
-                ),
-              ),
+              child: VybeSaveButton(saved: saved, onTap: onSave),
             ),
             // 하단 정보.
             Positioned(

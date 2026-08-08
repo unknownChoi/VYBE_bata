@@ -8,6 +8,7 @@ import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/auth/viewmodels/auth_viewmodel.dart';
 import 'package:vybe/presentation/auth/welcome/welcome_screen.dart';
 import 'package:vybe/presentation/common/widgets/ambient_backdrop.dart';
+import 'package:vybe/presentation/common/widgets/vybe_confirm_sheet.dart';
 import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
 import 'package:vybe/presentation/main_scaffold/nav_bar_hide_route.dart';
 import 'package:vybe/presentation/main_scaffold/nav_bar_visibility_provider.dart';
@@ -444,7 +445,10 @@ class _LoggedInView extends ConsumerWidget {
       useRootNavigator: true,
       backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withValues(alpha: 0.6),
-      builder: (sheetContext) => _LogoutSheet(
+      builder: (sheetContext) => VybeConfirmSheet(
+        title: '로그아웃할까요?',
+        message: '언제든 다시 로그인할 수 있어요.',
+        confirmLabel: '로그아웃',
         onConfirm: () async {
           Navigator.of(sheetContext).pop();
           // 로그아웃하면 AuthGate가 루트를 WelcomeScreen으로 교체하고
@@ -549,106 +553,6 @@ class _FeatureCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-/// 로그아웃 확인 바텀시트.
-class _LogoutSheet extends StatelessWidget {
-  final VoidCallback onConfirm;
-
-  const _LogoutSheet({required this.onConfirm});
-
-  @override
-  Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).padding.bottom;
-    return Container(
-      padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 28.h + bottomInset),
-      decoration: BoxDecoration(
-        color: const Color(0xF01C1C20),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(22.r)),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 38.w,
-            height: 4.h,
-            decoration: BoxDecoration(
-              // gray700(#535355)은 시트 배경과 명도차가 작아 핸들이 안 보임.
-              color: Colors.white.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(99.r),
-            ),
-          ),
-          SizedBox(height: 18.h),
-          Text(
-            '로그아웃할까요?',
-            style: VybeTypography.heading4.copyWith(
-              fontSize: 19.sp,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ),
-          ),
-          SizedBox(height: 8.h),
-          Text(
-            '언제든 다시 로그인할 수 있어요.',
-            textAlign: TextAlign.center,
-            style: VybeTypography.body4.copyWith(color: VybeColors.gray400),
-          ),
-          SizedBox(height: 22.h),
-          Row(
-            children: [
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => Navigator.of(context).pop(),
-                  child: Container(
-                    height: 50.h,
-                    alignment: Alignment.center,
-                    // glassTile(alpha 0.08)은 시트 위에서 버튼 경계가 거의
-                    // 안 보여 대비를 올린다.
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(14.r),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.24),
-                      ),
-                    ),
-                    child: Text(
-                      '취소',
-                      style: VybeTypography.button1.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(width: 10.w),
-              Expanded(
-                child: GestureDetector(
-                  onTap: onConfirm,
-                  child: Container(
-                    height: 50.h,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: VybeColors.accentRed500,
-                      borderRadius: BorderRadius.circular(14.r),
-                    ),
-                    child: Text(
-                      '로그아웃',
-                      style: VybeTypography.button1.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }

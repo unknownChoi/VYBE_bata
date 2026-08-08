@@ -99,7 +99,7 @@ class ClubAurora extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
@@ -756,7 +756,7 @@ EdgeInsets glassTabPadding(BuildContext context) => EdgeInsets.fromLTRB(
   16.w,
   16.h,
   16.w,
-  28.h + 76.h + MediaQuery.of(context).padding.bottom,
+  28.h + 76.h + MediaQuery.paddingOf(context).bottom,
 );
 
 /// 카드 사이 간격 (14px).

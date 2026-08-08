@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/data/models/performance_model.dart';
@@ -40,8 +41,7 @@ class HipHopViewModel extends _$HipHopViewModel {
         .read(performanceRepositoryProvider)
         .getTodayPerformances()
         .catchError((e, st) {
-      // ignore: avoid_print
-      print('[HipHop] performances 조회 실패: $e');
+      debugPrint('[HipHop] performances 조회 실패: $e');
       return <PerformanceModel>[];
     });
     final results = await (clubsF, perfsF).wait;

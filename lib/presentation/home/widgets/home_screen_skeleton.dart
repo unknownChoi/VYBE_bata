@@ -15,13 +15,13 @@ class HomeScreenSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final top = MediaQuery.of(context).padding.top;
+    final top = MediaQuery.paddingOf(context).top;
 
     return ListView(
       physics: const NeverScrollableScrollPhysics(),
       padding: EdgeInsets.only(
         top: top + 52.h,
-        bottom: MediaQuery.of(context).padding.bottom + 100.h,
+        bottom: MediaQuery.paddingOf(context).bottom + 100.h,
       ),
       children: const [
         _GreetingSkeleton(),
@@ -170,7 +170,7 @@ class _ClubCardSkeleton extends StatelessWidget {
       height: 156.h,
       child: Stack(
         children: [
-          Positioned.fill(child: VybeSkel(radius: 16)),
+          const Positioned.fill(child: VybeSkel(radius: 16)),
           // 카드 하단 텍스트 영역(클럽명·지역) 자리 표시.
           Positioned(
             left: 14.w,

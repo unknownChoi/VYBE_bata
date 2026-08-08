@@ -77,7 +77,7 @@ class _PhotoViewerScreenState extends State<_PhotoViewerScreen> {
   Widget build(BuildContext context) {
     final total = widget.imageUrls.length;
     final multi = total > 1;
-    final topPad = MediaQuery.of(context).padding.top;
+    final topPad = MediaQuery.paddingOf(context).top;
 
     return Scaffold(
       backgroundColor: Colors.transparent,

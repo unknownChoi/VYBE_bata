@@ -6,12 +6,12 @@ import 'package:vybe/data/models/search_trend_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
-import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 import 'package:vybe/presentation/search/viewmodels/club_filter_viewmodel.dart';
 import 'package:vybe/presentation/search/viewmodels/search_viewmodel.dart';
 import 'package:vybe/presentation/search/widgets/club_list_item.dart';
 import 'package:vybe/presentation/search/widgets/filter_chip_bar.dart';
 import 'package:vybe/presentation/search/widgets/result_gnb.dart';
+import 'package:vybe/presentation/search/widgets/search_result_item_skeleton.dart';
 
 class SearchResultScreen extends ConsumerStatefulWidget {
   final String query;

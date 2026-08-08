@@ -17,7 +17,7 @@ class VybeGlassHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final top = MediaQuery.of(context).padding.top;
+    final top = MediaQuery.paddingOf(context).top;
     return Container(
       height: top + 52.h,
       padding: EdgeInsets.only(top: top, left: 16.w, right: 16.w),

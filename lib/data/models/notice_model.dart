@@ -22,8 +22,13 @@ abstract class NoticeModel with _$NoticeModel {
     /// 반대로 광고가 아닌 공지에서 이벤트 페이지로 보내고 싶을 수도 있다.
     @Default('') String promotionId,
     @Default(false) bool isPinned,
+    /// 게시 상태 — true: 게시 / false: 게시중단.
+    /// 게시중단이면 게시 기간 안이라도 노출하지 않는다 (isVisibleAt 참고).
     @Default(true) bool isActive,
-    required DateTime publishedAt, // 목록 정렬 키
+    /// 게시 시작 시각 = 목록 정렬 키. 미래면 아직 노출 안 됨(예약 게시).
+    required DateTime publishedAt,
+    /// 게시 종료 시각. null이면 무기한 게시.
+    DateTime? endAt,
     @Default('VYBE 운영팀') String authorName,
     required DateTime createdAt,
     required DateTime updatedAt,
@@ -40,6 +45,20 @@ abstract class NoticeModel with _$NoticeModel {
 
   /// 탭했을 때 공지 상세 대신 프로모션(광고) 페이지로 보낼지.
   bool get opensPromotion => promotionId.isNotEmpty;
+
+  /// 지금 앱에 노출할 공지인지. 판단 순서 —
+  /// ① 게시 상태(isActive) → ② 게시 시작(publishedAt) → ③ 게시 종료(endAt).
+  /// **게시중단이면 게시 기간 안이어도 노출하지 않는다** (isActive가 최우선).
+  /// 목록·단건 조회가 같은 기준을 쓰도록 판정은 여기 한 곳에만 둔다.
+  bool isVisibleAt(DateTime now) {
+    if (!isActive) return false;
+    if (publishedAt.isAfter(now)) return false;
+    final end = endAt;
+    if (end != null && !end.isAfter(now)) return false;
+    return true;
+  }
+
+  bool get isVisible => isVisibleAt(DateTime.now());
 
   /// NEW 배지 — 게시 7일 이내. 읽음 상태를 저장하지 않는 대신 쓰는 기준.
   bool get isNew =>
@@ -69,6 +88,8 @@ abstract class NoticeModel with _$NoticeModel {
       isActive: data['isActive'] as bool? ?? true,
       // publishedAt 미기입 문서는 createdAt으로 대체 — 목록에서 사라지지 않게.
       publishedAt: (data['publishedAt'] as Timestamp?)?.toDate() ?? createdAt,
+      // endAt 없으면 null = 무기한 게시 (기존 문서 그대로 동작).
+      endAt: (data['endAt'] as Timestamp?)?.toDate(),
       authorName: data['authorName'] as String? ?? 'VYBE 운영팀',
       createdAt: createdAt,
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? createdAt,

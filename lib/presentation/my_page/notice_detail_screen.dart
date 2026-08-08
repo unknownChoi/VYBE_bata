@@ -5,6 +5,7 @@ import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/data/models/notice_model.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/clubs/widgets/club_glass.dart';
+import 'package:vybe/presentation/common/widgets/vybe_content_image.dart';
 import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
 import 'package:vybe/presentation/common/widgets/vybe_glass_surface.dart';
 import 'package:vybe/presentation/my_page/viewmodels/notice_viewmodel.dart';
@@ -52,7 +53,7 @@ class NoticeDetailScreen extends ConsumerWidget {
                     20.w,
                     22.h,
                     20.w,
-                    30.h + MediaQuery.of(context).padding.bottom,
+                    30.h + MediaQuery.paddingOf(context).bottom,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -87,7 +88,7 @@ class NoticeDetailScreen extends ConsumerWidget {
                       ],
                       for (final url in notice.imageUrls) ...[
                         SizedBox(height: 16.h),
-                        _NoticeImage(url: url),
+                        VybeContentImage(url: url),
                       ],
                       // 잠금 안내('운영팀만 등록')는 목록 하단에만 둔다 — 상세에선 중복.
                       SizedBox(height: 30.h),
@@ -160,7 +161,7 @@ class _TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final top = MediaQuery.of(context).padding.top;
+    final top = MediaQuery.paddingOf(context).top;
 
     return GlassBar(
       padding: EdgeInsets.fromLTRB(16.w, top + 8.h, 16.w, 12.h),
@@ -251,35 +252,3 @@ class _NavRow extends StatelessWidget {
   }
 }
 
-/// 본문 첨부 이미지. 원본 비율을 모르니 로딩·실패는 고정 높이 플레이스홀더.
-class _NoticeImage extends StatelessWidget {
-  final String url;
-
-  const _NoticeImage({required this.url});
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(14.r),
-      child: Image.network(
-        url,
-        width: double.infinity,
-        fit: BoxFit.fitWidth,
-        errorBuilder: (_, __, ___) => _fallback(),
-        loadingBuilder: (_, child, progress) =>
-            progress == null ? child : _fallback(),
-      ),
-    );
-  }
-
-  Widget _fallback() => Container(
-        height: 180.h,
-        alignment: Alignment.center,
-        color: VybeGlassSurface.quietFill,
-        child: Icon(
-          Icons.image_outlined,
-          size: 26.r,
-          color: const Color(0x59FFFFFF),
-        ),
-      );
-}

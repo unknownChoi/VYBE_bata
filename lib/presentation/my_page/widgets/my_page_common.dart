@@ -162,7 +162,7 @@ class SubScreenHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.fromLTRB(12.w, 8.h, 16.w, 8.h),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: VybeColors.gray900)),
       ),
       child: Row(

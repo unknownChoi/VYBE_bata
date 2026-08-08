@@ -21,8 +21,18 @@ linter:
   # `// ignore_for_file: name_of_lint` syntax on the line or in the file
   # producing the lint.
   rules:
-    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
-    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+    # const로 만들 수 있는 위젯은 const로 — 리빌드 때 재생성을 막는다.
+    prefer_const_constructors: true
+    prefer_const_constructors_in_immutables: true
+    prefer_const_literals_to_create_immutables: true
+    prefer_const_declarations: true
+    # 릴리즈 로그 오염 방지 — 로깅은 debugPrint(+ kDebugMode) 사용.
+    avoid_print: true
+    # import 정렬 고정 (dart fix로 자동 정리 가능).
+    directives_ordering: true
+    # 불필요한 래핑 제거.
+    avoid_unnecessary_containers: true
+    sized_box_for_whitespace: true
 
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options

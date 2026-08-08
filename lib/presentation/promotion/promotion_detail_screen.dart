@@ -8,8 +8,8 @@ import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/club_detail_screen.dart';
 import 'package:vybe/presentation/clubs/widgets/club_glass.dart';
 import 'package:vybe/presentation/common/widgets/vybe_button.dart';
+import 'package:vybe/presentation/common/widgets/vybe_content_image.dart';
 import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
-import 'package:vybe/presentation/common/widgets/vybe_glass_surface.dart';
 import 'package:vybe/presentation/common/widgets/vybe_spinner.dart';
 import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
 import 'package:vybe/presentation/promotion/viewmodels/promotion_viewmodel.dart';
@@ -46,7 +46,7 @@ class PromotionDetailScreen extends ConsumerWidget {
           ),
           // 뒤로가기는 로딩·에러 상태에서도 항상 떠 있어야 한다 (히어로 위 오버레이).
           Positioned(
-            top: MediaQuery.of(context).padding.top + 6.h,
+            top: MediaQuery.paddingOf(context).top + 6.h,
             left: 12.w,
             child: VybeGlassButton(
               onTap: () => Navigator.of(context).maybePop(),
@@ -65,8 +65,8 @@ class _Body extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final safeTop = MediaQuery.of(context).padding.top;
-    final safeBottom = MediaQuery.of(context).padding.bottom;
+    final safeTop = MediaQuery.paddingOf(context).top;
+    final safeBottom = MediaQuery.paddingOf(context).bottom;
 
     return Column(
       children: [
@@ -132,7 +132,7 @@ class _Body extends StatelessWidget {
                       ],
                       for (final url in promotion.imageUrls) ...[
                         SizedBox(height: 16.h),
-                        _PromotionImage(url: url),
+                        VybeContentImage(url: url),
                       ],
                     ],
                   ),
@@ -256,7 +256,7 @@ class _CtaBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final safeBottom = MediaQuery.of(context).padding.bottom;
+    final safeBottom = MediaQuery.paddingOf(context).bottom;
 
     return GlassBar(
       border: false,
@@ -270,38 +270,6 @@ class _CtaBar extends StatelessWidget {
   }
 }
 
-/// 본문 첨부 이미지. 원본 비율을 모르니 로딩·실패는 고정 높이 플레이스홀더.
-class _PromotionImage extends StatelessWidget {
-  final String url;
-
-  const _PromotionImage({required this.url});
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(14.r),
-      child: Image.network(
-        url,
-        width: double.infinity,
-        fit: BoxFit.fitWidth,
-        errorBuilder: (_, __, ___) => _fallback(),
-        loadingBuilder: (_, child, progress) =>
-            progress == null ? child : _fallback(),
-      ),
-    );
-  }
-
-  Widget _fallback() => Container(
-        height: 180.h,
-        alignment: Alignment.center,
-        color: VybeGlassSurface.quietFill,
-        child: Icon(
-          Icons.image_outlined,
-          size: 26.r,
-          color: const Color(0x59FFFFFF),
-        ),
-      );
-}
 
 /// 문서가 없거나 조회 실패했을 때.
 class _EmptyState extends StatelessWidget {

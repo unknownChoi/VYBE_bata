@@ -173,7 +173,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                 // 저장 바
                 Container(
                   padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 12.h),
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     border: Border(top: BorderSide(color: VybeColors.gray900)),
                   ),
                   child: GestureDetector(

@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/common/widgets/ambient_backdrop.dart';
+import 'package:vybe/presentation/common/widgets/vybe_confirm_sheet.dart';
 import 'package:vybe/presentation/common/widgets/vybe_spinner.dart';
 import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
 import 'package:vybe/presentation/my_page/viewmodels/my_page_viewmodel.dart';
@@ -148,8 +149,14 @@ class MyReviewsScreen extends ConsumerWidget {
       context: context,
       backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withValues(alpha: 0.6),
-      builder: (sheetContext) => _DeleteSheet(
-        clubName: entry.clubName,
+      builder: (sheetContext) => VybeConfirmSheet(
+        title: '리뷰를 삭제할까요?',
+        message: '${entry.clubName} 리뷰가 삭제되며\n되돌릴 수 없어요.',
+        messageHeight: 20 / 14,
+        // 핸들·취소 버튼은 기존 화면 값 유지 (공통 기본값과 다름).
+        handleColor: VybeColors.gray700,
+        cancelDecoration: glassTileDecoration(radius: 14),
+        confirmLabel: '삭제',
         onConfirm: () async {
           Navigator.of(sheetContext).pop();
           await ref
@@ -351,101 +358,6 @@ class _Stars extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-/// 삭제 확인 바텀시트.
-class _DeleteSheet extends StatelessWidget {
-  final String clubName;
-  final VoidCallback onConfirm;
-
-  const _DeleteSheet({required this.clubName, required this.onConfirm});
-
-  @override
-  Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).padding.bottom;
-    return Container(
-      padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 28.h + bottomInset),
-      decoration: BoxDecoration(
-        color: const Color(0xF01C1C20),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(22.r)),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 38.w,
-            height: 4.h,
-            decoration: BoxDecoration(
-              color: VybeColors.gray700,
-              borderRadius: BorderRadius.circular(99.r),
-            ),
-          ),
-          SizedBox(height: 18.h),
-          Text(
-            '리뷰를 삭제할까요?',
-            style: VybeTypography.heading4.copyWith(
-              fontSize: 19.sp,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ),
-          ),
-          SizedBox(height: 8.h),
-          Text(
-            '$clubName 리뷰가 삭제되며\n되돌릴 수 없어요.',
-            textAlign: TextAlign.center,
-            style: VybeTypography.body4.copyWith(
-              height: 20 / 14,
-              color: VybeColors.gray400,
-            ),
-          ),
-          SizedBox(height: 22.h),
-          Row(
-            children: [
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => Navigator.of(context).pop(),
-                  child: Container(
-                    height: 50.h,
-                    alignment: Alignment.center,
-                    decoration: glassTileDecoration(radius: 14),
-                    child: Text(
-                      '취소',
-                      style: VybeTypography.button1.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(width: 10.w),
-              Expanded(
-                child: GestureDetector(
-                  onTap: onConfirm,
-                  child: Container(
-                    height: 50.h,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: VybeColors.accentRed500,
-                      borderRadius: BorderRadius.circular(14.r),
-                    ),
-                    child: Text(
-                      '삭제',
-                      style: VybeTypography.button1.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 }

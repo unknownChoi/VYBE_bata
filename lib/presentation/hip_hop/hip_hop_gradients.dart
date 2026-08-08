@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:vybe/presentation/common/widgets/vybe_genre_backdrop.dart';
 import 'package:vybe/design_system/colors.dart';
+import 'package:vybe/presentation/common/widgets/vybe_genre_backdrop.dart';
 
 // 힙합 페이지 공용 — 썸네일/포스터/아바타 배경 fallback 그라데이션.
 // clubId 해시로 일관 배정 → 같은 클럽은 항상 같은 색.
@@ -20,6 +20,13 @@ const hipFallbackGradients = <List<Color>>[
 // clubId 해시 기반 일관 그라데이션.
 List<Color> hipGradFor(String clubId) =>
     hipFallbackGradients[clubId.hashCode.abs() % hipFallbackGradients.length];
+
+// 150deg 그라데이션 근사 (디자인 색/순서 유지, 각도만 근사).
+LinearGradient hipHopSlideGradient(List<Color> colors) => LinearGradient(
+  begin: const Alignment(-0.5, -0.87),
+  end: const Alignment(0.5, 0.87),
+  colors: colors,
+);
 
 // 상단 골드/보라 백드롭 — 힙합 페이지 공용 배경 그라데이션.
 // Stack 최하단 Positioned(height 560 등)에 IgnorePointer로 배치.
