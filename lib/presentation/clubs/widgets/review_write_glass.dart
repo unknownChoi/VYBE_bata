@@ -10,10 +10,6 @@ const kReviewGlassFill = Color(0x29787880); // rgba(120,120,128,0.16)
 
 const kReviewGlassBorder = Color(0x1AFFFFFF); // rgba(255,255,255,0.10)
 
-const kReviewTileFill = Color(0x14FFFFFF); // rgba(255,255,255,0.08)
-
-const kReviewTileBorder = Color(0x1FFFFFFF); // rgba(255,255,255,0.12)
-
 const kReviewBarFill = Color(0x8C0E0D12); // rgba(14,13,18,0.55)
 
 const kReviewInk = Color(0xFF0E0D12);

@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 import 'package:vybe/presentation/auth/auth_gate.dart';
+import 'package:vybe/presentation/common/version_gate/version_gate.dart';
 
 import 'core/theme/app_theme.dart';
 import 'firebase_options.dart';
@@ -65,8 +66,11 @@ class VybeApp extends StatelessWidget {
         theme: AppTheme.dark,
         home: child,
       ),
-      // 루트는 AuthGate — 비로그인이면 MainScaffold로 진입 자체가 불가.
-      child: const AuthGate(),
+      // 루트는 VersionGate → AuthGate.
+      // 버전 게이트가 위 — 로그인 여부와 무관하게 먼저 걸러야 하고,
+      // 강제 업데이트/점검 차단이 로그인 플로우 뒤로 밀리면 우회가 가능해진다.
+      // 비로그인이면 AuthGate가 MainScaffold 진입 자체를 막는다.
+      child: const VersionGate(child: AuthGate()),
     );
   }
 }

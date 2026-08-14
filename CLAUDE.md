@@ -55,14 +55,17 @@ View (Widget) → ViewModel (Notifier) → Repository → DataSource (Firebase)
 │   │   │       ├── firebase_favorite_datasource.dart
 │   │   │       ├── firebase_banner_datasource.dart
 │   │   │       ├── firebase_notice_datasource.dart
-│   │   │       └── firebase_promotion_datasource.dart
-│   │   ├── models/      # Freezed 모델 (user, club, club_info, menu, photo,
-│   │   │                #   review, favorite, banner, notice, search_history, operating_hours)
+│   │   │       ├── firebase_promotion_datasource.dart
+│   │   │       └── firebase_app_config_datasource.dart
+│   │   ├── models/      # Freezed 모델 (user, club, club_info, menu, photo, review,
+│   │   │                #   favorite, banner, notice, search_history, operating_hours,
+│   │   │                #   app_version_config)
 │   │   └── repositories/# domain 인터페이스 구현체 (*_repository_impl.dart, Riverpod provider 포함)
 │   ├── domain/
 │   │   └── repositories/    # repository 인터페이스 (Firebase 의존 금지)
 │   ├── presentation/
 │   │   ├── common/          # 화면 공용 — widgets/(Vybe prefix) + location_flip_mixin.dart
+│   │   │                    #   + version_gate/ (버전 게이트 — AuthGate보다 위)
 │   │   ├── main_scaffold/   # 루트 IndexedStack + 하단 탭바
 │   │   ├── home/            # 홈 (widgets/, viewmodels/)
 │   │   ├── promotion/       # 배너 상세 (promotions 콘텐츠 렌더)
@@ -127,6 +130,7 @@ View (Widget) → ViewModel (Notifier) → Repository → DataSource (Firebase)
 | 카카오 로그인 | `kakao_flutter_sdk_user` |
 | 검색엔진 | `algoliasearch` (Algolia — Firebase Extension으로 clubs 자동 동기화) |
 | 환경변수 관리 | `flutter_dotenv` (Flutter) / `dotenv` (Cloud Functions) |
+| 앱 버전 조회 | `package_info_plus` (버전 게이트 · 설정 화면 버전 표기) |
 
 > ⚠️ `go_router` / `google_maps_flutter` / `json_serializable` 미사용. 화면 전환은
 > 하단 탭(`MainScaffold`) + 탭별 `Navigator.push`. 지도는 네이버 지도.
@@ -378,6 +382,14 @@ ElevatedButton(onPressed: () {}, child: Text('로그인'))
   - **게시 기간·게시 상태 (2026.08.07)** — 예약 게시(`publishedAt` 미래) / 게시 종료(`endAt`) /
     게시중단(`isActive=false`, 기간보다 우선) 3조건으로 노출 제어.
     판정은 `NoticeModel.isVisibleAt(now)` 단일 소스, 목록·단건 조회 양쪽에 적용
+- **앱 버전 체크 / 강제 업데이트 (2026.08.13)** — `appConfig/{platform}` 정책 문서 +
+  `presentation/common/version_gate/`. 루트가 `VersionGate` → `AuthGate` 순서라
+  **로그인 전에** 판정한다. 점검 > 강제 > 권유 > 통과 4단계, 강제·점검은 전체화면
+  차단(`PopScope canPop:false`), 권유는 앱 실행당 1회 바텀시트.
+  앱 복귀(`AppLifecycleState.resumed`)마다 재검사 — 앱을 며칠 켜둔 기기가 강제
+  업데이트를 영영 피하는 구멍 차단. 조회 실패·타임아웃은 전부 통과(fail-open).
+  버전 비교·판정은 `core/utils/version_utils.dart` 순수 함수 + `test/version_utils_test.dart`.
+  설정 화면 하단 버전 표기도 하드코딩 대신 이 결과를 재사용(`package_info_plus`)
 
 ### 미구현 / 진행 중 ✗
 - 패스·지갑 탭 (`pass_wallet_screen.dart` 플레이스홀더 — 현재 탭 슬롯엔 미연결)
@@ -394,6 +406,13 @@ ElevatedButton(onPressed: () {}, child: Text('로그인'))
 - 공지사항 배포 잔여 작업 — ① `firebase deploy --only firestore:rules,firestore:indexes,storage`
   (notices 규칙 + `notices(isActive, publishedAt DESC)` 인덱스) ② 샘플 데이터 `node scripts/seed_notices.js`
   ③ 어드민 페이지(작성 UI) 별도 구축
+- 버전 체크 잔여 작업 — **Rules 배포·초기값 seed는 2026.08.13 완료**
+  (`appConfig/android`·`appConfig/ios` 생성됨, 값은 전부 비어 있어 **차단 없음** 상태).
+  남은 것 — ① **iOS `storeUrl`** (App Store Connect 등록 후 `.../app/id{앱ID}`.
+  iOS는 폴백이 없어 비어 있으면 업데이트 버튼이 토스트만 띄운다)
+  ② Android `applicationId`가 아직 `com.example.vybe`(Flutter 기본값) — **Play 스토어 게시 불가**.
+  실제 패키지명 확정 필요 (`storeUrl`은 비워 두면 설치된 패키지명으로 폴백하므로 그때도 수정 불필요)
+  ③ 어드민 페이지에 버전 정책 편집 UI
 - Storage Security Rules 배포 검증 (Firestore Rules는 배포됨)
 - Apple 로그인 (이후 구현)
 
@@ -727,6 +746,51 @@ updatedAt    : timestamp
 > 노출 여부는 datasource에서 필터해 null로 돌린다. seed(샘플): `scripts/seed_promotions.js`
 > (프로모션 4건 생성 + 기존 배너 4개의 linkType/linkValue를 그 문서로 연결).
 
+#### appConfig/{platform}  — 문서 2개 고정 (android · ios)
+```
+platform           : string    // "android" | "ios" (= doc.id)
+minVersion         : string    // 이 버전 미만이면 강제 업데이트(앱 사용 차단). 비면 강제 없음
+latestVersion      : string    // 이 버전 미만이면 업데이트 권유(닫을 수 있는 시트). 비면 권유 없음
+storeUrl           : string    // 스토어 링크 — 앱 배포 없이 바꿀 수 있게 서버에 둔다
+                               //   비면 Android만 market://details?id={packageName}로 폴백
+updateTitle        : string    // 업데이트 안내 제목. 비면 화면 기본 문구
+updateMessage      : string    // 업데이트 안내 본문. 비면 화면 기본 문구
+isMaintenance      : boolean   // 점검 모드 — 버전과 무관하게 진입 차단 (버전보다 우선)
+maintenanceMessage : string    // 점검 안내 문구. 비면 기본 문구
+updatedAt          : timestamp
+```
+> 앱 버전 게이트 데이터 소스. **top-level** — 유저·클럽에 종속 안 되는 전역 설정.
+> **쓰기는 어드민 페이지(별도 구축 예정) 전용 — 앱은 읽기만.**
+> 앱 실행 시 `appConfig/{platform}` **문서 1건만** get → 인덱스 불필요, 집계 없음 →
+> Cloud Functions 트리거 불필요. seed(초기값): `scripts/seed_app_config.js`.
+> **판정 3단계** — ① `isMaintenance`(점검) ② `minVersion` 미만(강제) ③ `latestVersion` 미만(권유).
+> 판정은 `decideVersionAction()`(`core/utils/version_utils.dart`) 한 곳에만 두고,
+> 비교는 파트 단위 숫자 비교라 `1.10.0 > 1.9.0`이 올바르게 나온다(문자열 비교 금지).
+> 빌드번호(`+7`)·프리릴리스(`-beta1`)는 무시 — 스토어에 노출되는 건 버전명이므로
+> **핫픽스도 patch를 올려야** 게이트가 인식한다.
+> ⚠ **Android/iOS 문서를 나눈 이유** — 스토어 심사·배포 시점이 달라 한쪽만
+> `minVersion`을 올릴 수 있어야 한다.
+> ⚠ **fail-open** — 네트워크 실패·3초 타임아웃·문서 없음·버전 미상은 전부 통과시킨다.
+> 서버 사고로 전 유저 앱이 잠기는 쪽이 업데이트를 한 번 놓치는 것보다 훨씬 큰 사고다.
+> 예외를 삼키는 곳은 `VersionCheck` 뷰모델 **한 곳뿐** — datasource는 그대로 던진다.
+> ⚠ **Rules에서 read에 auth 조건을 걸지 않는다** — 게이트는 **로그인 전**에 읽는다.
+> auth를 요구하면 비로그인 유저가 강제 업데이트·점검 안내를 영영 못 받는다.
+
+##### appConfig 운영 주의사항
+값 하나로 전 유저를 막을 수 있는 문서다. 어드민 편집 UI를 만들 때도 이 규칙을 따를 것.
+
+| 상황 | 해야 할 것 / 하면 안 되는 것 |
+|------|------|
+| 강제 업데이트 켜기 | **새 빌드가 스토어에 실제 게시된 것을 확인한 뒤** `minVersion`을 올린다. **심사 중에 미리 올리면 심사자 기기가 차단 화면에 막혀 리젝**된다. Android 단계적 출시(%) 중이면 100% 도달 후 |
+| 잘못 올렸을 때 | `minVersion`을 빈 문자열로 되돌리면 **즉시 해제** — 앱 재배포 불필요. 유저 기기 반영은 다음 실행 또는 백그라운드 복귀 시점 |
+| 반영 시점 | 앱 **실행 시** + **복귀(resumed) 시**에만 조회. 앱을 켜 둔 채 화면만 옮기는 동안엔 반영 안 됨 (사용 중 갑자기 차단되지 않게 한 의도된 동작) |
+| 점검 모드 | `isMaintenance=true`는 **최신 버전 유저까지 전원 차단**. 끄면 '다시 시도' 버튼으로 즉시 복귀 |
+| 버전 값 형식 | `"1.2.0"` 숫자·점만. 빌드번호(`+7`)·프리릴리스(`-beta1`)는 **무시**되므로 **핫픽스도 patch를 올려야** 구분된다. `pubspec.yaml`의 `version:`과 스토어 버전명이 일치해야 판정이 맞는다 |
+| 문서 삭제 금지 | 문서가 없으면 게이트가 **항상 통과**(fail-open) = 사실상 꺼짐. 끄고 싶으면 **문서를 지우지 말고 필드를 비운다** |
+| storeUrl | 비면 **Android만** `market://details?id={설치된 packageName}` 폴백. **iOS는 폴백 없음** — App Store 등록 후 `https://apps.apple.com/kr/app/id{앱ID}` 필수 |
+| 오프라인 유저 | Firestore `get()`이 캐시본을 주거나 3초 타임아웃 → **둘 다 통과**. 오프라인에선 강제 업데이트가 걸리지 않는다 (의도된 fail-open) |
+| 쓰기 권한 | Custom Claim `admin: true`만. 어드민 페이지 전까진 `scripts/seed_app_config.js` 또는 콘솔에서 직접 수정 |
+
 #### vybeRecommendations/{recId}
 ```
 recId           : string    // PK (= doc.id fallback)
@@ -949,6 +1013,7 @@ createdAt      : timestamp
 | `promotions` | 누구나 (isActive는 클라 필터) | 어드민만 (어드민 페이지 전용) |
 | `searchLogs` | **불가** (Admin SDK 전용) | 생성만: 로그인 유저(본인 userId, keyword 2~30자, 필드 화이트리스트). 수정·삭제 불가 |
 | `searchTrends`, `searchHashtags` | 누구나 | 어드민만 |
+| `appConfig/{platform}` | 누구나 (**auth 조건 금지** — 로그인 전에 읽는다) | 어드민만 (어드민 페이지 전용) |
 
 #### Storage Rules 요약
 | 경로 | 읽기 | 쓰기 |

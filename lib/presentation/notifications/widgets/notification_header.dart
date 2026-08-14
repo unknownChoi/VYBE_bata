@@ -6,6 +6,7 @@ import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/clubs/widgets/club_glass.dart';
+import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
 import 'package:vybe/presentation/my_page/settings_screen.dart';
 
 /// 알림 화면 헤더 (디자인 NGHeader).
@@ -31,12 +32,12 @@ class NotificationHeader extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _RoundButton(
-                icon: Icons.arrow_back_ios_new_rounded,
+              VybeGlassButton(
                 iconSize: 16,
                 onTap: () => Navigator.of(context).maybePop(),
               ),
-              _RoundButton(
+              // 뒤로가기와 나란히 있어 같은 글래스 버튼으로 맞춘다.
+              VybeGlassButton(
                 icon: Icons.settings_outlined,
                 iconSize: 18,
                 iconColor: ClubGlass.t2,
@@ -104,33 +105,6 @@ class _Subtitle extends StatelessWidget {
   }
 }
 
-/// 헤더 좌우 원형 글래스 버튼 (NGRound).
-class _RoundButton extends StatelessWidget {
-  final IconData icon;
-  final double iconSize;
-  final Color iconColor;
-  final VoidCallback onTap;
-
-  const _RoundButton({
-    required this.icon,
-    required this.onTap,
-    this.iconSize = 19,
-    this.iconColor = Colors.white,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: GlassCircleTile(
-        size: 38,
-        blurSigma: 8,
-        child: Icon(icon, size: iconSize.r, color: iconColor),
-      ),
-    );
-  }
-}
 
 /// '모두 읽음' 글래스 pill.
 class _ReadAllButton extends StatelessWidget {

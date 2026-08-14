@@ -101,6 +101,16 @@ service cloud.firestore {
         && request.auth.token.admin == true;
     }
 
+    // appConfig/{platform} — 앱 전역 설정(현재는 버전 정책). 앱은 읽기만.
+    // ⚠ read에 auth 조건을 걸지 않는다 — 버전 게이트는 로그인 **전에**,
+    //   앱 실행 직후 이 문서를 읽는다. auth를 요구하면 비로그인 유저가
+    //   강제 업데이트/점검 안내를 영영 못 받는다.
+    match /appConfig/{platform} {
+      allow read: if true;
+      allow write: if request.auth != null
+        && request.auth.token.admin == true;
+    }
+
     // vybeRecommendations/{recId} — vybe 추천 페이지 큐레이션
     match /vybeRecommendations/{recId} {
       allow read: if true;

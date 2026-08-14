@@ -53,21 +53,32 @@ class ReviewRepositoryImpl implements ReviewRepository {
     required String clubId,
     required String reviewId,
     required List<File> images,
+    String? namePrefix,
   }) async {
     final urls = <String>[];
     // 파일명은 인덱스 기반 — 같은 리뷰 재업로드 시 덮어쓰기 되어 고아 파일이 안 생긴다.
+    // 단, 기존 첨부를 남겨둔 채 추가하는 수정 경로는 namePrefix로 이름을 갈라야
+    // 남겨둔 파일을 덮어쓰지 않는다.
     for (var i = 0; i < images.length; i++) {
       final file = images[i];
       final ext = file.path.split('.').last.toLowerCase();
+      final base = namePrefix == null ? '$i' : '${namePrefix}_$i';
       urls.add(
         await _storageDataSource.uploadReviewImage(
           clubId: clubId,
           reviewId: reviewId,
-          fileName: '$i.${ext.isEmpty ? 'jpg' : ext}',
+          fileName: '$base.${ext.isEmpty ? 'jpg' : ext}',
           imageFile: file,
         ),
       );
     }
     return urls;
+  }
+
+  @override
+  Future<void> deleteReviewImages(List<String> imageUrls) async {
+    for (final url in imageUrls) {
+      await _storageDataSource.deleteFileByUrl(url);
+    }
   }
 }

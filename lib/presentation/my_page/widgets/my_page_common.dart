@@ -146,17 +146,7 @@ class MyAvatar extends StatelessWidget {
 class SubScreenHeader extends StatelessWidget {
   final String title;
 
-  /// 뒤로가기를 앱 공통 리퀴드 글래스 버튼([VybeGlassButton])으로 그릴지.
-  ///
-  /// 화면별로 글래스 디자인을 순차 적용하는 중이라 기본값은 기존 아이콘.
-  /// 적용된 화면: 설정.
-  final bool glassBack;
-
-  const SubScreenHeader({
-    super.key,
-    required this.title,
-    this.glassBack = false,
-  });
+  const SubScreenHeader({super.key, required this.title});
 
   @override
   Widget build(BuildContext context) {
@@ -167,28 +157,13 @@ class SubScreenHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          if (glassBack)
-            // hitSize 40 — 기존 아이콘 탭 영역과 같은 폭이라 제목 위치가 안 밀린다.
-            VybeGlassButton(
-              onTap: () => Navigator.of(context).maybePop(),
-              size: 36,
-              iconSize: 16,
-              hitSize: 40,
-            )
-          else
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => Navigator.of(context).maybePop(),
-              child: SizedBox(
-                width: 40.w,
-                height: 40.h,
-                child: Icon(
-                  Icons.arrow_back_ios_new_rounded,
-                  size: 20.r,
-                  color: Colors.white,
-                ),
-              ),
-            ),
+          // hitSize 40 — 예전 아이콘 탭 영역과 같은 폭이라 제목 위치가 안 밀린다.
+          VybeGlassButton(
+            onTap: () => Navigator.of(context).maybePop(),
+            size: 36,
+            iconSize: 16,
+            hitSize: 40,
+          ),
           SizedBox(width: 2.w),
           Text(
             title,

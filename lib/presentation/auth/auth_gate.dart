@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/auth/viewmodels/auth_viewmodel.dart';
 import 'package:vybe/presentation/auth/welcome/welcome_screen.dart';
-import 'package:vybe/presentation/common/widgets/vybe_spinner.dart';
+import 'package:vybe/presentation/common/widgets/vybe_splash.dart';
 import 'package:vybe/presentation/home/viewmodels/home_skeleton_provider.dart';
 import 'package:vybe/presentation/main_scaffold/main_scaffold.dart';
 
@@ -48,22 +46,10 @@ class _AuthGateState extends ConsumerState<AuthGate> {
     final authState = ref.watch(authStateProvider);
 
     return authState.when(
-      loading: () => const _AuthSplash(),
+      loading: () => const VybeSplash(),
       // 스트림 에러는 비로그인으로 간주 — 로그인 화면으로.
       error: (_, __) => const WelcomeScreen(),
       data: (uid) => uid == null ? const WelcomeScreen() : const MainScaffold(),
-    );
-  }
-}
-
-class _AuthSplash extends StatelessWidget {
-  const _AuthSplash();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: VybeColors.background,
-      body: Center(child: VybeSpinner(size: 36.r)),
     );
   }
 }

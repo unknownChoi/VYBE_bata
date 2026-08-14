@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/common/version_gate/viewmodels/version_check_viewmodel.dart';
 import 'package:vybe/presentation/common/widgets/ambient_backdrop.dart';
 import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
 import 'package:vybe/presentation/my_page/viewmodels/settings_viewmodel.dart';
@@ -48,7 +49,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SubScreenHeader(title: '설정', glassBack: true),
+                const SubScreenHeader(title: '설정'),
                 Expanded(
                   child: SingleChildScrollView(
                     padding: EdgeInsets.only(bottom: 28.h),
@@ -71,16 +72,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         const SectionTitle('데이터'),
                         _group([_cacheRow()]),
                         SizedBox(height: 26.h),
-                        Center(
-                          child: Text(
-                            'vybe · 버전 v0.1.0',
-                            style: TextStyle(
-                              fontFamily: 'Pretendard',
-                              fontSize: 12.sp,
-                              color: VybeColors.gray600,
-                            ),
-                          ),
-                        ),
+                        const Center(child: _AppVersionLabel()),
                       ],
                     ),
                   ),
@@ -234,6 +226,30 @@ class _Toggle extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// 하단 앱 버전 표기. 값은 앱 실행 시 버전 게이트가 이미 읽어둔 것을
+/// 그대로 쓴다 — 설정 화면에서 다시 조회하지 않는다.
+/// (하드코딩하면 릴리스마다 잊고 안 고쳐서 실제 버전과 어긋난다)
+class _AppVersionLabel extends ConsumerWidget {
+  const _AppVersionLabel();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // 버전 문자열만 구독 — 복귀 재검사로 정책이 바뀌어도 버전이 그대로면
+    // 이 라벨은 리빌드되지 않는다.
+    final label = ref.watch(
+      versionCheckProvider.select((s) => s.value?.versionLabel ?? ''),
+    );
+    return Text(
+      label.isEmpty ? 'vybe' : 'vybe · 버전 $label',
+      style: TextStyle(
+        fontFamily: 'Pretendard',
+        fontSize: 12.sp,
+        color: VybeColors.gray600,
       ),
     );
   }

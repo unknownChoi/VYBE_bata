@@ -95,6 +95,65 @@ class ReviewViewModel extends _$ReviewViewModel {
     return !result.hasError;
   }
 
+  /// 리뷰 수정(사진 포함) 한 번에 처리. 성공 여부를 반환한다.
+  ///
+  /// [keptImageUrls]는 화면에 그대로 남아 있는 기존 첨부 URL(순서 유지),
+  /// [newImages]는 이번에 새로 고른 파일. 최종 imageUrls = kept + 업로드 결과.
+  /// 새 파일은 타임스탬프 prefix로 올린다 — 작성 때 쓰는 인덱스 이름(`0.jpg`)을
+  /// 그대로 쓰면 남겨둔 기존 사진 파일을 덮어써서 그 URL이 다른 이미지가 된다.
+  ///
+  /// 빠진 첨부의 Storage 파일은 **문서 갱신이 성공한 뒤** 지운다 — 먼저 지우면
+  /// 갱신이 실패했을 때 문서는 옛 URL을 가리키는데 파일은 없는 상태가 된다.
+  /// 삭제 실패는 수정 실패로 보지 않는다(고아 파일만 남음).
+  ///
+  /// rating 변경분은 Cloud Functions `onReviewUpdated`가 클럽 평점에 반영한다.
+  Future<bool> submitReviewEdit({
+    required ReviewModel original,
+    required double rating,
+    required String content,
+    required List<String> tags,
+    required List<String> keptImageUrls,
+    required List<File> newImages,
+  }) async {
+    // submitReview와 같은 이유로 의존성은 첫 await 전에 꺼낸다 (autoDispose).
+    final repository = ref.read(reviewRepositoryProvider);
+
+    state = const AsyncLoading();
+    final result = await AsyncValue.guard(() async {
+      final uploaded = newImages.isEmpty
+          ? const <String>[]
+          : await repository.uploadReviewImages(
+              clubId: original.clubId,
+              reviewId: original.reviewId,
+              images: newImages,
+              namePrefix: '${DateTime.now().millisecondsSinceEpoch}',
+            );
+
+      await repository.updateReview(
+        original.clubId,
+        original.reviewId,
+        original.copyWith(
+          rating: rating,
+          content: content,
+          imageUrls: [...keptImageUrls, ...uploaded],
+          tags: tags,
+        ),
+      );
+
+      final removed = original.imageUrls
+          .where((url) => !keptImageUrls.contains(url))
+          .toList();
+      if (removed.isNotEmpty) {
+        await repository.deleteReviewImages(removed);
+      }
+    });
+    if (result case AsyncError(:final error, :final stackTrace)) {
+      debugPrint('[ReviewViewModel] submitReviewEdit failed: $error\n$stackTrace');
+    }
+    if (ref.mounted) state = result;
+    return !result.hasError;
+  }
+
   Future<void> updateReview(
     String clubId,
     String reviewId,

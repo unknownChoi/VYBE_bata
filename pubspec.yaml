@@ -67,6 +67,9 @@ dependencies:
   algoliasearch: ^1.49.2
   image_picker: ^1.2.3
 
+  # 설치된 앱의 버전명·빌드번호 조회 (버전 게이트 · 설정 화면 버전 표시)
+  package_info_plus: ^10.2.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -22,6 +22,9 @@ class VybeGlassButton extends StatefulWidget {
   /// 탭 영역 크기 (.w/.h 적용).
   final double hitSize;
 
+  /// 아이콘 색. 보조 동작(설정 등)은 흐린 색으로 낮춘다.
+  final Color iconColor;
+
   const VybeGlassButton({
     super.key,
     required this.onTap,
@@ -29,6 +32,7 @@ class VybeGlassButton extends StatefulWidget {
     this.size = 38,
     this.iconSize = 19,
     this.hitSize = 44,
+    this.iconColor = Colors.white,
   });
 
   @override
@@ -100,7 +104,7 @@ class _VybeGlassButtonState extends State<VybeGlassButton> {
                     ],
                   ),
                   child: Icon(widget.icon,
-                      size: widget.iconSize.r, color: Colors.white),
+                      size: widget.iconSize.r, color: widget.iconColor),
                 ),
               ),
             ),

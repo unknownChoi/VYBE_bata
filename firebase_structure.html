@@ -309,6 +309,7 @@
   <a href="#search-logs" class="sub">searchLogs</a>
   <a href="#search-trends" class="sub">searchTrends</a>
   <a href="#search-hashtags" class="sub">searchHashtags</a>
+  <a href="#app-config" class="sub">appConfig</a>
 
   <a class="group">Cloud Functions</a>
   <a href="#functions-http" class="sub">HTTP onCall (6)</a>
@@ -491,7 +492,9 @@ logFirebaseAccess(
 
 📁 searchTrends/{docId}                       <span class="cmt"># 실시간 인기 검색어 스냅샷 (current · fallback 2개 고정)</span>
 
-📁 searchHashtags/{tagId}                     <span class="cmt"># 인기 해시태그 큐레이션 (화면 라우팅 포함)</span></div>
+📁 searchHashtags/{tagId}                     <span class="cmt"># 인기 해시태그 큐레이션 (화면 라우팅 포함)</span>
+
+📁 appConfig/{platform}                       <span class="cmt"># 앱 버전 정책 (android · ios 2개 고정, 어드민 페이지에서 편집)</span></div>
   <div class="note"><strong>자동 집계 필드:</strong> <code>favoriteCount</code> · <code>ratingSum</code> · <code>reviewCount</code> · <code>rating</code> 는 Cloud Functions 트리거로만 갱신. 클라이언트 직접 수정 금지.</div>
 </section>
 
@@ -803,6 +806,41 @@ logFirebaseAccess(
   <div class="note">정렬은 <code>popularityRank</code>(있는 것 우선) → <code>order</code>. <strong>문서는 8개보다 많이 두고 상위 8개만 노출</strong>해야 검색량에 따라 순서가 실제로 바뀐다. seed: <code>scripts/seed_search_hashtags.js</code> — <code>popularityRank</code>는 집계 함수 소유라 seed가 덮어쓰지 않는다(updateMask에서 제외).</div>
 </section>
 
+<!-- appConfig -->
+<section id="app-config">
+  <h2>📁 appConfig/{platform} <span style="font-size:13px;color:var(--muted);">(top-level · 문서 2개 고정: android · ios)</span></h2>
+  <table>
+    <tr><th>필드</th><th>타입</th><th>설명</th></tr>
+    <tr><td class="field-name">platform</td><td class="ftype">string</td><td><span class="pill pk">PK</span> <code>"android" | "ios"</code> (= doc.id)</td></tr>
+    <tr><td class="field-name">minVersion</td><td class="ftype">string</td><td><strong>이 버전 미만이면 강제 업데이트</strong> — 전체화면 차단. 비면 강제 없음</td></tr>
+    <tr><td class="field-name">latestVersion</td><td class="ftype">string</td><td>이 버전 미만이면 <strong>업데이트 권유</strong> — 닫을 수 있는 바텀시트. 비면 권유 없음</td></tr>
+    <tr><td class="field-name">storeUrl</td><td class="ftype">string</td><td>스토어 링크. 앱 배포 없이 바꿀 수 있게 서버에 둔다. 비면 Android만 <code>market://details?id={packageName}</code> 로 폴백(iOS는 앱 ID를 알 수 없어 폴백 불가)</td></tr>
+    <tr><td class="field-name">updateTitle</td><td class="ftype">string</td><td>업데이트 안내 제목. 비면 화면 기본 문구</td></tr>
+    <tr><td class="field-name">updateMessage</td><td class="ftype">string</td><td>업데이트 안내 본문. 비면 화면 기본 문구</td></tr>
+    <tr><td class="field-name">isMaintenance</td><td class="ftype">boolean</td><td><strong>점검 모드</strong> — 버전과 무관하게 진입 차단. <strong>버전 판정보다 우선</strong>(최신 버전 유저도 막힌다)</td></tr>
+    <tr><td class="field-name">maintenanceMessage</td><td class="ftype">string</td><td>점검 안내 문구. 비면 기본 문구</td></tr>
+    <tr><td class="field-name">updatedAt</td><td class="ftype">timestamp</td><td>수정 시각</td></tr>
+  </table>
+  <div class="note">앱 버전 게이트(<code>presentation/common/version_gate/</code>) 데이터 소스. <strong>top-level</strong> — 유저·클럽에 종속되지 않는 전역 설정. 쓰기는 <strong>어드민 페이지(별도 구축 예정)</strong> 전용 — 앱은 읽기만 한다. 앱 실행 시 <strong>문서 1건만 get</strong> → <strong>인덱스 불필요</strong>, 집계 필드 없음 → <strong>Cloud Functions 트리거 불필요</strong>. seed(초기값): <code>scripts/seed_app_config.js</code></div>
+  <div class="note"><strong>판정 4단계</strong> — ① <code>isMaintenance</code>(점검) ② <code>minVersion</code> 미만(강제) ③ <code>latestVersion</code> 미만(권유) ④ 통과. 판정은 <code>decideVersionAction()</code>(<code>core/utils/version_utils.dart</code>) <strong>한 곳</strong>에만 두고 순수 함수로 테스트한다(<code>test/version_utils_test.dart</code>).<br>비교는 <strong>파트 단위 숫자 비교</strong>라 <code>1.10.0 &gt; 1.9.0</code> 이 올바르게 나온다(문자열 비교였다면 반대). 빌드번호(<code>+7</code>)·프리릴리스(<code>-beta1</code>)는 무시 — 스토어에 노출되는 건 버전명이므로 <strong>핫픽스도 patch를 올려야</strong> 게이트가 인식한다.</div>
+  <div class="note"><strong>fail-open</strong> — 네트워크 실패·3초 타임아웃·문서 없음·버전 미상은 <strong>전부 통과</strong>시킨다. 서버 사고로 전 유저 앱이 잠기는 쪽이 업데이트를 한 번 놓치는 것보다 훨씬 큰 사고다. 예외를 삼키는 곳은 <code>VersionCheck</code> 뷰모델 <strong>한 곳뿐</strong> — datasource는 그대로 던진다.<br>강제·점검 화면은 <code>PopScope canPop:false</code> 로 뒤로가기 우회를 막고, 게이트를 <code>AuthGate</code> <strong>위</strong>에 둬서 로그인 플로우 뒤로 밀리지 않게 한다. 앱 복귀(<code>AppLifecycleState.resumed</code>)마다 재검사 — 앱을 며칠 켜둔 기기가 강제 업데이트를 영영 피하는 구멍을 막는다.</div>
+  <div class="note">⚠ <strong>Rules에서 read에 auth 조건을 걸지 않는다</strong> — 게이트는 <strong>로그인 전에</strong> 이 문서를 읽는다. auth를 요구하면 비로그인 유저가 강제 업데이트·점검 안내를 영영 못 받는다.<br>⚠ <strong>Android/iOS 문서를 나눈 이유</strong> — 스토어 심사·배포 시점이 달라 한쪽만 <code>minVersion</code> 을 올릴 수 있어야 한다.</div>
+
+  <h3>운영 주의사항 <span style="font-size:13px;color:var(--muted);">— 이 문서는 값 하나로 전 유저를 막을 수 있다</span></h3>
+  <table>
+    <tr><th>상황</th><th>해야 할 것 / 하면 안 되는 것</th></tr>
+    <tr><td class="field-name">강제 업데이트 켜기</td><td><strong>새 빌드가 스토어에 실제로 게시된 것을 확인한 뒤</strong> <code>minVersion</code> 을 올린다. <strong>심사 중에 미리 올리면 심사자 기기가 차단 화면에 막혀 리젝</strong>된다. 안드로이드 단계적 출시(%) 중이라면 아직 못 받은 유저가 있으므로 100% 도달 후에 올린다</td></tr>
+    <tr><td class="field-name">잘못 올렸을 때</td><td><code>minVersion</code> 을 빈 문자열로 되돌리면 <strong>즉시 해제</strong>된다 — <strong>앱 재배포 불필요</strong>. 유저 기기에는 다음 앱 실행 또는 백그라운드 복귀(<code>resumed</code>) 시점에 반영된다</td></tr>
+    <tr><td class="field-name">반영 시점</td><td>앱 <strong>실행 시</strong>와 <strong>복귀(resumed) 시</strong>에만 조회한다. 앱을 켜 둔 채 화면만 옮기는 동안에는 반영되지 않는다(의도된 동작 — 사용 중 갑자기 차단 화면이 뜨지 않게)</td></tr>
+    <tr><td class="field-name">점검 모드</td><td><code>isMaintenance=true</code> 는 <strong>최신 버전 유저까지 전원 차단</strong>한다. 켜기 전에 대상 범위를 확인할 것. 끄면 유저가 '다시 시도' 버튼으로 바로 복귀한다</td></tr>
+    <tr><td class="field-name">버전 값 형식</td><td><code>"1.2.0"</code> 처럼 숫자·점만. 빌드번호(<code>+7</code>)·프리릴리스(<code>-beta1</code>)를 넣어도 <strong>무시</strong>되므로 <strong>핫픽스도 patch를 올려야</strong> 게이트가 구분한다. <code>pubspec.yaml</code> 의 <code>version:</code> 과 스토어 버전명이 일치해야 판정이 맞는다</td></tr>
+    <tr><td class="field-name">문서 삭제 금지</td><td>문서가 없으면 게이트가 <strong>항상 통과</strong>(fail-open)로 동작해 사실상 꺼진다. 기능을 끄고 싶으면 <strong>문서를 지우지 말고 필드를 비운다</strong></td></tr>
+    <tr><td class="field-name">storeUrl</td><td>비어 있으면 <strong>Android만</strong> <code>market://details?id={설치된 packageName}</code> 로 폴백한다. <strong>iOS는 폴백이 없다</strong> — App Store Connect 등록 후 <code>https://apps.apple.com/kr/app/id{앱ID}</code> 를 반드시 채울 것. 안 채우면 업데이트 버튼이 토스트만 띄운다</td></tr>
+    <tr><td class="field-name">오프라인 유저</td><td>Firestore <code>get()</code> 이 로컬 캐시본을 주거나 3초 타임아웃으로 실패 → <strong>둘 다 통과</strong>. 오프라인 상태에서는 강제 업데이트가 걸리지 않는다(의도된 fail-open)</td></tr>
+    <tr><td class="field-name">쓰기 권한</td><td>Custom Claim <code>admin: true</code> 계정만 수정 가능. 어드민 페이지 구축 전까지는 <code>scripts/seed_app_config.js</code> 또는 Firebase 콘솔에서 직접 수정</td></tr>
+  </table>
+</section>
+
 <!-- ========================= CLOUD FUNCTIONS ========================= -->
 <section id="functions-http">
   <h2>Cloud Functions <span style="font-size:14px;color:var(--muted);">— 총 14개 (TypeScript)</span></h2>
@@ -929,6 +967,7 @@ promotions/{promotionId}/{index}.{ext}      <span class="cmt">// 배너 상세 �
     <tr><td><code>promotions/{promotionId}</code></td><td>누구나 (isActive는 클라 필터)</td><td>어드민만</td></tr>
     <tr><td><code>searchLogs/{logId}</code></td><td><strong>불가</strong> (Admin SDK 전용)</td><td>생성만: 로그인 유저(본인 userId, keyword 2~30자, 필드 화이트리스트). 수정·삭제 불가</td></tr>
     <tr><td><code>searchTrends</code>, <code>searchHashtags</code></td><td>누구나</td><td>어드민만</td></tr>
+    <tr><td><code>appConfig/{platform}</code></td><td>누구나 (<strong>auth 조건 금지</strong> — 로그인 전에 읽는다)</td><td>어드민만</td></tr>
   </table>
 </section>
 

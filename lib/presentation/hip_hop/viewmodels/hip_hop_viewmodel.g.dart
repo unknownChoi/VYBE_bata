@@ -36,7 +36,7 @@ final class HipHopViewModelProvider
   HipHopViewModel create() => HipHopViewModel();
 }
 
-String _$hipHopViewModelHash() => r'5d0a2b8587a73fca56a3c2c8f7fc369ff5fc82b6';
+String _$hipHopViewModelHash() => r'8d63b8b32fad519a34e80272ca6d66c661a6cef3';
 
 /// 힙합 클럽 + 오늘 공연 일정을 병렬 조회해 합친다.
 

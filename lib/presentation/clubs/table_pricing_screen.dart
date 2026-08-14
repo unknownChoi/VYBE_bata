@@ -15,7 +15,9 @@ class TablePricingScreen extends StatelessWidget {
 
   static Future<void> push(BuildContext context, {required String clubName}) {
     return Navigator.of(context).push(
-      SwipeBackPageRoute(builder: (_) => TablePricingScreen(clubName: clubName)),
+      SwipeBackPageRoute(
+        builder: (_) => TablePricingScreen(clubName: clubName),
+      ),
     );
   }
 
@@ -29,33 +31,7 @@ class TablePricingScreen extends StatelessWidget {
           SafeArea(
             child: Column(
               children: [
-                GlassBar(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 16.w,
-                    vertical: 14.h,
-                  ),
-                  child: Row(
-                    children: [
-                      GlassRoundButton(
-                        size: 34,
-                        onTap: () => Navigator.of(context).pop(),
-                        child: Icon(
-                          Icons.arrow_back_ios_new_rounded,
-                          size: 15.r,
-                          color: Colors.white,
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
-                          '테이블 가격표',
-                          textAlign: TextAlign.center,
-                          style: ClubGlass.title(),
-                        ),
-                      ),
-                      SizedBox(width: 34.r),
-                    ],
-                  ),
-                ),
+                const GlassTopBar(title: '테이블 가격표'),
                 Expanded(
                   child: ListView(
                     physics: const ClampingScrollPhysics(),

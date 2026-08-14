@@ -6,6 +6,7 @@ import 'package:vybe/core/utils/number_format.dart';
 import 'package:vybe/data/models/operating_hours.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/widgets/subway_line_badge.dart';
+import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
 
 /// 클럽 상세 리퀴드 글래스 공통 요소.
 ///
@@ -806,6 +807,55 @@ class GlassBar extends StatelessWidget {
           ),
           child: child,
         ),
+      ),
+    );
+  }
+}
+
+/// 글래스 상단바 — 뒤로가기 + 가운데 정렬 제목.
+///
+/// 제목을 정확히 가운데 두려면 좌우 폭이 같아야 해서, 오른쪽에 뒤로가기와 같은
+/// 크기의 빈 칸을 둔다([trailing]을 주면 그 자리에 들어간다).
+class GlassTopBar extends StatelessWidget {
+  final String title;
+
+  /// 뒤로가기 동작. 기본값은 현재 라우트 pop.
+  final VoidCallback? onBack;
+
+  /// 오른쪽 액션. 없으면 제목 중앙 정렬용 빈 칸.
+  final Widget? trailing;
+
+  /// 뒤로가기 버튼 지름 (= 오른쪽 빈 칸 폭).
+  static const double _buttonSize = 34;
+
+  const GlassTopBar({
+    super.key,
+    required this.title,
+    this.onBack,
+    this.trailing,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassBar(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+      child: Row(
+        children: [
+          VybeGlassButton(
+            onTap: onBack ?? () => Navigator.of(context).maybePop(),
+            size: _buttonSize,
+            iconSize: 15,
+            hitSize: _buttonSize,
+          ),
+          Expanded(
+            child: Text(
+              title,
+              textAlign: TextAlign.center,
+              style: ClubGlass.title(),
+            ),
+          ),
+          SizedBox(width: _buttonSize.r, child: trailing),
+        ],
       ),
     );
   }

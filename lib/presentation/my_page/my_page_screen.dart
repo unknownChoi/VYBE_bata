@@ -8,7 +8,7 @@ import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/auth/viewmodels/auth_viewmodel.dart';
 import 'package:vybe/presentation/auth/welcome/welcome_screen.dart';
 import 'package:vybe/presentation/common/widgets/ambient_backdrop.dart';
-import 'package:vybe/presentation/common/widgets/vybe_confirm_sheet.dart';
+import 'package:vybe/presentation/common/widgets/vybe_confirm_dialog.dart';
 import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
 import 'package:vybe/presentation/main_scaffold/nav_bar_hide_route.dart';
 import 'package:vybe/presentation/main_scaffold/nav_bar_visibility_provider.dart';
@@ -435,28 +435,20 @@ class _LoggedInView extends ConsumerWidget {
     );
   }
 
-  void _confirmLogout(BuildContext context, WidgetRef ref) {
-    // MainScaffold의 floating 바텀 nav는 body 위 Stack에 떠 있어 시트 버튼과
-    // 겹친다 → 시트가 떠 있는 동안 nav를 화면 밖으로 내린다.
-    ref.read(navBarHiddenProvider.notifier).hide();
-    showModalBottomSheet<void>(
-      context: context,
-      // 탭 Navigator 대신 루트에 띄워 시트가 nav 레이어보다 위에 오게 한다.
-      useRootNavigator: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withValues(alpha: 0.6),
-      builder: (sheetContext) => VybeConfirmSheet(
-        title: '로그아웃할까요?',
-        message: '언제든 다시 로그인할 수 있어요.',
-        confirmLabel: '로그아웃',
-        onConfirm: () async {
-          Navigator.of(sheetContext).pop();
-          // 로그아웃하면 AuthGate가 루트를 WelcomeScreen으로 교체하고
-          // 그 위에 쌓인 라우트를 전부 정리한다.
-          await ref.read(authViewModelProvider.notifier).signOut();
-        },
-      ),
-    ).whenComplete(() => ref.read(navBarHiddenProvider.notifier).show());
+  Future<void> _confirmLogout(BuildContext context, WidgetRef ref) async {
+    // 다이얼로그는 루트 Navigator에 떠서 스크림이 floating 바텀 nav까지 덮는다
+    // → 예전 바텀시트처럼 nav를 따로 내렸다 올릴 필요가 없다.
+    final confirmed = await VybeConfirmDialog.show(
+      context,
+      title: '로그아웃할까요?',
+      message: '언제든 다시 로그인할 수 있어요.',
+      confirmLabel: '로그아웃',
+    );
+    if (!confirmed) return;
+
+    // 로그아웃하면 AuthGate가 루트를 WelcomeScreen으로 교체하고
+    // 그 위에 쌓인 라우트를 전부 정리한다.
+    await ref.read(authViewModelProvider.notifier).signOut();
   }
 }
 

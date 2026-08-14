@@ -3,19 +3,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/clubs/review_write_screen.dart';
 import 'package:vybe/presentation/common/widgets/ambient_backdrop.dart';
-import 'package:vybe/presentation/common/widgets/vybe_confirm_sheet.dart';
+import 'package:vybe/presentation/common/widgets/vybe_confirm_dialog.dart';
 import 'package:vybe/presentation/common/widgets/vybe_spinner.dart';
 import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
 import 'package:vybe/presentation/my_page/viewmodels/my_page_viewmodel.dart';
 import 'package:vybe/presentation/my_page/widgets/my_page_common.dart';
+import 'package:vybe/presentation/my_page/widgets/my_review_card.dart';
 
 // ============================================================
 // 내 리뷰 관리 화면 (my.html 디자인 기반)
 //
 // collectionGroup 쿼리로 전 클럽에서 내 리뷰를 모아 보여주고
-// 삭제(확인 바텀시트)를 지원한다. 리뷰 수정은 베타 범위 외 — 준비 중 토스트.
-// 디자인의 '좋아요 수'는 reviews 스키마에 없어 제외.
+// 수정(리뷰 작성 화면 재사용)과 삭제(확인 다이얼로그)를 지원한다.
+// 카드는 widgets/my_review_card.dart.
 // ============================================================
 
 class MyReviewsScreen extends ConsumerWidget {
@@ -42,16 +44,15 @@ class MyReviewsScreen extends ConsumerWidget {
                     data: (entries) => entries.isEmpty
                         ? _empty()
                         : ListView.separated(
-                            padding:
-                                EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 32.h),
+                            padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 32.h),
                             itemCount: entries.length + 1,
-                            separatorBuilder: (_, __) =>
-                                SizedBox(height: 12.h),
+                            separatorBuilder: (_, __) => SizedBox(height: 12.h),
                             itemBuilder: (context, i) {
                               if (i == 0) return _countHeader(entries.length);
                               final entry = entries[i - 1];
-                              return _ReviewCard(
+                              return MyReviewCard(
                                 entry: entry,
+                                onEdit: () => _openEdit(context, entry),
                                 onDelete: () =>
                                     _confirmDelete(context, ref, entry),
                               );
@@ -143,221 +144,34 @@ class MyReviewsScreen extends ConsumerWidget {
     );
   }
 
-  void _confirmDelete(
-      BuildContext context, WidgetRef ref, MyReviewEntry entry) {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withValues(alpha: 0.6),
-      builder: (sheetContext) => VybeConfirmSheet(
-        title: '리뷰를 삭제할까요?',
-        message: '${entry.clubName} 리뷰가 삭제되며\n되돌릴 수 없어요.',
-        messageHeight: 20 / 14,
-        // 핸들·취소 버튼은 기존 화면 값 유지 (공통 기본값과 다름).
-        handleColor: VybeColors.gray700,
-        cancelDecoration: glassTileDecoration(radius: 14),
-        confirmLabel: '삭제',
-        onConfirm: () async {
-          Navigator.of(sheetContext).pop();
-          await ref
-              .read(myPageActionsProvider.notifier)
-              .deleteReview(entry.review.clubId, entry.review.reviewId);
-          if (!context.mounted) return;
-          VybeToast.show(context, message: '리뷰를 삭제했어요');
-        },
-      ),
+  /// 리뷰 수정 — 작성 화면을 수정 모드로 연다.
+  /// 목록은 collectionGroup 스트림이라 저장되면 저절로 갱신된다(수동 새로고침 불필요).
+  Future<void> _openEdit(BuildContext context, MyReviewEntry entry) async {
+    final updated = await ReviewWriteScreen.pushEdit(
+      context,
+      review: entry.review,
     );
-  }
-}
-
-class _ReviewCard extends StatelessWidget {
-  final MyReviewEntry entry;
-  final VoidCallback onDelete;
-
-  const _ReviewCard({required this.entry, required this.onDelete});
-
-  @override
-  Widget build(BuildContext context) {
-    final r = entry.review;
-    return Container(
-      padding: EdgeInsets.all(16.r),
-      decoration: glassDecoration(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 클럽명 + 별점 / 날짜
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            entry.clubName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: VybeTypography.body3.copyWith(
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                        if (entry.clubArea.isNotEmpty) ...[
-                          SizedBox(width: 6.w),
-                          Text(
-                            '· ${entry.clubArea}',
-                            style: TextStyle(
-                              fontFamily: 'Pretendard',
-                              fontSize: 12.sp,
-                              color: VybeColors.gray500,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    SizedBox(height: 6.h),
-                    _Stars(rating: r.rating),
-                  ],
-                ),
-              ),
-              Text(
-                entry.dateLabel,
-                style: TextStyle(
-                  fontFamily: 'Pretendard',
-                  fontSize: 12.sp,
-                  color: VybeColors.gray600,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 10.h),
-          Text(
-            r.content,
-            style: VybeTypography.body4.copyWith(
-              height: 21 / 14,
-              color: VybeColors.gray200,
-            ),
-          ),
-          if (r.imageUrls.isNotEmpty) ...[
-            SizedBox(height: 12.h),
-            SizedBox(
-              height: 74.r,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: r.imageUrls.length,
-                separatorBuilder: (_, __) => SizedBox(width: 8.w),
-                itemBuilder: (_, i) => ClipRRect(
-                  borderRadius: BorderRadius.circular(10.r),
-                  child: Image.network(
-                    r.imageUrls[i],
-                    width: 74.r,
-                    height: 74.r,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      width: 74.r,
-                      height: 74.r,
-                      color: VybeColors.surface,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-          SizedBox(height: 14.h),
-          Divider(height: 1, thickness: 1, color: hairColor),
-          SizedBox(height: 13.h),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              _actionChip(
-                icon: Icons.edit_outlined,
-                label: '수정',
-                color: Colors.white,
-                background: glassTileDecoration(radius: 8),
-                onTap: () =>
-                    VybeToast.show(context, message: '리뷰 수정은 준비 중이에요'),
-              ),
-              SizedBox(width: 8.w),
-              _actionChip(
-                icon: Icons.delete_outline_rounded,
-                label: '삭제',
-                color: VybeColors.accentRed500,
-                background: BoxDecoration(
-                  color: VybeColors.accentRed500.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8.r),
-                  border: Border.all(
-                    color: VybeColors.accentRed500.withValues(alpha: 0.3),
-                  ),
-                ),
-                onTap: onDelete,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
+    if (updated != true || !context.mounted) return;
+    VybeToast.show(context, message: '리뷰를 수정했어요');
   }
 
-  Widget _actionChip({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required BoxDecoration background,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 30.h,
-        padding: EdgeInsets.symmetric(horizontal: 12.w),
-        decoration: background,
-        child: Row(
-          children: [
-            Icon(icon, size: 13.r, color: color),
-            SizedBox(width: 5.w),
-            Text(label, style: VybeTypography.button2.copyWith(color: color)),
-          ],
-        ),
-      ),
+  Future<void> _confirmDelete(
+    BuildContext context,
+    WidgetRef ref,
+    MyReviewEntry entry,
+  ) async {
+    final confirmed = await VybeConfirmDialog.show(
+      context,
+      title: '리뷰를 삭제할까요?',
+      message: '${entry.clubName} 리뷰가 삭제되며\n되돌릴 수 없어요.',
+      confirmLabel: '삭제',
     );
-  }
-}
+    if (!confirmed || !context.mounted) return;
 
-class _Stars extends StatelessWidget {
-  final double rating;
-
-  const _Stars({required this.rating});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        for (var i = 0; i < 5; i++)
-          Padding(
-            padding: EdgeInsets.only(right: 2.w),
-            child: Icon(
-              Icons.star_rounded,
-              size: 14.r,
-              color: rating - i >= 0.5
-                  ? VybeColors.mainLime500
-                  : VybeColors.gray700,
-            ),
-          ),
-        SizedBox(width: 4.w),
-        Text(
-          rating.toStringAsFixed(1),
-          style: TextStyle(
-            fontFamily: 'Pretendard',
-            fontSize: 12.sp,
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
-          ),
-        ),
-      ],
-    );
+    await ref
+        .read(myPageActionsProvider.notifier)
+        .deleteReview(entry.review.clubId, entry.review.reviewId);
+    if (!context.mounted) return;
+    VybeToast.show(context, message: '리뷰를 삭제했어요');
   }
 }
