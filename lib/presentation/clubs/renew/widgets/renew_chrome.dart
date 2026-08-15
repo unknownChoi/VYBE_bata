@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
-import 'package:vybe/presentation/clubs/renew/widgets/renew_button.dart';
-import 'package:vybe/presentation/clubs/renew/widgets/renew_glass.dart';
+import 'package:vybe/presentation/common/renew/renew_button.dart';
+import 'package:vybe/presentation/common/renew/renew_glass.dart';
 import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
 import 'package:vybe/presentation/common/widgets/vybe_liquid_press.dart';
 

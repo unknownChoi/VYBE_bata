@@ -3,11 +3,11 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/core/utils/url_utils.dart';
 import 'package:vybe/data/models/club_info_model.dart';
 import 'package:vybe/data/models/club_model.dart';
-import 'package:vybe/presentation/clubs/renew/widgets/renew_glass.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_hours_table.dart';
-import 'package:vybe/presentation/clubs/renew/widgets/renew_icons.dart';
 import 'package:vybe/presentation/clubs/widgets/club_glass.dart'
     show SubwayStationLine, formatEntryFee;
+import 'package:vybe/presentation/common/renew/renew_glass.dart';
+import 'package:vybe/presentation/common/renew/renew_icons.dart';
 
 /// 홈 탭 '매장 정보' 카드 (디자인 VRToday).
 ///

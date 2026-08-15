@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/presentation/clubs/widgets/club_glass.dart';
 import 'package:vybe/presentation/clubs/widgets/table_pricing_section.dart';
+import 'package:vybe/presentation/common/widgets/vybe_aurora.dart';
 
 /// 테이블 가격표 전체 화면.
 ///
@@ -27,7 +28,7 @@ class TablePricingScreen extends StatelessWidget {
       backgroundColor: ClubGlass.ink,
       body: Stack(
         children: [
-          const Positioned.fill(child: ClubAurora()),
+          const Positioned.fill(child: VybeAurora()),
           SafeArea(
             child: Column(
               children: [

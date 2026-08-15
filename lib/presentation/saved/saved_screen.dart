@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/presentation/clubs/widgets/club_glass.dart';
+import 'package:vybe/presentation/common/widgets/vybe_aurora.dart';
 import 'package:vybe/presentation/main_scaffold/nav_bar_visibility_provider.dart';
 import 'package:vybe/presentation/saved/saved_common.dart';
 import 'package:vybe/presentation/saved/viewmodels/saved_viewmodel.dart';
@@ -65,7 +66,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
       backgroundColor: ClubGlass.ink,
       body: Stack(
         children: [
-          const Positioned.fill(child: IgnorePointer(child: ClubAurora())),
+          const Positioned.fill(child: IgnorePointer(child: VybeAurora())),
           // 오로라는 상태바 뒤까지 깔되, 콘텐츠는 인셋 아래에서 시작한다
           // (sticky 툴바가 노치·시계 뒤로 들어가지 않도록).
           Positioned.fill(

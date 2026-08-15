@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/common/renew/renew_glass.dart';
 import 'package:vybe/presentation/my_page/viewmodels/my_page_viewmodel.dart';
 import 'package:vybe/presentation/my_page/widgets/my_page_common.dart';
 
-/// '내 리뷰 관리' 목록의 리뷰 카드 1장.
+/// '내 리뷰 관리' 목록의 리뷰 카드 1장 (디자인 MRReviewCard).
+///
+/// 유리 카드로 감싸지 않고 헤어라인으로만 나눈다 — 카드가 겹겹이 쌓이면
+/// 글래스 배경이 탁해져 본문이 읽히지 않는다.
 ///
 /// 클럽명·지역·별점·작성일 / 본문 / 첨부 사진 / [수정][삭제].
 /// 디자인의 '좋아요 수'는 reviews 스키마에 없어 제외.
@@ -26,28 +29,32 @@ class MyReviewCard extends StatelessWidget {
     final review = entry.review;
 
     return Container(
-      padding: EdgeInsets.all(16.r),
-      decoration: glassDecoration(),
+      padding: EdgeInsets.symmetric(vertical: 16.h),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: RenewGlass.hair)),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _header(),
-          SizedBox(height: 10.h),
+          SizedBox(height: 8.h),
           Text(
             review.content,
-            style: VybeTypography.body4.copyWith(
-              height: 21 / 14,
-              color: VybeColors.gray200,
-            ),
+            style: RenewGlass.body(color: RenewGlass.t2, lineHeight: 21),
           ),
           if (review.imageUrls.isNotEmpty) ...[
             SizedBox(height: 12.h),
             _PhotoStrip(imageUrls: review.imageUrls),
           ],
-          SizedBox(height: 14.h),
-          Divider(height: 1, thickness: 1, color: hairColor),
-          SizedBox(height: 13.h),
-          _actions(),
+          SizedBox(height: 12.h),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              _ActionChip(label: '수정', onTap: onEdit),
+              SizedBox(width: 8.w),
+              _ActionChip(label: '삭제', danger: true, onTap: onDelete),
+            ],
+          ),
         ],
       ),
     );
@@ -59,76 +66,51 @@ class MyReviewCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8.w,
+            runSpacing: 4.h,
             children: [
-              Row(
-                children: [
-                  Flexible(
-                    child: Text(
-                      entry.clubName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: VybeTypography.body3.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                  if (entry.clubArea.isNotEmpty) ...[
-                    SizedBox(width: 6.w),
-                    Text(
-                      '· ${entry.clubArea}',
-                      style: TextStyle(
-                        fontFamily: 'Pretendard',
-                        fontSize: 12.sp,
-                        color: VybeColors.gray500,
-                      ),
-                    ),
-                  ],
-                ],
+              Text(
+                entry.clubName,
+                style: VybeTypography.body3.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: RenewGlass.t1,
+                ),
               ),
-              SizedBox(height: 6.h),
-              _Stars(rating: entry.review.rating),
+              if (entry.clubArea.isNotEmpty)
+                Text(entry.clubArea, style: RenewGlass.caption(lineHeight: 14)),
+              _RatingBadge(rating: entry.review.rating),
             ],
           ),
         ),
-        Text(
-          entry.dateLabel,
-          style: TextStyle(
-            fontFamily: 'Pretendard',
-            fontSize: 12.sp,
-            color: VybeColors.gray600,
-          ),
-        ),
+        SizedBox(width: 12.w),
+        Text(entry.dateLabel, style: RenewGlass.caption(lineHeight: 14)),
       ],
     );
   }
+}
 
-  Widget _actions() {
+/// 별 하나 + 숫자 (디자인 MRStars) — 5개를 다 그리면 한 줄에 정보가 너무 많다.
+class _RatingBadge extends StatelessWidget {
+  final double rating;
+
+  const _RatingBadge({required this.rating});
+
+  @override
+  Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        _ActionChip(
-          icon: Icons.edit_outlined,
-          label: '수정',
-          color: Colors.white,
-          background: glassTileDecoration(radius: 8),
-          onTap: onEdit,
-        ),
-        SizedBox(width: 8.w),
-        _ActionChip(
-          icon: Icons.delete_outline_rounded,
-          label: '삭제',
-          color: VybeColors.accentRed500,
-          background: BoxDecoration(
-            color: VybeColors.accentRed500.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8.r),
-            border: Border.all(
-              color: VybeColors.accentRed500.withValues(alpha: 0.3),
-            ),
+        const RenewStar(size: 13),
+        SizedBox(width: 5.w),
+        Text(
+          rating.toStringAsFixed(1),
+          style: RenewGlass.caption(
+            color: RenewGlass.t1,
+            lineHeight: 13,
+            weight: FontWeight.w700,
           ),
-          onTap: onDelete,
         ),
       ],
     );
@@ -141,23 +123,29 @@ class _PhotoStrip extends StatelessWidget {
 
   const _PhotoStrip({required this.imageUrls});
 
+  static const double _side = 76;
+
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 74.r,
+      height: _side.r,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: imageUrls.length,
         separatorBuilder: (_, __) => SizedBox(width: 8.w),
-        itemBuilder: (_, i) => ClipRRect(
-          borderRadius: BorderRadius.circular(10.r),
+        itemBuilder: (_, i) => Container(
+          width: _side.r,
+          height: _side.r,
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10.r),
+            border: Border.all(color: RenewGlass.quietBorder),
+          ),
           child: Image.network(
             imageUrls[i],
-            width: 74.r,
-            height: 74.r,
             fit: BoxFit.cover,
             errorBuilder: (_, __, ___) =>
-                Container(width: 74.r, height: 74.r, color: VybeColors.surface),
+                const ColoredBox(color: RenewGlass.tileFill),
           ),
         ),
       ),
@@ -165,73 +153,45 @@ class _PhotoStrip extends StatelessWidget {
   }
 }
 
+/// 카드 하단 [수정]/[삭제] 작은 버튼 — 높이 30 · radius 8.
 class _ActionChip extends StatelessWidget {
-  final IconData icon;
   final String label;
-  final Color color;
-  final BoxDecoration background;
+  final bool danger;
   final VoidCallback onTap;
 
   const _ActionChip({
-    required this.icon,
     required this.label,
-    required this.color,
-    required this.background,
     required this.onTap,
+    this.danger = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
+      behavior: HitTestBehavior.opaque,
       child: Container(
         height: 30.h,
-        padding: EdgeInsets.symmetric(horizontal: 12.w),
-        decoration: background,
-        child: Row(
-          children: [
-            Icon(icon, size: 13.r, color: color),
-            SizedBox(width: 5.w),
-            Text(label, style: VybeTypography.button2.copyWith(color: color)),
-          ],
+        padding: EdgeInsets.symmetric(horizontal: 13.w),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: danger
+              ? kMyDanger.withValues(alpha: 0.10)
+              : RenewGlass.tileFill,
+          borderRadius: BorderRadius.circular(8.r),
+          border: Border.all(
+            color: danger
+                ? kMyDanger.withValues(alpha: 0.30)
+                : RenewGlass.tileBorder,
+          ),
+        ),
+        child: Text(
+          label,
+          style: VybeTypography.button2.copyWith(
+            color: danger ? kMyDanger : RenewGlass.t1,
+          ),
         ),
       ),
-    );
-  }
-}
-
-/// 별 5개 + 숫자 (0.5 이상이면 채움).
-class _Stars extends StatelessWidget {
-  final double rating;
-
-  const _Stars({required this.rating});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        for (var i = 0; i < 5; i++)
-          Padding(
-            padding: EdgeInsets.only(right: 2.w),
-            child: Icon(
-              Icons.star_rounded,
-              size: 14.r,
-              color: rating - i >= 0.5
-                  ? VybeColors.mainLime500
-                  : VybeColors.gray700,
-            ),
-          ),
-        SizedBox(width: 4.w),
-        Text(
-          rating.toStringAsFixed(1),
-          style: TextStyle(
-            fontFamily: 'Pretendard',
-            fontSize: 12.sp,
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
-          ),
-        ),
-      ],
     );
   }
 }

@@ -5,6 +5,7 @@ import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/data/models/notice_model.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/clubs/widgets/club_glass.dart';
+import 'package:vybe/presentation/common/widgets/vybe_aurora.dart';
 import 'package:vybe/presentation/common/widgets/vybe_content_image.dart';
 import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
 import 'package:vybe/presentation/common/widgets/vybe_glass_surface.dart';
@@ -43,7 +44,7 @@ class NoticeDetailScreen extends ConsumerWidget {
       backgroundColor: ClubGlass.ink,
       body: Stack(
         children: [
-          const Positioned.fill(child: ClubAurora()),
+          const Positioned.fill(child: VybeAurora()),
           Column(
             children: [
               const _TopBar(),

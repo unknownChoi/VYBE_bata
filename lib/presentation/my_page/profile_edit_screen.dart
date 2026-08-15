@@ -5,18 +5,20 @@ import 'package:vybe/core/providers/auth_providers.dart';
 import 'package:vybe/data/models/user_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
-import 'package:vybe/presentation/common/widgets/ambient_backdrop.dart';
+import 'package:vybe/presentation/common/renew/renew_button.dart';
+import 'package:vybe/presentation/common/renew/renew_glass.dart';
+import 'package:vybe/presentation/common/renew/renew_icons.dart';
 import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
 import 'package:vybe/presentation/my_page/widgets/my_page_common.dart';
 import 'package:vybe/presentation/profile/viewmodels/user_viewmodel.dart';
 
 // ============================================================
-// 내 정보 수정 화면 (my.html 디자인 기반)
+// 내 정보 수정 — 리뉴얼 (my_renew.html · MREditScreen)
 //
 // 디자인과 다른 점: 디자인의 아이디·한 줄 소개·성별·활동 지역 필드는
 // users 스키마(uid/name/phone/birthDate/…)에 없어 제외 —
 // 수정 가능한 값은 닉네임뿐이고 전화번호·생년월일은 본인인증 값이라
-// 읽기 전용으로 표시한다. 프로필 사진 변경은 image_picker 미도입으로 보류.
+// 읽기 전용으로 표시한다. 프로필 사진 변경은 아직 미연결(준비 중 토스트).
 // ============================================================
 
 class ProfileEditScreen extends ConsumerStatefulWidget {
@@ -74,138 +76,62 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: VybeColors.background,
+      backgroundColor: RenewGlass.ink,
       resizeToAvoidBottomInset: true,
-      body: Stack(
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Positioned.fill(child: AmbientBackdrop()),
-          SafeArea(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SubScreenHeader(title: '내 정보 수정'),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.fromLTRB(16.w, 22.h, 16.w, 24.h),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Center(
-                          child: Stack(
-                            clipBehavior: Clip.none,
-                            children: [
-                              MyAvatar(
-                                name: widget.user.name,
-                                imageUrl: widget.user.profileImageUrl,
-                                size: 92,
-                                ring: false,
-                              ),
-                              Positioned(
-                                right: -2.r,
-                                bottom: -2.r,
-                                child: GestureDetector(
-                                  onTap: () => VybeToast.show(context,
-                                      message: '사진 변경은 준비 중이에요'),
-                                  child: Container(
-                                    width: 32.r,
-                                    height: 32.r,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: VybeColors.mainPurple500,
-                                      border: Border.all(
-                                        color: VybeColors.background,
-                                        width: 3.r,
-                                      ),
-                                    ),
-                                    child: Icon(
-                                      Icons.photo_camera_outlined,
-                                      size: 15.r,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        SizedBox(height: 26.h),
-                        _fieldLabel('닉네임'),
-                        Container(
-                          height: 50.h,
-                          padding: EdgeInsets.symmetric(horizontal: 14.w),
-                          decoration: glassInputDecoration(),
-                          alignment: Alignment.centerLeft,
-                          child: TextField(
-                            controller: _nameController,
-                            style: VybeTypography.body3
-                                .copyWith(color: Colors.white),
-                            cursorColor: VybeColors.mainPurple500,
-                            decoration: InputDecoration(
-                              isCollapsed: true,
-                              border: InputBorder.none,
-                              hintText: '닉네임',
-                              hintStyle: VybeTypography.body3
-                                  .copyWith(color: VybeColors.gray600),
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 18.h),
-                        _fieldLabel('생년월일'),
-                        _readOnlyField(_birthLabel),
-                        SizedBox(height: 18.h),
-                        _fieldLabel('전화번호'),
-                        _readOnlyField(
-                          widget.user.phone.isEmpty ? '-' : widget.user.phone,
-                        ),
-                        SizedBox(height: 10.h),
-                        Text(
-                          '생년월일·전화번호는 본인인증 정보라 변경할 수 없어요.',
-                          style: TextStyle(
-                            fontFamily: 'Pretendard',
-                            fontSize: 12.sp,
-                            color: VybeColors.gray600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                // 저장 바
-                Container(
-                  padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 12.h),
-                  decoration: const BoxDecoration(
-                    border: Border(top: BorderSide(color: VybeColors.gray900)),
-                  ),
-                  child: GestureDetector(
-                    onTap: _save,
-                    child: Container(
-                      height: 54.h,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: _saving
-                            ? VybeColors.mainPurpleDisabled
-                            : VybeColors.mainPurple500,
-                        borderRadius: BorderRadius.circular(15.r),
-                        boxShadow: [
-                          BoxShadow(
-                            color: VybeColors.mainPurple500
-                                .withValues(alpha: 0.4),
-                            blurRadius: 24.r,
-                            offset: Offset(0, 8.h),
-                          ),
-                        ],
+          const MyPushHeader(title: '내 정보 수정'),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.symmetric(
+                horizontal: kMyPagePad.w,
+                vertical: 24.h,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(child: _avatar()),
+                  SizedBox(height: 24.h),
+                  MyField(
+                    label: '닉네임',
+                    child: TextField(
+                      controller: _nameController,
+                      style: VybeTypography.body3.copyWith(
+                        color: RenewGlass.t1,
                       ),
-                      child: Text(
-                        _saving ? '저장 중…' : '저장하기',
-                        style: VybeTypography.button1.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
+                      cursorColor: VybeColors.mainPurple500,
+                      decoration: InputDecoration(
+                        isCollapsed: true,
+                        border: InputBorder.none,
+                        hintText: '닉네임',
+                        hintStyle: VybeTypography.body3.copyWith(
+                          color: RenewGlass.t4,
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                  SizedBox(height: 16.h),
+                  MyField(label: '생년월일', child: _readOnly(_birthLabel)),
+                  SizedBox(height: 16.h),
+                  MyField(
+                    label: '전화번호',
+                    child: _readOnly(
+                      widget.user.phone.isEmpty ? '-' : widget.user.phone,
+                    ),
+                  ),
+                  SizedBox(height: 16.h),
+                  const RenewFooterNote(
+                    text: '생년월일·전화번호는 본인인증 정보라 변경할 수 없어요.',
+                  ),
+                ],
+              ),
+            ),
+          ),
+          MyBottomBar(
+            child: RenewButton(
+              label: _saving ? '저장 중…' : '저장하기',
+              onTap: _saving ? null : _save,
             ),
           ),
         ],
@@ -213,31 +139,48 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
     );
   }
 
-  Widget _fieldLabel(String label) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 8.h),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontFamily: 'Pretendard',
-          fontSize: 12.sp,
-          fontWeight: FontWeight.w700,
-          color: VybeColors.gray500,
+  /// 아바타 + 사진 변경 뱃지. 뱃지는 원 밖으로 살짝 걸치게 둔다(디자인 -2).
+  Widget _avatar() {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        MyAvatar(
+          name: _nameController.text.isEmpty
+              ? widget.user.name
+              : _nameController.text,
+          imageUrl: widget.user.profileImageUrl,
+          size: 92,
+          ring: false,
         ),
-      ),
+        Positioned(
+          right: -2.r,
+          bottom: -2.r,
+          child: GestureDetector(
+            onTap: () => VybeToast.show(context, message: '사진 변경은 준비 중이에요'),
+            child: Container(
+              width: 32.r,
+              height: 32.r,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: VybeColors.mainPurple500,
+                border: Border.all(color: RenewGlass.ink, width: 3.r),
+              ),
+              child: const RenewIcon(
+                path: RenewIcons.camera,
+                size: 14,
+                color: Colors.white,
+                strokeWidth: 2,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _readOnlyField(String value) {
-    return Container(
-      height: 50.h,
-      padding: EdgeInsets.symmetric(horizontal: 14.w),
-      decoration: glassInputDecoration(),
-      alignment: Alignment.centerLeft,
-      child: Text(
-        value,
-        style: VybeTypography.body3.copyWith(color: VybeColors.gray500),
-      ),
-    );
-  }
+  Widget _readOnly(String value) => Text(
+    value,
+    style: VybeTypography.body3.copyWith(color: RenewGlass.t4),
+  );
 }

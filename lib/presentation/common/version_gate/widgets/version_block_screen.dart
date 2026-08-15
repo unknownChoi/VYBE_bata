@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
-import 'package:vybe/presentation/common/widgets/ambient_backdrop.dart';
+import 'package:vybe/presentation/common/widgets/vybe_aurora.dart';
 import 'package:vybe/presentation/common/widgets/vybe_button.dart';
 
 /// 앱 진입을 막는 전체화면 안내 — 강제 업데이트 · 서버 점검 공용.
@@ -39,7 +39,7 @@ class VersionBlockScreen extends StatelessWidget {
         backgroundColor: VybeColors.background,
         body: Stack(
           children: [
-            const Positioned.fill(child: AmbientBackdrop()),
+            const Positioned.fill(child: VybeAurora()),
             SafeArea(
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 24.w),

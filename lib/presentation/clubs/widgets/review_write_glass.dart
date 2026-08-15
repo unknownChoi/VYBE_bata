@@ -1,7 +1,6 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:vybe/design_system/colors.dart';
 
 // 리뷰 작성 화면 글래스 토큰 · 카드 · 오로라 배경.
 
@@ -116,78 +115,4 @@ class ReviewDashedBorderPainter extends CustomPainter {
   @override
   bool shouldRepaint(ReviewDashedBorderPainter oldDelegate) =>
       oldDelegate.radius != radius;
-}
-
-/// 리뷰 작성 페이지 배경 (디자인 RG_AURORA).
-class ReviewAurora extends StatelessWidget {
-  const ReviewAurora({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF120F1A), VybeColors.background, Color(0xFF0E0D12)],
-          stops: [0.0, 0.34, 1.0],
-        ),
-      ),
-      child: Stack(
-        children: [
-          // 좌상단 보라 글로우
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 260.h,
-            child: const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  center: Alignment(-0.88, -1),
-                  radius: 1.3,
-                  colors: [Color(0x577731FE), Color(0x00000000)],
-                  stops: [0.0, 0.6],
-                ),
-              ),
-            ),
-          ),
-          // 우상단 라임 글로우
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 240.h,
-            child: const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  center: Alignment(1, -0.88),
-                  radius: 1.3,
-                  colors: [Color(0x21B5FF60), Color(0x00000000)],
-                  stops: [0.0, 0.62],
-                ),
-              ),
-            ),
-          ),
-          // 우하단 보라 글로우
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            height: 340.h,
-            child: const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  center: Alignment(0.6, 0.88),
-                  radius: 1.4,
-                  colors: [Color(0x247731FE), Color(0x00000000)],
-                  stops: [0.0, 0.66],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }

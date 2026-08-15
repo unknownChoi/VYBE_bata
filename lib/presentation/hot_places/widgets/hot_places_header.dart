@@ -3,45 +3,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/hot_places/hot_places_models.dart';
-
-// 핫플레이스 상단 — 백드롭 · 인트로 · 지역 필터.
-
-// ── 백드롭 그라데이션 ──
-class HotPlacesBackdrop extends StatelessWidget {
-  const HotPlacesBackdrop({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: RadialGradient(
-                center: const Alignment(-1, -1),
-                radius: 1.2,
-                colors: [kHotAccent.withValues(alpha: 0.30), Colors.transparent],
-                stops: const [0, 0.72],
-              ),
-            ),
-          ),
-        ),
-        Positioned.fill(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: RadialGradient(
-                center: const Alignment(1, -0.85),
-                radius: 1.3,
-                colors: [const Color(0xFFFF3B30).withValues(alpha: 0.17), Colors.transparent],
-                stops: const [0, 0.72],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 // ── 인트로 (헤딩 + 실시간 배지) ──
 class HotPlacesIntro extends StatelessWidget {
   final String area;

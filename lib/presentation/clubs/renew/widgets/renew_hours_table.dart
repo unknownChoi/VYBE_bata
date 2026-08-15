@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/data/models/operating_hours.dart';
 import 'package:vybe/design_system/colors.dart';
-import 'package:vybe/presentation/clubs/renew/widgets/renew_glass.dart';
+import 'package:vybe/presentation/common/renew/renew_glass.dart';
 
 /// 요일별 영업시간 표 (디자인 VR_HOURS 목록).
 ///

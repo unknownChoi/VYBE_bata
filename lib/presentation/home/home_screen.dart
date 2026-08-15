@@ -4,10 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
-import 'package:vybe/presentation/common/widgets/ambient_backdrop.dart';
+import 'package:vybe/presentation/common/widgets/vybe_aurora.dart';
 import 'package:vybe/presentation/home/viewmodels/home_skeleton_provider.dart';
+import 'package:vybe/presentation/home/widgets/home_banner.dart';
 import 'package:vybe/presentation/home/widgets/home_category_grid.dart';
 import 'package:vybe/presentation/home/widgets/home_gnb.dart';
+import 'package:vybe/presentation/home/widgets/home_location_greeting.dart';
+import 'package:vybe/presentation/home/widgets/home_nearby_clubs.dart';
 import 'package:vybe/presentation/home/widgets/home_screen_skeleton.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -61,7 +64,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body: Stack(
         children: [
           // 앰비언트 클럽 조명 백드롭 (스크롤 컨텐츠 뒤).
-          const Positioned.fill(child: IgnorePointer(child: AmbientBackdrop())),
+          const Positioned.fill(child: IgnorePointer(child: VybeAurora())),
           // 스크롤 컨텐츠 — 상단 바 높이만큼 패딩.
           // 진입 직후엔 스켈레톤, 이후 실제 컨텐츠로 페이드 전환.
           Positioned.fill(
@@ -86,10 +89,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         // 현재 노출 보류 상태 — 위젯 파일은 그대로 남아 있으므로
                         // 재노출 시 이 리스트에 다시 추가하면 된다.
                         children: const [
-                          // HomeLocationGreeting(),
-                          // HomeBanner(),
+                          HomeLocationGreeting(),
+                          HomeBanner(),
                           HomeCategoryGrid(),
-                          //   HomeNearbyClubs(),
+                          // HomeNearbyClubs(),
+                          HomeNearbyClubs(),
                         ],
                       ),
                     ),

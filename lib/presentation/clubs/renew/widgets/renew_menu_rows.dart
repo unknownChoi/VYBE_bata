@@ -4,7 +4,7 @@ import 'package:vybe/core/utils/number_format.dart';
 import 'package:vybe/data/models/menu_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
-import 'package:vybe/presentation/clubs/renew/widgets/renew_glass.dart';
+import 'package:vybe/presentation/common/renew/renew_glass.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 
 /// 메뉴 목록 (디자인 VRMenuRows) — 홈 탭 미리보기와 메뉴 탭 섹션이 공유.

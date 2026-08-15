@@ -13,11 +13,12 @@ import 'package:vybe/presentation/clubs/renew/renew_menu_tab.dart';
 import 'package:vybe/presentation/clubs/renew/renew_photo_tab.dart';
 import 'package:vybe/presentation/clubs/renew/renew_review_tab.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_chrome.dart';
-import 'package:vybe/presentation/clubs/renew/widgets/renew_glass.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_header.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_lazy_tab.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
 import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
+import 'package:vybe/presentation/common/renew/renew_glass.dart';
+import 'package:vybe/presentation/common/widgets/vybe_aurora.dart';
 import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
 import 'package:vybe/presentation/nearby/widgets/nearby_glass.dart'
     show formatDistance;
@@ -114,7 +115,7 @@ class _ClubDetailRenewScreenState extends ConsumerState<ClubDetailRenewScreen>
       backgroundColor: RenewGlass.ink,
       body: Stack(
         children: [
-          const Positioned.fill(child: RenewAurora()),
+          const Positioned.fill(child: VybeAurora()),
           // 히어로 — 스크롤한 만큼 위로 밀린다.
           Positioned(
             top: 0,

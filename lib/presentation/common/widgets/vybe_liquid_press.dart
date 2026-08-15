@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -67,6 +68,9 @@ class _VybeLiquidPressState extends State<VybeLiquidPress>
   /// 스프링 추종 계수 — 프레임마다 남은 거리의 22%를 따라간다.
   static const double _follow = 0.22;
 
+  /// 톡 눌러도 이만큼은 눌린 모습을 유지한다 — 안 그러면 반응이 안 보인다.
+  static const Duration _minPress = Duration(milliseconds: 160);
+
   late final Ticker _ticker;
 
   /// 렌즈의 현재 좌표. 매 프레임 바뀌므로 setState 대신 알림값으로 흘린다 —
@@ -76,6 +80,12 @@ class _VybeLiquidPressState extends State<VybeLiquidPress>
   Offset _target = Offset.zero;
   Size _size = Size.zero;
   _LensPhase _phase = _LensPhase.idle;
+
+  /// [_minPress] 타이머. 살아 있으면 아직 눌린 모습을 유지해야 한다.
+  Timer? _minPressTimer;
+
+  /// 최소 시간이 끝나기 전에 손을 뗐을 때, 타이머가 대신 실행할 마무리.
+  VoidCallback? _pendingRelease;
 
   bool get _enabled => widget.onTap != null;
 
@@ -87,6 +97,7 @@ class _VybeLiquidPressState extends State<VybeLiquidPress>
 
   @override
   void dispose() {
+    _minPressTimer?.cancel();
     _ticker.dispose();
     _lens.dispose();
     super.dispose();
@@ -112,9 +123,32 @@ class _VybeLiquidPressState extends State<VybeLiquidPress>
     _target = local;
     _lens.value = local;
     _setPhase(_LensPhase.pressed);
+
+    _pendingRelease = null;
+    _minPressTimer?.cancel();
+    _minPressTimer = Timer(_minPress, () {
+      final pending = _pendingRelease;
+      _pendingRelease = null;
+      pending?.call();
+    });
   }
 
-  void _release() {
+  /// 손을 뗐다. [fireTap]이면 [VybeLiquidPress.onTap]도 여기서 쏜다.
+  ///
+  /// 짧게 톡 누르면 누름→뗌이 한 프레임 안에 끝나 애니메이션이 안 보인다.
+  /// 눌린 상태를 [_minPress]만큼은 붙잡아 두고, 그 뒤에 놓는 동작 + 실제
+  /// 동작(뒤로가기 등)을 함께 실행한다 — 화면이 넘어가기 전에 반응이 보인다.
+  void _release({required bool fireTap}) {
+    if (_phase != _LensPhase.pressed) return;
+    // 최소 시간이 아직 안 지났으면 타이머에게 마무리를 넘긴다.
+    if (_minPressTimer?.isActive ?? false) {
+      _pendingRelease = () => _finishRelease(fireTap);
+      return;
+    }
+    _finishRelease(fireTap);
+  }
+
+  void _finishRelease(bool fireTap) {
     if (_phase != _LensPhase.pressed) return;
     _setPhase(_LensPhase.releasing);
     // 퍼지며 사라지는 시간이 지나면 다음 누름을 위해 초기 크기로 되돌린다.
@@ -122,6 +156,8 @@ class _VybeLiquidPressState extends State<VybeLiquidPress>
       if (!mounted || _phase != _LensPhase.releasing) return;
       _setPhase(_LensPhase.idle);
     });
+    // 동작은 놓는 애니메이션이 시작된 뒤 — 화면을 떠나도 여기까진 보인다.
+    if (fireTap) widget.onTap?.call();
   }
 
   void _setPhase(_LensPhase phase) {
@@ -142,8 +178,7 @@ class _VybeLiquidPressState extends State<VybeLiquidPress>
   /// 디자인 `size()` — `max(26, min(h,w) * ratio + h * .18)`.
   double get _diameter {
     if (_size.isEmpty) return 26;
-    final base =
-        _size.shortestSide * widget.lensRatio + _size.height * 0.18;
+    final base = _size.shortestSide * widget.lensRatio + _size.height * 0.18;
     return base < 26 ? 26 : base;
   }
 
@@ -151,29 +186,37 @@ class _VybeLiquidPressState extends State<VybeLiquidPress>
   Widget build(BuildContext context) {
     final pressed = _phase == _LensPhase.pressed;
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTapDown: _enabled ? (d) => _press(d.localPosition) : null,
-      onTapUp: _enabled ? (_) => _release() : null,
-      // 스크롤 등으로 탭이 취소되면 렌즈도 같이 걷는다.
-      onTapCancel: _enabled ? _release : null,
+    return Semantics(
+      button: true,
+      enabled: _enabled,
+      // 실제 호출은 _finishRelease가 한다 — 스크린리더 탭은 애니메이션 없이 바로.
       onTap: widget.onTap,
-      child: Listener(
-        onPointerMove: (e) => _moveTo(e.localPosition),
-        child: AnimatedScale(
-          scale: pressed ? widget.pressScale : 1,
-          duration: _scaleDuration,
-          curve: _scaleCurve,
-          child: Stack(
-            children: [
-              widget.child,
-              // 렌즈 층은 항상 트리에 둔다 — 누를 때 붙이면 0.4→1 확대가
-              // 시작점 없이 곧바로 1로 그려져 커지는 게 안 보인다.
-              // (opacity 0이면 그리기 자체를 건너뛴다)
-              Positioned.fill(
-                child: IgnorePointer(child: _clip(child: _lensLayer())),
-              ),
-            ],
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        excludeFromSemantics: true,
+        onTapDown: _enabled ? (d) => _press(d.localPosition) : null,
+        // onTap을 쓰지 않는 이유 — 누른 모습을 최소 시간 붙잡았다가
+        // 놓는 애니메이션과 함께 동작을 실행해야 한다(_release 참고).
+        onTapUp: _enabled ? (_) => _release(fireTap: true) : null,
+        // 스크롤 등으로 탭이 취소되면 렌즈만 걷고 동작은 실행하지 않는다.
+        onTapCancel: _enabled ? () => _release(fireTap: false) : null,
+        child: Listener(
+          onPointerMove: (e) => _moveTo(e.localPosition),
+          child: AnimatedScale(
+            scale: pressed ? widget.pressScale : 1,
+            duration: _scaleDuration,
+            curve: _scaleCurve,
+            child: Stack(
+              children: [
+                widget.child,
+                // 렌즈 층은 항상 트리에 둔다 — 누를 때 붙이면 0.4→1 확대가
+                // 시작점 없이 곧바로 1로 그려져 커지는 게 안 보인다.
+                // (opacity 0이면 그리기 자체를 건너뛴다)
+                Positioned.fill(
+                  child: IgnorePointer(child: _clip(child: _lensLayer())),
+                ),
+              ],
+            ),
           ),
         ),
       ),

@@ -4,10 +4,10 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/data/models/menu_model.dart';
 import 'package:vybe/design_system/colors.dart';
-import 'package:vybe/presentation/clubs/renew/widgets/renew_glass.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_menu_rows.dart';
 import 'package:vybe/presentation/clubs/widgets/schedule_shared.dart';
 import 'package:vybe/presentation/clubs/widgets/table_pricing_data.dart';
+import 'package:vybe/presentation/common/renew/renew_glass.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 
 // 클럽 상세 리뉴얼 · 홈 탭 섹션들.

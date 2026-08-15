@@ -6,7 +6,7 @@ import 'package:vybe/core/providers/location_providers.dart';
 import 'package:vybe/core/utils/naver_overlay_image_queue.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/design_system/colors.dart';
-import 'package:vybe/presentation/clubs/renew/widgets/renew_glass.dart';
+import 'package:vybe/presentation/common/renew/renew_glass.dart';
 import 'package:vybe/presentation/common/widgets/vybe_map_pin.dart';
 import 'package:vybe/presentation/common/widgets/vybe_my_location_dot.dart';
 

@@ -17,6 +17,7 @@ import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
 import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
 import 'package:vybe/presentation/clubs/widgets/club_detail_skeleton.dart';
 import 'package:vybe/presentation/clubs/widgets/club_glass.dart';
+import 'package:vybe/presentation/common/widgets/vybe_aurora.dart';
 import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
 import 'package:vybe/presentation/common/widgets/vybe_recommend_badge.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
@@ -93,7 +94,7 @@ class _ClubDetailScreenState extends ConsumerState<ClubDetailScreen>
       backgroundColor: ClubGlass.ink,
       body: Stack(
         children: [
-          const Positioned.fill(child: ClubAurora()),
+          const Positioned.fill(child: VybeAurora()),
           NestedScrollView(
             controller: widget.scrollController,
             physics: const ClampingScrollPhysics(),

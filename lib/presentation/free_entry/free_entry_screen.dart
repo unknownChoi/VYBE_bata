@@ -12,8 +12,8 @@ import 'package:vybe/presentation/clubs/club_detail_route.dart';
 import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
 import 'package:vybe/presentation/common/club_list_sorting.dart';
 import 'package:vybe/presentation/common/location_flip_mixin.dart';
+import 'package:vybe/presentation/common/widgets/vybe_aurora.dart';
 import 'package:vybe/presentation/common/widgets/vybe_footer_note.dart';
-import 'package:vybe/presentation/common/widgets/vybe_genre_backdrop.dart';
 import 'package:vybe/presentation/common/widgets/vybe_glass_header.dart';
 import 'package:vybe/presentation/common/widgets/vybe_location_sort_bar.dart';
 import 'package:vybe/presentation/common/widgets/vybe_meta_dot.dart';
@@ -156,13 +156,8 @@ class _FreeEntryScreenState extends ConsumerState<FreeEntryScreen>
       body: SizedBox.expand(
         child: Stack(
           children: [
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              height: 560.h,
-              child: const IgnorePointer(child: _Backdrop()),
-            ),
+            // 핑크/보라 백드롭 — 화면 전체를 채운다(우하단 글로우까지).
+            const Positioned.fill(child: IgnorePointer(child: _Backdrop())),
             // 카드 목록은 SliverList.builder로 화면에 보이는 만큼만 만든다
             // (ListView(children: [...])는 클럽 전부를 즉시 빌드해 진입이 무거워진다).
             CustomScrollView(
@@ -274,10 +269,10 @@ class _Backdrop extends StatelessWidget {
   const _Backdrop();
   @override
   Widget build(BuildContext context) {
-    return const VybeGenreBackdrop(
-      baseColors: [Color(0xFF17090F), VybeColors.background, Color(0xFF0D0A0C)],
-      accent1: Color(0x6BFF4D8D),
-      accent2: Color(0x4D7731FE),
+    return const VybeAurora(
+      accent1: _entry, // 좌상단 핑크
+      accent2: VybeColors.mainPurple500, // 우상단 보라
+      ink: Color(0xFF0D0A0C),
     );
   }
 }

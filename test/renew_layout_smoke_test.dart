@@ -4,14 +4,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/data/models/menu_model.dart';
 import 'package:vybe/data/models/operating_hours.dart';
-import 'package:vybe/presentation/clubs/renew/widgets/renew_button.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_chrome.dart';
-import 'package:vybe/presentation/clubs/renew/widgets/renew_glass.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_header.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_home_sections.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_hours_table.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_menu_rows.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_sticky_bar.dart';
+import 'package:vybe/presentation/common/renew/renew_button.dart';
+import 'package:vybe/presentation/common/renew/renew_glass.dart';
 
 const _hours = OperatingHours(
   mon: DayHours(isOpen: true, open: '22:00', close: '05:00'),

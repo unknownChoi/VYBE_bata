@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:vybe/design_system/colors.dart';
-import 'package:vybe/presentation/common/widgets/vybe_genre_backdrop.dart';
+import 'package:vybe/presentation/common/widgets/vybe_aurora.dart';
 
 // 힙합 페이지 공용 — 썸네일/포스터/아바타 배경 fallback 그라데이션.
 // clubId 해시로 일관 배정 → 같은 클럽은 항상 같은 색.
@@ -28,18 +28,16 @@ LinearGradient hipHopSlideGradient(List<Color> colors) => LinearGradient(
   colors: colors,
 );
 
-// 상단 골드/보라 백드롭 — 힙합 페이지 공용 배경 그라데이션.
-// Stack 최하단 Positioned(height 560 등)에 IgnorePointer로 배치.
+// 힙합 페이지 배경 — 공용 [VybeAurora]에 골드/보라만 얹은 것.
+// Stack 최하단 Positioned.fill에 IgnorePointer로 배치.
 class HipBackdrop extends StatelessWidget {
   const HipBackdrop({super.key});
   @override
   Widget build(BuildContext context) {
-    return const VybeGenreBackdrop(
-      baseColors: [Color(0xFF1A130A), Color(0xFF0F0B0C), Color(0xFF0D0A0C)],
-      midStop: 0.4,
-      glowHeight: 440,
-      accent1: Color(0x66F5B82E),
-      accent2: Color(0x407731FE),
+    return const VybeAurora(
+      accent1: Color(0xFFF5B82E), // 좌상단 골드
+      accent2: VybeColors.mainPurple500, // 우상단 보라
+      ink: Color(0xFF0F0B0C), // 기존 세로 그라데이션 중간색을 단색 잉크로
     );
   }
 }

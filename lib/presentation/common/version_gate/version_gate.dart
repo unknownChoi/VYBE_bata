@@ -92,7 +92,10 @@ class _VersionGateState extends ConsumerState<VersionGate>
 
     // 첫 조회 전. 에러는 오지 않지만(뷰모델이 삼킴) 와도 통과시킨다.
     if (result == null) {
-      return async.hasError ? widget.child : const VybeSplash();
+      // 인트로는 SplashGate가 이미 재생했으므로 완성 프레임만 이어 그린다.
+      return async.hasError
+          ? widget.child
+          : const VybeSplash(playIntro: false);
     }
 
     switch (result.action) {

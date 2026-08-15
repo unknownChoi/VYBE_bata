@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
-import 'package:vybe/presentation/clubs/renew/widgets/renew_glass.dart';
+import 'package:vybe/presentation/common/renew/renew_glass.dart';
 import 'package:vybe/presentation/common/widgets/vybe_liquid_press.dart';
 
 /// [RenewButton] 색 변형 (디자인 VButton `variant`).
@@ -16,7 +16,7 @@ enum RenewButtonVariant {
   lime,
 }
 
-/// 리뉴얼 상세 전용 버튼 (VButton) — 56.h · radius 12.
+/// 리뉴얼 디자인 버튼 (VButton) — 56.h · radius 12.
 ///
 /// 누름 반응(확대 + 렌즈)은 [VybeLiquidPress], 색 전환만 여기서 한다.
 ///

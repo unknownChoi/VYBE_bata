@@ -105,14 +105,8 @@ class _HipHopScreenState extends ConsumerState<HipHopScreen> {
       body: SizedBox.expand(
         child: Stack(
           children: [
-            // 상단 골드/보라 백드롭 그라데이션
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              height: 560.h,
-              child: const IgnorePointer(child: HipBackdrop()),
-            ),
+            // 골드/보라 백드롭 — 화면 전체를 채운다(우하단 글로우까지).
+            const Positioned.fill(child: IgnorePointer(child: HipBackdrop())),
             Positioned.fill(
               child: ListView(
                 padding: EdgeInsets.only(bottom: bottomPad),

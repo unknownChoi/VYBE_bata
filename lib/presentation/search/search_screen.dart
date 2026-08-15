@@ -10,7 +10,7 @@ import 'package:vybe/data/models/search_trend_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/clubs/club_detail_route.dart';
-import 'package:vybe/presentation/common/widgets/ambient_backdrop.dart';
+import 'package:vybe/presentation/common/widgets/vybe_aurora.dart';
 import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
 import 'package:vybe/presentation/free_entry/free_entry_screen.dart';
 import 'package:vybe/presentation/hip_hop/hip_hop_screen.dart';
@@ -104,7 +104,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           // 앰비언트 클럽 조명 백드롭
           const Positioned.fill(
             child: IgnorePointer(
-              child: AmbientBackdrop(gradientStops: [0.0, 0.30, 1.0]),
+              child: VybeAurora(),
             ),
           ),
           GestureDetector(

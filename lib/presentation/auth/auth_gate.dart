@@ -46,7 +46,8 @@ class _AuthGateState extends ConsumerState<AuthGate> {
     final authState = ref.watch(authStateProvider);
 
     return authState.when(
-      loading: () => const VybeSplash(),
+      // 인트로는 SplashGate가 이미 재생했다 — 여기서 또 재생하면 로고가 두 번 뜬다.
+      loading: () => const VybeSplash(playIntro: false),
       // 스트림 에러는 비로그인으로 간주 — 로그인 화면으로.
       error: (_, __) => const WelcomeScreen(),
       data: (uid) => uid == null ? const WelcomeScreen() : const MainScaffold(),

@@ -2,7 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-/// 클럽 상세 리뉴얼 전용 스트로크 아이콘 (디자인 `VRPATH` · `VRIcon`).
+/// 리뉴얼 디자인 스트로크 아이콘 (디자인 `VRPATH` · `VRIcon`).
 ///
 /// Material 아이콘은 채움(fill) 기반이라 획 두께·모서리 곡률이 디자인과 다르다.
 /// 디자인의 24 viewBox 패스를 그대로 옮겨 두께 1.85 · 둥근 끝으로 그린다.
@@ -40,6 +40,55 @@ class RenewIcons {
   static const String copy =
       '<rect x="9" y="9" width="12" height="12" rx="2"/>'
       '<path d="M5 15V5a2 2 0 0 1 2-2h8"/>';
+
+  // ── 마이 리뉴얼 (디자인 MRPATH) ──
+
+  /// 찜 — 하트.
+  static const String heart =
+      '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78'
+      'l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>';
+
+  /// 리뷰 — 말풍선.
+  static const String review =
+      '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>';
+
+  /// 알림 — 종.
+  static const String bell =
+      '<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>'
+      '<path d="M13.7 21a2 2 0 0 1-3.4 0"/>';
+
+  /// 공지사항 — 확성기.
+  static const String mega =
+      '<path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z"/>'
+      '<path d="M16 8.5a4 4 0 0 1 0 7"/>';
+
+  /// 설정 — 톱니.
+  static const String gear =
+      '<circle cx="12" cy="12" r="3"/>'
+      '<path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06'
+      'a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09'
+      'A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06'
+      'a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09'
+      'A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06'
+      'a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09'
+      'a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06'
+      'a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09'
+      'a1.65 1.65 0 0 0-1.51 1z"/>';
+
+  /// 로그아웃 — 문 밖 화살표.
+  static const String logout =
+      '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>'
+      '<polyline points="16 17 21 12 16 7"/>'
+      '<line x1="21" y1="12" x2="9" y2="12"/>';
+
+  /// 프로필 사진 변경 — 카메라.
+  static const String camera =
+      '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>'
+      '<circle cx="12" cy="13" r="3.6"/>';
+
+  /// 사용자 — 로그인 안내·빈 상태.
+  static const String user =
+      '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/>';
 }
 
 /// 디자인 `VRIcon` — 24 viewBox · 스트로크 · 둥근 끝.

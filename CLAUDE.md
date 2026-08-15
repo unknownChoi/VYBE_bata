@@ -66,6 +66,7 @@ View (Widget) → ViewModel (Notifier) → Repository → DataSource (Firebase)
 │   ├── presentation/
 │   │   ├── common/          # 화면 공용 — widgets/(Vybe prefix) + location_flip_mixin.dart
 │   │   │                    #   + version_gate/ (버전 게이트 — AuthGate보다 위)
+│   │   │                    #   + renew/ (리뉴얼 디자인 토큰·글래스 프리미티브 — Renew prefix)
 │   │   ├── main_scaffold/   # 루트 IndexedStack + 하단 탭바
 │   │   ├── home/            # 홈 (widgets/, viewmodels/)
 │   │   ├── promotion/       # 배너 상세 (promotions 콘텐츠 렌더)
@@ -363,9 +364,20 @@ ElevatedButton(onPressed: () {}, child: Text('로그인'))
     키↔라벨·아이콘 대응은 `clubs/renew/widgets/renew_facilities.dart`의 `ClubFacility` enum 하나.
     등록된 시설이 없으면 섹션 자체를 뺀다. 데이터 없으면 `node scripts/seed_facilities.js`
 - **찜 탭 (`saved/`) — favorites 실연동** (정렬, 리스트↔그리드 뷰, 찜 해제)
-- **마이페이지 (`my_page/`) — my.html 디자인 기반** (프로필 히어로, 리뷰/찜 통계,
-  내 리뷰 관리(collectionGroup 조회·삭제), 내 정보 수정(닉네임), 설정(로컬 토글 + 캐시 삭제 실동작), 로그아웃)
-  — 리뷰 수정·프로필 사진 변경·알림 화면은 준비 중 토스트 처리
+- **마이페이지 (`my_page/`) — my_renew.html 리뉴얼 완료 (2026.08.15)**
+  (오로라 배경 + 가로 프로필 행(아바타 76 · 프로필 수정 pill) + 통계 카드 2칸(리뷰·찜) +
+  '내 활동'·'계정' 메뉴 목록 + 버전 표기. 메뉴는 카드로 감싸지 않고 **헤어라인으로만** 구분 —
+  글래스 카드를 겹겹이 쌓으면 배경이 탁해져 본문이 안 읽힌다)
+  - 하위 화면: 내 리뷰 관리(collectionGroup 조회·수정·삭제) / 내 정보 수정(닉네임) /
+    설정(로컬 토글 + 캐시 삭제 실동작) — 공통 상단바는 `MyPushHeader`
+  - 화면 전용 조각은 `my_page/widgets/my_page_common.dart` 하나에 모음
+    (푸시 헤더 · 메뉴 행 · 토글 · 입력 · 아바타 · 등장 애니메이션)
+  - 디자인의 @핸들·한 줄 소개·성별·활동지역은 users 스키마에 없어 제외
+    (핸들 자리는 가입 방식 표기로 대체), 리뷰 '좋아요 수'도 reviews 스키마에 없어 제외
+  - 리뷰 수정은 실동작(작성 화면 재사용), **프로필 사진 변경·알림 화면은 준비 중 토스트**
+  - ⚠ 리뉴얼 디자인 토큰·글래스 프리미티브(`RenewGlass` · `RenewGlassCard` · `RenewBar` ·
+    `RenewSectionHead` · `RenewButton` · `RenewIcons`)는 클럽 상세와 함께 쓰므로
+    `presentation/common/renew/`에 있다 (예전 `clubs/renew/widgets/`에서 승격)
 - **리뷰 작성 페이지 (`clubs/review_write_screen.dart`) — review_write.jsx 글래스 디자인 기반**
   (별점 0.5 단위 반쪽 별, 추천 태그 칩 → `tags`, 사진 최대 4장 `image_picker` → Storage 업로드,
   후기 500자, 주의사항, 등록 완료 화면). 구 `write_review_sheet.dart` 바텀시트는 대체·삭제됨
@@ -396,7 +408,8 @@ ElevatedButton(onPressed: () {}, child: Text('로그인'))
 ### 미구현 / 진행 중 ✗
 - 패스·지갑 탭 (`pass_wallet_screen.dart` 플레이스홀더 — 현재 탭 슬롯엔 미연결)
 - 주변 페이지 ↔ 상세 페이지 연동 마무리 (최근 커밋 진행 중)
-- 마이페이지 세부 — 리뷰 수정, 프로필 사진 변경(image_picker 설치됨 — 연결만 남음), 알림 화면
+- 마이페이지 세부 — 프로필 사진 변경(image_picker 설치됨 — 연결만 남음), 알림 화면
+  (리뷰 수정은 작성 화면 재사용으로 연결 완료)
 - reviews collectionGroup 인덱스·Rules 배포 (`firebase deploy --only firestore` — 미배포 시 내 리뷰 관리 동작 안 함)
 - 편의시설 잔여 작업 — ① `node scripts/seed_facilities.js` (안 돌리면 `info.facilities`가 비어
   매장정보 탭에 편의시설 섹션이 안 뜸. Rules·인덱스 변경은 불필요 — info 서브컬렉션 기존 규칙 그대로)
@@ -430,7 +443,7 @@ ElevatedButton(onPressed: () {}, child: Text('로그인'))
 ```
 1. 주변 ↔ 상세 페이지 연동 마무리 (진행 중)
         ↓
-2. 마이페이지 잔여 작업 (리뷰 수정, 프로필 사진, 알림 화면)
+2. 마이페이지 잔여 작업 (프로필 사진 변경, 알림 화면)
         ↓
 3. 패스·지갑 탭 실제 구현 (탭 슬롯 재배치 포함)
         ↓

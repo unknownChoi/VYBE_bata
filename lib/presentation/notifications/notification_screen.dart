@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/presentation/clubs/widgets/club_glass.dart';
+import 'package:vybe/presentation/common/widgets/vybe_aurora.dart';
 import 'package:vybe/presentation/main_scaffold/main_scaffold.dart'
     show navBarTotalHeight;
 import 'package:vybe/presentation/notifications/notification_item.dart';
@@ -35,7 +36,7 @@ class NotificationScreen extends ConsumerWidget {
       backgroundColor: ClubGlass.ink,
       body: Stack(
         children: [
-          const Positioned.fill(child: ClubAurora()),
+          const Positioned.fill(child: VybeAurora()),
           CustomScrollView(
             slivers: [
               SliverToBoxAdapter(

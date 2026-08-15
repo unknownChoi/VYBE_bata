@@ -12,6 +12,7 @@ import 'package:vybe/presentation/clubs/viewmodels/review_viewmodel.dart';
 import 'package:vybe/presentation/clubs/widgets/club_glass.dart';
 import 'package:vybe/presentation/clubs/widgets/review_write_cards.dart';
 import 'package:vybe/presentation/clubs/widgets/review_write_glass.dart';
+import 'package:vybe/presentation/common/widgets/vybe_aurora.dart';
 import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
 import 'package:vybe/presentation/main_scaffold/nav_bar_hide_route.dart';
 
@@ -228,7 +229,7 @@ class _ReviewWriteScreenState extends ConsumerState<ReviewWriteScreen> {
       resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
-          const Positioned.fill(child: ReviewAurora()),
+          const Positioned.fill(child: VybeAurora()),
           SafeArea(
             child: Column(
               children: [

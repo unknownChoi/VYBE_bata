@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/common/widgets/vybe_aurora.dart';
 import 'package:vybe/presentation/common/widgets/vybe_glass_header.dart';
 import 'package:vybe/presentation/hot_places/hot_places_models.dart';
 import 'package:vybe/presentation/hot_places/widgets/hot_places_header.dart';
@@ -81,13 +82,16 @@ class _HotPlacesScreenState extends State<HotPlacesScreen> {
       body: SizedBox.expand(
         child: Stack(
           children: [
-            // intro→filter→podium 뒤 연속 그라데이션 백드롭 — 상태바까지 채움.
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              height: 560.h + top,
-              child: const IgnorePointer(child: HotPlacesBackdrop()),
+            // 공용 오로라 배경 — 색만 핫플레이스 오렌지/레드로.
+            // 화면 전체를 채운다(상태바 포함) — 부분 높이로 자르면 우하단
+            // 글로우가 화면 중간에 맺히고 아래쪽에 색 경계가 생긴다.
+            const Positioned.fill(
+              child: IgnorePointer(
+                child: VybeAurora(
+                  accent1: kHotAccent,
+                  accent2: Color(0xFFFF3B30),
+                ),
+              ),
             ),
             Positioned.fill(
               child: _loading

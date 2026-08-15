@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- VybeColors.background (#101013) — Flutter 첫 프레임과 같은 색.
+         런치 배경이 흰색이면 다크 앱 진입 시 흰 화면이 번쩍인다. -->
+    <color name="vybe_background">#101013</color>
+</resources>

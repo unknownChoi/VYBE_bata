@@ -4,12 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
-import 'package:vybe/presentation/clubs/renew/widgets/renew_icons.dart';
+import 'package:vybe/presentation/common/renew/renew_icons.dart';
 
-/// 클럽 상세 **리뉴얼** 공통 토큰 · 글래스 프리미티브.
+/// **리뉴얼** 디자인 공용 토큰 · 글래스 프리미티브.
 ///
-/// 디자인: club_detail_renew.html (`club_renew_shell.jsx` + `tokens.jsx`).
+/// 디자인: `club_renew_shell.jsx` + `tokens.jsx`
+/// (클럽 상세 리뉴얼 · 마이 리뉴얼이 함께 쓰는 shell).
 /// CSS `blur(Npx)` ≈ Flutter `ImageFilter.blur(sigma N/2)`.
+///
+/// 클럽 상세 전용이었다가 마이페이지 리뉴얼이 같은 shell을 쓰게 되어 common으로 옮겼다.
 ///
 /// 기존 `club_glass.dart`(구 상세)와 값이 달라 별도 토큰으로 둔다 —
 /// 구 화면을 그대로 두라는 요구가 있어 공유하면 한쪽만 바꿀 수 없다.
@@ -96,69 +99,6 @@ class RenewGlass {
     color: color,
   );
 }
-
-// ============================================================================
-// 배경 (VR.aurora)
-// ============================================================================
-
-/// 리뉴얼 오로라 배경 — 좌상단 보라 · 우상단 라임 · 우하단 보라 3겹.
-///
-/// CSS는 타원 radial-gradient지만 Flutter [RadialGradient]는 원이라
-/// 가로·세로 반지름의 평균으로 근사한다.
-class RenewAurora extends StatelessWidget {
-  const RenewAurora({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const ColoredBox(
-      color: RenewGlass.ink,
-      child: Stack(
-        children: [
-          // radial(120% 80% at 0% 0%, rgba(119,49,254,0.50), transparent 72%)
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  center: Alignment(-1, -1),
-                  radius: 1.5,
-                  colors: [Color(0x807731FE), Color(0x007731FE)],
-                  stops: [0.0, 0.72],
-                ),
-              ),
-            ),
-          ),
-          // radial(110% 80% at 100% 2%, rgba(181,255,96,0.26), transparent 74%)
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  center: Alignment(1, -0.96),
-                  radius: 1.42,
-                  colors: [Color(0x42B5FF60), Color(0x00B5FF60)],
-                  stops: [0.0, 0.74],
-                ),
-              ),
-            ),
-          ),
-          // radial(120% 90% at 88% 100%, rgba(119,49,254,0.34), transparent 76%)
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  center: Alignment(0.76, 1),
-                  radius: 1.55,
-                  colors: [Color(0x577731FE), Color(0x007731FE)],
-                  stops: [0.0, 0.76],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 // ============================================================================
 // 카드 (VGlass)
 // ============================================================================

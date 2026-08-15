@@ -29,22 +29,41 @@ void main() {
   double outerScale(WidgetTester tester) =>
       tester.widgetList<AnimatedScale>(find.byType(AnimatedScale)).first.scale;
 
-  testWidgets('누르면 1.045배로 커지고 떼면 되돌아온다', (tester) async {
-    await pumpButton(tester, onTap: () {});
+  testWidgets('톡 눌러도 눌린 모습이 최소 160ms 유지된다', (tester) async {
+    var taps = 0;
+    await pumpButton(tester, onTap: () => taps++);
 
     expect(outerScale(tester), 1.0);
+
+    // 손가락이 닿았다 바로 떨어지는 짧은 탭.
+    await tester.tap(find.byType(VybeLiquidPress));
+    await tester.pump();
+    expect(outerScale(tester), 1.045, reason: '뗐어도 아직 눌린 상태여야 한다');
+    expect(taps, 0, reason: '동작은 눌린 모습을 다 보여준 뒤에 실행된다');
+
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(outerScale(tester), 1.0);
+    expect(taps, 1);
+
+    // 렌즈가 퍼지며 사라지는 300ms 뒤 정리까지 흘려보낸다.
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('길게 눌렀다 떼면 곧바로 되돌아온다', (tester) async {
+    var taps = 0;
+    await pumpButton(tester, onTap: () => taps++);
 
     final gesture = await tester.startGesture(
       tester.getCenter(find.byType(VybeLiquidPress)),
     );
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
     expect(outerScale(tester), 1.045);
 
     await gesture.up();
     await tester.pump();
-    expect(outerScale(tester), 1.0);
+    expect(outerScale(tester), 1.0, reason: '이미 최소 시간을 넘겼으니 기다리지 않는다');
+    expect(taps, 1);
 
-    // 렌즈가 퍼지며 사라지는 300ms 뒤 정리까지 흘려보낸다.
     await tester.pumpAndSettle();
   });
 
@@ -52,13 +71,11 @@ void main() {
     final log = <bool>[];
     await pumpButton(tester, onTap: () {}, onPressChanged: log.add);
 
-    final gesture = await tester.startGesture(
-      tester.getCenter(find.byType(VybeLiquidPress)),
-    );
+    await tester.tap(find.byType(VybeLiquidPress));
     await tester.pump();
-    await gesture.up();
-    await tester.pump();
+    expect(log, [true]);
 
+    await tester.pump(const Duration(milliseconds: 200));
     expect(log, [true, false]);
     await tester.pumpAndSettle();
   });

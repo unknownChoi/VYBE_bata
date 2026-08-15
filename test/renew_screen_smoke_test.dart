@@ -9,11 +9,11 @@ import 'package:vybe/data/models/operating_hours.dart';
 import 'package:vybe/data/models/photo_model.dart';
 import 'package:vybe/presentation/auth/viewmodels/auth_viewmodel.dart';
 import 'package:vybe/presentation/clubs/renew/club_detail_renew_screen.dart';
-import 'package:vybe/presentation/clubs/renew/widgets/renew_icons.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_schedule_viewmodel.dart';
 import 'package:vybe/presentation/clubs/viewmodels/review_viewmodel.dart';
 import 'package:vybe/presentation/clubs/widgets/schedule_shared.dart';
+import 'package:vybe/presentation/common/renew/renew_icons.dart';
 
 const _clubId = 'c1';
 
