@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/data/models/operating_hours.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/widgets/club_glass.dart';
+import 'package:vybe/presentation/common/widgets/vybe_liquid_press.dart';
 
 /// 주변 페이지 리퀴드 글래스 공통 요소.
 ///
@@ -81,9 +82,9 @@ class NearbyRoundButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return VybeLiquidPress(
       onTap: onTap,
-      behavior: HitTestBehavior.opaque,
+      circle: true,
       child: NearbyFloatSurface(
         radius: size / 2,
         child: SizedBox(

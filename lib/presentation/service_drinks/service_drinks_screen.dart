@@ -4,13 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/core/constants/app_geo.dart';
-import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/core/providers/auth_providers.dart';
 import 'package:vybe/core/utils/gradient_palette.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
-import 'package:vybe/presentation/clubs/club_detail_screen.dart';
+import 'package:vybe/presentation/clubs/club_detail_route.dart';
 import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
 import 'package:vybe/presentation/common/club_list_sorting.dart';
 import 'package:vybe/presentation/common/location_flip_mixin.dart';
@@ -217,11 +216,7 @@ class _ServiceDrinksScreenState extends ConsumerState<ServiceDrinksScreen>
                             : () => ref
                                 .read(favoriteViewModelProvider.notifier)
                                 .toggleFavorite(uid, c.id, saved),
-                        onTap: () => Navigator.of(context).push(
-                          SwipeBackPageRoute(
-                            builder: (_) => ClubDetailScreen(clubId: c.id),
-                          ),
-                        ),
+                        onTap: () => openClubDetail(context, c.id),
                       ),
                     );
                   },

@@ -8,6 +8,7 @@ import 'package:vybe/core/utils/url_utils.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/clubs/renew/widgets/renew_facilities.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_glass.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_hours_table.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_map_card.dart';
@@ -20,10 +21,11 @@ import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
 
 /// 클럽 상세 리뉴얼 · 매장 정보 탭.
 ///
-/// 디자인 매장정보 패널 — 위치 / 상세 정보 / 이용 안내 + 안내 문구.
+/// 디자인 매장정보 패널 — 위치 / 상세 정보 / 편의시설 / 이용 안내 + 안내 문구.
 ///
-/// 디자인의 '편의시설'(주차·화장실·흡연실 등) 카드는 Firestore `clubs`에
-/// 대응 필드가 없어 넣지 않았다. 없는 정보를 채우면 잘못된 안내가 된다.
+/// 편의시설은 `clubs/{clubId}/info/{clubId}.facilities`(영문 키 배열)가 소스.
+/// 등록된 시설이 하나도 없으면 섹션을 통째로 뺀다 — 빈 카드는 '시설이 없다'로
+/// 읽혀 잘못된 안내가 된다.
 class RenewInfoTab extends ConsumerWidget {
   final String clubId;
   final EdgeInsets padding;
@@ -46,10 +48,12 @@ class RenewInfoTab extends ConsumerWidget {
     final info = ref.watch(clubInfoProvider(clubId)).value;
     final subways = info?.nearbySubways ?? const [];
     final cautions = info?.cautions ?? const <String>[];
+    final facilities = parseFacilities(info?.facilities ?? const []);
 
     final sections = <Widget>[
       _location(context, club, subways),
       _detail(context, club),
+      if (facilities.isNotEmpty) RenewFacilities(items: facilities),
       if (cautions.isNotEmpty) _notice(cautions),
       const RenewFooterNote(
         text: '영업시간 · 입장료 · 라인업은 매장 사정에 따라 달라질 수 있으니 방문 전 확인해 주세요.',

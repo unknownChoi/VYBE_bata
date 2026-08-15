@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/clubs/renew/widgets/renew_icons.dart';
 
 /// 클럽 상세 **리뉴얼** 공통 토큰 · 글래스 프리미티브.
 ///
@@ -173,6 +174,10 @@ class RenewGlassCard extends StatelessWidget {
   final double radius;
   final double padding;
 
+  /// 위아래만 다른 여백을 줄 때 (디자인 VRToday는 좌우 16 · 위아래 13).
+  /// null이면 [padding]과 같다.
+  final double? paddingV;
+
   /// 기본 톤에서 그림자를 뺄 때 false.
   final bool elevated;
 
@@ -186,6 +191,7 @@ class RenewGlassCard extends StatelessWidget {
     this.quiet = false,
     this.radius = 19,
     this.padding = 16,
+    this.paddingV,
     this.elevated = true,
     this.fill,
     this.border,
@@ -241,7 +247,13 @@ class RenewGlassCard extends StatelessWidget {
                         : const Color(0x2EFFFFFF),
                   ),
                 ),
-                Padding(padding: EdgeInsets.all(padding.r), child: child),
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: padding.r,
+                    vertical: (paddingV ?? padding).r,
+                  ),
+                  child: child,
+                ),
               ],
             ),
           ),
@@ -326,6 +338,9 @@ class RenewEdgeBleed extends StatelessWidget {
 // ============================================================================
 
 /// `제목 [보조문구]  ...  [액션 >]` 한 줄. 아래 여백 12.
+///
+/// 액션은 항상 **맨 오른쪽**에 붙는다(디자인 space-between) — 제목 길이에
+/// 따라 위치가 흔들리면 섹션마다 버튼 자리가 달라 보인다.
 class RenewSectionHead extends StatelessWidget {
   final String title;
   final String? sub;
@@ -348,7 +363,7 @@ class RenewSectionHead extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.baseline,
         textBaseline: TextBaseline.alphabetic,
         children: [
-          Flexible(
+          Expanded(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.baseline,
               textBaseline: TextBaseline.alphabetic,
@@ -543,22 +558,40 @@ class RenewChip extends StatelessWidget {
 }
 
 /// 아이콘 + 본문 한 줄 (VRToday/VRDetailInfo 카드 내부 행).
+///
+/// 디자인 `row()`는 행 **사이**에만 12 여백을 준다 — 첫 행 위·마지막 행 아래
+/// 여백은 카드 자체 패딩이 맡는다. [first]/[last]로 그 두 자리를 지운다.
 class RenewInfoRow extends StatelessWidget {
-  final IconData icon;
+  /// Material 아이콘. [svgPath]를 주면 무시된다.
+  final IconData? icon;
+
+  /// 디자인 스트로크 아이콘 패스 ([RenewIcons]). 주면 이쪽이 그려진다.
+  final String? svgPath;
+
   final Widget child;
+
+  /// 카드의 첫/마지막 행 — 바깥쪽 여백을 지운다. 마지막 행은 구분선도 없다.
+  final bool first;
   final bool last;
 
   const RenewInfoRow({
     super.key,
-    required this.icon,
+    this.icon,
+    this.svgPath,
     required this.child,
+    this.first = false,
     this.last = false,
-  });
+  }) : assert(icon != null || svgPath != null, 'icon 또는 svgPath 중 하나는 필요하다');
+
+  static const Color _iconColor = Color(0x8CFFFFFF); // rgba(255,255,255,0.55)
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(vertical: 12.h),
+      padding: EdgeInsets.only(
+        top: first ? 0 : 12.h,
+        bottom: last ? 0 : 12.h,
+      ),
       decoration: BoxDecoration(
         border: last
             ? null
@@ -569,7 +602,9 @@ class RenewInfoRow extends StatelessWidget {
         children: [
           Padding(
             padding: EdgeInsets.only(top: 1.h, right: 12.w),
-            child: Icon(icon, size: 17.r, color: const Color(0x8CFFFFFF)),
+            child: svgPath != null
+                ? RenewIcon(path: svgPath!, size: 17, color: _iconColor)
+                : Icon(icon, size: 17.r, color: _iconColor),
           ),
           Expanded(child: child),
         ],

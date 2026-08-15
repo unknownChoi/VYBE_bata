@@ -79,7 +79,11 @@ Color _onColor(Color bg) =>
 /// ```
 class SubwayLineBadge extends StatelessWidget {
   final String line;
-  const SubwayLineBadge({super.key, required this.line});
+
+  /// 원 지름 (CSS px). 리뉴얼 상세의 펼침 영역은 17.
+  final double size;
+
+  const SubwayLineBadge({super.key, required this.line, this.size = 18});
 
   @override
   Widget build(BuildContext context) {
@@ -93,8 +97,8 @@ class SubwayLineBadge extends StatelessWidget {
         : (_kSubwayLineLabels[normalized] ?? normalized.characters.first);
 
     return Container(
-      width: 18.r,
-      height: 18.r,
+      width: size.r,
+      height: size.r,
       decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
       alignment: Alignment.center,
       child: Text(
@@ -102,7 +106,7 @@ class SubwayLineBadge extends StatelessWidget {
         style: TextStyle(
           fontFamily: 'Pretendard',
           fontWeight: FontWeight.w600,
-          fontSize: 11.sp,
+          fontSize: (size < 18 ? 10 : 11).sp,
           color: fg,
           letterSpacing: -0.5,
           height: 1,

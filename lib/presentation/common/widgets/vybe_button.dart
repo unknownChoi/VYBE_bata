@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
+import 'package:vybe/presentation/common/widgets/vybe_liquid_press.dart';
 
 /// 버튼 상태
 enum VybeButtonState { defaultState, click, disabled }
@@ -81,16 +82,12 @@ class _VybeButtonState extends State<VybeButton> {
         ),
       );
 
-  GestureDetector _wrapGesture(Widget child) => GestureDetector(
-        onTapDown: _isDisabled ? null : (_) => setState(() => _isPressed = true),
-        onTapUp: _isDisabled
-            ? null
-            : (_) {
-                setState(() => _isPressed = false);
-                widget.onTap?.call();
-              },
-        onTapCancel:
-            _isDisabled ? null : () => setState(() => _isPressed = false),
+  /// 누름 반응(1.045배 확대 + 손가락 따라오는 렌즈)은 [VybeLiquidPress] 담당,
+  /// 배경색 전환만 여기서 한다.
+  Widget _wrapGesture(Widget child) => VybeLiquidPress(
+        onTap: _isDisabled ? null : widget.onTap,
+        borderRadius: _borderRadius ?? BorderRadius.zero,
+        onPressChanged: (v) => setState(() => _isPressed = v),
         child: child,
       );
 
@@ -119,7 +116,7 @@ class _VybeButtonState extends State<VybeButton> {
     if (widget.variant == VybeButtonVariant.special) {
       return _wrapGesture(
         AnimatedContainer(
-          duration: const Duration(milliseconds: 100),
+          duration: const Duration(milliseconds: 340),
           width: double.infinity,
           height: 56.h,
           decoration: BoxDecoration(
@@ -142,7 +139,7 @@ class _VybeButtonState extends State<VybeButton> {
 
     return _wrapGesture(
       AnimatedContainer(
-        duration: const Duration(milliseconds: 100),
+        duration: const Duration(milliseconds: 340),
         width: double.infinity,
         height: 56.h,
         decoration: BoxDecoration(

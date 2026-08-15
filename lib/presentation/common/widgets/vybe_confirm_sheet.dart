@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/common/widgets/vybe_liquid_press.dart';
 
 /// 되돌릴 수 없는 동작을 한 번 더 묻는 바텀시트 (로그아웃 · 리뷰 삭제 등).
 ///
@@ -128,8 +129,9 @@ class _SheetButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return VybeLiquidPress(
       onTap: onTap,
+      borderRadius: decoration.borderRadius?.resolve(null) ?? BorderRadius.zero,
       child: Container(
         height: 50.h,
         alignment: Alignment.center,

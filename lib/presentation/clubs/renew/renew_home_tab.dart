@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/data/models/club_model.dart';
+import 'package:vybe/presentation/clubs/club_detail_route.dart';
 import 'package:vybe/presentation/clubs/performance_schedule_screen.dart';
-import 'package:vybe/presentation/clubs/renew/club_detail_renew_screen.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_glass.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_home_sections.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_store_info_card.dart';
@@ -115,8 +115,6 @@ class RenewHomeTab extends ConsumerWidget {
   // 주변 클럽 → 같은 리뉴얼 상세로 이동.
   // 상세가 바텀시트로 떠 있어도 전체 화면으로 열리도록 root navigator 사용.
   void _openClub(BuildContext context, String id) {
-    Navigator.of(context, rootNavigator: true).push(
-      SwipeBackPageRoute(builder: (_) => ClubDetailRenewScreen(clubId: id)),
-    );
+    openClubDetail(context, id, rootNavigator: true);
   }
 }

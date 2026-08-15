@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/data/models/performance_model.dart';
-import 'package:vybe/presentation/clubs/club_detail_screen.dart';
+import 'package:vybe/presentation/clubs/club_detail_route.dart';
 import 'package:vybe/presentation/hip_hop/hip_hop_gradients.dart';
 import 'package:vybe/presentation/hip_hop/hip_hop_style.dart';
 
@@ -93,7 +92,5 @@ LineupTypeMeta lineupTypeMetaOf(bool isDj) => isDj
 // 클럽 상세 페이지 이동. clubId 없으면 무시.
 void openLineupClub(BuildContext context, String clubId) {
   if (clubId.isEmpty) return;
-  Navigator.of(context).push(
-    SwipeBackPageRoute(builder: (_) => ClubDetailScreen(clubId: clubId)),
-  );
+  openClubDetail(context, clubId);
 }

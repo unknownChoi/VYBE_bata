@@ -560,8 +560,10 @@ logFirebaseAccess(
     <tr><td class="field-name">nearbySubways</td><td class="ftype">array</td><td>주변 지하철역 <code>[{ stationName, distanceM, lines:string[] }]</code>. lines = 호선 목록 (예: <code>["9호선"]</code>) — SubwayLineBadge 표시용</td></tr>
     <tr><td class="field-name">openChatUrl</td><td class="ftype">string</td><td>카카오 오픈채팅방 URL</td></tr>
     <tr><td class="field-name">cautions</td><td class="ftype">array</td><td>유의사항 목록 (string[])</td></tr>
+    <tr><td class="field-name">facilities</td><td class="ftype">array</td><td>편의시설 키 목록 (string[]) — 클럽 상세 '매장정보' 탭 편의시설 섹션. <code>parking</code>(주차 가능) · <code>restroom</code>(화장실 분리) · <code>smoking</code>(흡연실) · <code>locker</code>(물품보관함) · <code>card</code>(카드 결제) · <code>groupSeat</code>(단체석). 한글 라벨이 아닌 <b>영문 키만</b> 저장 — 라벨·아이콘 대응은 앱의 <code>ClubFacility</code> enum 단일 소스. enum에 없는 키는 앱이 조용히 버린다. 빈 배열이면 섹션 미노출</td></tr>
     <tr><td class="field-name">updatedAt</td><td class="ftype">timestamp</td><td>수정 시각</td></tr>
   </table>
+  <div class="note">편의시설 seed(샘플): <code>scripts/seed_facilities.js</code> — card·restroom은 전 클럽 공통, 나머지는 clubId 해시로 결정(같은 클럽은 항상 같은 조합). 실제 시설 조사 데이터가 아니라 화면 확인용. 쓰기는 어드민 페이지 전용 — 앱은 읽기만.</div>
 </section>
 
 <!-- club menus -->

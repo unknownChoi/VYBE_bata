@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/core/providers/auth_providers.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/domain/repositories/vybe_recommendation_repository.dart';
-import 'package:vybe/presentation/clubs/club_detail_screen.dart';
+import 'package:vybe/presentation/clubs/club_detail_route.dart';
 import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
 import 'package:vybe/presentation/common/widgets/vybe_footer_note.dart';
 import 'package:vybe/presentation/common/widgets/vybe_glass_header.dart';
@@ -36,9 +35,7 @@ class _VybeRecommendScreenState extends ConsumerState<VybeRecommendScreen> {
 
   // 클럽 상세 페이지 이동 (다른 화면과 동일 패턴).
   void _openDetail(String clubId) {
-    Navigator.of(context).push(
-      SwipeBackPageRoute(builder: (_) => ClubDetailScreen(clubId: clubId)),
-    );
+    openClubDetail(context, clubId);
   }
 
   @override

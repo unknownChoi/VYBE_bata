@@ -10,18 +10,30 @@ import 'package:vybe/presentation/main_scaffold/nav_bar_visibility_provider.dart
 /// - 내리는 시점: 페이지 전환 애니메이션이 끝난 뒤 (전환 중에 내리면 새 페이지가
 ///   덮기 전에 이미 사라져 슬라이드가 안 보인다) — [_NavBarHideScope] 참고.
 /// - 올리는 시점: pop 직후 — 페이지가 내려가는 동안 nav가 같이 올라온다.
+///
+/// 이미 nav가 내려간 화면에서 또 호출하면(상세 → 상세, 상세 → 리뷰 작성 등)
+/// 감싸지 않고 평범하게 push한다 — 안쪽 페이지를 닫을 때 nav가 올라와
+/// 뒤에 남는 페이지를 덮기 때문.
 Future<T?> pushHidingNavBar<T>(
   BuildContext context,
-  WidgetRef ref,
-  Widget screen,
-) {
-  return Navigator.of(context)
-      .push<T>(
-        SwipeBackPageRoute(
-          builder: (_) => _NavBarHideScope(child: screen),
-        ),
-      )
-      .whenComplete(() => ref.read(navBarHiddenProvider.notifier).show());
+  Widget screen, {
+  bool rootNavigator = false,
+}) {
+  // WidgetRef 없는 호출 지점(StatelessWidget 등)도 있어 컨테이너를 직접 잡는다.
+  // pop 시점엔 context가 이미 unmount일 수 있으므로 미리 확보해 둔다.
+  final container = ProviderScope.containerOf(context, listen: false);
+  final navigator = Navigator.of(context, rootNavigator: rootNavigator);
+  final alreadyHidden = container.read(navBarHiddenProvider);
+
+  final future = navigator.push<T>(
+    SwipeBackPageRoute(
+      builder: (_) => alreadyHidden ? screen : _NavBarHideScope(child: screen),
+    ),
+  );
+  if (alreadyHidden) return future;
+  return future.whenComplete(
+    () => container.read(navBarHiddenProvider.notifier).show(),
+  );
 }
 
 /// 자기 라우트의 전환 애니메이션이 끝나면 바텀 nav를 내리는 래퍼.

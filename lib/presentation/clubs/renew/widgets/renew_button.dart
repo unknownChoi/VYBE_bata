@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_glass.dart';
+import 'package:vybe/presentation/common/widgets/vybe_liquid_press.dart';
 
 /// [RenewButton] 색 변형 (디자인 VButton `variant`).
 enum RenewButtonVariant {
@@ -15,7 +16,9 @@ enum RenewButtonVariant {
   lime,
 }
 
-/// 리뉴얼 상세 전용 버튼 (VButton) — 56.h · radius 12 · 눌림 100ms.
+/// 리뉴얼 상세 전용 버튼 (VButton) — 56.h · radius 12.
+///
+/// 누름 반응(확대 + 렌즈)은 [VybeLiquidPress], 색 전환만 여기서 한다.
 ///
 /// 공통 [VybeButton]은 보라 단일 톤 + 풀와이드 고정이라 디자인의
 /// quiet/lime 변형과 아이콘 슬롯을 표현할 수 없어 화면 전용으로 둔다.
@@ -62,14 +65,16 @@ class _RenewButtonState extends State<RenewButton> {
   Widget build(BuildContext context) {
     final fg = _foreground;
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTapDown: (_) => _setPressed(true),
-      onTapUp: (_) => _setPressed(false),
-      onTapCancel: () => _setPressed(false),
+    return VybeLiquidPress(
       onTap: widget.onTap,
+      borderRadius: BorderRadius.circular(12.r),
+      onPressChanged: _setPressed,
+      // 라임 채움 위에서는 흰 렌즈가 날아가 보여 어두운 잉크로 반전한다.
+      lensColor: widget.variant == RenewButtonVariant.lime
+          ? RenewGlass.ink
+          : Colors.white,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 100),
+        duration: const Duration(milliseconds: 340),
         height: 56.h,
         alignment: Alignment.center,
         decoration: BoxDecoration(

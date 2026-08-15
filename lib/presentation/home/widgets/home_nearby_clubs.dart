@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/core/utils/gradient_palette.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
-import 'package:vybe/presentation/clubs/club_detail_screen.dart';
+import 'package:vybe/presentation/clubs/club_detail_route.dart';
 import 'package:vybe/presentation/common/widgets/vybe_meta_dot.dart';
 import 'package:vybe/presentation/common/widgets/vybe_recommend_badge.dart';
 import 'package:vybe/presentation/home/viewmodels/home_nearby_viewmodel.dart';
@@ -123,11 +122,7 @@ class _ClubCard extends StatelessWidget {
         gradientForKey(_fallbackGradients, club.clubId);
 
     return GestureDetector(
-      onTap: () => Navigator.of(context).push(
-        SwipeBackPageRoute(
-          builder: (_) => ClubDetailScreen(clubId: club.clubId),
-        ),
-      ),
+      onTap: () => openClubDetail(context, club.clubId),
       // ClipRRect로 감싸지 않고 Container 자체 클립 사용 —
       // 바깥 클립이 코너 호에서 1px 테두리를 깎아 모서리가 안 보이던 문제 방지.
       child: Container(

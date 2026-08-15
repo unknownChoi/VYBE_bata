@@ -143,10 +143,8 @@ void main() {
                 RenewChrome(
                   scrollY: 300,
                   clubName: '어썸 레드',
-                  saved: true,
                   onBack: () {},
                   onShare: () {},
-                  onSave: () {},
                 ),
                 RenewTabBar(
                   tabs: const ['홈', '사진', '메뉴', '리뷰', '매장정보'],

@@ -20,7 +20,6 @@ void openBannerLink(BuildContext context, WidgetRef ref, BannerModel banner) {
     case BannerLinkType.promotion:
       pushHidingNavBar<void>(
         context,
-        ref,
         PromotionDetailScreen(promotionId: banner.linkValue),
       );
     case BannerLinkType.club:

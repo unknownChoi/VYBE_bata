@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_naver_map/flutter_naver_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/core/providers/auth_providers.dart';
 import 'package:vybe/core/providers/location_providers.dart';
 import 'package:vybe/core/utils/geohash_utils.dart';
@@ -11,7 +10,7 @@ import 'package:vybe/core/utils/map_launcher.dart';
 import 'package:vybe/core/utils/naver_overlay_image_queue.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/design_system/colors.dart';
-import 'package:vybe/presentation/clubs/club_detail_screen.dart';
+import 'package:vybe/presentation/clubs/club_detail_route.dart';
 import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
 import 'package:vybe/presentation/common/widgets/vybe_my_location_dot.dart';
 import 'package:vybe/presentation/main_scaffold/main_scaffold.dart';
@@ -176,9 +175,7 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
 
   // 핀 카드 탭 → 클럽 상세. 돌아오면 카드는 그대로 유지한다.
   Future<void> _openDetail(ClubModel club) async {
-    await Navigator.of(context).push(
-      SwipeBackPageRoute(builder: (_) => ClubDetailScreen(clubId: club.clubId)),
-    );
+    await openClubDetail(context, club.clubId);
     if (!mounted) return;
     // 상세에서 스크롤하며 축소된 하단 nav 복원.
     ref.read(navBarVisibilityProvider.notifier).expand();

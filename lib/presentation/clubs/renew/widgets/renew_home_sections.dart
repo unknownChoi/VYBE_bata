@@ -235,7 +235,6 @@ class RenewMenuSection extends StatelessWidget {
         RenewSectionHead(
           title: '메뉴',
           sub: '가격은 달라질 수 있어요',
-          actionLabel: '더보기',
           onAction: onViewAll,
         ),
         RenewMenuRows(menus: menus.take(3).toList()),

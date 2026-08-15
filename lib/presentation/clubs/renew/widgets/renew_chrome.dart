@@ -7,6 +7,7 @@ import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_button.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_glass.dart';
 import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
+import 'package:vybe/presentation/common/widgets/vybe_liquid_press.dart';
 
 /// 상단바 안쪽 행 높이 (디자인 VR_CHROME_H = 상태바 54 + 행 46).
 const double kRenewChromeRow = 46;
@@ -23,23 +24,22 @@ const double _titleAt = 250;
 
 /// 스크롤 위에 떠 있는 상단바. 처음엔 투명하고 히어로를 지나면 유리로 바뀐다.
 ///
-/// 뒤로가기 · 공유 · 찜은 앱 공통 리퀴드 글래스 버튼([VybeGlassButton])을 쓴다.
+/// 뒤로가기 · 공유는 앱 공통 리퀴드 글래스 버튼([VybeGlassButton])을 쓴다.
+///
+/// 찜은 여기 두지 않는다 — 하단 액션 바([RenewBottomBar])에 같은 버튼이 있어
+/// 한 화면에 찜 버튼이 둘이면 어느 쪽이 눌린 상태인지 헷갈린다.
 class RenewChrome extends StatelessWidget {
   final double scrollY;
   final String clubName;
-  final bool saved;
   final VoidCallback onBack;
   final VoidCallback onShare;
-  final VoidCallback onSave;
 
   const RenewChrome({
     super.key,
     required this.scrollY,
     required this.clubName,
-    required this.saved,
     required this.onBack,
     required this.onShare,
-    required this.onSave,
   });
 
   /// 원 지름 = 탭 영역. 디자인 VGlassRound 38px 간격을 그대로 살리려고
@@ -119,16 +119,6 @@ class RenewChrome extends StatelessWidget {
               size: _button,
               iconSize: 16,
               hitSize: _button,
-            ),
-            SizedBox(width: 8.w),
-            VybeGlassButton(
-              onTap: onSave,
-              icon: saved ? Icons.favorite_rounded : Icons.favorite_border,
-              size: _button,
-              // 찜하면 아이콘이 살짝 커진다 (디자인 scale 1.12).
-              iconSize: saved ? 18 : 16,
-              hitSize: _button,
-              iconColor: saved ? VybeColors.mainPurple500 : Colors.white,
             ),
             SizedBox(width: (RenewGlass.pagePad - 8).w),
           ],
@@ -252,11 +242,11 @@ class RenewBottomBar extends StatelessWidget {
           ),
           child: Row(
             children: [
-              GestureDetector(
+              VybeLiquidPress(
                 onTap: onSave,
-                behavior: HitTestBehavior.opaque,
+                borderRadius: BorderRadius.circular(12.r),
                 child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 100),
+                  duration: const Duration(milliseconds: 340),
                   width: 56.r,
                   height: 56.h,
                   alignment: Alignment.center,

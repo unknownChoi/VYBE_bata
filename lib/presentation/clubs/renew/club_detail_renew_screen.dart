@@ -19,7 +19,6 @@ import 'package:vybe/presentation/clubs/renew/widgets/renew_lazy_tab.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
 import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
 import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
-import 'package:vybe/presentation/main_scaffold/nav_bar_hide_route.dart';
 import 'package:vybe/presentation/nearby/widgets/nearby_glass.dart'
     show formatDistance;
 
@@ -46,19 +45,8 @@ class ClubDetailRenewScreen extends ConsumerStatefulWidget {
 
   const ClubDetailRenewScreen({super.key, required this.clubId, this.onClose});
 
-  /// 하단 액션 바가 MainScaffold의 floating nav와 겹치므로,
-  /// 탭 안에서 열 때는 nav를 내리고 전체화면으로 띄운다.
-  static Future<void> push(
-    BuildContext context,
-    WidgetRef ref, {
-    required String clubId,
-  }) {
-    return pushHidingNavBar<void>(
-      context,
-      ref,
-      ClubDetailRenewScreen(clubId: clubId),
-    );
-  }
+  // 화면 진입은 `openClubDetail`(club_detail_route.dart) 한 곳으로만 한다 —
+  // 하단 액션 바가 MainScaffold의 floating nav와 겹쳐 nav를 내려야 하기 때문.
 
   @override
   ConsumerState<ClubDetailRenewScreen> createState() =>
@@ -184,12 +172,10 @@ class _ClubDetailRenewScreenState extends ConsumerState<ClubDetailRenewScreen>
               builder: (_, y, __) => RenewChrome(
                 scrollY: y,
                 clubName: club?.name ?? '',
-                saved: saved,
                 onBack:
                     widget.onClose ?? () => Navigator.of(context).maybePop(),
                 onShare: () =>
                     VybeToast.show(context, message: '공유 기능은 준비 중이에요'),
-                onSave: () => _toggleSave(saved),
               ),
             ),
           ),

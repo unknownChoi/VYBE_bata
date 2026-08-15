@@ -44,11 +44,7 @@ class ReviewWriteScreen extends ConsumerStatefulWidget {
     WidgetRef ref, {
     required String clubId,
   }) {
-    return pushHidingNavBar<bool>(
-      context,
-      ref,
-      ReviewWriteScreen(clubId: clubId),
-    );
+    return pushHidingNavBar<bool>(context, ReviewWriteScreen(clubId: clubId));
   }
 
   /// 리뷰 수정 페이지로 이동. 수정 성공 시 true 반환.

@@ -5,12 +5,18 @@ import 'package:vybe/data/models/club_info_model.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_glass.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_hours_table.dart';
+import 'package:vybe/presentation/clubs/renew/widgets/renew_icons.dart';
 import 'package:vybe/presentation/clubs/widgets/club_glass.dart'
     show SubwayStationLine, formatEntryFee;
 
 /// 홈 탭 '매장 정보' 카드 (디자인 VRToday).
 ///
 /// 주소·영업시간은 눌러서 펼치고, 입장료·인스타는 한 줄로 끝난다.
+///
+/// 도형 규격 — quiet 글래스 카드(radius 19) · 좌우 16 / 위아래 13 여백,
+/// 행 사이 12 + hairline 구분선(마지막 행 없음), 첫 행 위·마지막 행 아래는
+/// 카드 여백이 맡아 0. 아이콘은 24 viewBox 스트로크([RenewIcons], 17px),
+/// 펼침 꺾쇠는 15px·두께 2.2.
 ///
 /// 디자인의 '지번 / 안내(입구 설명)'는 Firestore(`clubs`)에 대응 필드가 없어
 /// 펼침 영역에는 주변 지하철역만 넣는다 — 없는 정보를 지어내지 않는다.
@@ -42,11 +48,14 @@ class _RenewStoreInfoCardState extends State<RenewStoreInfoCard> {
         const RenewSectionHead(title: '매장 정보'),
         RenewGlassCard(
           quiet: true,
+          // 디자인 VGlass pad 16 + paddingTop/Bottom 13
+          paddingV: 13,
           child: Column(
             children: [
               // 주소 — 펼치면 주변 지하철역
               RenewInfoRow(
-                icon: Icons.place_outlined,
+                svgPath: RenewIcons.pin,
+                first: true,
                 child: _expandable(
                   open: _addrOpen,
                   enabled: subways.isNotEmpty,
@@ -66,7 +75,11 @@ class _RenewStoreInfoCardState extends State<RenewStoreInfoCard> {
                             padding: EdgeInsets.only(
                               bottom: i == subways.length - 1 ? 0 : 7.h,
                             ),
-                            child: SubwayStationLine(subway: subways[i]),
+                            // 디자인 펼침 영역 배지는 17 (위치 카드의 21보다 작다)
+                            child: SubwayStationLine(
+                              subway: subways[i],
+                              badgeSize: 17,
+                            ),
                           ),
                       ],
                     ),
@@ -75,7 +88,7 @@ class _RenewStoreInfoCardState extends State<RenewStoreInfoCard> {
               ),
               // 영업시간 — 펼치면 요일별 전체
               RenewInfoRow(
-                icon: Icons.schedule_rounded,
+                svgPath: RenewIcons.clock,
                 child: _expandable(
                   open: _hoursOpen,
                   enabled: true,
@@ -105,7 +118,7 @@ class _RenewStoreInfoCardState extends State<RenewStoreInfoCard> {
               ),
               // 입장료
               RenewInfoRow(
-                icon: Icons.confirmation_number_outlined,
+                svgPath: RenewIcons.ticket,
                 child: Row(
                   children: [
                     Text('입장료 ', style: RenewGlass.body(lineHeight: 20)),
@@ -125,7 +138,7 @@ class _RenewStoreInfoCardState extends State<RenewStoreInfoCard> {
               ),
               // 인스타그램
               RenewInfoRow(
-                icon: Icons.link_rounded,
+                svgPath: RenewIcons.link,
                 last: true,
                 child: Text(
                   handle.isEmpty ? '등록된 링크가 없어요' : handle,
@@ -170,11 +183,8 @@ class _RenewStoreInfoCardState extends State<RenewStoreInfoCard> {
                   child: AnimatedRotation(
                     turns: open ? 0.5 : 0,
                     duration: const Duration(milliseconds: 220),
-                    child: Icon(
-                      Icons.keyboard_arrow_down_rounded,
-                      size: 17.r,
-                      color: const Color(0x80FFFFFF),
-                    ),
+                    // 디자인 VRChev — 15px · 두께 2.2 · rgba(255,255,255,0.5)
+                    child: const RenewChevron(size: 15),
                   ),
                 ),
             ],

@@ -6,11 +6,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/common/widgets/ambient_backdrop.dart';
 import 'package:vybe/presentation/home/viewmodels/home_skeleton_provider.dart';
-import 'package:vybe/presentation/home/widgets/home_banner.dart';
 import 'package:vybe/presentation/home/widgets/home_category_grid.dart';
 import 'package:vybe/presentation/home/widgets/home_gnb.dart';
-import 'package:vybe/presentation/home/widgets/home_location_greeting.dart';
-import 'package:vybe/presentation/home/widgets/home_nearby_clubs.dart';
 import 'package:vybe/presentation/home/widgets/home_screen_skeleton.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {

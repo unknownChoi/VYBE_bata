@@ -11,6 +11,10 @@ abstract class ClubInfoModel with _$ClubInfoModel {
     @Default([]) List<Map<String, dynamic>> nearbySubways,
     @Default('') String openChatUrl,
     @Default([]) List<String> cautions,
+
+    /// 편의시설 키 목록 (예: ["parking","restroom"]).
+    /// 라벨·아이콘 대응은 앱의 `ClubFacility` — 여기엔 영문 키만 저장한다.
+    @Default([]) List<String> facilities,
     required DateTime updatedAt,
   }) = _ClubInfoModel;
 
@@ -22,6 +26,7 @@ abstract class ClubInfoModel with _$ClubInfoModel {
           .toList(),
       openChatUrl: data['openChatUrl'] as String? ?? '',
       cautions: List<String>.from(data['cautions'] as List? ?? []),
+      facilities: List<String>.from(data['facilities'] as List? ?? []),
       updatedAt:
           (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );

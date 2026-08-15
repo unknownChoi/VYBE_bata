@@ -14,7 +14,9 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ClubInfoModel {
 
- List<Map<String, dynamic>> get nearbySubways; String get openChatUrl; List<String> get cautions; DateTime get updatedAt;
+ List<Map<String, dynamic>> get nearbySubways; String get openChatUrl; List<String> get cautions;/// 편의시설 키 목록 (예: ["parking","restroom"]).
+/// 라벨·아이콘 대응은 앱의 `ClubFacility` — 여기엔 영문 키만 저장한다.
+ List<String> get facilities; DateTime get updatedAt;
 /// Create a copy of ClubInfoModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +27,16 @@ $ClubInfoModelCopyWith<ClubInfoModel> get copyWith => _$ClubInfoModelCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ClubInfoModel&&const DeepCollectionEquality().equals(other.nearbySubways, nearbySubways)&&(identical(other.openChatUrl, openChatUrl) || other.openChatUrl == openChatUrl)&&const DeepCollectionEquality().equals(other.cautions, cautions)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ClubInfoModel&&const DeepCollectionEquality().equals(other.nearbySubways, nearbySubways)&&(identical(other.openChatUrl, openChatUrl) || other.openChatUrl == openChatUrl)&&const DeepCollectionEquality().equals(other.cautions, cautions)&&const DeepCollectionEquality().equals(other.facilities, facilities)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(nearbySubways),openChatUrl,const DeepCollectionEquality().hash(cautions),updatedAt);
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(nearbySubways),openChatUrl,const DeepCollectionEquality().hash(cautions),const DeepCollectionEquality().hash(facilities),updatedAt);
 
 @override
 String toString() {
-  return 'ClubInfoModel(nearbySubways: $nearbySubways, openChatUrl: $openChatUrl, cautions: $cautions, updatedAt: $updatedAt)';
+  return 'ClubInfoModel(nearbySubways: $nearbySubways, openChatUrl: $openChatUrl, cautions: $cautions, facilities: $facilities, updatedAt: $updatedAt)';
 }
 
 
@@ -45,7 +47,7 @@ abstract mixin class $ClubInfoModelCopyWith<$Res>  {
   factory $ClubInfoModelCopyWith(ClubInfoModel value, $Res Function(ClubInfoModel) _then) = _$ClubInfoModelCopyWithImpl;
 @useResult
 $Res call({
- List<Map<String, dynamic>> nearbySubways, String openChatUrl, List<String> cautions, DateTime updatedAt
+ List<Map<String, dynamic>> nearbySubways, String openChatUrl, List<String> cautions, List<String> facilities, DateTime updatedAt
 });
 
 
@@ -62,11 +64,12 @@ class _$ClubInfoModelCopyWithImpl<$Res>
 
 /// Create a copy of ClubInfoModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? nearbySubways = null,Object? openChatUrl = null,Object? cautions = null,Object? updatedAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? nearbySubways = null,Object? openChatUrl = null,Object? cautions = null,Object? facilities = null,Object? updatedAt = null,}) {
   return _then(_self.copyWith(
 nearbySubways: null == nearbySubways ? _self.nearbySubways : nearbySubways // ignore: cast_nullable_to_non_nullable
 as List<Map<String, dynamic>>,openChatUrl: null == openChatUrl ? _self.openChatUrl : openChatUrl // ignore: cast_nullable_to_non_nullable
 as String,cautions: null == cautions ? _self.cautions : cautions // ignore: cast_nullable_to_non_nullable
+as List<String>,facilities: null == facilities ? _self.facilities : facilities // ignore: cast_nullable_to_non_nullable
 as List<String>,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as DateTime,
   ));
@@ -153,10 +156,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<Map<String, dynamic>> nearbySubways,  String openChatUrl,  List<String> cautions,  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<Map<String, dynamic>> nearbySubways,  String openChatUrl,  List<String> cautions,  List<String> facilities,  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ClubInfoModel() when $default != null:
-return $default(_that.nearbySubways,_that.openChatUrl,_that.cautions,_that.updatedAt);case _:
+return $default(_that.nearbySubways,_that.openChatUrl,_that.cautions,_that.facilities,_that.updatedAt);case _:
   return orElse();
 
 }
@@ -174,10 +177,10 @@ return $default(_that.nearbySubways,_that.openChatUrl,_that.cautions,_that.updat
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<Map<String, dynamic>> nearbySubways,  String openChatUrl,  List<String> cautions,  DateTime updatedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<Map<String, dynamic>> nearbySubways,  String openChatUrl,  List<String> cautions,  List<String> facilities,  DateTime updatedAt)  $default,) {final _that = this;
 switch (_that) {
 case _ClubInfoModel():
-return $default(_that.nearbySubways,_that.openChatUrl,_that.cautions,_that.updatedAt);case _:
+return $default(_that.nearbySubways,_that.openChatUrl,_that.cautions,_that.facilities,_that.updatedAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -194,10 +197,10 @@ return $default(_that.nearbySubways,_that.openChatUrl,_that.cautions,_that.updat
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<Map<String, dynamic>> nearbySubways,  String openChatUrl,  List<String> cautions,  DateTime updatedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<Map<String, dynamic>> nearbySubways,  String openChatUrl,  List<String> cautions,  List<String> facilities,  DateTime updatedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _ClubInfoModel() when $default != null:
-return $default(_that.nearbySubways,_that.openChatUrl,_that.cautions,_that.updatedAt);case _:
+return $default(_that.nearbySubways,_that.openChatUrl,_that.cautions,_that.facilities,_that.updatedAt);case _:
   return null;
 
 }
@@ -209,7 +212,7 @@ return $default(_that.nearbySubways,_that.openChatUrl,_that.cautions,_that.updat
 
 
 class _ClubInfoModel extends ClubInfoModel {
-  const _ClubInfoModel({final  List<Map<String, dynamic>> nearbySubways = const [], this.openChatUrl = '', final  List<String> cautions = const [], required this.updatedAt}): _nearbySubways = nearbySubways,_cautions = cautions,super._();
+  const _ClubInfoModel({final  List<Map<String, dynamic>> nearbySubways = const [], this.openChatUrl = '', final  List<String> cautions = const [], final  List<String> facilities = const [], required this.updatedAt}): _nearbySubways = nearbySubways,_cautions = cautions,_facilities = facilities,super._();
   
 
  final  List<Map<String, dynamic>> _nearbySubways;
@@ -227,6 +230,17 @@ class _ClubInfoModel extends ClubInfoModel {
   return EqualUnmodifiableListView(_cautions);
 }
 
+/// 편의시설 키 목록 (예: ["parking","restroom"]).
+/// 라벨·아이콘 대응은 앱의 `ClubFacility` — 여기엔 영문 키만 저장한다.
+ final  List<String> _facilities;
+/// 편의시설 키 목록 (예: ["parking","restroom"]).
+/// 라벨·아이콘 대응은 앱의 `ClubFacility` — 여기엔 영문 키만 저장한다.
+@override@JsonKey() List<String> get facilities {
+  if (_facilities is EqualUnmodifiableListView) return _facilities;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_facilities);
+}
+
 @override final  DateTime updatedAt;
 
 /// Create a copy of ClubInfoModel
@@ -239,16 +253,16 @@ _$ClubInfoModelCopyWith<_ClubInfoModel> get copyWith => __$ClubInfoModelCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ClubInfoModel&&const DeepCollectionEquality().equals(other._nearbySubways, _nearbySubways)&&(identical(other.openChatUrl, openChatUrl) || other.openChatUrl == openChatUrl)&&const DeepCollectionEquality().equals(other._cautions, _cautions)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ClubInfoModel&&const DeepCollectionEquality().equals(other._nearbySubways, _nearbySubways)&&(identical(other.openChatUrl, openChatUrl) || other.openChatUrl == openChatUrl)&&const DeepCollectionEquality().equals(other._cautions, _cautions)&&const DeepCollectionEquality().equals(other._facilities, _facilities)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_nearbySubways),openChatUrl,const DeepCollectionEquality().hash(_cautions),updatedAt);
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_nearbySubways),openChatUrl,const DeepCollectionEquality().hash(_cautions),const DeepCollectionEquality().hash(_facilities),updatedAt);
 
 @override
 String toString() {
-  return 'ClubInfoModel(nearbySubways: $nearbySubways, openChatUrl: $openChatUrl, cautions: $cautions, updatedAt: $updatedAt)';
+  return 'ClubInfoModel(nearbySubways: $nearbySubways, openChatUrl: $openChatUrl, cautions: $cautions, facilities: $facilities, updatedAt: $updatedAt)';
 }
 
 
@@ -259,7 +273,7 @@ abstract mixin class _$ClubInfoModelCopyWith<$Res> implements $ClubInfoModelCopy
   factory _$ClubInfoModelCopyWith(_ClubInfoModel value, $Res Function(_ClubInfoModel) _then) = __$ClubInfoModelCopyWithImpl;
 @override @useResult
 $Res call({
- List<Map<String, dynamic>> nearbySubways, String openChatUrl, List<String> cautions, DateTime updatedAt
+ List<Map<String, dynamic>> nearbySubways, String openChatUrl, List<String> cautions, List<String> facilities, DateTime updatedAt
 });
 
 
@@ -276,11 +290,12 @@ class __$ClubInfoModelCopyWithImpl<$Res>
 
 /// Create a copy of ClubInfoModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? nearbySubways = null,Object? openChatUrl = null,Object? cautions = null,Object? updatedAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? nearbySubways = null,Object? openChatUrl = null,Object? cautions = null,Object? facilities = null,Object? updatedAt = null,}) {
   return _then(_ClubInfoModel(
 nearbySubways: null == nearbySubways ? _self._nearbySubways : nearbySubways // ignore: cast_nullable_to_non_nullable
 as List<Map<String, dynamic>>,openChatUrl: null == openChatUrl ? _self.openChatUrl : openChatUrl // ignore: cast_nullable_to_non_nullable
 as String,cautions: null == cautions ? _self._cautions : cautions // ignore: cast_nullable_to_non_nullable
+as List<String>,facilities: null == facilities ? _self._facilities : facilities // ignore: cast_nullable_to_non_nullable
 as List<String>,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as DateTime,
   ));

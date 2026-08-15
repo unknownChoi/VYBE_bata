@@ -9,7 +9,7 @@ import 'package:vybe/data/models/search_history_model.dart';
 import 'package:vybe/data/models/search_trend_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
-import 'package:vybe/presentation/clubs/club_detail_screen.dart';
+import 'package:vybe/presentation/clubs/club_detail_route.dart';
 import 'package:vybe/presentation/common/widgets/ambient_backdrop.dart';
 import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
 import 'package:vybe/presentation/free_entry/free_entry_screen.dart';
@@ -176,9 +176,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     // 직접 입력한 검색어로 클럽을 골랐다 = 가장 신뢰도 높은 검색 신호.
     // 결과 화면을 거치지 않으므로 여기서 로그를 남긴다.
     _logSearch(q, SearchSource.suggestion);
-    Navigator.of(context)
-        .push(_fadeRoute(ClubDetailScreen(clubId: clubId)))
-        .then((_) => _restoreQuery(q));
+    // 상세는 다른 진입점과 같은 스와이프백 전환으로 통일한다(fade 아님) —
+    // 하단 nav를 내려야 해서 openClubDetail 한 곳을 거친다.
+    openClubDetail(context, clubId).then((_) => _restoreQuery(q));
   }
 
   void _logSearch(String keyword, SearchSource source) {

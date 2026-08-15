@@ -9,6 +9,7 @@ import 'package:vybe/data/models/operating_hours.dart';
 import 'package:vybe/data/models/photo_model.dart';
 import 'package:vybe/presentation/auth/viewmodels/auth_viewmodel.dart';
 import 'package:vybe/presentation/clubs/renew/club_detail_renew_screen.dart';
+import 'package:vybe/presentation/clubs/renew/widgets/renew_icons.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_schedule_viewmodel.dart';
 import 'package:vybe/presentation/clubs/viewmodels/review_viewmodel.dart';
@@ -253,7 +254,7 @@ void main() {
     expect(find.text('정기휴무'), findsNothing);
     // 영업 상태 문구는 현재 시각에 따라 달라져 펼침 화살표로 행을 찍는다.
     // (주소 · 영업시간 두 개 중 아래쪽이 영업시간)
-    await tester.tap(find.byIcon(Icons.keyboard_arrow_down_rounded).last);
+    await tester.tap(find.byType(RenewChevron).last);
     await _settle(tester);
 
     // 일요일 휴무 + '오늘' 뱃지가 드러난다.

@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/data/models/promotion_model.dart';
 import 'package:vybe/design_system/colors.dart';
-import 'package:vybe/presentation/clubs/club_detail_screen.dart';
+import 'package:vybe/presentation/clubs/club_detail_route.dart';
 import 'package:vybe/presentation/clubs/widgets/club_glass.dart';
 import 'package:vybe/presentation/common/widgets/vybe_button.dart';
 import 'package:vybe/presentation/common/widgets/vybe_content_image.dart';
@@ -233,11 +232,7 @@ class _CtaBar extends StatelessWidget {
   Future<void> _onTap(BuildContext context) async {
     switch (promotion.ctaType) {
       case PromotionCtaType.club:
-        Navigator.of(context).push(
-          SwipeBackPageRoute<void>(
-            builder: (_) => ClubDetailScreen(clubId: promotion.ctaValue),
-          ),
-        );
+        openClubDetail(context, promotion.ctaValue);
       case PromotionCtaType.url:
         final uri = Uri.tryParse(promotion.ctaValue);
         if (uri == null) return;

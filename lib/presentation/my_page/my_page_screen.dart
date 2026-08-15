@@ -133,7 +133,7 @@ class _LoggedInView extends ConsumerWidget {
   // 하위 페이지(프로필 수정·내 리뷰·설정)는 바텀 nav를 아래로 내린 채 연다.
   // 돌아오면 다시 올라온다. (pushHidingNavBar 참고)
   void _push(BuildContext context, WidgetRef ref, Widget screen) {
-    pushHidingNavBar<void>(context, ref, screen);
+    pushHidingNavBar<void>(context, screen);
   }
 
   @override

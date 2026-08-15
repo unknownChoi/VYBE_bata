@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
-import 'package:vybe/presentation/clubs/club_detail_screen.dart';
+import 'package:vybe/presentation/clubs/club_detail_route.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 import 'package:vybe/presentation/hip_hop/hip_hop_style.dart';
 import 'package:vybe/presentation/hip_hop/hip_hop_view_models.dart';
@@ -107,9 +106,7 @@ class _HipHopDjCircle extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       // 아티스트 탭 → 해당 클럽 상세.
-      onTap: () => Navigator.of(context).push(
-        SwipeBackPageRoute(builder: (_) => ClubDetailScreen(clubId: d.clubId)),
-      ),
+      onTap: () => openClubDetail(context, d.clubId),
       child: SizedBox(
         width: 76.w,
         child: Column(

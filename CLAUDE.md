@@ -353,13 +353,15 @@ ElevatedButton(onPressed: () {}, child: Text('로그인'))
   - 메뉴: 메뉴판 이미지 + sticky 카테고리 칩(섹션 스크롤) + 카테고리별 섹션
   - 사진: sticky 필터 칩(개수) + 2열 매스너리 + 12장씩 더 보기
   - 리뷰: 평점 요약(분포 바) + 작성 버튼 + 정렬 칩 + 5개씩 더 보기
-  - 매장 정보: 위치(네이버 지도·주소 복사·길찾기) / 상세 정보 / 이용 안내
+  - 매장 정보: 위치(네이버 지도·주소 복사·길찾기) / 상세 정보 / 편의시설 / 이용 안내
   - 공통 글래스 위젯은 `clubs/widgets/club_glass.dart`
   - ⚠ **`NestedScrollView.headerSliverBuilder`에 pinned `SliverPersistentHeader` 금지**
     — Flutter 3.41 세만틱스 검증(`debugCheckForParentData`)이 매 프레임
     `'!semantics.parentDataDirty'` assert를 던져 화면이 통째로 안 그려진다(빈 화면).
     sticky 바는 스크롤 밖 고정 행(탭바는 `NestedScrollView.body` 최상단)으로 구현할 것
-  - ⚠ 디자인의 '편의시설'(주차·화장실·흡연실 등) 카드는 Firestore 필드가 없어 미구현
+  - **편의시설 (2026.08.15)** — `info.facilities`(영문 키 배열) → 3열 그리드 카드.
+    키↔라벨·아이콘 대응은 `clubs/renew/widgets/renew_facilities.dart`의 `ClubFacility` enum 하나.
+    등록된 시설이 없으면 섹션 자체를 뺀다. 데이터 없으면 `node scripts/seed_facilities.js`
 - **찜 탭 (`saved/`) — favorites 실연동** (정렬, 리스트↔그리드 뷰, 찜 해제)
 - **마이페이지 (`my_page/`) — my.html 디자인 기반** (프로필 히어로, 리뷰/찜 통계,
   내 리뷰 관리(collectionGroup 조회·삭제), 내 정보 수정(닉네임), 설정(로컬 토글 + 캐시 삭제 실동작), 로그아웃)
@@ -396,6 +398,9 @@ ElevatedButton(onPressed: () {}, child: Text('로그인'))
 - 주변 페이지 ↔ 상세 페이지 연동 마무리 (최근 커밋 진행 중)
 - 마이페이지 세부 — 리뷰 수정, 프로필 사진 변경(image_picker 설치됨 — 연결만 남음), 알림 화면
 - reviews collectionGroup 인덱스·Rules 배포 (`firebase deploy --only firestore` — 미배포 시 내 리뷰 관리 동작 안 함)
+- 편의시설 잔여 작업 — ① `node scripts/seed_facilities.js` (안 돌리면 `info.facilities`가 비어
+  매장정보 탭에 편의시설 섹션이 안 뜸. Rules·인덱스 변경은 불필요 — info 서브컬렉션 기존 규칙 그대로)
+  ② 실제 시설 데이터 입력 + 어드민 편집 UI (현재 seed 값은 clubId 해시로 만든 샘플)
 - 검색 트렌드 배포 잔여 작업 — ① `firebase deploy --only firestore:rules,functions:aggregateSearchTrends`
   ② `node scripts/seed_search_hashtags.js` (안 돌리면 두 섹션 다 빈 화면)
   ③ 콘솔에서 `searchLogs.expireAt` TTL 정책 추가
@@ -628,8 +633,20 @@ nearbySubways   : array     // 주변 지하철역 목록 [{ stationName: string
                             //   lines: 호선 목록 (예: ["9호선"]) — SubwayLineBadge 표시용
 openChatUrl     : string    // 카카오 오픈채팅방 URL
 cautions        : array     // 유의사항 목록 (string[])
+facilities      : array     // 편의시설 키 목록 (string[]) — 클럽 상세 '매장정보' 탭 편의시설 섹션
+                            //   parking(주차 가능) · restroom(화장실 분리) · smoking(흡연실)
+                            //   locker(물품보관함) · card(카드 결제) · groupSeat(단체석)
+                            //   ⚠ 한글 라벨이 아닌 **영문 키만** 저장. 라벨·아이콘 대응은 앱의
+                            //     `ClubFacility` enum(renew_facilities.dart) 단일 소스 —
+                            //     문구를 바꿀 때 전 클럽 문서를 손대지 않기 위함
+                            //   ⚠ enum에 없는 키는 앱이 **조용히 버린다**(영문 키 노출 방지).
+                            //     시설을 늘리려면 enum에 먼저 추가할 것
+                            //   빈 배열이면 섹션 자체가 안 그려짐 (빈 카드 = '시설 없음'으로 읽히므로)
 updatedAt       : timestamp
 ```
+> 편의시설 seed(샘플): `scripts/seed_facilities.js` — card·restroom은 전 클럽 공통,
+> 나머지는 clubId 해시로 결정(같은 클럽은 항상 같은 조합). 실제 시설 조사 데이터가 아니라
+> 화면 확인용. **쓰기는 어드민 페이지(별도 구축 예정) 전용 — 앱은 읽기만.**
 
 #### clubs/{clubId}/menus/{menuId}
 ```

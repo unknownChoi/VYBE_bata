@@ -7,7 +7,7 @@ import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/data/models/performance_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
-import 'package:vybe/presentation/clubs/club_detail_screen.dart';
+import 'package:vybe/presentation/clubs/club_detail_route.dart';
 import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 import 'package:vybe/presentation/hip_hop/hip_hop_gradients.dart';
@@ -247,12 +247,7 @@ class _HipHopScreenState extends ConsumerState<HipHopScreen> {
                                 saved: _saved.contains(c.id),
                                 onSave: () => _toggleSave(c.id),
                                 // 카드 탭 → 클럽 상세.
-                                onTap: () => Navigator.of(context).push(
-                                  SwipeBackPageRoute(
-                                    builder: (_) =>
-                                        ClubDetailScreen(clubId: c.id),
-                                  ),
-                                ),
+                                onTap: () => openClubDetail(context, c.id),
                               ),
                             )
                             .toList(),

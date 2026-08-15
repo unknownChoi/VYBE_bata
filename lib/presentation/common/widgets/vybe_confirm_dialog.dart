@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/common/widgets/vybe_liquid_press.dart';
 
 // ============================================================
 // 되돌릴 수 없는 동작을 한 번 더 묻는 리퀴드 글래스 다이얼로그.
@@ -262,15 +263,13 @@ class _DialogButtonState extends State<_DialogButton> {
         Colors.white.withValues(alpha: _pressed ? 0.12 : 0.07),
     };
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTapDown: (_) => _setPressed(true),
-      onTapUp: (_) => _setPressed(false),
-      onTapCancel: () => _setPressed(false),
+    return VybeLiquidPress(
       onTap: widget.onTap,
+      borderRadius: BorderRadius.circular(12.r),
+      onPressChanged: _setPressed,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 100),
-        curve: Curves.linear,
+        duration: const Duration(milliseconds: 340),
+        curve: Curves.ease,
         height: 48.h,
         alignment: Alignment.center,
         decoration: BoxDecoration(

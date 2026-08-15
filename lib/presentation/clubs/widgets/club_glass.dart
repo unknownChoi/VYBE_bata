@@ -7,6 +7,7 @@ import 'package:vybe/data/models/operating_hours.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/widgets/subway_line_badge.dart';
 import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
+import 'package:vybe/presentation/common/widgets/vybe_liquid_press.dart';
 
 /// 클럽 상세 리퀴드 글래스 공통 요소.
 ///
@@ -350,9 +351,9 @@ class GlassRoundButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return VybeLiquidPress(
       onTap: onTap,
-      behavior: HitTestBehavior.opaque,
+      circle: true,
       child: ClipOval(
         child: BackdropFilter(
           filter: ui.ImageFilter.blur(sigmaX: 7, sigmaY: 7),
@@ -602,7 +603,14 @@ class WeekHoursTable extends StatelessWidget {
 class SubwayStationLine extends StatelessWidget {
   final Map<String, dynamic> subway;
 
-  const SubwayStationLine({super.key, required this.subway});
+  /// 노선 배지 지름. 리뉴얼 상세의 접힌 카드 안에서는 17.
+  final double badgeSize;
+
+  const SubwayStationLine({
+    super.key,
+    required this.subway,
+    this.badgeSize = 18,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -610,7 +618,7 @@ class SubwayStationLine extends StatelessWidget {
     return Row(
       children: [
         if (lines.isNotEmpty) ...[
-          SubwayLineBadge(line: lines.first),
+          SubwayLineBadge(line: lines.first, size: badgeSize),
           SizedBox(width: 6.w),
         ],
         Flexible(
@@ -722,9 +730,9 @@ class GlassMoreButton extends StatelessWidget {
         ),
       );
     }
-    return GestureDetector(
+    return VybeLiquidPress(
       onTap: onTap,
-      behavior: HitTestBehavior.opaque,
+      borderRadius: BorderRadius.circular(14.r),
       child: Container(
         width: double.infinity,
         padding: EdgeInsets.symmetric(vertical: 14.h),

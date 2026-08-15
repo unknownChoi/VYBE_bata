@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/core/utils/gradient_palette.dart';
 import 'package:vybe/design_system/colors.dart';
-import 'package:vybe/presentation/clubs/club_detail_screen.dart';
+import 'package:vybe/presentation/clubs/club_detail_route.dart';
 import 'package:vybe/presentation/clubs/widgets/club_glass.dart';
 
 // 찜 탭 공용 — 정렬 옵션 · 썸네일 폴백 그라데이션 · 캡션 스타일 · 상세 이동.
@@ -30,9 +29,7 @@ List<Color> savedGradientFor(String key) => gradientForKey(kSavedGradients, key)
 
 /// 탭 내부 Navigator로 클럽 상세 push.
 void openSavedClubDetail(BuildContext context, String clubId) {
-  Navigator.of(context).push(
-    SwipeBackPageRoute(builder: (_) => ClubDetailScreen(clubId: clubId)),
-  );
+  openClubDetail(context, clubId);
 }
 
 TextStyle savedCaption({
