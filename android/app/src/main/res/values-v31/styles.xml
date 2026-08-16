@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 12(API 31)+ 전용.
+
+         12부터는 콜드 스타트마다 **시스템 스플래시**가 먼저 뜬다. 끌 수 없고,
+         아무것도 지정하지 않으면 런처 아이콘(@mipmap/ic_launcher)을 원 안에 띄운다.
+         → 앱 로고가 아직 Flutter 기본 아이콘이라 파란 Flutter 로고가 번쩍인다.
+
+         배경을 스플래시 잉크색으로 맞추고 아이콘 자리를 투명 drawable로 채워
+         **단색 화면 하나**로 만든다. 로고 등장은 Flutter VybeSplash가 처음부터
+         재생하므로, 여기서 로고를 또 띄우면 등장 연출이 죽는다.
+
+         ⚠ 일부 OEM 스킨은 투명 아이콘을 무시하고 런처 아이콘을 그대로 띄운다.
+           런처 아이콘을 실제 vybe 아이콘으로 교체하면 그 경우도 자연스러워진다
+           (출시 전 필수 작업 — applicationId 확정과 같은 묶음). -->
+    <style name="LaunchTheme" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowBackground">@drawable/launch_background</item>
+        <item name="android:windowSplashScreenBackground">@color/vybe_splash_background</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_icon_none</item>
+    </style>
+    <style name="NormalTheme" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowBackground">@color/vybe_splash_background</item>
+    </style>
+</resources>

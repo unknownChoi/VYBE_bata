@@ -8,22 +8,43 @@ part of 'location_providers.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// 전역 내 위치 상태. 앱 진입 시 기본 좌표로 초기화된다.
+/// 전역 내 위치 상태.
+///
+/// 앱 첫 로딩(`SplashGate`)에서 [UserLocationNotifier.resolveFromDevice]를 한 번
+/// 돌려 기기 GPS 좌표로 갱신하고, 홈 위치 칩·주변 페이지·주변 클럽 섹션이 전부
+/// 이 좌표 하나를 본다.
+///
+/// **keepAlive인 이유** — 스플래시에서 좌표를 받을 때는 이 provider를 보는 화면이
+/// 아직 없다. autoDispose면 받자마자 버려져 홈이 폴백 좌표로 다시 시작한다.
 
 @ProviderFor(UserLocationNotifier)
 final userLocationProvider = UserLocationNotifierProvider._();
 
-/// 전역 내 위치 상태. 앱 진입 시 기본 좌표로 초기화된다.
+/// 전역 내 위치 상태.
+///
+/// 앱 첫 로딩(`SplashGate`)에서 [UserLocationNotifier.resolveFromDevice]를 한 번
+/// 돌려 기기 GPS 좌표로 갱신하고, 홈 위치 칩·주변 페이지·주변 클럽 섹션이 전부
+/// 이 좌표 하나를 본다.
+///
+/// **keepAlive인 이유** — 스플래시에서 좌표를 받을 때는 이 provider를 보는 화면이
+/// 아직 없다. autoDispose면 받자마자 버려져 홈이 폴백 좌표로 다시 시작한다.
 final class UserLocationNotifierProvider
     extends $NotifierProvider<UserLocationNotifier, UserLocation> {
-  /// 전역 내 위치 상태. 앱 진입 시 기본 좌표로 초기화된다.
+  /// 전역 내 위치 상태.
+  ///
+  /// 앱 첫 로딩(`SplashGate`)에서 [UserLocationNotifier.resolveFromDevice]를 한 번
+  /// 돌려 기기 GPS 좌표로 갱신하고, 홈 위치 칩·주변 페이지·주변 클럽 섹션이 전부
+  /// 이 좌표 하나를 본다.
+  ///
+  /// **keepAlive인 이유** — 스플래시에서 좌표를 받을 때는 이 provider를 보는 화면이
+  /// 아직 없다. autoDispose면 받자마자 버려져 홈이 폴백 좌표로 다시 시작한다.
   UserLocationNotifierProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
         name: r'userLocationProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -45,9 +66,16 @@ final class UserLocationNotifierProvider
 }
 
 String _$userLocationNotifierHash() =>
-    r'6d329ecde377a55493ce8be3731d9d204bdab6dd';
+    r'2b95c0799836d3b156c07e4e273891ebb0339143';
 
-/// 전역 내 위치 상태. 앱 진입 시 기본 좌표로 초기화된다.
+/// 전역 내 위치 상태.
+///
+/// 앱 첫 로딩(`SplashGate`)에서 [UserLocationNotifier.resolveFromDevice]를 한 번
+/// 돌려 기기 GPS 좌표로 갱신하고, 홈 위치 칩·주변 페이지·주변 클럽 섹션이 전부
+/// 이 좌표 하나를 본다.
+///
+/// **keepAlive인 이유** — 스플래시에서 좌표를 받을 때는 이 provider를 보는 화면이
+/// 아직 없다. autoDispose면 받자마자 버려져 홈이 폴백 좌표로 다시 시작한다.
 
 abstract class _$UserLocationNotifier extends $Notifier<UserLocation> {
   UserLocation build();

@@ -8,9 +8,12 @@ part of 'home_nearby_viewmodel.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
+/// 내 위치에서 가까운 클럽 [_kMaxCards]곳 (가까운 순).
 
 @ProviderFor(homeNearbyClubs)
 final homeNearbyClubsProvider = HomeNearbyClubsProvider._();
+
+/// 내 위치에서 가까운 클럽 [_kMaxCards]곳 (가까운 순).
 
 final class HomeNearbyClubsProvider
     extends
@@ -20,6 +23,7 @@ final class HomeNearbyClubsProvider
           FutureOr<List<ClubModel>>
         >
     with $FutureModifier<List<ClubModel>>, $FutureProvider<List<ClubModel>> {
+  /// 내 위치에서 가까운 클럽 [_kMaxCards]곳 (가까운 순).
   HomeNearbyClubsProvider._()
     : super(
         from: null,
@@ -46,4 +50,4 @@ final class HomeNearbyClubsProvider
   }
 }
 
-String _$homeNearbyClubsHash() => r'1f6fe01769fb20990332bebf9e297df4e05cad23';
+String _$homeNearbyClubsHash() => r'effb03d87cfd42a0327a7f9b57110422aaf970f6';

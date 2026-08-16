@@ -6,8 +6,9 @@
         <!-- Flutter 엔진이 첫 프레임을 그리면 자동으로 제거된다 -->
         <item name="android:windowBackground">@drawable/launch_background</item>
     </style>
-    <!-- 프로세스 기동 직후 ~ Flutter UI 뒤에 깔리는 테마. -->
+    <!-- 프로세스 기동 직후 ~ Flutter UI 뒤에 깔리는 테마.
+         첫 프레임이 스플래시(잉크색)라 여기도 같은 색이어야 전환이 안 보인다. -->
     <style name="NormalTheme" parent="@android:style/Theme.Black.NoTitleBar">
-        <item name="android:windowBackground">@color/vybe_background</item>
+        <item name="android:windowBackground">@color/vybe_splash_background</item>
     </style>
 </resources>

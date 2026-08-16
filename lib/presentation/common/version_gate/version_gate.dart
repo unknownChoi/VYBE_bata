@@ -16,6 +16,10 @@ const _kOptionalMessage = '더 좋아진 vybe를 만나보세요.\n지금 업데
 const _kMaintenanceTitle = '서버 점검 중입니다';
 const _kMaintenanceMessage = '더 나은 서비스를 위해 점검하고 있어요.\n잠시 후 다시 이용해 주세요.';
 
+/// 선택 업데이트 안내를 띄우기까지 기다리는 시간.
+/// 스플래시 퇴장(≈0.82s)이 끝난 뒤에 뜨도록 그보다 조금 길게 잡는다.
+const _kOptionalPromptDelay = Duration(milliseconds: 1000);
+
 /// 앱 진입 전 버전 정책을 확인하는 게이트.
 ///
 /// [AuthGate]보다 **위**에 둔다 — 로그인 여부와 무관하게 먼저 걸러야 하고,
@@ -58,19 +62,23 @@ class _VersionGateState extends ConsumerState<VersionGate>
   }
 
   Future<void> _openStore(VersionCheckResult result) => launchStore(
-        context,
-        storeUrl: result.config?.storeUrl ?? '',
-        packageName: result.packageName,
-      );
+    context,
+    storeUrl: result.config?.storeUrl ?? '',
+    packageName: result.packageName,
+  );
 
-  /// 선택 업데이트 안내를 다음 프레임에 띄운다(빌드 중 라우트 조작 금지).
+  /// 선택 업데이트 안내를 잠시 뒤에 띄운다(빌드 중 라우트 조작 금지).
+  ///
+  /// [SplashGate] 가 퇴장 연출(로고가 홈 상단 바로 날아가는 동안) 중에 이미
+  /// 이 게이트를 만들어 두므로, 다음 프레임에 바로 띄우면 애니메이션 위로
+  /// 다이얼로그가 겹친다 — 연출이 끝난 뒤로 미룬다.
   ///
   /// 확인 다이얼로그는 앱 공용 [VybeConfirmDialog] 를 쓴다 — 톤만 권유(퍼플).
   void _scheduleOptionalPrompt(VersionCheckResult result) {
     if (_optionalShown) return;
     _optionalShown = true;
 
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
+    Future<void>.delayed(_kOptionalPromptDelay, () async {
       if (!mounted) return;
       final confirmed = await VybeConfirmDialog.show(
         context,
@@ -93,9 +101,7 @@ class _VersionGateState extends ConsumerState<VersionGate>
     // 첫 조회 전. 에러는 오지 않지만(뷰모델이 삼킴) 와도 통과시킨다.
     if (result == null) {
       // 인트로는 SplashGate가 이미 재생했으므로 완성 프레임만 이어 그린다.
-      return async.hasError
-          ? widget.child
-          : const VybeSplash(playIntro: false);
+      return async.hasError ? widget.child : const VybeSplash(playIntro: false);
     }
 
     switch (result.action) {

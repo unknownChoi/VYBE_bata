@@ -33,7 +33,7 @@ final class NearbyViewModelProvider
   NearbyViewModel create() => NearbyViewModel();
 }
 
-String _$nearbyViewModelHash() => r'c5b5e94d3b160c2c9fd738b51a345c2c0ec053ec';
+String _$nearbyViewModelHash() => r'5ff0fcff20164d484746b27df9885d15117c271a';
 
 abstract class _$NearbyViewModel extends $AsyncNotifier<List<ClubModel>> {
   FutureOr<List<ClubModel>> build();
@@ -53,15 +53,15 @@ abstract class _$NearbyViewModel extends $AsyncNotifier<List<ClubModel>> {
   }
 }
 
-/// 마지막 조회 중심 좌표. 거리순 정렬의 기준점.
+/// 마지막 조회 중심 좌표. 거리순 정렬의 기준점. 시작값은 내 위치.
 
 @ProviderFor(NearbyCenter)
 final nearbyCenterProvider = NearbyCenterProvider._();
 
-/// 마지막 조회 중심 좌표. 거리순 정렬의 기준점.
+/// 마지막 조회 중심 좌표. 거리순 정렬의 기준점. 시작값은 내 위치.
 final class NearbyCenterProvider
     extends $NotifierProvider<NearbyCenter, ({double lat, double lng})> {
-  /// 마지막 조회 중심 좌표. 거리순 정렬의 기준점.
+  /// 마지막 조회 중심 좌표. 거리순 정렬의 기준점. 시작값은 내 위치.
   NearbyCenterProvider._()
     : super(
         from: null,
@@ -89,9 +89,9 @@ final class NearbyCenterProvider
   }
 }
 
-String _$nearbyCenterHash() => r'4d338a08620d161b3f85b7c78fe031d9d972f4df';
+String _$nearbyCenterHash() => r'1cc4625dabf281f660b611e3094a7b456128a01e';
 
-/// 마지막 조회 중심 좌표. 거리순 정렬의 기준점.
+/// 마지막 조회 중심 좌표. 거리순 정렬의 기준점. 시작값은 내 위치.
 
 abstract class _$NearbyCenter extends $Notifier<({double lat, double lng})> {
   ({double lat, double lng}) build();

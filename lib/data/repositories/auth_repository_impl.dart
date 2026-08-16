@@ -1,17 +1,19 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:vybe/data/datasources/remote/firebase_auth_datasource.dart';
+import 'package:vybe/data/datasources/remote/social_auth_datasource.dart';
 import 'package:vybe/domain/repositories/auth_repository.dart';
 
 part 'auth_repository_impl.g.dart';
 
 @riverpod
 AuthRepository authRepository(Ref ref) =>
-    AuthRepositoryImpl(FirebaseAuthDataSource());
+    AuthRepositoryImpl(FirebaseAuthDataSource(), SocialAuthDataSource());
 
 class AuthRepositoryImpl implements AuthRepository {
   final FirebaseAuthDataSource _dataSource;
+  final SocialAuthDataSource _socialDataSource;
 
-  AuthRepositoryImpl(this._dataSource);
+  AuthRepositoryImpl(this._dataSource, this._socialDataSource);
 
   @override
   Stream<String?> get authStateChanges =>
@@ -49,9 +51,14 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<({String customToken, bool isNewUser})> phoneLogin(String phone) =>
       _dataSource.phoneLogin(phone);
 
+  /// Firebase 세션과 소셜 SDK 세션을 **함께** 정리한다.
+  /// 소셜 세션이 남으면 재로그인 때 계정 선택 없이 직전 계정으로 붙는다.
   @override
-  Future<void> deleteUser() => _dataSource.deleteUser();
+  Future<void> signOut() async {
+    await _socialDataSource.signOutAll();
+    await _dataSource.signOut();
+  }
 
   @override
-  Future<void> signOut() => _dataSource.signOut();
+  Future<bool> refreshSession() => _dataSource.refreshSession();
 }

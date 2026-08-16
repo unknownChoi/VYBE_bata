@@ -10,6 +10,9 @@ abstract class AuthRepository {
   Future<bool> userExists(String uid);
   Future<bool> checkPhoneDuplicate(String phone);
   Future<bool> verifyIdentity(String impUid);
-  Future<void> deleteUser();
   Future<void> signOut();
+
+  /// 저장된 세션이 서버에서도 유효한지 확인. `false` 면 로그아웃해야 한다.
+  /// 네트워크 오류는 `true`(fail-open).
+  Future<bool> refreshSession();
 }

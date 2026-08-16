@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -14,12 +13,20 @@ import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/auth/identity_verification/identity_verification_screen.dart';
 import 'package:vybe/presentation/auth/viewmodels/auth_viewmodel.dart';
 import 'package:vybe/presentation/auth/welcome/login_method_bottom_sheet.dart';
+import 'package:vybe/presentation/common/splash_logo_landing.dart';
 import 'package:vybe/presentation/common/widgets/vybe_spinner.dart';
 import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
 import 'package:vybe/presentation/home/viewmodels/banner_viewmodel.dart';
 
 class WelcomeScreen extends ConsumerStatefulWidget {
-  const WelcomeScreen({super.key});
+  /// 앱 루트로 그려지는 화면인지. true면 로고에 [splashLogoLandingKey] 를 달아
+  /// 스플래시 로고가 이 자리로 날아와 앉는다.
+  ///
+  /// ⚠ 마이페이지에서 push 로 열 때는 false — 같은 GlobalKey 를 단 위젯이
+  /// 트리에 둘 있으면 프레임워크가 죽는다.
+  final bool isRoot;
+
+  const WelcomeScreen({super.key, this.isRoot = false});
 
   @override
   ConsumerState<WelcomeScreen> createState() => _WelcomeScreenState();
@@ -54,6 +61,26 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
     Navigator.popUntil(context, (route) => route.isFirst);
   }
 
+  /// 소셜 로그인 직후 분기.
+  ///
+  /// `isNewUser`(Auth user 존재 여부)만으로는 부족하다 — 가입 도중 앱을 끄면
+  /// Auth user는 있는데 프로필이 비어 있고, 그 계정은 `isNewUser=false`로
+  /// 돌아온다. 그대로 홈에 들여보내면 이름·전화번호가 없는 유령 계정이 된다.
+  Future<void> _afterSocialLogin(bool isNewUser) async {
+    final needsSignup = isNewUser ||
+        await ref.read(authViewModelProvider.notifier).needsProfileSetup();
+    if (!mounted) return;
+
+    if (needsSignup) {
+      Navigator.push(
+        context,
+        SwipeBackPageRoute(builder: (_) => const IdentityVerificationScreen()),
+      );
+      return;
+    }
+    await _navigateHome();
+  }
+
   Future<void> _onKakaoLogin() async {
     if (_loadingButton != null) return;
     setState(() => _loadingButton = 'kakao');
@@ -70,20 +97,8 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
           .kakaoLogin(token.accessToken);
 
       if (!mounted) return;
-
-      if (isNewUser) {
-        Navigator.push(
-          context,
-          SwipeBackPageRoute(
-              builder: (_) => const IdentityVerificationScreen()),
-        );
-      } else {
-        await _navigateHome();
-      }
-    } catch (e, st) {
-      final log = '${DateTime.now()}\n$e\n$st\n\n';
-      File('/Users/justinchoi/Desktop/업무/소스코드/vybe_bata/kakao_error.txt')
-          .writeAsStringSync(log, mode: FileMode.append);
+      await _afterSocialLogin(isNewUser);
+    } catch (e) {
       if (!mounted) return;
       VybeToast.show(context, message: e.toString(), isError: true);
     } finally {
@@ -106,15 +121,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
           .naverLogin(accessToken);
 
       if (!mounted) return;
-
-      if (isNewUser) {
-        Navigator.push(
-          context,
-          SwipeBackPageRoute(builder: (_) => const IdentityVerificationScreen()),
-        );
-      } else {
-        await _navigateHome();
-      }
+      await _afterSocialLogin(isNewUser);
     } catch (e) {
       if (!mounted) return;
       VybeToast.show(context, message: e.toString(), isError: true);
@@ -146,7 +153,11 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Spacer(flex: 7),
-                  SvgPicture.asset(_vybeWhiteLogo, height: 44.h),
+                  SvgPicture.asset(
+                    _vybeWhiteLogo,
+                    key: widget.isRoot ? splashLogoLandingKey : null,
+                    height: 44.h,
+                  ),
                   SizedBox(height: 20.h),
                   // Line 1: "바이브 탈 준비 됐어?"
                   RichText(

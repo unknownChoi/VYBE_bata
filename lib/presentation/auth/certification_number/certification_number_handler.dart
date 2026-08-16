@@ -109,7 +109,10 @@ mixin _CertificationNumberHandlerMixin on ConsumerState<CertificationNumberScree
 
         // 본인인증 직접 경로: pending token 없음 → phone 기반 Custom Token 발급
         // 소셜 로그인 경로: pending token 이미 있으므로 스킵
-        if (!vm.hasPendingToken) {
+        // 가입 이어하기(소셜 로그인은 끝났지만 프로필이 비어 다시 들어온 경우):
+        //   이미 세션이 있으므로 phoneLogin을 하면 안 된다 — `phone:{phone}`
+        //   uid가 새로 생겨 원래 소셜 계정이 프로필 없이 버려진다.
+        if (!vm.hasPendingToken && !vm.isSignedIn) {
           await vm.phoneLogin(widget.phoneNumber);
           if (!mounted) return;
         }

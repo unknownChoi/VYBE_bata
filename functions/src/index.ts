@@ -8,7 +8,6 @@ export {phoneLogin} from "./auth/phone_login";
 export {naverLogin} from "./auth/naver_login";
 export {kakaoLogin} from "./auth/kakao_login";
 export {verifyIdentity} from "./auth/verify_identity";
-export {deleteUser} from "./auth/delete_user";
 export {onFavoriteCreated} from "./favorites/on_favorite_created";
 export {onFavoriteDeleted} from "./favorites/on_favorite_deleted";
 export {onReviewCreated} from "./reviews/on_review_created";

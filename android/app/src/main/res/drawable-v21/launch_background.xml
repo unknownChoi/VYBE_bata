@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- ?android:colorBackground 는 OS 라이트모드에서 흰색이 된다 — 고정색 사용. -->
-    <item android:drawable="@color/vybe_background" />
+    <item android:drawable="@color/vybe_splash_background" />
 </layer-list>

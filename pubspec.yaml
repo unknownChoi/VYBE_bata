@@ -70,6 +70,14 @@ dependencies:
   # 설치된 앱의 버전명·빌드번호 조회 (버전 게이트 · 설정 화면 버전 표시)
   package_info_plus: ^10.2.1
 
+  # 기기 로컬 설정 저장 (자동 로그인 유지 스위치)
+  shared_preferences: ^2.5.5
+
+  # 기기 GPS 좌표 조회 + 위치 권한 요청 (앱 첫 로딩 시 내 위치 판정)
+  geolocator: ^14.0.3
+  connectivity_plus: ^7.3.1
+  app_settings: ^5.1.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

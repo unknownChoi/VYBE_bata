@@ -40,11 +40,17 @@ View (Widget) → ViewModel (Notifier) → Repository → DataSource (Firebase)
 ├── lib/
 │   ├── design_system/   # 색상, 타이포그래피, 간격
 │   ├── core/
-│   │   ├── providers/   # 전역 Riverpod providers (auth_providers.dart 등)
+│   │   ├── constants/   # app_geo.dart (폴백 좌표 · 상권 좌표 · 지역 판정)
+│   │   │                #   korea_regions.dart (전국 시군구 252개 중심 좌표표 — 구 있는 시는 구 단위)
+│   │   ├── providers/   # 전역 Riverpod providers (auth_providers, location_providers 등)
 │   │   ├── theme/       # 앱 테마
 │   │   └── utils/       # 유틸리티 (firebase_logger.dart 등)
 │   ├── data/
 │   │   ├── datasources/
+│   │   │   ├── local/   # 기기 SDK 전담 datasource
+│   │   │   │   ├── device_location_datasource.dart  # geolocator (GPS 코드는 여기에만)
+│   │   │   │   └── device_network_datasource.dart   # connectivity_plus · app_settings
+│   │   │   │                                        #   (연결 확인·설정 열기는 여기에만)
 │   │   │   └── remote/  # Firebase 전담 datasource (Firebase 코드는 여기에만)
 │   │   │       ├── firebase_auth_datasource.dart
 │   │   │       ├── firebase_user_datasource.dart
@@ -65,7 +71,8 @@ View (Widget) → ViewModel (Notifier) → Repository → DataSource (Firebase)
 │   │   └── repositories/    # repository 인터페이스 (Firebase 의존 금지)
 │   ├── presentation/
 │   │   ├── common/          # 화면 공용 — widgets/(Vybe prefix) + location_flip_mixin.dart
-│   │   │                    #   + version_gate/ (버전 게이트 — AuthGate보다 위)
+│   │   │                    #   + network_gate/ (네트워크 게이트 — VersionGate보다 위)
+│   │                    #   + version_gate/ (버전 게이트 — AuthGate보다 위)
 │   │   │                    #   + renew/ (리뉴얼 디자인 토큰·글래스 프리미티브 — Renew prefix)
 │   │   ├── main_scaffold/   # 루트 IndexedStack + 하단 탭바
 │   │   ├── home/            # 홈 (widgets/, viewmodels/)
@@ -132,6 +139,9 @@ View (Widget) → ViewModel (Notifier) → Repository → DataSource (Firebase)
 | 검색엔진 | `algoliasearch` (Algolia — Firebase Extension으로 clubs 자동 동기화) |
 | 환경변수 관리 | `flutter_dotenv` (Flutter) / `dotenv` (Cloud Functions) |
 | 앱 버전 조회 | `package_info_plus` (버전 게이트 · 설정 화면 버전 표기) |
+| 기기 위치 | `geolocator` (앱 첫 로딩 GPS 조회 + 위치 권한 요청) |
+| 네트워크 확인 | `connectivity_plus` (앱 첫 로딩 연결 확인 + 연결 변화 구독) |
+| 설정 앱 열기 | `app_settings` **^5.x 고정** (8.x는 SPM 전용 — 이 프로젝트는 CocoaPods) |
 
 > ⚠️ `go_router` / `google_maps_flutter` / `json_serializable` 미사용. 화면 전환은
 > 하단 탭(`MainScaffold`) + 탭별 `Navigator.push`. 지도는 네이버 지도.
@@ -404,6 +414,63 @@ ElevatedButton(onPressed: () {}, child: Text('로그인'))
   업데이트를 영영 피하는 구멍 차단. 조회 실패·타임아웃은 전부 통과(fail-open).
   버전 비교·판정은 `core/utils/version_utils.dart` 순수 함수 + `test/version_utils_test.dart`.
   설정 화면 하단 버전 표기도 하드코딩 대신 이 결과를 재사용(`package_info_plus`)
+- **네트워크 연결 게이트 (2026.08.16)** — `presentation/common/network_gate/`.
+  루트가 `SplashGate` → `NetworkGate` → `VersionGate` → `AuthGate` 순서라
+  **버전 조회·세션 복원보다 먼저** 걸린다(연결이 없으면 그것들은 타임아웃만 먹고
+  빈 화면이 된다). 확인은 스플래시가 도는 동안 시작 —
+  `splashDestinationProvider`가 `networkStatusProvider`를 보기 때문.
+  - 판정 2단계 — ① `connectivity_plus` 연결 종류(비행기 모드·데이터 꺼짐)
+    ② `InternetAddress.lookup('firestore.googleapis.com')` 실제 도달(공용 와이파이
+    로그인 페이지). **fail-open** — 플러그인 오류·조회 타임아웃·DNS 타임아웃은 전부
+    통과시킨다(확인 실패로 앱을 막으면 잘못된 차단). 판정은
+    `data/datasources/local/device_network_datasource.dart` 한 곳
+  - 차단 화면 `widgets/network_error_screen.dart` (디자인 `network_error.jsx` 이식) —
+    오로라 배경 + 신호없음 아이콘(`no_signal_icon.dart`, CustomPaint) + 다시 시도 +
+    '네트워크 설정 열기'. 재시도 실패는 `VybeToast`(횟수 표기)
+  - 자동 복구 3경로 — 재시도 버튼 · 앱 복귀(`resumed`) · 기기 연결 변화 스트림.
+    설정에서 와이파이를 켜고 돌아오면 버튼을 안 눌러도 넘어간다
+  - ⚠ iOS는 와이파이 설정 직접 진입이 막혀 있어 '설정 열기'가 **앱 설정 화면**으로
+    열린다(app_settings 폴백). Android는 와이파이 설정으로 직행
+  - **화면 확인용 강제 오프라인** — `DeviceNetworkDataSource.debugForceOffline = true`
+    로 바꾸고 **핫리로드**하면 바로 안내 화면이 뜬다(`NetworkGate.reassemble` 이
+    매 핫리로드마다 재검사). iOS 시뮬레이터는 Mac 네트워크를 그대로 써서 실제로
+    끊으려면 Mac 와이파이를 꺼야 하므로 이 스위치가 빠르다.
+    `kDebugMode` 안에서만 읽으므로 켠 채 커밋해도 **릴리즈 빌드는 영향 없음**
+- **내 위치 기반 지역 판정 (2026.08.16)** — 지역 '홍대' 고정을 해제.
+  `SplashGate` 진입 시 `geolocator`로 GPS 1회 조회(권한 팝업도 여기) →
+  `userLocationProvider`(keepAlive) 갱신 → 홈 위치 칩 라벨 · 홈 '주변 클럽' 섹션 ·
+  주변 탭 최초 조회 중심 · 힙합 카드 거리가 전부 이 좌표 하나를 본다.
+  - GPS 코드는 `data/datasources/local/device_location_datasource.dart` **한 곳만**.
+    서비스 꺼짐·권한 거부·타임아웃(5초)은 전부 예외 대신 null → 폴백 좌표(홍대)로 진행
+  - 좌표 → 지역 이름은 `AppGeo.areaOf()` **2단계** — ① 클럽 상권
+    (`AppGeo.hotspotCenters`, 반경 2km) ② 전국 시군'구'(`korea_regions.dart`, 252개,
+    상한 60km). 둘 다 최근접이 우선(홍대·신촌은 1.2km라 반경으론 못 가린다).
+    판정 테스트는 `test/app_geo_test.dart` · `test/user_location_test.dart`
+    - **국내 밖(60km 밖)이면 좌표를 상권으로 대체한다 (2026.08.16)** —
+      `AppGeo.overseasFallbackAreas`(홍대·건대·이태원·강남) 중 **앱 실행마다 랜덤 1곳**의
+      좌표를 쓰고, 라벨만 `AppGeo.outsideKoreaLabel`(**'위치 확인 불가'**)로 바꾼다.
+      해외 좌표를 그대로 두면 반경 3~30km에 클럽이 0곳이라 홈 '주변 클럽'·주변 탭이
+      빈 화면이 되기 때문. 좌표를 빌린 걸 숨기고 '강남'이라 쓰면 거짓 정보라 라벨은 분리.
+      대체 여부는 `UserLocation.outsideKorea`, 화면 문구는 **`areaLabel`로만** 읽을 것
+      (`area`엔 대체한 상권명이 들어간다). 판정·대체는 `UserLocationNotifier.setLocation`
+      한 곳. 뽑은 상권은 앱 실행 내내 고정 — 칩을 누를 때마다 주변 클럽이 갈아엎히면 안 됨
+    - 상권명('홍대'·'강남')은 `clubs.area` 값과 **정확히 같아야** 한다 —
+      지역 필터·거리표가 같은 문자열을 쓴다. DB에 상권을 추가하면
+      `AppGeo.hotspotCenters`에도 추가할 것
+    - **구가 있는 시는 시가 아니라 구를 넣는다 (2026.08.16)** — 일반구를 둔 12개 시
+      (수원·성남·안양·안산·고양·용인·부천·청주·천안·전주·포항·창원)는 시 항목을 빼고
+      구 35개로 대체. 시 하나로 두면 분당·일산·수지가 전부 '성남시'·'고양시'로 뭉개진다.
+      화성시는 일반구 미설치라 아직 시 단위 — 설치되면 같이 쪼갤 것
+    - 시군구 라벨은 `clubs.area`와 **무관한 표시 전용** 문자열. 이름이 겹치는
+      중구·동구·남구·서구·북구·강서구·고성군·포항 남북구만 '서울 중구'처럼 시도를 앞에
+      붙였다(경기 광주시도 광주광역시와 구분하려 '경기 광주시'). 라벨 유일성은 테스트가
+      지킨다. 상권 2km가 시군구보다 먼저라 홍대에 있으면 '마포구'가 아니라 '홍대'로 뜬다
+  - 홈 '주변 클럽'은 3 → 10 → 30km로 반경을 넓혀 가까운 순 5곳. 다 비면 홍대로 폴백
+    (섹션을 비우느니 보여준다)
+  - ⚠ **홍대 고정으로 되돌리려면 `AppGeo.useFixedLocation = true`** 하나만 바꾼다
+    (GPS를 아예 안 읽어 권한 팝업도 안 뜬다). 홍대 좌표·라벨 상수는 그대로 살아 있다
+  - 위치 권한 문구는 이미 설정돼 있음 — Android `ACCESS_FINE/COARSE_LOCATION`,
+    iOS `NSLocationWhenInUseUsageDescription`
 
 ### 미구현 / 진행 중 ✗
 - 패스·지갑 탭 (`pass_wallet_screen.dart` 플레이스홀더 — 현재 탭 슬롯엔 미연결)
@@ -431,6 +498,11 @@ ElevatedButton(onPressed: () {}, child: Text('로그인'))
   ② Android `applicationId`가 아직 `com.example.vybe`(Flutter 기본값) — **Play 스토어 게시 불가**.
   실제 패키지명 확정 필요 (`storeUrl`은 비워 두면 설치된 패키지명으로 폴백하므로 그때도 수정 불필요)
   ③ 어드민 페이지에 버전 정책 편집 UI
+- 위치 연동 잔여 작업 — 입장비 무료(`free_entry`) · 서비스 음료(`service_drinks`)
+  위치 칩이 아직 `AppGeo.hongdaeLabel` 고정. 두 화면은 좌표가 아니라
+  `ClubAreaDistance` 지역 간 거리표(홍대·강남·이태원·압구정·건대)로 거리를 추정해서,
+  라벨만 실제 지역으로 바꾸면 표에 없는 지역('신촌'·'내 주변')일 때 거리가 전부 0이 된다.
+  → 카드 뷰모델에 클럽 좌표를 실어 실제 haversine 거리로 바꾸는 작업이 선행돼야 함
 - Storage Security Rules 배포 검증 (Firestore Rules는 배포됨)
 - Apple 로그인 (이후 구현)
 
@@ -532,6 +604,12 @@ if (isNewUser) { /* 본인인증 화면 */ } else { /* 홈 화면 */ }
 | `domain/` | ❌ 절대 금지 | 순수 Dart 인터페이스만 |
 | `data/repositories/` | ❌ 금지 | datasource 타입 참조만 허용 |
 | `data/datasources/remote/` | ✅ 허용 | Firebase 코드는 오직 여기에만 |
+
+> 같은 규칙을 기기 SDK에도 적용한다 — `geolocator`(GPS) import는
+> `data/datasources/local/device_location_datasource.dart` 안에만 둔다.
+> presentation은 `userLocationProvider`만 본다.
+> `connectivity_plus`·`app_settings`도 마찬가지로 `device_network_datasource.dart`
+> 한 곳만 — presentation은 `networkStatusProvider`(+ 설정 열기 호출)만 본다.
 
 #### 파일 구조 규칙
 - 모든 Firebase datasource 파일은 `data/datasources/remote/` 안에 위치
@@ -968,8 +1046,8 @@ createdAt      : timestamp
 
 ### Cloud Functions 목록
 
-총 **14개** 함수 (`functions/src/index.ts` export 기준). Firebase 관련 서버 로직은 모두 Cloud Functions으로 처리.
-구조: `functions/src/auth/` (7) · `favorites/` (2) · `reviews/` (3) · `performances/` (1) · `search/` (1) + `index.ts`.
+총 **13개** 함수 (`functions/src/index.ts` export 기준). Firebase 관련 서버 로직은 모두 Cloud Functions으로 처리.
+구조: `functions/src/auth/` (6) · `favorites/` (2) · `reviews/` (3) · `performances/` (1) · `search/` (1) + `index.ts`.
 (구 `search/onClubWritten`은 Algolia 전환으로 삭제 — 2026.07.19)
 
 #### HTTP 요청 함수 (앱에서 직접 호출, `https.onCall`)
@@ -981,7 +1059,6 @@ createdAt      : timestamp
 | `phoneLogin` | `{ phone }` | `{ customToken, isNewUser }` | 전화번호 기반 Custom Token (`phone:{phone}`) |
 | `checkPhoneDuplicate` | `{ phone }` | `{ isDuplicate }` | users 컬렉션 phone 중복 체크 (가입 전 검사) |
 | `verifyIdentity` | `{ impUid }` | `{ verified }` | 본인인증 결과 검증 → phone/birthDate Firestore 저장 |
-| `deleteUser` | Auth 헤더 | `{ success }` | 회원탈퇴 (Auth + Firestore + Storage 일괄 삭제) |
 
 #### 자동 트리거 함수
 
@@ -1019,7 +1096,6 @@ createdAt      : timestamp
 - `ratingSum` / `reviewCount` 증감은 `FieldValue.increment()` 사용 (동시 요청 정합성 보장)
 - `rating` 은 트랜잭션으로 `ratingSum / reviewCount` 계산 후 저장
 - `onReviewDeleted` 에서 `reviewCount`가 0이 되면 `rating = 0` 처리 필요
-- `deleteUser` 는 Admin SDK로만 처리 (클라이언트에서 직접 삭제 불가)
 - 네이버 UID 형식: `naver:{naverId}`
 - `onUserCreated` 는 문서가 이미 존재하면 덮어쓰지 말 것 (중복 실행 방어)
 - `cleanupPastPerformances` 는 `date`(YYYYMMDD)가 아닌 `startAt`(Timestamp) 기준으로 삭제 — 새벽 공연 오삭제 방지. 스케줄 함수라 Blaze 요금제 필요

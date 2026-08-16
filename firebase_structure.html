@@ -290,6 +290,8 @@
   <a href="#overview">프로젝트 개요</a>
   <a href="#architecture">아키텍처 / 레이어 규칙</a>
   <a href="#auth-flow">인증 플로우</a>
+  <a href="#auto-login">자동 로그인 / 세션 유지</a>
+  <a href="#startup">앱 시작 · 스플래시 로딩 (계획)</a>
 
   <a class="group">Firestore</a>
   <a href="#firestore" class="sub">컬렉션 전체 맵</a>
@@ -462,6 +464,192 @@ logFirebaseAccess(
 
 <span class="cmt">// 4. 신규/기존 분기</span>
 <span class="kw">if</span> (isNewUser) { <span class="cmt">/* 본인인증 화면 */</span> } <span class="kw">else</span> { <span class="cmt">/* 홈 화면 */</span> }</code></pre>
+</section>
+
+<!-- ========================= AUTO LOGIN (임시 · 계획) ========================= -->
+<section id="auto-login">
+  <h2>자동 로그인 / 세션 유지 <span class="pill pk">구현 완료</span></h2>
+
+  <div class="note ok"><strong>구현 완료 (2026.08.16)</strong> — 판정은 <code>core/utils/session_utils.dart</code>(순수 함수) + <code>presentation/auth/viewmodels/session_viewmodel.dart</code>(<code>SessionCheck</code>) 두 곳에만 있다. <code>flutter analyze</code> 경고 0 · 단위 테스트 9건 통과.</div>
+
+  <h3>현재 상태 — 자동 로그인은 이미 동작한다</h3>
+  <p>Firebase Auth 는 네이티브(Android · iOS)에서 세션을 디스크에 저장하므로 <strong>앱을 껐다 켜도 로그인은 이미 유지된다</strong>. <code>AuthGate</code> 가 <code>authStateChanges</code> 를 구독해 uid 유무로 진입 화면을 가르는 구조가 이미 있다. 따라서 새로 만들 "자동 로그인 기능"은 없고, <strong>자동 로그인이 상시 켜진 상태에서만 드러나는 구멍을 막는 것</strong>이 실제 작업 범위다.</p>
+
+  <h3>막아야 할 구멍 4가지</h3>
+  <table>
+    <tr><th>#</th><th>구멍</th><th>원인 / 근거</th></tr>
+    <tr>
+      <td>1</td>
+      <td><strong>유령 세션</strong><br>Firebase 로그인은 됐는데 프로필 미완성</td>
+      <td><code>certification_number_handler.dart</code> 의 <code>finalizeLogin()</code>(세션 성립) → <code>saveUserProfile()</code> 사이에서 앱 종료·네트워크 실패 시 세션만 남는다.<br>⚠ <code>onUserCreated</code> 트리거가 <code>users/{uid}</code> 를 <code>uid</code>·<code>provider</code>·타임스탬프만으로 먼저 만들기 때문에 <strong>문서 존재 여부로는 판별 불가</strong> — 판정 기준은 <code>isVerified</code></td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td><strong><code>isNewUser</code> 오판</strong></td>
+      <td><code>naverLogin</code>/<code>kakaoLogin</code> 이 돌려주는 <code>isNewUser</code> 는 <em>Auth user 존재 여부</em>일 뿐 프로필 완성과 무관. 미완성 유저가 재로그인하면 <code>isNewUser=false</code> → 앱이 그대로 홈으로 보낸다</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td><strong>죽은 계정</strong></td>
+      <td>다른 기기에서 탈퇴하거나 Auth user 가 비활성화돼도 로컬 세션은 살아 있다. 자동 로그인이라 재로그인 시점이 없어 영영 감지되지 않을 수 있다</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td><strong>소셜 SDK 세션 잔존</strong></td>
+      <td><code>signOut()</code> 이 Firebase 세션만 정리한다. 카카오·네이버 SDK 세션이 남아 재로그인 시 <strong>계정 전환이 불가능</strong></td>
+    </tr>
+  </table>
+
+  <h3>세션 판정 — 단일 소스</h3>
+  <p>판정은 순수 함수 <code>decideSessionAction()</code>(<code>core/utils/session_utils.dart</code>) 한 곳에만 있다. <code>version_utils.dart</code> 와 같은 패턴.</p>
+  <table>
+    <tr><th><code>SessionAction</code></th><th>조건</th><th>결과</th></tr>
+    <tr><td><code>none</code></td><td>uid 없음</td><td><code>WelcomeScreen</code></td></tr>
+    <tr><td><code>keep</code></td><td>uid 있음 + <code>isVerified == true</code><br>(또는 <code>users</code> 조회 실패 — fail-open)</td><td><code>MainScaffold</code></td></tr>
+    <tr><td><code>signOut</code></td><td>자동 로그인 OFF<br>또는 <code>isVerified == false</code> · 문서 없음(유령 세션)<br>또는 토큰 갱신이 서버에서 거부됨</td><td>세션 정리 → <code>WelcomeScreen</code></td></tr>
+  </table>
+  <p>화면(<code>AuthGate</code>)이 보는 것은 <code>SessionCheck</code> 의 결과 두 가지(<code>ready</code> / <code>signedOut</code>)뿐이다. 검사가 끝나기 전에는 <strong>스플래시를 유지</strong>한다 — 검사 중 <code>WelcomeScreen</code> 을 잠깐 그리면 멀쩡히 로그인된 사용자에게 로그인 화면이 번쩍인다.</p>
+
+  <div class="note"><strong>검사는 콜드 스타트 1회 + 복귀 시 토큰만</strong> — 검사가 끝난 뒤로는 <code>AuthGate</code> 가 uid 하나로만 라우팅한다. 앱 실행 중에 프로필 완성 여부를 다시 판정하면, 본인인증(외부 앱·웹뷰) 을 다녀오거나 프로필 저장 직전인 사용자를 로그아웃시킨다. 복귀(<code>resumed</code>) 시에는 <strong>서버 무효화 여부만</strong> 다시 확인한다.</div>
+
+  <div class="note ok"><strong>fail-open 원칙</strong> — <code>users/{uid}</code> 조회 실패·3초 타임아웃은 전부 <code>ready</code> 로 통과시킨다. 오프라인 사용자를 로그인 화면으로 튕기는 쪽이 훨씬 큰 사고다. <code>VersionGate</code> 와 동일한 원칙.</div>
+
+  <div class="note"><strong>미완성 세션은 가입 재개가 아니라 signOut</strong> — 세션을 살린 채 본인인증 화면으로 직행시키면 뒤로가기·중도 이탈 경로를 전부 따로 처리해야 한다. 유령 세션을 즉시 정리하고 Welcome 부터 다시 태우는 쪽이 단순하고 안전하다 (사용자는 소셜 버튼 한 번 더 누르면 본인인증으로 이어짐).</div>
+
+  <h3>백엔드 영향</h3>
+  <table>
+    <tr><th>대상</th><th>변경</th></tr>
+    <tr><td>Cloud Functions</td><td><span class="no">없음</span> — 신규 함수·수정 없음</td></tr>
+    <tr><td>Firestore Rules</td><td><span class="no">없음</span> — <code>users/{uid}</code> 본인 읽기 규칙 그대로</td></tr>
+    <tr><td>인덱스</td><td><span class="no">없음</span> — 단건 <code>get</code> 뿐</td></tr>
+    <tr><td>스키마</td><td><span class="no">없음</span> — 기존 <code>users.isVerified</code> 재사용</td></tr>
+    <tr><td>읽기 비용</td><td>앱 실행당 <code>users/{uid}</code> read <strong>1회</strong> 추가</td></tr>
+  </table>
+
+  <div class="note danger"><strong><code>users.isVerified</code> 의 의미가 승격된다</strong> — 지금까지는 본인인증 완료 표시였지만, 이 설계 이후로는 <strong>세션 유효성의 단일 기준</strong>이 된다. 이 필드를 <code>false</code> 로 되돌리면 해당 유저는 다음 앱 실행에서 <u>자동 로그아웃</u>된다. 값을 <code>true</code> 로 올리는 곳은 <code>verifyIdentity</code>(Functions)와 <code>setUserProfile</code>(앱) 둘뿐이며, 마이그레이션 스크립트·어드민 페이지에서 이 필드를 일괄 수정하지 말 것.</div>
+
+  <h3>구현 내용</h3>
+  <table>
+    <tr><th>#</th><th>작업</th><th>내용</th></tr>
+    <tr><td>1</td><td>판정 순수 함수</td><td><code>core/utils/session_utils.dart</code> — <code>decideSessionAction()</code> + <code>isSessionRevokedCode()</code>. 검증은 <code>test/session_utils_test.dart</code>(9건)</td></tr>
+    <tr><td>2</td><td>세션 뷰모델</td><td><code>SessionCheck</code>(keepAlive) — uid → 자동 로그인 설정 → <code>users/{uid}</code> 조회와 토큰 검증을 <strong>동시에</strong> 실행(각 3초 타임아웃) → 판정. 정리 대상이면 스스로 <code>signOut()</code></td></tr>
+    <tr><td>3</td><td><code>AuthGate</code> 교체</td><td>검사 완료 전에는 스플래시, 완료 후에는 uid로 라우팅. <code>WidgetsBindingObserver</code> 로 복귀 시 <code>recheckSession()</code>. 기존 로그아웃 시 라우트 정리 로직은 유지</td></tr>
+    <tr><td>4</td><td>소셜 로그인 분기 수정</td><td><code>welcome_screen.dart</code> <code>_afterSocialLogin()</code> — <code>isNewUser</code> <strong>또는</strong> <code>needsProfileSetup()</code> 이면 본인인증 화면으로 (구멍 2). 하드코딩 경로 디버그 파일 쓰기(<code>kakao_error.txt</code>)도 제거</td></tr>
+    <tr><td>5</td><td>죽은 계정 감지</td><td><code>firebase_auth_datasource.refreshSession()</code> = <code>user.getIdToken(true)</code> → <code>bool</code>. 무효 코드(<code>user-not-found</code> · <code>user-disabled</code> · <code>user-token-expired</code> · <code>invalid-user-token</code> · <code>user-mismatch</code>)만 <code>false</code>, 그 외 오류는 <code>true</code>. <strong>FirebaseAuthException 을 data 레이어 안에서 흡수</strong>해 presentation 이 Firebase 를 import 하지 않게 했다</td></tr>
+    <tr><td>6</td><td>로그아웃 정리</td><td><code>data/datasources/remote/social_auth_datasource.dart</code> — 카카오 <code>UserApi.instance.logout()</code> + 네이버 <code>FlutterNaverLogin.logOut()</code> 를 <strong>동시</strong> 호출(각 3초 타임아웃, 실패는 로그만). <code>AuthRepositoryImpl.signOut()</code> 에 연결</td></tr>
+    <tr><td>7</td><td>자동 로그인 토글</td><td><code>shared_preferences</code> + <code>core/storage/local_prefs.dart</code>(<code>auto_login</code> 키, 기본 <code>true</code>). 설정 → 일반 섹션 맨 위 행. OFF 면 콜드 스타트에서만 <code>signOut</code></td></tr>
+    <tr><td>+</td><td>가입 이어하기 uid 보호</td><td><code>certification_number_handler.dart</code> — 이미 세션이 있으면 <code>phoneLogin()</code> 을 건너뛴다. 안 그러면 소셜 계정으로 로그인한 사용자에게 <code>phone:{phone}</code> uid 가 새로 생겨 원래 계정이 프로필 없이 버려진다. 구멍 2 수정으로 이 경로에 들어오는 사용자가 생기면서 필요해진 처리</td></tr>
+    <tr><td>+</td><td><code>provider</code> 라벨 정정</td><td><code>saveUserProfile()</code> 이 <code>phone:</code> uid 를 <code>apple</code> 로 적던 것을 <code>identity</code> 로 수정 — <code>onUserCreated</code> 트리거가 쓰는 라벨과 맞춘다</td></tr>
+  </table>
+
+  <div class="note"><strong><code>splash_gate.dart</code> 는 손대지 않았다</strong> — 검사 중 <code>AuthGate</code> 가 스플래시를 그대로 이어 그리므로 깜빡임이 생기지 않는다. 게이트를 하나 더 기다리게 만들 이유가 없었다.</div>
+
+  <div class="note"><strong>토글 범위 제한</strong> — 로컬에 저장하는 건 <code>autoLogin</code> 키 <u>하나뿐</u>. 설정 화면의 나머지 토글 7개(푸시·알림류)는 지금처럼 메모리 상태로 둔다. 실제 푸시 연동이 없는 상태에서 값만 저장하면 동작하지 않는 설정을 동작하는 것처럼 보여주게 된다.</div>
+
+  <h3>영향 파일</h3>
+  <div class="tree">신규
+ ├── core/utils/session_utils.dart                        <span class="cmt"># 판정 순수 함수</span>
+ ├── core/storage/local_prefs.dart                        <span class="cmt"># auto_login 키</span>
+ ├── data/datasources/remote/social_auth_datasource.dart  <span class="cmt"># 카카오·네이버 SDK 로그아웃</span>
+ ├── presentation/auth/viewmodels/session_viewmodel.dart  <span class="cmt"># SessionCheck</span>
+ └── test/session_utils_test.dart
+
+수정
+ ├── presentation/auth/auth_gate.dart
+ ├── presentation/auth/welcome/welcome_screen.dart
+ ├── presentation/auth/viewmodels/auth_viewmodel.dart               <span class="cmt"># needsProfileSetup · isSignedIn</span>
+ ├── presentation/auth/certification_number/certification_number_handler.dart
+ ├── presentation/my_page/settings_screen.dart
+ ├── data/datasources/remote/firebase_auth_datasource.dart          <span class="cmt"># refreshSession</span>
+ ├── data/repositories/auth_repository_impl.dart
+ ├── domain/repositories/auth_repository.dart
+ └── pubspec.yaml                                                   <span class="cmt"># shared_preferences ^2.5.5</span></div>
+  <p style="color:var(--muted);font-size:13px;">riverpod generator 대상 → <code>flutter pub run build_runner build --delete-conflicting-outputs</code> 실행 완료</p>
+
+  <h3>검증 시나리오 — 실기기에서 확인할 것</h3>
+  <table>
+    <tr><th>시나리오</th><th>기대 동작</th></tr>
+    <tr><td>정상 로그인 후 앱 재실행</td><td>스플래시 → 홈 (로그인 화면 안 뜸)</td></tr>
+    <tr><td>본인인증 중간에 앱 강제 종료 후 재실행</td><td>유령 세션 감지 → 자동 signOut → Welcome</td></tr>
+    <tr><td>같은 계정으로 소셜 재로그인(프로필 미완성)</td><td><code>isNewUser=false</code> 여도 본인인증 화면으로. 완료 시 <strong>기존 uid에</strong> 프로필 저장(새 <code>phone:</code> uid 생성 안 됨)</td></tr>
+    <tr><td>다른 기기에서 탈퇴 후 재실행</td><td>토큰 갱신 거부 감지 → signOut → Welcome</td></tr>
+    <tr><td>비행기모드로 재실행</td><td>fail-open → 홈 진입 (튕기지 않음)</td></tr>
+    <tr><td>로그아웃 후 카카오 재로그인</td><td>SDK 세션까지 정리돼 다른 계정 선택 가능</td></tr>
+    <tr><td>자동 로그인 토글 OFF 후 재실행</td><td>Welcome 부터 시작 (다시 켜면 유지 복귀)</td></tr>
+  </table>
+
+  <div class="note"><strong>플러그인 추가분</strong> — <code>shared_preferences</code> 가 새로 붙었으므로 iOS 는 <code>pod install</code>(첫 <code>flutter run</code> 시 자동), Android 는 gradle 재동기화가 한 번 필요하다.</div>
+</section>
+
+<!-- ========================= STARTUP (임시 · 계획) ========================= -->
+<section id="startup">
+  <h2>앱 시작 · 스플래시 로딩 <span class="pill auto">임시 · 계획</span></h2>
+
+  <div class="note"><strong>임시 문서 (2026.08.16 작성)</strong> — 스플래시 화면(<code>SplashGate</code> · <code>VybeSplash</code>)은 이미 구현돼 있고, 여기 적힌 <u>초기화 위치 조정과 프리페치는 아직 미구현</u>이다. 착수 후 이 섹션을 확정본으로 갱신한다.</div>
+
+  <h3>세 구간으로 나눠 판단한다</h3>
+  <table>
+    <tr><th>구간</th><th>사용자가 보는 화면</th><th>여기 둘 것</th></tr>
+    <tr><td><strong>A. <code>runApp</code> 전</strong></td><td>흰 화면(네이티브 스플래시)</td><td>없으면 앱이 못 뜨는 것만. <strong>여기 있는 건 전부 흰 화면 시간</strong></td></tr>
+    <tr><td><strong>B. 스플래시 창</strong><br>min 2.6s / max 5.5s</td><td>VYBE 스플래시(인트로 → 로고 착지)</td><td>진입 판정 + 첫 화면 프리페치. 전부 타임아웃</td></tr>
+    <tr><td><strong>C. 스플래시 후</strong></td><td>홈 / 로그인</td><td>나머지 전부 (탭 진입 시 조회)</td></tr>
+  </table>
+
+  <h3>A구간 — 현재 <code>main.dart</code></h3>
+  <table>
+    <tr><th>호출</th><th>비용</th><th>판단</th></tr>
+    <tr><td><code>SystemChrome.setPreferredOrientations</code></td><td>~0</td><td>유지</td></tr>
+    <tr><td><code>dotenv.load</code></td><td>수 ms (번들 asset)</td><td>유지 — 아래 SDK들이 키를 여기서 읽는다</td></tr>
+    <tr><td><code>Firebase.initializeApp</code></td><td>100~300ms</td><td>유지 — 이후 모든 Firestore 호출의 전제</td></tr>
+    <tr><td><code>KakaoSdk.init</code></td><td>~0</td><td>유지 — 네이티브 필드에 앱키를 세팅하는 동기 호출. 네트워크 0, <code>await</code> 아님. 카카오가 실제로 네트워크를 타는 건 로그인 버튼 누른 시점</td></tr>
+    <tr><td><code>await FlutterNaverMap().init</code></td><td><strong>네트워크 왕복</strong>(클라이언트 인증)</td><td class="no">B구간으로 이동</td></tr>
+  </table>
+
+  <div class="note danger"><strong>네이버 지도 초기화가 첫 프레임을 붙잡고 있다</strong> — 지도는 '내 주변' 탭에서만 쓰는데, 지금은 이 <code>await</code> 가 끝나야 <code>runApp</code> 이 돌아 스플래시가 뜬다. 네이버 인증 서버가 느린 날엔 흰 화면이 그만큼 길어지고 인트로는 그 뒤에 시작한다.<br>→ <code>naverMapReadyProvider</code>(keepAlive Future)로 옮겨 <code>runApp</code> 뒤에 돌리고, <strong>지도 화면에서만</strong> <code>ref.watch</code> 로 완료를 보장한다. 스플래시 전환은 이것을 기다리지 않는다.</div>
+
+  <h3>B구간 — 지금 도는 것</h3>
+  <p><code>splashDestinationProvider</code> 가 앱 시작과 동시에 watch 하므로 아래 둘은 스플래시 인트로와 <strong>병렬</strong>로 돈다.</p>
+  <table>
+    <tr><th>작업</th><th>Firestore</th><th>타임아웃</th></tr>
+    <tr><td><code>VersionCheck</code> — 버전 정책</td><td><code>appConfig/{platform}</code> read 1</td><td>3초 → 실패 시 통과</td></tr>
+    <tr><td><code>SessionCheck</code> — 자동 로그인 검사</td><td><code>users/{uid}</code> read 1 (+ 로컬 prefs, 토큰 갱신)</td><td>3초 → 실패 시 통과</td></tr>
+  </table>
+
+  <h3>B구간 — 추가로 데울 것 (홈으로 갈 때)</h3>
+  <p>로고가 GNB 자리로 날아가 착지했는데 그 아래가 스켈레톤이면 연출이 아깝다. 아래 둘은 Rules상 <strong>비로그인도 읽을 수 있어</strong>(<code>banners: read if true</code> · <code>clubs: isActive==true</code>) 세션 판정이 끝나기 전에 시작해도 된다.</p>
+  <table>
+    <tr><th>대상</th><th>왜</th><th>주의</th></tr>
+    <tr><td><code>bannerListProvider</code></td><td>홈 최상단. <code>keepAlive</code> 라 데워두면 홈이 그대로 재사용</td><td>현재 <code>welcome_screen._navigateHome()</code> 에만 있다 → <strong>자동 로그인 경로엔 없다.</strong> 세션 게이트가 붙으면서 자동 로그인이 주 경로가 됐으므로 이 비대칭이 더 커졌다</td></tr>
+    <tr><td>배너 첫 장 <code>precacheImage</code></td><td>네트워크 이미지라 가장 늦게 뜬다</td><td>전부 말고 <strong>1장만</strong> — 스플래시 예산(2.6s)을 넘기지 않게</td></tr>
+    <tr><td><code>homeNearbyClubs</code></td><td><code>'홍대'</code> 고정 쿼리라 <strong>위치 권한이 필요 없다</strong></td><td><code>@riverpod</code>(autoDispose)라 그냥 데우면 리스너가 없어 즉시 폐기된다 → <code>keepAlive</code> 로 바꾸거나 스플래시가 구독을 쥐고 있어야 함</td></tr>
+    <tr><td>로고 SVG</td><td>착지 프레임에 처음 파싱하면 한 프레임 빈다</td><td class="yes">할 것 없음 — 스플래시가 이미 같은 <code>vybe_white_logo.svg</code> 를 그려 캐시가 데워져 있다</td></tr>
+  </table>
+
+  <h3>B구간에 넣으면 안 되는 것</h3>
+  <ul>
+    <li><strong>위치 권한 요청</strong> — 스플래시 위로 시스템 다이얼로그가 뜬다. '내 주변' 탭 진입 시에만</li>
+    <li><strong>지도 SDK 완료 대기</strong> — 초기화는 돌리되 기다리지 않는다</li>
+    <li>검색 트렌드 · 공지 · 프로모션 · 찜 · 검색 — 전부 해당 탭 진입 시</li>
+    <li>카카오/네이버 SDK 토큰 유효성 확인 — Firebase 세션이 진실 소스라 중복이고, 시작 구간에 소셜 서버 왕복을 더 탈 이유가 없다</li>
+  </ul>
+
+  <h3>지켜야 할 규칙</h3>
+  <table>
+    <tr><th>규칙</th><th>이유</th></tr>
+    <tr><td><strong>기다리는 것 ≠ 데우는 것</strong></td><td>프리페치를 <code>splashDestinationProvider</code> 의 <code>pending</code> 판정에 넣지 말 것. 넣는 순간 배너 서버가 느리면 스플래시가 늘어난다. 판정은 버전 + 세션만</td></tr>
+    <tr><td><strong>전부 타임아웃 + fail-open</strong></td><td>이미 3초(각 조회) / 5.5초(스플래시 대기 한계) 패턴이 있다. 프리페치가 실패해도 홈은 스켈레톤으로 뜨면 그만이다</td></tr>
+    <tr><td><strong>데운 게 유지되는지 확인</strong></td><td><code>keepAlive</code> 가 아니면 프리페치 직후 폐기돼 홈이 다시 조회한다 — Firestore read만 두 배가 된다</td></tr>
+  </table>
+
+  <h3>앱 실행 1회당 Firestore read (예상)</h3>
+  <table>
+    <tr><th>시점</th><th>대상</th><th>read</th></tr>
+    <tr><td>B (현재)</td><td><code>appConfig/{platform}</code></td><td>1</td></tr>
+    <tr><td>B (현재)</td><td><code>users/{uid}</code> — 세션 검사</td><td>1 (비로그인이면 0)</td></tr>
+    <tr><td>B (추가 예정)</td><td><code>banners</code> — <code>isActive==true</code> 쿼리</td><td>노출 배너 수만큼</td></tr>
+    <tr><td>B (추가 예정)</td><td><code>clubs</code> — <code>area=='홍대'</code> 쿼리</td><td>해당 지역 클럽 수만큼</td></tr>
+  </table>
+  <div class="note">프리페치를 B로 옮겨도 <strong>총 read 수는 늘지 않는다</strong> — 홈이 어차피 하던 조회를 앞당길 뿐이다. 늘어나는 경우는 위 세 번째 규칙(autoDispose 폐기)을 어겼을 때뿐.</div>
 </section>
 
 <!-- ========================= FIRESTORE MAP ========================= -->
@@ -845,8 +1033,8 @@ logFirebaseAccess(
 
 <!-- ========================= CLOUD FUNCTIONS ========================= -->
 <section id="functions-http">
-  <h2>Cloud Functions <span style="font-size:14px;color:var(--muted);">— 총 14개 (TypeScript)</span></h2>
-  <p>구조: <code>functions/src/auth/</code> (7) · <code>favorites/</code> (2) · <code>reviews/</code> (3) · <code>performances/</code> (1) · <code>search/</code> (1) + <code>index.ts</code>. Firebase 서버 로직은 모두 Cloud Functions으로 처리. (구 <code>search/onClubWritten</code>은 Algolia 전환으로 삭제)</p>
+  <h2>Cloud Functions <span style="font-size:14px;color:var(--muted);">— 총 13개 (TypeScript)</span></h2>
+  <p>구조: <code>functions/src/auth/</code> (6) · <code>favorites/</code> (2) · <code>reviews/</code> (3) · <code>performances/</code> (1) · <code>search/</code> (1) + <code>index.ts</code>. Firebase 서버 로직은 모두 Cloud Functions으로 처리. (구 <code>search/onClubWritten</code>은 Algolia 전환으로 삭제)</p>
 
   <h3>HTTP 요청 함수 — <code>https.onCall</code> (앱 직접 호출)</h3>
   <table>
@@ -856,8 +1044,7 @@ logFirebaseAccess(
     <tr><td class="field-name">phoneLogin</td><td><code>{ phone }</code></td><td><code>{ customToken, isNewUser }</code></td><td>전화번호 기반 Custom Token (<code>phone:{phone}</code>)</td></tr>
     <tr><td class="field-name">checkPhoneDuplicate</td><td><code>{ phone }</code></td><td><code>{ isDuplicate }</code></td><td>users phone 중복 체크 (가입 전 검사)</td></tr>
     <tr><td class="field-name">verifyIdentity</td><td><code>{ impUid }</code></td><td><code>{ verified }</code></td><td>본인인증 결과 검증 → phone/birthDate Firestore 저장</td></tr>
-    <tr><td class="field-name">deleteUser</td><td>Auth 헤더</td><td><code>{ success }</code></td><td>회원탈퇴 (Auth + Firestore + Storage 일괄 삭제)</td></tr>
-  </table>
+      </table>
 </section>
 
 <section id="functions-trigger">
@@ -899,8 +1086,7 @@ logFirebaseAccess(
     <li><code>ratingSum</code> / <code>reviewCount</code> 증감은 <code>FieldValue.increment()</code> 사용 (동시 요청 정합성)</li>
     <li><code>rating</code> 은 트랜잭션으로 <code>ratingSum / reviewCount</code> 계산 후 저장</li>
     <li><code>onReviewDeleted</code> 에서 reviewCount 가 0이 되면 <code>rating = 0</code> 처리</li>
-    <li><code>deleteUser</code> 는 Admin SDK로만 처리 (클라이언트 직접 삭제 불가)</li>
-    <li>네이버 UID 형식: <code>naver:{naverId}</code></li>
+        <li>네이버 UID 형식: <code>naver:{naverId}</code></li>
     <li><code>onUserCreated</code> 는 문서가 이미 존재하면 덮어쓰지 말 것 (중복 실행 방어)</li>
     <li><code>cleanupPastPerformances</code> 는 <code>date</code>(YYYYMMDD)가 아닌 <code>startAt</code>(Timestamp) 기준 삭제 — 새벽 공연 오삭제 방지. 스케줄 함수라 Blaze 요금제 필요</li>
   </ul>

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:vybe/core/utils/firebase_logger.dart';
+import 'package:vybe/core/utils/session_utils.dart';
 
 class FirebaseAuthDataSource {
   final FirebaseAuth _auth;
@@ -87,16 +88,6 @@ class FirebaseAuthDataSource {
     return result.data['verified'] as bool;
   }
 
-  Future<void> deleteUser() async {
-    logFirebaseAccess(
-      file: 'firebase_auth_datasource.dart',
-      service: 'Functions(deleteUser)',
-      purpose: '회원탈퇴 (Auth + Firestore + Storage 일괄 삭제)',
-    );
-    final callable = _functions.httpsCallable('deleteUser');
-    await callable.call();
-  }
-
   Future<({String customToken, bool isNewUser})> phoneLogin(String phone) async {
     logFirebaseAccess(
       file: 'firebase_auth_datasource.dart',
@@ -118,5 +109,32 @@ class FirebaseAuthDataSource {
       purpose: '로그아웃',
     );
     await _auth.signOut();
+  }
+
+  /// 저장된 세션이 서버에서도 아직 살아 있는지 확인한다(ID 토큰 강제 갱신).
+  ///
+  /// 자동 로그인이라 재로그인 시점이 없어, 다른 기기에서 탈퇴했거나 계정이
+  /// 비활성화돼도 로컬 세션만 계속 살아 있을 수 있다.
+  ///
+  /// - `false` = 서버에서 무효화된 세션 → 호출부가 로그아웃해야 함
+  /// - `true`  = 유효. **네트워크 오류·오프라인도 true**(fail-open) —
+  ///   연결이 안 된다고 사용자를 로그아웃시키지 않는다.
+  Future<bool> refreshSession() async {
+    final user = _auth.currentUser;
+    if (user == null) return true; // 세션 없음 — 정리할 것도 없다
+
+    logFirebaseAccess(
+      file: 'firebase_auth_datasource.dart',
+      service: 'Auth(getIdToken refresh)',
+      purpose: '저장된 세션이 서버에서 유효한지 확인',
+    );
+    try {
+      await user.getIdToken(true);
+      return true;
+    } on FirebaseAuthException catch (e) {
+      return !isSessionRevokedCode(e.code);
+    } catch (_) {
+      return true;
+    }
   }
 }

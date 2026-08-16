@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- 앱이 다크 전용이라 values/ 와 같은 값을 쓴다(OS 다크모드와 무관하게 고정). -->
     <style name="LaunchTheme" parent="@android:style/Theme.Black.NoTitleBar">
         <item name="android:windowBackground">@drawable/launch_background</item>
     </style>
     <style name="NormalTheme" parent="@android:style/Theme.Black.NoTitleBar">
-        <item name="android:windowBackground">@color/vybe_background</item>
+        <item name="android:windowBackground">@color/vybe_splash_background</item>
     </style>
 </resources>

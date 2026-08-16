@@ -15,10 +15,12 @@
                     </layoutGuides>
                     <view key="view" contentMode="scaleToFill" id="Ze5-6b-2t3">
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                        <!-- 런치 화면은 Flutter 첫 프레임과 같은 단색(#101013)만 둔다.
+                        <!-- 런치 화면은 Flutter 첫 프레임과 같은 단색(#0E0D12, kVybeInk)만 둔다.
+                             앱 배경(#101013)이 아니라 **스플래시 잉크색** — 첫 화면이
+                             VybeSplash라 이 색이어야 네이티브 → Flutter 전환이 안 보인다.
                              기본 LaunchImage(Flutter 로고)는 앱 로고가 아니라 제거.
                              실제 로고 등장은 Flutter 쪽 VybeSplash 애니메이션이 담당. -->
-                        <color key="backgroundColor" red="0.062745098" green="0.062745098" blue="0.074509804" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <color key="backgroundColor" red="0.054901961" green="0.050980392" blue="0.070588235" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                     </view>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="iYj-Kq-Ea1" userLabel="First Responder" sceneMemberID="firstResponder"/>

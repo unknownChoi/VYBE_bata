@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/core/navigation/swipe_back_page_route.dart';
+import 'package:vybe/core/providers/location_providers.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/data/models/performance_model.dart';
 import 'package:vybe/design_system/colors.dart';
@@ -81,6 +82,10 @@ class _HipHopScreenState extends ConsumerState<HipHopScreen> {
     final clubById = {for (final c in clubs) c.clubId: c};
     final headliner = data?.headlinerByClub ?? const {};
 
+    // 카드 거리 표시는 내 위치 기준.
+    final me = ref.watch(userLocationProvider);
+    final origin = (lat: me.lat, lng: me.lng);
+
     // 배너 = 오늘 공연하는 클럽(클럽별 1개, featured 먼저 → 시작시각순).
     final heroSrc =
         (data?.headlinerByClub.values.toList() ?? <PerformanceModel>[])
@@ -89,7 +94,7 @@ class _HipHopScreenState extends ConsumerState<HipHopScreen> {
             return f != 0 ? f : a.startAt.compareTo(b.startAt);
           });
     final heroes = heroSrc
-        .map((p) => hipHopHeroFrom(p, clubById[p.clubId]))
+        .map((p) => hipHopHeroFrom(p, clubById[p.clubId], origin: origin))
         .toList();
     // 아티스트 = 오늘 공연 전체(시작시각순).
     final djs = [
@@ -97,7 +102,9 @@ class _HipHopScreenState extends ConsumerState<HipHopScreen> {
     ];
 
     // 그리드(포스터) = 클럽 + 오늘 라인업 머지(live/lineup).
-    final source = clubs.map((c) => hipHopClubFrom(c, headliner[c.clubId])).toList();
+    final source = clubs
+        .map((c) => hipHopClubFrom(c, headliner[c.clubId], origin: origin))
+        .toList();
     final grid = _grid(source);
 
     return Scaffold(

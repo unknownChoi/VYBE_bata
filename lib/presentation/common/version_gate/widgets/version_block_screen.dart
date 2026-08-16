@@ -37,7 +37,11 @@ class VersionBlockScreen extends StatelessWidget {
       canPop: false,
       child: Scaffold(
         backgroundColor: VybeColors.background,
+        // ⚠ fit: expand 필수 — Stack은 Positioned가 아닌 자식(SafeArea)에게 loose
+        // 제약을 준다. 그러면 Column이 글자 폭만큼 줄고, Positioned.fill인 오로라도
+        // 같이 줄어 화면 일부만 그려진다.
         body: Stack(
+          fit: StackFit.expand,
           children: [
             const Positioned.fill(child: VybeAurora()),
             SafeArea(

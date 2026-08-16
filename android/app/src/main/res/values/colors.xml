@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- VybeColors.background (#101013) — Flutter 첫 프레임과 같은 색.
+    <!-- 스플래시 잉크색 (kVybeInk, #0E0D12) — Flutter 첫 프레임과 **같은 색**.
+         앱 첫 화면은 VybeSplash(조명 스플래시)라 앱 배경(#101013)이 아니라
+         스플래시 배경을 써야 네이티브 → Flutter 전환이 안 보인다.
          런치 배경이 흰색이면 다크 앱 진입 시 흰 화면이 번쩍인다. -->
-    <color name="vybe_background">#101013</color>
+    <color name="vybe_splash_background">#0E0D12</color>
 </resources>

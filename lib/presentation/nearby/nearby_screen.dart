@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_naver_map/flutter_naver_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vybe/core/constants/app_geo.dart';
 import 'package:vybe/core/providers/auth_providers.dart';
 import 'package:vybe/core/providers/location_providers.dart';
 import 'package:vybe/core/utils/geohash_utils.dart';
@@ -543,7 +544,9 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
   }
 
   Widget _buildMap() {
-    final myPos = _myPos ?? const NLatLng(37.5572, 126.9239);
+    // _myPos는 build에서 항상 채워지지만, 지도가 먼저 만들어지는 경우를 위한 폴백.
+    final myPos =
+        _myPos ?? const NLatLng(AppGeo.hongdaeLat, AppGeo.hongdaeLng);
     return NaverMap(
       // 지도가 제스처를 선점(EagerGestureRecognizer)해 부모 PageView 가로
       // 스와이프에 팬이 가로채이지 않도록. 시트 영역은 지도 밖이라 영향 없음.

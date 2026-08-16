@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:vybe/core/providers/location_providers.dart';
 import 'package:vybe/data/models/club_info_model.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/data/models/menu_model.dart';
@@ -122,6 +123,11 @@ const _schedule = [
 Widget _app() => ProviderScope(
   overrides: [
     authStateProvider.overrideWith((ref) => Stream.value(null)),
+    // 거리 표기(301m)는 내 위치 기준이라 좌표를 고정한다 —
+    // 앱 폴백 좌표나 실제 GPS가 바뀌어도 이 테스트는 흔들리지 않아야 한다.
+    userLocationProvider.overrideWithValue(
+      const UserLocation(lat: 37.55069527696864, lng: 126.92330205669276),
+    ),
     clubDetailProvider(_clubId).overrideWith((ref) async => _club),
     clubInfoProvider(_clubId).overrideWith(
       (ref) async => ClubInfoModel(

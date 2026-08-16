@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- 앱이 다크 전용이라 OS 다크모드 설정과 무관하게 고정색을 쓴다. -->
-    <item android:drawable="@color/vybe_background" />
+    <!-- 앱이 다크 전용이라 OS 다크모드 설정과 무관하게 고정색을 쓴다.
+         로고는 두지 않는다 — 등장 연출은 Flutter VybeSplash가 처음부터 재생한다. -->
+    <item android:drawable="@color/vybe_splash_background" />
 </layer-list>

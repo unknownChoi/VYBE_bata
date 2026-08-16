@@ -82,21 +82,31 @@ class HipHopClub {
   });
 }
 
-// 홍대 기준 거리(km) — 표시용. 기준 좌표는 홈·주변 페이지와 동일(AppGeo).
-double hipHopDistanceKm(double lat, double lng) => GeohashUtils.haversineKm(
-      AppGeo.hongdaeLat,
-      AppGeo.hongdaeLng,
+// 내 위치 기준 거리(km) — 표시용.
+// [origin]을 안 주면 홍대 좌표 기준 (위치를 못 받았을 때의 폴백, AppGeo와 동일).
+double hipHopDistanceKm(
+  double lat,
+  double lng, {
+  ({double lat, double lng})? origin,
+}) =>
+    GeohashUtils.haversineKm(
+      origin?.lat ?? AppGeo.hongdaeLat,
+      origin?.lng ?? AppGeo.hongdaeLng,
       lat,
       lng,
     );
 
 // ClubModel(+오늘 헤드라이너 공연) → 포스터 카드 뷰모델.
-HipHopClub hipHopClubFrom(ClubModel c, PerformanceModel? headliner) {
+HipHopClub hipHopClubFrom(
+  ClubModel c,
+  PerformanceModel? headliner, {
+  ({double lat, double lng})? origin,
+}) {
   return HipHopClub(
     id: c.clubId,
     name: c.name,
     area: c.area,
-    dist: hipHopDistanceKm(c.lat, c.lng),
+    dist: hipHopDistanceKm(c.lat, c.lng, origin: origin),
     rating: c.rating,
     reviews: c.reviewCount,
     // 세부 장르 스타일 칩(genreStyles), 없으면 태그/장르 fallback.
@@ -113,11 +123,17 @@ HipHopClub hipHopClubFrom(ClubModel c, PerformanceModel? headliner) {
 }
 
 // 오늘 공연(performance) + 클럽 → hero(배너) 슬라이드 뷰모델. (텍스트=실데이터, 배경=그라데이션)
-HipHopHero hipHopHeroFrom(PerformanceModel p, ClubModel? club) {
+HipHopHero hipHopHeroFrom(
+  PerformanceModel p,
+  ClubModel? club, {
+  ({double lat, double lng})? origin,
+}) {
   return HipHopHero(
     name: p.clubName,
     area: p.clubArea,
-    dist: club != null ? hipHopDistanceKm(club.lat, club.lng) : 0,
+    dist: club != null
+        ? hipHopDistanceKm(club.lat, club.lng, origin: origin)
+        : 0,
     rating: club?.rating ?? 0,
     lineup: p.artistName,
     genre: club?.genre ?? p.genre,

@@ -1,8 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:vybe/core/constants/app_geo.dart';
 import 'package:vybe/core/providers/auth_providers.dart';
+import 'package:vybe/core/providers/location_providers.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/common/location_flip_mixin.dart';
@@ -19,14 +21,11 @@ class HomeLocationGreeting extends ConsumerStatefulWidget {
 
 class _HomeLocationGreetingState extends ConsumerState<HomeLocationGreeting>
     with SingleTickerProviderStateMixin, LocationFlipMixin {
-  // 위치 칩 라벨. 탭 전 '내 주변', 탭하면 홍대 좌표 인식 → '홍대'.
-  String _locationLabel = '내 주변';
-
+  // 위치 칩 탭 → 핀 플립 연출을 돌리는 동안 기기 GPS를 다시 읽는다.
+  // 라벨은 userLocationProvider가 그리므로 여기서 대입할 상태가 없다.
   void _onLocationTap() {
-    // 홍대 좌표로 인식 → 검색 로딩 시작. (주변 페이지 최초 로딩 좌표와 동일)
-    debugPrint(
-        '위치 선택: ${AppGeo.hongdaeLabel} (${AppGeo.hongdaeLat}, ${AppGeo.hongdaeLng})');
-    runLocationFlip(onResolved: () => _locationLabel = AppGeo.hongdaeLabel);
+    unawaited(ref.read(userLocationProvider.notifier).resolveFromDevice());
+    runLocationFlip(onResolved: () {});
   }
 
   @override
@@ -70,6 +69,9 @@ class _HomeLocationGreetingState extends ConsumerState<HomeLocationGreeting>
 
   // 위치 칩 — 평상시 [핀+텍스트], 로딩 시 텍스트 사라지며 원형으로 축소 + 핀 3D 플립.
   Widget _buildLocationChip() {
+    // 라벨 = 지금 내 좌표가 속한 지역(예: '강남'). 등록된 지역 밖이면 '내 주변'.
+    final locationLabel = ref.watch(userLocationProvider).areaLabel;
+
     return GestureDetector(
       onTap: _onLocationTap,
       behavior: HitTestBehavior.opaque,
@@ -101,7 +103,7 @@ class _HomeLocationGreetingState extends ConsumerState<HomeLocationGreeting>
               if (!locLoading) ...[
                 SizedBox(width: 5.w),
                 Text(
-                  _locationLabel,
+                  locationLabel,
                   style: VybeTypography.button2.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
