@@ -2,11 +2,14 @@
 // - StatefulWidget 선언 및 State 필드 관리
 // - 계산 로직은 certification_number_logic.dart (LogicMixin)
 // - 이벤트 핸들러는 certification_number_handler.dart (HandlerMixin)
+// - UI 빌더는 certification_number_builders.dart (BuildersMixin)
 // - OTP 셀 위젯은 widgets/otp_cell.dart (OtpCell)
 //
+// 디자인: signup_code.jsx (리뉴얼 — 오로라 배경 + 글래스 OTP 셀 + 단계 레일)
 // Figma node: 2146-6652
 
 import 'dart:async';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -18,12 +21,16 @@ import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/auth/signup_success/signup_success_screen.dart';
 import 'package:vybe/presentation/auth/viewmodels/auth_viewmodel.dart';
 import 'package:vybe/presentation/auth/widgets/otp_cell.dart';
-import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
+import 'package:vybe/presentation/auth/widgets/signup_glass.dart';
+import 'package:vybe/presentation/common/renew/renew_glass.dart';
+import 'package:vybe/presentation/common/widgets/vybe_aurora.dart';
+import 'package:vybe/presentation/common/widgets/vybe_button.dart';
 import 'package:vybe/presentation/common/widgets/vybe_loading_overlay.dart';
 import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
 
 part 'certification_number_logic.dart';
 part 'certification_number_handler.dart';
+part 'certification_number_builders.dart';
 
 /// 인증 진행 상태
 enum _CertStatus {
@@ -55,7 +62,10 @@ class CertificationNumberScreen extends ConsumerStatefulWidget {
 }
 
 class _CertificationNumberScreenState extends ConsumerState<CertificationNumberScreen>
-    with _CertificationNumberLogicMixin, _CertificationNumberHandlerMixin {
+    with
+        _CertificationNumberLogicMixin,
+        _CertificationNumberHandlerMixin,
+        _CertificationNumberBuildersMixin {
 
   // ── 입력 컨트롤러 / 포커스 ──
   @override
@@ -109,152 +119,57 @@ class _CertificationNumberScreenState extends ConsumerState<CertificationNumberS
     return VybeLoadingOverlay(
       isLoading: _isLoading,
       child: Scaffold(
-      backgroundColor: VybeColors.background,
-      appBar: AppBar(
-        backgroundColor: VybeColors.background,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: Center(
-          child: VybeGlassButton(
-            onTap: () => Navigator.pop(context),
-            size: 34,
-            iconSize: 18,
-            hitSize: 40,
-          ),
-        ),
-        title: Text(
-          '본인 인증',
-          // 17sp Medium — VybeTypography 미정의 (iOS 표준 네비게이션 바 크기) → 하드코딩
-          style: TextStyle(
-            color: const Color(0xFFEBEDF0),
-            fontSize: 17.sp,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        centerTitle: true,
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(24.w, 38.h, 24.w, 40.h),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        backgroundColor: kVybeInk,
+        // ⚠ fit: expand 필수 — Stack은 Positioned가 아닌 자식에게 loose 제약을
+        // 준다. 그러면 Column이 내용 폭만큼 줄고 오로라까지 같이 줄어 화면
+        // 왼쪽 일부만 칠해진다.
+        body: Stack(
+          fit: StackFit.expand,
           children: [
-            // ── 타이틀 ──
-            RichText(
-              text: TextSpan(
-                style: VybeTypography.heading3.copyWith(color: Colors.white),
-                children: const [
-                  TextSpan(
-                    text: '인증번호',
-                    style: TextStyle(color: VybeColors.mainLime500),
-                  ),
-                  TextSpan(text: '를 입력해주세요'),
-                ],
-              ),
+            const Positioned.fill(
+              // 글이 주인공인 화면이라 상단 2겹만 (디자인 variant="quiet")
+              child: VybeAurora(variant: VybeAuroraVariant.quiet),
             ),
-            SizedBox(height: 8.h),
-
-            // ── 서브타이틀 (상태별 메시지 + 아이콘, 전환 애니메이션) ──
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
-              child: KeyedSubtree(
-                key: ValueKey(_status),
-                child: Row(
-                  children: [
-                    SvgPicture.asset(
-                      _subtitleIconPath,
-                      width: 12.r,
-                      height: 12.r,
-                    ),
-                    SizedBox(width: 4.w),
-                    Text(
-                      _subtitleText,
-                      style: VybeTypography.caption.copyWith(
-                        color: _subtitleColor,
+            Column(
+              children: [
+                // 본인 인증 4단계(이름·생년월일·전화번호·통신사) 다음 = 마지막 칸
+                SignupHeader(
+                  onBack: () => Navigator.pop(context),
+                  step: signupCodeStep,
+                  total: signupTotalSteps,
+                ),
+                Expanded(
+                  child: GestureDetector(
+                    // 빈 곳을 눌러도 키보드가 다시 올라온다
+                    onTap: () => _focusNode.requestFocus(),
+                    behavior: HitTestBehavior.opaque,
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.fromLTRB(24.w, 30.h, 24.w, 24.h),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildTitle(),
+                          SizedBox(height: 8.h),
+                          _buildSubtitle(),
+                          SizedBox(height: 42.h),
+                          _buildOtpRow(),
+                          SizedBox(height: 20.h),
+                          _buildTimerRow(),
+                          if (_status == _CertStatus.expired) ...[
+                            SizedBox(height: 22.h),
+                            _buildExpiredCard(),
+                          ],
+                          _buildHiddenField(),
+                        ],
                       ),
                     ),
-                  ],
-                ),
-              ),
-            ),
-            SizedBox(height: 42.h),
-
-            // ── OTP 셀 6개 (GestureDetector로 탭 시 키보드 재표시) ──
-            GestureDetector(
-              onTap: () => _focusNode.requestFocus(),
-              child: SizedBox(
-                height: 46.h,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: List.generate(6, (i) {
-                    // 입력된 인덱스까지만 숫자 표시, 나머지는 빈 문자열
-                    final digit = i < _controller.text.length
-                        ? _controller.text[i]
-                        : '';
-                    return OtpCell(
-                      digit: digit,
-                      borderColor: _cellBorderColor,
-                    );
-                  }),
-                ),
-              ),
-            ),
-            SizedBox(height: 20.h),
-
-            // ── 타이머 + 다시 요청하기 ──
-            Row(
-              children: [
-                Text(
-                  '남은 시간  ',
-                  style: VybeTypography.caption.copyWith(
-                    color: VybeColors.gray400,
                   ),
                 ),
-                Text(
-                  _timerText,
-                  style: TextStyle(
-                    fontFamily: 'Pretendard',
-                    fontWeight: FontWeight.w400,
-                    fontSize: 16.sp,
-                    height: 18 / 16,
-                    letterSpacing: 16 * -0.025,
-                    color: VybeColors.mainPurple500,
-                  ),
-                ),
-                const Spacer(),
-                GestureDetector(
-                  onTap: _onResendTapped,
-                  child: Text(
-                    '다시 요청하기',
-                    style: VybeTypography.caption.copyWith(
-                      fontWeight: FontWeight.w500,
-                      color: VybeColors.gray400,
-                      decoration: TextDecoration.underline,
-                      decorationColor: VybeColors.gray400,
-                    ),
-                  ),
-                ),
+                _buildConfirmBar(),
               ],
-            ),
-
-            // ── 숨겨진 TextField (키보드 및 입력 이벤트 수신 전용) ──
-            // OTP 셀은 단순 표시용이며, 실제 입력은 이 위젯이 처리함
-            Opacity(
-              opacity: 0,
-              child: SizedBox(
-                height: 1,
-                child: TextField(
-                  controller: _controller,
-                  focusNode: _focusNode,
-                  keyboardType: TextInputType.number,
-                  maxLength: 6,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: const InputDecoration(counterText: ''),
-                ),
-              ),
             ),
           ],
         ),
-      ),
       ),
     );
   }

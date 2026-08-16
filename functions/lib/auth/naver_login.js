@@ -4,6 +4,7 @@ exports.naverLogin = void 0;
 const v1_1 = require("firebase-functions/v1");
 const admin = require("firebase-admin");
 const axios_1 = require("axios");
+const account_common_1 = require("../account/account_common");
 exports.naverLogin = v1_1.https.onCall(async (data) => {
     var _a, _b, _c;
     const accessToken = data === null || data === void 0 ? void 0 : data.accessToken;
@@ -27,6 +28,8 @@ exports.naverLogin = v1_1.https.onCall(async (data) => {
         throw new v1_1.https.HttpsError("internal", "네이버 ID를 가져올 수 없습니다.");
     }
     const uid = `naver:${naverId}`;
+    // 탈퇴 대기 계정이면 여기서 막는다 (앱에 재가입 가능일을 알려주기 위해).
+    await (0, account_common_1.assertNotPendingDeletion)(uid);
     let isNewUser = false;
     try {
         await admin.auth().getUser(uid);

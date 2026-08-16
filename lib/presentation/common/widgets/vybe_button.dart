@@ -26,11 +26,16 @@ class VybeButton extends StatefulWidget {
   final VoidCallback? onTap;
   final VybeButtonVariant variant;
 
+  /// 활성 상태일 때 버튼 아래로 보라 글로우를 깐다 (회원가입 리뉴얼).
+  /// disabled면 글로우 없음 — 눌리지 않는 버튼이 떠 보이면 안 된다.
+  final bool glow;
+
   const VybeButton({
     super.key,
     required this.label,
     required this.onTap,
     this.variant = VybeButtonVariant.defaultVariant,
+    this.glow = false,
   });
 
   @override
@@ -145,6 +150,15 @@ class _VybeButtonState extends State<VybeButton> {
         decoration: BoxDecoration(
           color: _backgroundColor,
           borderRadius: _borderRadius,
+          boxShadow: (widget.glow && !_isDisabled)
+              ? [
+                  BoxShadow(
+                    color: VybeColors.mainPurple500.withValues(alpha: 0.32),
+                    blurRadius: 26.r,
+                    offset: Offset(0, 10.h),
+                  ),
+                ]
+              : null,
         ),
         alignment: Alignment.center,
         child: _labelText,

@@ -92,7 +92,7 @@ View (Widget) → ViewModel (Notifier) → Repository → DataSource (Firebase)
 │   │   └── auth/            # 인증 플로우
 │   └── main.dart
 │
-├── functions/           # Cloud Functions (TypeScript, src/auth · favorites · reviews)
+├── functions/           # Cloud Functions (TypeScript, src/auth · account · favorites · reviews)
 ├── scripts/             # Firestore/Storage seed·migration 스크립트 (Node.js)
 │
 └── assets/
@@ -471,8 +471,49 @@ ElevatedButton(onPressed: () {}, child: Text('로그인'))
     (GPS를 아예 안 읽어 권한 팝업도 안 뜬다). 홍대 좌표·라벨 상수는 그대로 살아 있다
   - 위치 권한 문구는 이미 설정돼 있음 — Android `ACCESS_FINE/COARSE_LOCATION`,
     iOS `NSLocationWhenInUseUsageDescription`
+- **회원 탈퇴 — 30일 보관 soft delete (2026.08.17, 서버 배포 완료 · 앱 배포만 남음)**
+  요구가 둘이라 축을 나눴다 — ① 데이터는 **30일 보관** 후 파기 ② 보관과 별개로
+  리뷰·사진은 **탈퇴 즉시 비노출**. 그래서 "삭제"가 아니라 **숨김 + 예약 파기**다.
+  - 즉시(`requestAccountDeletion` onCall) — `users.status='pendingDeletion'` + `deletedAt`·`purgeAt`,
+    리뷰·사진·찜 `isHidden=true`, 클럽 `rating`·`reviewCount`·`favoriteCount` 감산,
+    Auth 계정 `disabled=true`. **멱등** — 중간 실패 후 재호출해도 안 숨겨진 것만 이어서 처리
+  - 30일 후(`purgeDeletedUsers` 스케줄, 매일 KST 04:30) — Firestore 문서 · Storage 파일 ·
+    Auth 유저 완전 삭제. 회차당 50명, 한 명 실패해도 다음 회차에 다시 잡힌다
+  - ⚠ **Auth 유저를 즉시 지우지 않고 `disabled`로 두는 이유** — 소셜 uid는 `kakao:{id}`로
+    **고정**이라 Auth에서 지우면 재로그인 시 **같은 uid가 다시 만들어져 보관 중 데이터에 붙는다**.
+    `disabled`면 로그인이 거부되고, 앱의 `isSessionRevokedCode`가 `user-disabled`를 이미
+    처리해 **다른 기기 세션도 다음 실행 때 자동 정리**된다(앱 추가 작업 0)
+  - ⚠ **집계 감산 주체는 `requestAccountDeletion` 하나** — 트리거 3종
+    (`onReviewUpdated`·`onReviewDeleted`·`onFavoriteDeleted`)에 `isHidden` 가드를 넣었다.
+    없으면 파기 때 두 번 깎여 음수가 된다
+  - ⚠ **쓰기 경로도 `isHidden: false`를 같이 써야 한다** — `ReviewModel.toFirestore()`와
+    `firebase_favorite_datasource.addFavorite`에 들어 있다. 빠뜨리면 목록 쿼리
+    (`where isHidden == false`)가 못 잡아 새 리뷰가 조용히 사라진다
+  - 앱: 마이페이지 계정 → '회원 탈퇴' → `my_page/account_delete_screen.dart`
+    (삭제 항목·30일 보관·재가입 제한 고지 + 사유 칩 + 동의 체크 + 확인 다이얼로그).
+    탈퇴 성공 시 repository가 이어서 `signOut()` → `AuthGate`가 루트를 Welcome으로 교체
+  - **탈퇴 철회(복구)는 범위 밖** — 필요해지면 역연산(`isHidden=false` + 집계 가산 +
+    `disabled=false`)을 `cancelAccountDeletion`으로 추가하면 되게 전 단계를 되돌릴 수 있게 짰다
+  - 배포 순서·주의는 아래 '미구현' 항목 참고. 상세 설계는 `firebase_structure.html#account-deletion`
 
 ### 미구현 / 진행 중 ✗
+- 회원 탈퇴 잔여 작업 — **서버는 2026.08.17 전부 배포 완료**
+  (백필 4865건 · 인덱스 · Rules · Functions 15개 · 스케줄 잡 ENABLED).
+  남은 것 ① **앱 빌드·배포** (`isHidden` 쿼리 필터와 탈퇴 화면이 여기 들어 있다)
+  ② 개인정보처리방침에 '30일 보관' 문구 추가(법무 확인)
+  ③ 어드민 페이지에 `pendingDeletion` 조회·즉시 파기 기능
+  - 배포 후 확인함 — 인덱스 목록 쿼리·컬렉션그룹 `userId` 조회 200,
+    **비인증**으로 숨긴 문서 단건 조회 **403**(목록에도 0건), `requestAccountDeletion`
+    비인증 호출 401, `purgeDeletedUsers` 수동 실행 `파기 대상 없음`·ok, 앱 빌드 성공.
+    **실계정 종단 테스트는 못 했다** — 커스텀 토큰 발급에 필요한
+    `iam.serviceAccounts.signJwt` 권한이 없음. 앱 배포 후 실기기에서 볼 것
+    (`firebase_structure.html#account-deletion` 검증 표)
+  - 배포 중 **구 `deleteUser` 함수 제거** — 소스에선 `bb2fb34`에서 이미 빠졌는데
+    배포본만 살아 있었다. users 문서·Storage·Auth를 **즉시 하드 삭제**하고 리뷰·사진·찜은
+    남겨 고아 데이터를 만드는, 30일 보관 요구와 어긋나는 경로. 호출부·호출 로그 0이라 삭제
+  - ⚠ 순서 주의(이미 지켜짐) — 백필·인덱스가 앱보다 먼저여야 한다. 앱을 먼저 내보내면
+    `where isHidden == false`가 필드 없는 문서를 못 잡아 **리뷰 탭·사진 탭이 빈 화면**,
+    인덱스가 없으면 `failed-precondition`. 지금은 서버가 다 돼 있어 앱은 아무 때나 내보내도 된다
 - 패스·지갑 탭 (`pass_wallet_screen.dart` 플레이스홀더 — 현재 탭 슬롯엔 미연결)
 - 주변 페이지 ↔ 상세 페이지 연동 마무리 (최근 커밋 진행 중)
 - 마이페이지 세부 — 프로필 사진 변경(image_picker 설치됨 — 연결만 남음), 알림 화면
@@ -663,9 +704,16 @@ birthDate       : string    // 생년월일 YYYYMMDD
 profileImageUrl : string    // Storage 프로필 이미지 URL
 provider        : string    // "naver" | "apple"
 isVerified      : boolean   // 본인인증 완료 여부 (초기값: false)
+status          : string    // "active" | "pendingDeletion" — 탈퇴 대기 여부.
+                            //   필드가 없으면 active로 간주(기존 문서)
+deletedAt       : timestamp?// 탈퇴 요청 시각
+purgeAt         : timestamp?// deletedAt + 30일 = 완전 파기 예정 시각(재가입 가능 시점)
+deletionReason  : string?   // 탈퇴 사유(선택 설문). 안 고르면 빈 문자열
 createdAt       : timestamp
 updatedAt       : timestamp
 ```
+> `status`·`deletedAt`·`purgeAt`는 **서버 전용** — Rules의 update 금지 키에 들어 있다.
+> 클라가 고칠 수 있으면 탈퇴를 스스로 취소하거나 파기 시점을 뒤로 밀 수 있다.
 
 #### clubs/{clubId}
 ```
@@ -761,6 +809,9 @@ userId          : string    // 올린 사람 uid (seed 데이터는 "seed")
 url             : string    // Storage 다운로드 URL
 category        : string    // "venue"(업체) | "food"(음식) | "inside"(내부)
                             //   PhotoCategory enum — Firestore엔 영문키, UI는 한글 라벨 매핑
+isHidden        : boolean   // 올린 사람이 탈퇴하면 true — 사진탭 조회·Rules 양쪽에서 빠진다.
+                            //   ⚠ 새 문서에도 false를 반드시 쓸 것 (리뷰와 같은 이유).
+                            //     현재 앱엔 사진 생성 경로가 없고 seed로만 들어온다
 createdAt       : timestamp // 사진탭은 createdAt desc 정렬 → index 0이 최신
 ```
 > 사진탭(detail_gallery_tab) 카테고리 필터의 데이터 소스. 칩별 count는 메모리 집계.
@@ -778,6 +829,13 @@ imageUrls       : array     // 첨부 이미지 URL 목록 (최대 4장)
                             //   Storage 경로 reviews/{clubId}/{reviewId}/{index}.{ext}
 tags            : array     // 선택한 추천 태그 (예: ["음악이 좋아요","사운드 최고"])
                             //   리뷰 작성 페이지 고정 8종 칩에서 선택. 없으면 빈 배열
+isHidden        : boolean   // 작성자가 탈퇴하면 true — 클럽 리뷰 목록·평점 집계에서 빠진다.
+                            //   집계 감산은 requestAccountDeletion이 직접 한다
+                            //   ⚠ 새 리뷰에도 false를 반드시 써야 한다 (ReviewModel.toFirestore).
+                            //     목록 쿼리가 where isHidden==false라 필드가 없으면 Firestore가
+                            //     문서를 못 잡아 **방금 쓴 리뷰가 조용히 안 보인다**
+                            //   ⚠ 클라 수정 금지(Rules) — 유저가 직접 켜면 목록에선 사라지는데
+                            //     reviewCount는 남아 평점이 영구히 어긋난다
 createdAt       : timestamp
 updatedAt       : timestamp
 ```
@@ -792,6 +850,8 @@ updatedAt       : timestamp
 favoriteId      : string    // PK
 userId          : string    // FK → users
 clubId          : string    // FK → clubs (favoriteCount 자동 연동)
+isHidden        : boolean   // 찜한 사람이 탈퇴하면 true. 찜은 본인만 읽어 '노출' 이슈는 없고,
+                            //   favoriteCount에서 이미 뺐다는 표시 = 파기 때 이중 감산 방지
 createdAt       : timestamp
 ```
 
@@ -1046,8 +1106,9 @@ createdAt      : timestamp
 
 ### Cloud Functions 목록
 
-총 **13개** 함수 (`functions/src/index.ts` export 기준). Firebase 관련 서버 로직은 모두 Cloud Functions으로 처리.
-구조: `functions/src/auth/` (6) · `favorites/` (2) · `reviews/` (3) · `performances/` (1) · `search/` (1) + `index.ts`.
+총 **15개** 함수 (`functions/src/index.ts` export 기준). Firebase 관련 서버 로직은 모두 Cloud Functions으로 처리.
+구조: `functions/src/auth/` (6) · `account/` (2 + 공용 `account_common.ts`) · `favorites/` (2) ·
+`reviews/` (3) · `performances/` (1) · `search/` (1) + `index.ts`.
 (구 `search/onClubWritten`은 Algolia 전환으로 삭제 — 2026.07.19)
 
 #### HTTP 요청 함수 (앱에서 직접 호출, `https.onCall`)
@@ -1057,8 +1118,13 @@ createdAt      : timestamp
 | `naverLogin` | `{ accessToken }` | `{ customToken, isNewUser }` | 네이버 accessToken → Custom Token (`naver:{naverId}`) |
 | `kakaoLogin` | `{ accessToken }` | `{ customToken, isNewUser }` | 카카오 accessToken → Custom Token (`kakao:{kakaoId}`) |
 | `phoneLogin` | `{ phone }` | `{ customToken, isNewUser }` | 전화번호 기반 Custom Token (`phone:{phone}`) |
-| `checkPhoneDuplicate` | `{ phone }` | `{ isDuplicate }` | users 컬렉션 phone 중복 체크 (가입 전 검사) |
+| `checkPhoneDuplicate` | `{ phone }` | `{ isDuplicate, pendingDeletion, purgeAt }` | users 컬렉션 phone 중복 체크 (가입 전 검사). 탈퇴 대기 계정도 중복 — 사유를 함께 반환 |
 | `verifyIdentity` | `{ impUid }` | `{ verified }` | 본인인증 결과 검증 → phone/birthDate Firestore 저장 |
+| `requestAccountDeletion` | `{ reason? }` | `{ purgeAt }` | 회원 탈퇴 — 리뷰·사진·찜 `isHidden=true` + 집계 감산 + Auth `disabled`. 삭제는 30일 뒤 |
+
+> 로그인 3종(`naverLogin`·`kakaoLogin`·`phoneLogin`)은 Custom Token 발급 **전에**
+> `assertNotPendingDeletion(uid)`로 탈퇴 대기 계정을 `failed-precondition`(+`details.purgeAt`)으로 막는다.
+> Auth가 `disabled`라 토큰을 줘도 로그인은 안 되지만, 그러면 앱이 **이유(재가입 가능일)를 알 수 없다**.
 
 #### 자동 트리거 함수
 
@@ -1066,10 +1132,15 @@ createdAt      : timestamp
 |--------|--------|------|
 | `onUserCreated` | Firebase Auth 신규 유저 생성 시 | users/{uid} 문서 자동 생성 (provider, isVerified: false, createdAt 세팅) |
 | `onFavoriteCreated` | favorites/{favoriteId} 생성 시 | clubs.favoriteCount += 1 (FieldValue.increment 사용) |
-| `onFavoriteDeleted` | favorites/{favoriteId} 삭제 시 | clubs.favoriteCount -= 1 (0 미만 방지 처리 필요) |
+| `onFavoriteDeleted` | favorites/{favoriteId} 삭제 시 | clubs.favoriteCount -= 1 (0 미만 방지 처리 필요). **`isHidden==true`면 skip** |
 | `onReviewCreated` | clubs/{clubId}/reviews/{reviewId} 생성 시 | ratingSum += rating, reviewCount += 1, rating = ratingSum / reviewCount |
-| `onReviewDeleted` | clubs/{clubId}/reviews/{reviewId} 삭제 시 | ratingSum -= rating, reviewCount -= 1, reviewCount > 0이면 rating 재계산, 0이면 rating = 0 |
-| `onReviewUpdated` | clubs/{clubId}/reviews/{reviewId} 수정 시 | ratingSum += (newRating - oldRating), rating = ratingSum / reviewCount |
+| `onReviewDeleted` | clubs/{clubId}/reviews/{reviewId} 삭제 시 | ratingSum -= rating, reviewCount -= 1, reviewCount > 0이면 rating 재계산, 0이면 rating = 0. **`isHidden==true`면 skip** |
+| `onReviewUpdated` | clubs/{clubId}/reviews/{reviewId} 수정 시 | ratingSum += (newRating - oldRating), rating = ratingSum / reviewCount. **`isHidden` 전이거나 이미 숨겨진 리뷰면 skip** |
+
+> ⚠ **`isHidden` 가드가 왜 필요한가** — 탈퇴 시 집계 감산은 `requestAccountDeletion`이 **직접** 한다.
+> `isHidden=true` 세팅은 문서 update라 `onReviewUpdated`가 발화하고, 30일 뒤 파기 때는
+> `onReviewDeleted`·`onFavoriteDeleted`가 발화한다. 가드가 없으면 같은 리뷰가 **두 번 깎여**
+> `rating`·`favoriteCount`가 음수가 된다.
 
 #### 스케줄 함수 (Cloud Scheduler + Pub/Sub, Blaze 필요)
 
@@ -1077,6 +1148,7 @@ createdAt      : timestamp
 |--------|--------|------|
 | `cleanupPastPerformances` | 매일 KST 04:00 | 종료된 공연 문서 삭제. `startAt < now - 8h`(PERFORMANCE_DURATION_HOURS)인 공연만 삭제 → 예정/진행 중(새벽) 공연 보존. 500개씩 배치 삭제 |
 | `aggregateSearchTrends` | 매시 정각 KST (`0 * * * *`) | 검색 로그 집계 → `searchTrends/current` + `searchHashtags.popularityRank`. 매시 깨어나서 **갱신 대상 여부를 내부 판단**하고, 아니면 Firestore 접근 없이 즉시 종료 |
+| `purgeDeletedUsers` | 매일 KST 04:30 | 보관 30일이 지난 탈퇴 계정 완전 파기 — Firestore 문서(리뷰·사진·찜·검색기록·users) + Storage 파일(`reviews/`·`users/`) + Auth 유저. 회차당 50명, 한 명 실패해도 다음으로 진행(다음 회차에 다시 잡힘) |
 
 > 새벽 공연 보호 로직: 공연은 `startAt`(Timestamp) 후 최대 8시간 진행으로 가정(클럽 마감 ~06:00). 8시간 안 지난 공연은 "진행 중"으로 보존 → 오늘 밤 새벽 공연/어제 이어진 공연 안전. 마감 더 늦으면 `PERFORMANCE_DURATION_HOURS` 상수만 조정.
 
@@ -1110,8 +1182,8 @@ createdAt      : timestamp
 | `users/{uid}` | 본인만 | 본인만 (uid / provider / createdAt 수정 불가) |
 | `clubs/{clubId}` | 누구나 (isActive=true만) | 어드민만 |
 | `clubs/.../info`, `menus` | 누구나 | 어드민만 |
-| `clubs/.../photos` | 누구나 | 생성: 로그인 유저(본인 userId) / 삭제: 본인 또는 어드민 |
-| `clubs/.../reviews` | 누구나 | 생성: 로그인 유저 / 수정·삭제: 본인 또는 어드민 |
+| `clubs/.../photos` | 누구나 (`isHidden != true`만) | 생성: 로그인 유저(본인 userId) / 삭제: 본인 또는 어드민 |
+| `clubs/.../reviews` | 누구나 (`isHidden != true`만) | 생성: 로그인 유저 / 수정·삭제: 본인 또는 어드민 (**`isHidden` 수정 불가**) |
 | `{path=**}/reviews` (collectionGroup) | 본인 리뷰만 | 불가 (마이페이지 내 리뷰 조회 전용) |
 | `favorites` | 본인만 | 생성·삭제: 본인만 |
 | `users/.../searchHistory` | 본인만 | 본인만 |
@@ -1120,6 +1192,10 @@ createdAt      : timestamp
 | `searchLogs` | **불가** (Admin SDK 전용) | 생성만: 로그인 유저(본인 userId, keyword 2~30자, 필드 화이트리스트). 수정·삭제 불가 |
 | `searchTrends`, `searchHashtags` | 누구나 | 어드민만 |
 | `appConfig/{platform}` | 누구나 (**auth 조건 금지** — 로그인 전에 읽는다) | 어드민만 (어드민 페이지 전용) |
+
+> ⚠ **숨김 판정은 `resource.data.get('isHidden', false) == false`** — `resource.data.isHidden != true`로
+> 쓰면 안 된다. Rules에서 **없는 필드에 직접 접근하면 평가가 에러로 떨어져 거부**되므로,
+> 백필 전 문서(= 지금 전부)가 통째로 막힌다.
 
 #### Storage Rules 요약
 | 경로 | 읽기 | 쓰기 |

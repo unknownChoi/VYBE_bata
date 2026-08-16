@@ -86,6 +86,12 @@ class RenewIcons {
       '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>'
       '<circle cx="12" cy="13" r="3.6"/>';
 
+  /// 회원 탈퇴 — 사용자에서 빼기.
+  static const String userMinus =
+      '<circle cx="9" cy="8" r="4"/>'
+      '<path d="M1 21c0-4.4 3.6-8 8-8 1.6 0 3.1.5 4.4 1.3"/>'
+      '<line x1="16" y1="17" x2="23" y2="17"/>';
+
   /// 사용자 — 로그인 안내·빈 상태.
   static const String user =
       '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/>';

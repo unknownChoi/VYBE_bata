@@ -160,6 +160,7 @@ class FirebaseClubDataSource {
         .collection('clubs')
         .doc(clubId)
         .collection('photos')
+        .where('isHidden', isEqualTo: false)
         .orderBy('createdAt', descending: true)
         .get();
     return snapshot.docs.map(PhotoModel.fromFirestore).toList();

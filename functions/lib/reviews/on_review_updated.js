@@ -6,10 +6,20 @@ const admin = require("firebase-admin");
 exports.onReviewUpdated = v1_1.firestore
     .document("clubs/{clubId}/reviews/{reviewId}")
     .onUpdate(async (change, context) => {
-    var _a, _b;
+    var _a, _b, _c, _d;
     const { clubId } = context.params;
-    const oldRating = (_a = change.before.data()) === null || _a === void 0 ? void 0 : _a.rating;
-    const newRating = (_b = change.after.data()) === null || _b === void 0 ? void 0 : _b.rating;
+    // 탈퇴 숨김/복구로 isHidden 이 바뀐 update 는 여기서 처리하지 않는다.
+    // 집계 감산은 requestAccountDeletion 이 직접 하므로 여기서 또 하면
+    // 이중 감산이 된다.
+    const wasHidden = ((_a = change.before.data()) === null || _a === void 0 ? void 0 : _a.isHidden) === true;
+    const isHidden = ((_b = change.after.data()) === null || _b === void 0 ? void 0 : _b.isHidden) === true;
+    if (wasHidden !== isHidden)
+        return;
+    // 이미 숨겨진 리뷰는 집계에서 빠져 있다 — 별점을 고쳐도 반영할 게 없다.
+    if (isHidden)
+        return;
+    const oldRating = (_c = change.before.data()) === null || _c === void 0 ? void 0 : _c.rating;
+    const newRating = (_d = change.after.data()) === null || _d === void 0 ? void 0 : _d.rating;
     if (oldRating === newRating)
         return;
     if (!oldRating || !newRating || typeof oldRating !== "number" || typeof newRating !== "number") {

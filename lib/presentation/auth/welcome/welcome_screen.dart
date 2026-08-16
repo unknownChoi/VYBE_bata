@@ -1,5 +1,3 @@
-import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_naver_login/flutter_naver_login.dart';
@@ -14,6 +12,7 @@ import 'package:vybe/presentation/auth/identity_verification/identity_verificati
 import 'package:vybe/presentation/auth/viewmodels/auth_viewmodel.dart';
 import 'package:vybe/presentation/auth/welcome/login_method_bottom_sheet.dart';
 import 'package:vybe/presentation/common/splash_logo_landing.dart';
+import 'package:vybe/presentation/common/widgets/vybe_aurora.dart';
 import 'package:vybe/presentation/common/widgets/vybe_spinner.dart';
 import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
 import 'package:vybe/presentation/home/viewmodels/banner_viewmodel.dart';
@@ -141,11 +140,11 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
     );
 
     return Scaffold(
-      backgroundColor: VybeColors.background,
+      backgroundColor: kVybeInk,
       extendBodyBehindAppBar: true,
       body: Stack(
         children: [
-          const Positioned.fill(child: _HeroVisual()),
+          const Positioned.fill(child: IgnorePointer(child: VybeAurora())),
           SafeArea(
             child: Padding(
               padding: EdgeInsets.fromLTRB(24.w, 0, 24.w, 40.h),
@@ -326,155 +325,6 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ============================================================
-// Animated background blobs
-// ============================================================
-
-class _HeroVisual extends StatefulWidget {
-  const _HeroVisual();
-
-  @override
-  State<_HeroVisual> createState() => _HeroVisualState();
-}
-
-class _HeroVisualState extends State<_HeroVisual> with TickerProviderStateMixin {
-  late final AnimationController _c1;
-  late final AnimationController _c2;
-  late final AnimationController _c3;
-  late final Animation<double> _a1;
-  late final Animation<double> _a2;
-  late final Animation<double> _a3;
-
-  @override
-  void initState() {
-    super.initState();
-    _c1 = AnimationController(
-        vsync: this, duration: const Duration(seconds: 8))
-      ..repeat(reverse: true);
-    _c2 = AnimationController(
-        vsync: this, duration: const Duration(seconds: 10))
-      ..repeat(reverse: true);
-    _c3 = AnimationController(
-        vsync: this, duration: const Duration(seconds: 12))
-      ..repeat(reverse: true);
-    _a1 = CurvedAnimation(parent: _c1, curve: Curves.easeInOut);
-    _a2 = CurvedAnimation(parent: _c2, curve: Curves.easeInOut);
-    _a3 = CurvedAnimation(parent: _c3, curve: Curves.easeInOut);
-  }
-
-  @override
-  void dispose() {
-    _c1.dispose();
-    _c2.dispose();
-    _c3.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: Listenable.merge([_c1, _c2, _c3]),
-      builder: (context, _) {
-        final t1 = _a1.value;
-        final t2 = _a2.value;
-        final t3 = _a3.value;
-        return Stack(
-          children: [
-            // Purple bloom — top-left, breath1 8s
-            Positioned(
-              top: -80.h,
-              left: -100.w,
-              child: Opacity(
-                opacity: ui.lerpDouble(1.0, 0.75, t1)!,
-                child: Transform.scale(
-                  scale: ui.lerpDouble(1.0, 1.15, t1)!,
-                  child: Transform.translate(
-                    offset: Offset(
-                      ui.lerpDouble(0.0, 20.0, t1)!,
-                      ui.lerpDouble(0.0, 10.0, t1)!,
-                    ),
-                    child: _Blob(
-                      size: 360.w,
-                      color: VybeColors.mainPurple500.withValues(alpha: 0.55),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            // Lime bloom — mid-right, breath2 10s
-            Positioned(
-              top: 180.h,
-              right: -120.w,
-              child: Opacity(
-                opacity: ui.lerpDouble(0.9, 0.6, t2)!,
-                child: Transform.scale(
-                  scale: ui.lerpDouble(1.0, 1.2, t2)!,
-                  child: Transform.translate(
-                    offset: Offset(
-                      ui.lerpDouble(0.0, -15.0, t2)!,
-                      ui.lerpDouble(0.0, -15.0, t2)!,
-                    ),
-                    child: _Blob(
-                      size: 320.w,
-                      color: VybeColors.mainLime500.withValues(alpha: 0.32),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            // Pink/magenta bloom — bottom-left, breath1 12s
-            Positioned(
-              bottom: 200.h,
-              left: 40.w,
-              child: Opacity(
-                opacity: ui.lerpDouble(1.0, 0.75, t3)!,
-                child: Transform.scale(
-                  scale: ui.lerpDouble(1.0, 1.15, t3)!,
-                  child: Transform.translate(
-                    offset: Offset(
-                      ui.lerpDouble(0.0, 20.0, t3)!,
-                      ui.lerpDouble(0.0, 10.0, t3)!,
-                    ),
-                    child: _Blob(
-                      size: 260.w,
-                      color: const Color(0xFFFF4D8D).withValues(alpha: 0.28),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _Blob extends StatelessWidget {
-  final double size;
-  final Color color;
-
-  const _Blob({required this.size, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return ImageFiltered(
-      imageFilter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(
-            colors: [color, color.withValues(alpha: 0)],
-            stops: const [0.0, 0.65],
-          ),
-        ),
       ),
     );
   }

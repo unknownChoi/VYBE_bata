@@ -13,5 +13,7 @@ export {onFavoriteDeleted} from "./favorites/on_favorite_deleted";
 export {onReviewCreated} from "./reviews/on_review_created";
 export {onReviewDeleted} from "./reviews/on_review_deleted";
 export {onReviewUpdated} from "./reviews/on_review_updated";
+export {requestAccountDeletion} from "./account/request_account_deletion";
+export {purgeDeletedUsers} from "./account/purge_deleted_users";
 export {cleanupPastPerformances} from "./performances/cleanup_past_performances";
 export {aggregateSearchTrends} from "./search/aggregate_search_trends";

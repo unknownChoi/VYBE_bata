@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.aggregateSearchTrends = exports.cleanupPastPerformances = exports.onReviewUpdated = exports.onReviewDeleted = exports.onReviewCreated = exports.onFavoriteDeleted = exports.onFavoriteCreated = exports.verifyIdentity = exports.kakaoLogin = exports.naverLogin = exports.phoneLogin = exports.checkPhoneDuplicate = exports.onUserCreated = void 0;
+exports.aggregateSearchTrends = exports.cleanupPastPerformances = exports.purgeDeletedUsers = exports.requestAccountDeletion = exports.onReviewUpdated = exports.onReviewDeleted = exports.onReviewCreated = exports.onFavoriteDeleted = exports.onFavoriteCreated = exports.verifyIdentity = exports.kakaoLogin = exports.naverLogin = exports.phoneLogin = exports.checkPhoneDuplicate = exports.onUserCreated = void 0;
 const admin = require("firebase-admin");
 admin.initializeApp();
 var on_user_created_1 = require("./auth/on_user_created");
@@ -25,6 +25,10 @@ var on_review_deleted_1 = require("./reviews/on_review_deleted");
 Object.defineProperty(exports, "onReviewDeleted", { enumerable: true, get: function () { return on_review_deleted_1.onReviewDeleted; } });
 var on_review_updated_1 = require("./reviews/on_review_updated");
 Object.defineProperty(exports, "onReviewUpdated", { enumerable: true, get: function () { return on_review_updated_1.onReviewUpdated; } });
+var request_account_deletion_1 = require("./account/request_account_deletion");
+Object.defineProperty(exports, "requestAccountDeletion", { enumerable: true, get: function () { return request_account_deletion_1.requestAccountDeletion; } });
+var purge_deleted_users_1 = require("./account/purge_deleted_users");
+Object.defineProperty(exports, "purgeDeletedUsers", { enumerable: true, get: function () { return purge_deleted_users_1.purgeDeletedUsers; } });
 var cleanup_past_performances_1 = require("./performances/cleanup_past_performances");
 Object.defineProperty(exports, "cleanupPastPerformances", { enumerable: true, get: function () { return cleanup_past_performances_1.cleanupPastPerformances; } });
 var aggregate_search_trends_1 = require("./search/aggregate_search_trends");

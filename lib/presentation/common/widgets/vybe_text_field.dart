@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
+import 'package:vybe/presentation/common/widgets/vybe_underline.dart';
 
 /// 입력 필드 상태
 enum VybeInputState { defaultState, focused, active, filled, error, disabled }
@@ -36,6 +37,10 @@ class VybeTextField extends StatefulWidget {
   /// true이면 위젯 등장 시 자동 포커스 → 키보드 즉시 노출
   final bool autofocus;
 
+  /// 포커스 중 밑줄에 언더글로우를 켠다 (회원가입 리뉴얼 `SVUnderline`).
+  /// 기본 false — 기존 화면의 밑줄 모양을 그대로 두기 위함.
+  final bool glowUnderline;
+
   const VybeTextField({
     super.key,
     this.hint,
@@ -50,6 +55,7 @@ class VybeTextField extends StatefulWidget {
     this.focusNode,
     this.onClear,
     this.autofocus = false,
+    this.glowUnderline = false,
   });
 
   @override
@@ -114,13 +120,11 @@ class _VybeTextFieldState extends State<VybeTextField> {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(color: _lineColor, width: 1),
-            ),
-          ),
-          child: Row(
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+          Row(
             children: [
               Expanded(
                 child: TextField(
@@ -190,6 +194,15 @@ class _VybeTextFieldState extends State<VybeTextField> {
                 ),
             ],
           ),
+            // 디자인은 입력줄과 밑줄 사이를 9px 띄운다(원본은 4px 패딩만).
+            if (widget.glowUnderline) SizedBox(height: 5.h),
+            VybeUnderline(
+              color: _lineColor,
+              glow: widget.glowUnderline &&
+                  _isFocused &&
+                  widget.errorText == null,
+            ),
+          ],
         ),
         if (widget.errorText != null) ...[
           SizedBox(height: 8.h),

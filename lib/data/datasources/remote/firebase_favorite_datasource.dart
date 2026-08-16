@@ -44,6 +44,10 @@ class FirebaseFavoriteDataSource {
     await _firestore.collection('favorites').add({
       'userId': userId,
       'clubId': clubId,
+      // 탈퇴 시 서버가 true로 바꾼다. 찜 목록은 이 값으로 거르지 않지만,
+      // `onFavoriteDeleted`가 "집계에서 이미 뺐는지"를 이 필드로 판단하므로
+      // 기존 문서(백필됨)와 같은 모양을 유지한다.
+      'isHidden': false,
       'createdAt': FieldValue.serverTimestamp(),
     });
   }

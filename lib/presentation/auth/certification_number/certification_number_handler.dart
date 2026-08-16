@@ -11,22 +11,17 @@ part of 'certification_number_screen.dart';
 ///
 /// 필드를 직접 소유하지 않고 abstract getter/setter 로 선언.
 /// 구체 구현은 [_CertificationNumberScreenState] 필드가 충족한다.
-mixin _CertificationNumberHandlerMixin on ConsumerState<CertificationNumberScreen> {
+mixin _CertificationNumberHandlerMixin on _CertificationNumberLogicMixin {
   // ── 의존 필드 (abstract) ──
-  TextEditingController get _controller;
-  FocusNode get _focusNode;
-  _CertStatus get _status;
+  // 읽기 전용 getter(_controller · _focusNode · _status · _remainingSeconds)와
+  // computed(_canConfirm)는 LogicMixin이 이미 선언했다 — 여기선 쓰기만 추가한다.
   set _status(_CertStatus value);
-  int get _remainingSeconds;
   set _remainingSeconds(int value);
   Timer? get _timer;
   set _timer(Timer? value);
   bool get _isResending;
   set _isResending(bool value);
   set _isLoading(bool value);
-
-  // ── 의존 computed (LogicMixin 제공) ──
-  bool get _canConfirm;
 
   // ── 인증 로직 상수 ──
   // TODO: 실제 서비스 연동 시 Firebase SMS 인증으로 교체 필요
@@ -65,11 +60,13 @@ mixin _CertificationNumberHandlerMixin on ConsumerState<CertificationNumberScree
 
   /// 코드 입력값 변경 감지
   /// - 재전송 중이면 무시 (controller.clear 시 리스너 중복 방지)
-  /// - 오류/만료 상태에서 재입력 시 focused 상태로 복구
+  /// - 만료 상태에서는 입력을 받지 않는다 (재요청이 유일한 복구 동선)
+  /// - 오류 상태에서 재입력 시 focused 상태로 복구
   /// - 6자리 완성 시 자동 확인 처리
   void _onCodeChanged() {
     if (_isResending) return;
-    if (_status == _CertStatus.error || _status == _CertStatus.expired) {
+    if (_status == _CertStatus.expired) return;
+    if (_status == _CertStatus.error) {
       setState(() => _status = _CertStatus.focused);
     } else {
       setState(() {});
@@ -88,6 +85,8 @@ mixin _CertificationNumberHandlerMixin on ConsumerState<CertificationNumberScree
     _startTimer();
     setState(() => _status = _CertStatus.requestSent);
     _focusNode.requestFocus();
+    // 서브타이틀 문구만으로는 눌린 걸 놓치기 쉬워 토스트로 한 번 더 알린다.
+    VybeToast.show(context, message: '인증번호를 다시 보냈어요');
   }
 
   /// 인증번호 확인
@@ -98,6 +97,9 @@ mixin _CertificationNumberHandlerMixin on ConsumerState<CertificationNumberScree
     if (_controller.text == _correctCode) {
       setState(() => _isLoading = true);
       final vm = ref.read(authViewModelProvider.notifier);
+      // 실패 시 어느 단계에서 터졌는지 로그로 남긴다 — 토스트 문구만으로는
+      // Functions 호출인지 Firestore 쓰기인지 구분이 안 된다.
+      var step = 'checkPhoneDuplicate';
 
       try {
         final isDuplicate = await vm.checkPhoneDuplicate(widget.phoneNumber);
@@ -113,13 +115,16 @@ mixin _CertificationNumberHandlerMixin on ConsumerState<CertificationNumberScree
         //   이미 세션이 있으므로 phoneLogin을 하면 안 된다 — `phone:{phone}`
         //   uid가 새로 생겨 원래 소셜 계정이 프로필 없이 버려진다.
         if (!vm.hasPendingToken && !vm.isSignedIn) {
+          step = 'phoneLogin';
           await vm.phoneLogin(widget.phoneNumber);
           if (!mounted) return;
         }
 
+        step = 'finalizeLogin';
         await vm.finalizeLogin();
         if (!mounted) return;
 
+        step = 'saveUserProfile';
         await vm.saveUserProfile(
           name: widget.name,
           phone: widget.phoneNumber,
@@ -130,7 +135,10 @@ mixin _CertificationNumberHandlerMixin on ConsumerState<CertificationNumberScree
         Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const SignupSuccessScreen()),
         );
-      } catch (e) {
+      } catch (e, st) {
+        debugPrint('[CertificationNumber] 회원가입 실패 — step: $step');
+        debugPrint('[CertificationNumber] error(${e.runtimeType}): $e');
+        debugPrintStack(stackTrace: st, label: '[CertificationNumber]');
         if (!mounted) return;
         VybeToast.show(context, message: '오류가 발생했습니다: $e', isError: true);
       } finally {

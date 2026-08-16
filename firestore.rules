@@ -11,11 +11,14 @@ service cloud.firestore {
       allow create: if request.auth != null
         && request.auth.uid == uid;
 
-      // 기존 문서 수정 — uid, provider, createdAt 변경 불가
+      // 기존 문서 수정 — uid, provider, createdAt 변경 불가.
+      // status·deletedAt·purgeAt 는 탈퇴 상태를 나타내는 서버 전용 필드 —
+      // 클라가 고칠 수 있으면 탈퇴를 스스로 취소하거나 파기 시점을 밀 수 있다.
       allow update: if request.auth != null
         && request.auth.uid == uid
         && !request.resource.data.diff(resource.data).affectedKeys()
-            .hasAny(['uid', 'provider', 'createdAt']);
+            .hasAny(['uid', 'provider', 'createdAt',
+                     'status', 'deletedAt', 'purgeAt']);
 
       // users/{uid}/searchHistory/{historyId}
       match /searchHistory/{historyId} {
@@ -47,7 +50,10 @@ service cloud.firestore {
 
       // clubs/{clubId}/photos/{photoId}
       match /photos/{photoId} {
-        allow read: if true;
+        // 작성자가 탈퇴하면 isHidden=true 가 붙어 노출에서 빠진다.
+        // ⚠ `resource.data.isHidden` 직접 접근은 필드가 없는 문서에서 에러가 나
+        //   거부로 떨어진다 → 백필 전 문서도 통과하도록 get(기본값) 을 쓴다.
+        allow read: if resource.data.get('isHidden', false) == false;
 
         // 생성: 로그인 유저, 본인 userId로만
         allow create: if request.auth != null
@@ -61,15 +67,18 @@ service cloud.firestore {
 
       // clubs/{clubId}/reviews/{reviewId}
       match /reviews/{reviewId} {
-        allow read: if true;
+        // 작성자가 탈퇴하면 isHidden=true 가 붙어 노출에서 빠진다.
+        allow read: if resource.data.get('isHidden', false) == false;
 
         allow create: if request.auth != null
           && request.resource.data.userId == request.auth.uid;
 
+        // isHidden 은 탈퇴 서버 로직 전용 — 클라가 켜고 끄면 목록에선 사라지는데
+        // reviewCount 는 그대로 남는다(트리거가 isHidden 전이를 무시하므로).
         allow update: if request.auth != null
           && resource.data.userId == request.auth.uid
           && !request.resource.data.diff(resource.data).affectedKeys()
-              .hasAny(['userId', 'clubId', 'createdAt']);
+              .hasAny(['userId', 'clubId', 'createdAt', 'isHidden']);
 
         allow delete: if request.auth != null
           && (resource.data.userId == request.auth.uid

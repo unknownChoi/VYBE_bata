@@ -4,6 +4,7 @@ exports.kakaoLogin = void 0;
 const v1_1 = require("firebase-functions/v1");
 const admin = require("firebase-admin");
 const axios_1 = require("axios");
+const account_common_1 = require("../account/account_common");
 exports.kakaoLogin = v1_1.https.onCall(async (data) => {
     var _a, _b;
     const accessToken = data === null || data === void 0 ? void 0 : data.accessToken;
@@ -27,6 +28,9 @@ exports.kakaoLogin = v1_1.https.onCall(async (data) => {
         throw new v1_1.https.HttpsError("internal", "카카오 ID를 가져올 수 없습니다.");
     }
     const uid = `kakao:${kakaoId}`;
+    // 탈퇴 대기 계정이면 여기서 막는다. Auth 가 disabled 라 토큰을 줘도 어차피
+    // 로그인이 안 되지만, 그러면 앱이 이유(재가입 가능일)를 알 수 없다.
+    await (0, account_common_1.assertNotPendingDeletion)(uid);
     let isNewUser = false;
     try {
         await admin.auth().getUser(uid);

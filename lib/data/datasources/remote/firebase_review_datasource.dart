@@ -17,6 +17,7 @@ class FirebaseReviewDataSource {
         .collection('clubs')
         .doc(clubId)
         .collection('reviews')
+        .where('isHidden', isEqualTo: false)
         .orderBy('createdAt', descending: true)
         .get();
     return snapshot.docs.map(ReviewModel.fromFirestore).toList();
@@ -32,6 +33,7 @@ class FirebaseReviewDataSource {
         .collection('clubs')
         .doc(clubId)
         .collection('reviews')
+        .where('isHidden', isEqualTo: false)
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((s) => s.docs.map(ReviewModel.fromFirestore).toList());
@@ -40,6 +42,10 @@ class FirebaseReviewDataSource {
   /// 유저가 작성한 모든 리뷰 (전 클럽 대상 collectionGroup 쿼리).
   /// 마이페이지 '내 리뷰 관리' 데이터 소스.
   /// 인덱스: reviews COLLECTION_GROUP (userId ASC, createdAt DESC) 필요.
+  ///
+  /// 여기엔 `isHidden` 필터를 걸지 않는다 — 숨김은 **작성자 탈퇴** 시에만 붙고,
+  /// 탈퇴하면 로그인 자체가 막혀 이 화면에 들어올 수 없다. 필터를 더하면
+  /// 3필드 인덱스만 늘어난다.
   Stream<List<ReviewModel>> watchUserReviews(String userId) {
     logFirebaseAccess(
       file: 'firebase_review_datasource.dart',

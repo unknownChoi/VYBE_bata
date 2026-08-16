@@ -9,8 +9,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:vybe/design_system/colors.dart';
-import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/auth/certification_number/certification_number_screen.dart';
 import 'package:vybe/presentation/auth/viewmodels/auth_viewmodel.dart';
 import 'package:vybe/presentation/auth/widgets/birth_input.dart';
@@ -19,9 +17,10 @@ import 'package:vybe/presentation/auth/widgets/carrier_sheet.dart';
 import 'package:vybe/presentation/auth/widgets/completed_field.dart';
 import 'package:vybe/presentation/auth/widgets/fade_slide_in.dart';
 import 'package:vybe/presentation/auth/widgets/phone_formatter.dart';
+import 'package:vybe/presentation/auth/widgets/signup_glass.dart';
 import 'package:vybe/presentation/auth/widgets/terms_agreement_sheet.dart';
+import 'package:vybe/presentation/common/widgets/vybe_aurora.dart';
 import 'package:vybe/presentation/common/widgets/vybe_button.dart';
-import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
 import 'package:vybe/presentation/common/widgets/vybe_loading_overlay.dart';
 import 'package:vybe/presentation/common/widgets/vybe_page_title.dart';
 import 'package:vybe/presentation/common/widgets/vybe_status_message.dart';
@@ -139,36 +138,25 @@ class _IdentityVerificationScreenState extends ConsumerState<IdentityVerificatio
     return VybeLoadingOverlay(
       isLoading: _isLoading,
       child: Scaffold(
-      backgroundColor: VybeColors.background,
-      appBar: AppBar(
-        backgroundColor: VybeColors.background,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: Center(
-          child: VybeGlassButton(
-            onTap: () => Navigator.pop(context),
-            size: 34,
-            iconSize: 18,
-            hitSize: 40,
-          ),
-        ),
-        title: Text(
-          '본인 인증',
-          // 17sp Medium — VybeTypography 미정의 (iOS 표준 네비게이션 바 크기) → 하드코딩
-          style: TextStyle(
-            color: const Color(0xFFEBEDF0),
-            fontSize: 17.sp,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        centerTitle: true,
-      ),
-      body: Column(
+      backgroundColor: kVybeInk,
+      body: Stack(
         children: [
+          // 리뉴얼 배경 — 글이 주인공인 화면이라 quiet(상단 2겹)
+          const Positioned.fill(
+            child: IgnorePointer(child: VybeAurora(variant: VybeAuroraVariant.quiet)),
+          ),
+          Column(
+        children: [
+          // ── 상단 바 + 진행 레일 (총 5단계 = 입력 4 + 인증번호) ──
+          SignupHeader(
+            onBack: () => Navigator.pop(context),
+            step: _activeStep.index,
+            total: signupTotalSteps,
+          ),
           // ── 입력 영역 (스크롤 가능) ──
           Expanded(
             child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(24.w, 38.h, 24.w, 24.h),
+              padding: EdgeInsets.fromLTRB(24.w, 30.h, 24.w, 24.h),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -222,7 +210,7 @@ class _IdentityVerificationScreenState extends ConsumerState<IdentityVerificatio
                   ),
                   // 하단 완료 필드들: _maxStep 미만을 최신순으로
                   if (_maxStep.index > 0) ...[
-                    SizedBox(height: 28.h),
+                    SizedBox(height: 26.h),
                     ..._buildBelowFields(),
                   ],
                 ],
@@ -242,9 +230,12 @@ class _IdentityVerificationScreenState extends ConsumerState<IdentityVerificatio
               padding: EdgeInsets.fromLTRB(24.w, 12.h, 24.w, 40.h),
               child: VybeButton(
                 label: '확인',
+                glow: true,
                 onTap: _canProceed ? _onConfirm : null,
               ),
             ),
+        ],
+      ),
         ],
       ),
       ),

@@ -3,6 +3,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:vybe/core/utils/firebase_logger.dart';
 import 'package:vybe/core/utils/session_utils.dart';
+import 'package:vybe/domain/exceptions/account_exceptions.dart';
 
 class FirebaseAuthDataSource {
   final FirebaseAuth _auth;
@@ -25,7 +26,9 @@ class FirebaseAuthDataSource {
       purpose: '카카오 accessToken → Firebase Custom Token 발급',
     );
     final callable = _functions.httpsCallable('kakaoLogin');
-    final result = await callable.call({'accessToken': accessToken});
+    final result = await _callGuardingDeletion(
+      () => callable.call({'accessToken': accessToken}),
+    );
     return (
       customToken: result.data['customToken'] as String,
       isNewUser: result.data['isNewUser'] as bool,
@@ -40,7 +43,9 @@ class FirebaseAuthDataSource {
       purpose: '네이버 accessToken → Firebase Custom Token 발급',
     );
     final callable = _functions.httpsCallable('naverLogin');
-    final result = await callable.call({'accessToken': accessToken});
+    final result = await _callGuardingDeletion(
+      () => callable.call({'accessToken': accessToken}),
+    );
     return (
       customToken: result.data['customToken'] as String,
       isNewUser: result.data['isNewUser'] as bool,
@@ -95,11 +100,45 @@ class FirebaseAuthDataSource {
       purpose: '전화번호 기반 Custom Token 발급',
     );
     final callable = _functions.httpsCallable('phoneLogin');
-    final result = await callable.call({'phone': phone});
+    final result = await _callGuardingDeletion(
+      () => callable.call({'phone': phone}),
+    );
     return (
       customToken: result.data['customToken'] as String,
       isNewUser: result.data['isNewUser'] as bool,
     );
+  }
+
+  /// 회원 탈퇴 요청. 데이터를 즉시 지우지 않고 30일 보관 후 파기한다.
+  /// 반환값은 완전 파기 예정 시각(= 재가입 가능 시점).
+  Future<DateTime> requestAccountDeletion(String reason) async {
+    logFirebaseAccess(
+      file: 'firebase_auth_datasource.dart',
+      service: 'Functions(requestAccountDeletion)',
+      purpose: '회원 탈퇴 요청 — 데이터 숨김 + 계정 비활성 (30일 후 파기)',
+    );
+    final callable = _functions.httpsCallable('requestAccountDeletion');
+    final result = await callable.call({'reason': reason});
+    return DateTime.fromMillisecondsSinceEpoch(result.data['purgeAt'] as int);
+  }
+
+  /// 로그인 계열 호출을 감싸 '탈퇴 대기 계정' 거부를 전용 예외로 바꾼다.
+  ///
+  /// 서버가 `failed-precondition` + `details.purgeAt` 으로 거부하므로,
+  /// 화면이 원시 FirebaseFunctionsException 문구 대신 재가입 가능일을
+  /// 안내할 수 있게 여기서 변환한다.
+  Future<HttpsCallableResult> _callGuardingDeletion(
+    Future<HttpsCallableResult> Function() call,
+  ) async {
+    try {
+      return await call();
+    } on FirebaseFunctionsException catch (e) {
+      if (e.code != 'failed-precondition') rethrow;
+      final millis = (e.details is Map) ? e.details['purgeAt'] : null;
+      throw AccountPendingDeletionException(
+        millis is int ? DateTime.fromMillisecondsSinceEpoch(millis) : null,
+      );
+    }
   }
 
   Future<void> signOut() async {

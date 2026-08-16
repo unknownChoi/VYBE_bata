@@ -14,6 +14,9 @@ enum RenewButtonVariant {
 
   /// 라임 채움 — 강조 동작(리뷰 작성하기).
   lime,
+
+  /// 붉은 채움 — 되돌릴 수 없는 동작(회원 탈퇴).
+  danger,
 }
 
 /// 리뉴얼 디자인 버튼 (VButton) — 56.h · radius 12.
@@ -55,6 +58,10 @@ class _RenewButtonState extends State<RenewButton> {
         return _pressed ? VybeColors.mainLime700 : VybeColors.mainLime500;
       case RenewButtonVariant.filled:
         return _pressed ? VybeColors.mainPurple700 : VybeColors.mainPurple500;
+      case RenewButtonVariant.danger:
+        return _pressed
+            ? VybeColors.accentRed500.withValues(alpha: 0.75)
+            : VybeColors.accentRed500;
     }
   }
 

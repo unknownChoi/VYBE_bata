@@ -1,6 +1,7 @@
 import { https, logger } from "firebase-functions/v1";
 import * as admin from "firebase-admin";
 import axios from "axios";
+import { assertNotPendingDeletion } from "../account/account_common";
 
 export const kakaoLogin = https.onCall(async (data) => {
   const accessToken: string | undefined = data?.accessToken;
@@ -39,6 +40,10 @@ export const kakaoLogin = https.onCall(async (data) => {
   }
 
   const uid = `kakao:${kakaoId}`;
+
+  // 탈퇴 대기 계정이면 여기서 막는다. Auth 가 disabled 라 토큰을 줘도 어차피
+  // 로그인이 안 되지만, 그러면 앱이 이유(재가입 가능일)를 알 수 없다.
+  await assertNotPendingDeletion(uid);
 
   let isNewUser = false;
   try {

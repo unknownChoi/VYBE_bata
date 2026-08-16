@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
+import 'package:vybe/presentation/common/widgets/vybe_underline.dart';
 
 /// 통신사 선택 트리거 필드
 ///
@@ -53,32 +54,35 @@ class CarrierDropdownField extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: borderColor, width: 1),
-          ),
-        ),
-        padding: EdgeInsets.symmetric(vertical: 4.h),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                hasValue ? value! : '통신사를 선택해주세요.',
-                style: _textStyle(
-                  // 선택된 경우 gray200, 미선택이면 gray600 (hint 색상)
-                  hasValue ? VybeColors.gray200 : VybeColors.gray600,
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(0, 4.h, 0, 9.h),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    hasValue ? value! : '통신사를 선택해주세요.',
+                    style: _textStyle(
+                      // 선택된 경우 gray200, 미선택이면 gray600 (hint 색상)
+                      hasValue ? VybeColors.gray200 : VybeColors.gray600,
+                    ),
+                  ),
                 ),
-              ),
+                // 드롭다운 방향 표시 아이콘
+                Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: VybeColors.gray500,
+                  size: 20.r,
+                ),
+              ],
             ),
-            // 드롭다운 방향 표시 아이콘
-            Icon(
-              Icons.keyboard_arrow_down_rounded,
-              color: VybeColors.gray500,
-              size: 20.r,
-            ),
-          ],
-        ),
+          ),
+          VybeUnderline(color: borderColor, glow: isActive),
+        ],
       ),
     );
   }

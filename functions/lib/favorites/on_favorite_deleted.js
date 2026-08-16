@@ -7,6 +7,10 @@ exports.onFavoriteDeleted = v1_1.firestore
     .document("favorites/{favoriteId}")
     .onDelete(async (snapshot) => {
     const data = snapshot.data();
+    // 탈퇴로 숨겨진 찜은 requestAccountDeletion 이 이미 favoriteCount 에서 뺐다.
+    // 30일 뒤 파기 때 또 빼면 두 번 깎인다.
+    if ((data === null || data === void 0 ? void 0 : data.isHidden) === true)
+        return;
     const clubId = data === null || data === void 0 ? void 0 : data.clubId;
     if (!clubId) {
         v1_1.logger.error("onFavoriteDeleted: clubId missing", data);

@@ -14,6 +14,7 @@ import 'package:vybe/presentation/common/widgets/vybe_confirm_dialog.dart';
 import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
 import 'package:vybe/presentation/main_scaffold/nav_bar_hide_route.dart';
 import 'package:vybe/presentation/main_scaffold/nav_bar_visibility_provider.dart';
+import 'package:vybe/presentation/my_page/account_delete_screen.dart';
 import 'package:vybe/presentation/my_page/my_reviews_screen.dart';
 import 'package:vybe/presentation/my_page/notices_screen.dart';
 import 'package:vybe/presentation/my_page/profile_edit_screen.dart';
@@ -215,8 +216,14 @@ class _LoggedInView extends ConsumerWidget {
                   icon: RenewIcons.logout,
                   label: '로그아웃',
                   danger: true,
-                  last: true,
                   onTap: () => _confirmLogout(context, ref),
+                ),
+                MyMenuRow(
+                  icon: RenewIcons.userMinus,
+                  label: '회원 탈퇴',
+                  danger: true,
+                  last: true,
+                  onTap: () => _push(context, const AccountDeleteScreen()),
                 ),
               ],
             ),

@@ -59,6 +59,16 @@ class AuthRepositoryImpl implements AuthRepository {
     await _dataSource.signOut();
   }
 
+  /// 탈퇴 요청이 성공하면 **곧바로 로그아웃까지** 한다.
+  /// 서버가 Auth 계정을 disabled 로 바꿔 세션이 이미 무효인데, 로컬 세션과
+  /// 소셜 SDK 세션이 남아 있으면 앱이 로그인 상태처럼 굴다가 조회마다 실패한다.
+  @override
+  Future<DateTime> requestAccountDeletion(String reason) async {
+    final purgeAt = await _dataSource.requestAccountDeletion(reason);
+    await signOut();
+    return purgeAt;
+  }
+
   @override
   Future<bool> refreshSession() => _dataSource.refreshSession();
 }

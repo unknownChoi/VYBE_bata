@@ -166,4 +166,20 @@ class AuthViewModel extends _$AuthViewModel {
       () => ref.read(authRepositoryProvider).signOut(),
     );
   }
+
+  /// 회원 탈퇴. 성공하면 uid가 null이 되어 AuthGate가 알아서 루트를
+  /// WelcomeScreen으로 교체한다 (로그아웃과 같은 경로).
+  /// 반환값 = 완전 파기 예정 시각(재가입 가능 시점). 실패는 rethrow.
+  Future<DateTime> deleteAccount(String reason) async {
+    state = const AsyncLoading();
+    try {
+      final purgeAt =
+          await ref.read(authRepositoryProvider).requestAccountDeletion(reason);
+      state = const AsyncData(null);
+      return purgeAt;
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
+  }
 }

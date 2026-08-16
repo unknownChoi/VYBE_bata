@@ -44,6 +44,11 @@ abstract class ReviewModel with _$ReviewModel {
     'content': content,
     'imageUrls': imageUrls,
     'tags': tags,
+    // 작성자 탈퇴 시 서버가 true로 바꾼다. 여기서 false를 **반드시 써야** 한다 —
+    // 목록 쿼리가 `where isHidden == false`라 필드가 없으면 Firestore가 문서를
+    // 아예 못 잡아 방금 쓴 리뷰가 조용히 안 보인다. 모델 필드로는 두지 않는다
+    // (화면이 쓰지 않고, 읽기는 이미 서버에서 걸러져 온다).
+    'isHidden': false,
     'createdAt': FieldValue.serverTimestamp(),
     'updatedAt': FieldValue.serverTimestamp(),
   };

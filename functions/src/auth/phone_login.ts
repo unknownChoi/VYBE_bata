@@ -1,5 +1,6 @@
 import { https, logger } from "firebase-functions/v1";
 import * as admin from "firebase-admin";
+import { assertNotPendingDeletion } from "../account/account_common";
 
 export const phoneLogin = https.onCall(async (data) => {
   const phone: string | undefined = data?.phone;
@@ -12,6 +13,9 @@ export const phoneLogin = https.onCall(async (data) => {
   }
 
   const uid = `phone:${phone}`;
+
+  // 탈퇴 대기 계정이면 여기서 막는다 (앱에 재가입 가능일을 알려주기 위해).
+  await assertNotPendingDeletion(uid);
 
   let isNewUser = false;
   try {

@@ -84,6 +84,7 @@ mixin _IdentityVerificationBuildersMixin on ConsumerState<IdentityVerificationSc
             hint: '이름을 입력해주세요.',
             controller: _nameCtrl,
             focusNode: _nameFocus,
+            glowUnderline: true,
             onClear: () => setState(() {}),
           ),
         _Step.birth => BirthInput(
@@ -99,6 +100,7 @@ mixin _IdentityVerificationBuildersMixin on ConsumerState<IdentityVerificationSc
             focusNode: _phoneFocus,
             keyboardType: TextInputType.phone,
             inputFormatters: [PhoneFormatter()],
+            glowUnderline: true,
             onClear: () => setState(() {}),
           ),
         _Step.carrier => CarrierDropdownField(
@@ -108,51 +110,37 @@ mixin _IdentityVerificationBuildersMixin on ConsumerState<IdentityVerificationSc
           ),
       };
 
-  /// 탭 시 제자리에서 재활성화되는 read-only 완료 위젯
-  Widget _buildCompletedField(_Step step) {
-    switch (step) {
-      case _Step.name:
-        return GestureDetector(
-          onTap: () => _activateStep(_Step.name),
-          child: CompletedField(label: '이름', value: _nameCtrl.text),
-        );
-      case _Step.birth:
-        return GestureDetector(
-          onTap: () => _activateStep(_Step.birth),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '생년월일',
-                style: VybeTypography.caption
-                    .copyWith(color: VybeColors.gray600),
-              ),
-              SizedBox(height: 8.h),
-              BirthInput(
-                frontCtrl: _birthFrontCtrl,
-                backCtrl: _birthBackCtrl,
-                frontFocus: _birthFrontFocus,
-                backFocus: _birthBackFocus,
-                readOnly: true,
-                // 앞자리 TextField의 탭 이벤트가 GestureDetector로 전달되지 않으므로
-                // onTap으로 직접 수신
-                onTap: () => _activateStep(_Step.birth),
-              ),
-            ],
+  /// 탭 시 제자리에서 재활성화되는 완료 위젯 — 전부 접힌 글래스 행 한 줄.
+  ///
+  /// 생년월일도 read-only 입력 필드가 아니라 같은 행으로 접는다(디자인 `SVDone`).
+  /// 24sp 필드를 그대로 쌓으면 단계가 늘수록 지금 입력할 칸이 화면 밖으로 밀린다.
+  Widget _buildCompletedField(_Step step) => switch (step) {
+        _Step.name => CompletedField(
+            label: '이름',
+            value: _nameCtrl.text,
+            onTap: () => _activateStep(_Step.name),
           ),
-        );
-      case _Step.phone:
-        return GestureDetector(
-          onTap: () => _activateStep(_Step.phone),
-          child: CompletedField(label: '전화번호', value: _phoneCtrl.text),
-        );
-      case _Step.carrier:
-        return GestureDetector(
-          onTap: () => _activateStep(_Step.carrier),
-          child: CompletedField(label: '통신사', value: _carrier ?? ''),
-        );
-    }
-  }
+        _Step.birth => CompletedField(
+            label: '생년월일',
+            value: _birthSummary,
+            onTap: () => _activateStep(_Step.birth),
+          ),
+        _Step.phone => CompletedField(
+            label: '전화번호',
+            value: _phoneCtrl.text,
+            onTap: () => _activateStep(_Step.phone),
+          ),
+        _Step.carrier => CompletedField(
+            label: '통신사',
+            value: _carrier ?? '',
+            onTap: () => _activateStep(_Step.carrier),
+          ),
+      };
+
+  /// 완료 행에 쓰는 생년월일 요약 — `YYMMDD — 1●●●●●●`.
+  /// 뒷자리는 성별 코드 1자리만 실제 값이고 나머지는 원본 화면과 같이 점으로 가린다.
+  String get _birthSummary =>
+      '${_birthFrontCtrl.text} — ${_birthBackCtrl.text}●●●●●●';
 
   /// 맨 위 입력창 아래에 표시되는 완료 필드 목록 (역순)
   List<Widget> _buildBelowFields() {
@@ -163,7 +151,8 @@ mixin _IdentityVerificationBuildersMixin on ConsumerState<IdentityVerificationSc
     final widgets = <Widget>[];
 
     for (final step in steps) {
-      if (widgets.isNotEmpty) widgets.add(SizedBox(height: 28.h));
+      // 접힌 행끼리는 10 — 24sp 입력 필드였을 때의 28이 남아 있으면 카드 사이가 뜬다.
+      if (widgets.isNotEmpty) widgets.add(SizedBox(height: 10.h));
       widgets.add(
         FadeSlideIn(
           key: ValueKey('below_${step.name}'),

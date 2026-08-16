@@ -6,6 +6,7 @@ import 'package:vybe/data/models/search_trend_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
+import 'package:vybe/presentation/common/widgets/vybe_aurora.dart';
 import 'package:vybe/presentation/search/viewmodels/club_filter_viewmodel.dart';
 import 'package:vybe/presentation/search/viewmodels/search_viewmodel.dart';
 import 'package:vybe/presentation/search/widgets/club_list_item.dart';
@@ -75,7 +76,7 @@ class _SearchResultScreenState extends ConsumerState<SearchResultScreen> {
     );
 
     return Scaffold(
-      backgroundColor: VybeColors.background,
+      backgroundColor: kVybeInk,
       body: Stack(
         children: [
           const Positioned.fill(
@@ -220,80 +221,10 @@ class _SearchResultScreenState extends ConsumerState<SearchResultScreen> {
   }
 }
 
-// 검색결과 배경 — 보라/녹색 radial glow + 다크 베이스 (search_results_v2 backdrop).
+// 검색결과 배경 — 공용 리뉴얼 오로라([VybeAurora]).
 class _ResultBackdrop extends StatelessWidget {
   const _ResultBackdrop();
 
-  static const _purple = VybeColors.mainPurple500; // 119,49,254
-  static const _lime = VybeColors.mainLime500; // 181,255,96
-
   @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      // linear-gradient(180deg, #14101f → #101013 → #0d0a0c).
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF14101F), VybeColors.background, Color(0xFF0D0A0C)],
-          stops: [0.0, 0.4, 1.0],
-        ),
-      ),
-      child: Stack(
-        children: [
-          // 좌상단 보라 glow.
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 240.h,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  center: const Alignment(-0.85, -1),
-                  radius: 1.1,
-                  colors: [_purple.withValues(alpha: 0.24), Colors.transparent],
-                  stops: const [0.0, 0.6],
-                ),
-              ),
-            ),
-          ),
-          // 우상단 라임 glow.
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 260.h,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  center: const Alignment(1, -0.92),
-                  radius: 1.0,
-                  colors: [_lime.withValues(alpha: 0.12), Colors.transparent],
-                  stops: const [0.0, 0.62],
-                ),
-              ),
-            ),
-          ),
-          // 우하단 보라 glow.
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 360.h,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  center: const Alignment(0.85, 1),
-                  radius: 1.1,
-                  colors: [_purple.withValues(alpha: 0.12), Colors.transparent],
-                  stops: const [0.0, 0.66],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => const VybeAurora();
 }

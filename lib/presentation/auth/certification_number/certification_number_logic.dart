@@ -1,8 +1,8 @@
 // 인증번호 화면 순수 계산 로직 (Computed Properties)
 // - 확인 버튼 활성화 여부 (_canConfirm)
 // - 서브타이틀 텍스트·색상·아이콘 (_subtitleText, _subtitleColor, _subtitleIconPath)
-// - OTP 셀 테두리 색상 (_cellBorderColor)
-// - 타이머 표시 텍스트 (_timerText)
+// - OTP 셀 활성 여부 (_isCellActive)
+// - 타이머 표시 텍스트·색상 (_timerText, _timerColor)
 // - 오류·만료 스타일 여부 (_isErrorStyle)
 
 part of 'certification_number_screen.dart';
@@ -20,9 +20,10 @@ mixin _CertificationNumberLogicMixin on ConsumerState<CertificationNumberScreen>
 
   // ── Computed ──
 
-  /// 6자리 모두 입력됐을 때만 확인 버튼 활성화
-  // ignore: unused_element
-  bool get _canConfirm => _controller.text.length == 6;
+  /// 6자리를 다 채웠고 아직 만료되지 않았을 때만 확인 버튼 활성화.
+  /// 만료를 빼면 시간이 지난 코드로도 통과된다.
+  bool get _canConfirm =>
+      _controller.text.length == 6 && _status != _CertStatus.expired;
 
   /// 오류 또는 만료 상태이면 에러 스타일 적용
   bool get _isErrorStyle =>
@@ -45,15 +46,14 @@ mixin _CertificationNumberLogicMixin on ConsumerState<CertificationNumberScreen>
       ? 'assets/icons/auth/error_certification_number.svg.svg'
       : 'assets/icons/auth/check_certification_number.svg';
 
-  /// 상태와 포커스 여부에 따른 OTP 셀 테두리 색상
-  Color get _cellBorderColor {
-    if (_isErrorStyle) return VybeColors.accentRed500;
-    if ((_status == _CertStatus.focused || _status == _CertStatus.requestSent) &&
-        _focusNode.hasFocus) {
-      return VybeColors.mainPurple500;
+  /// [index] 칸이 '지금 입력받는 자리'인지 — 보라 테두리 + 캐럿 대상.
+  /// 오류·만료 상태에서는 활성 칸을 두지 않는다(레드 표시가 우선).
+  bool _isCellActive(int index) {
+    if (_isErrorStyle || !_focusNode.hasFocus) return false;
+    if (_status != _CertStatus.focused && _status != _CertStatus.requestSent) {
+      return false;
     }
-    // 포커스 없거나 initial 상태는 테두리 없음
-    return Colors.transparent;
+    return index == _controller.text.length;
   }
 
   /// MM:SS 형식의 타이머 표시 문자열
@@ -62,4 +62,9 @@ mixin _CertificationNumberLogicMixin on ConsumerState<CertificationNumberScreen>
     final s = _remainingSeconds % 60;
     return '$m:${s.toString().padLeft(2, '0')}';
   }
+
+  /// 0초가 되면 레드 — 숫자만 보고도 만료를 알 수 있게
+  Color get _timerColor => _remainingSeconds == 0
+      ? VybeColors.accentRed500
+      : VybeColors.mainPurple500;
 }

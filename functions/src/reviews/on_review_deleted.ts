@@ -6,6 +6,11 @@ export const onReviewDeleted = firestore
   .onDelete(async (snapshot, context) => {
     const { clubId } = context.params;
     const data = snapshot.data();
+
+    // 탈퇴로 숨겨진 리뷰는 requestAccountDeletion 이 이미 집계에서 뺐다.
+    // 30일 뒤 purgeDeletedUsers 가 지울 때 또 빼면 두 번 깎여 음수가 된다.
+    if (data?.isHidden === true) return;
+
     const rating: number = data?.rating;
 
     if (!rating || typeof rating !== "number") {

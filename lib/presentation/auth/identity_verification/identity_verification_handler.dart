@@ -73,6 +73,8 @@ mixin _IdentityVerificationHandlerMixin on ConsumerState<IdentityVerificationScr
   }
 
   /// 완료된 필드를 탭했을 때 해당 단계를 제자리에서 활성화
+  // BuildersMixin이 abstract 선언을 통해 호출한다 — 호출부가 그 선언에 묶여
+  // 분석기는 이 구현을 미사용으로 본다 (지우지 말 것).
   // ignore: unused_element
   void _activateStep(_Step step) {
     if (_activeStep == step) return;
@@ -107,6 +109,7 @@ mixin _IdentityVerificationHandlerMixin on ConsumerState<IdentityVerificationScr
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      barrierColor: SignupSheet.barrier,
       isScrollControlled: true,
       builder: (_) => TermsAgreementSheet(
         onConfirmed: () async {
@@ -149,11 +152,13 @@ mixin _IdentityVerificationHandlerMixin on ConsumerState<IdentityVerificationScr
   }
 
   /// 통신사 선택 바텀시트 표시
+  // _activateStep과 같은 이유 — BuildersMixin의 abstract 선언을 통해 호출된다.
   // ignore: unused_element
   void _showCarrierSheet() {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      barrierColor: SignupSheet.barrier,
       builder: (_) => CarrierSheet(
         selected: _carrier,
         onSelected: (value) {

@@ -124,7 +124,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
                   SizedBox(height: kMySectionGap.h),
                   const RenewFooterNote(
-                    text: '계정 삭제나 데이터 이관은 고객센터를 통해 처리돼요.',
+                    text: '회원 탈퇴는 마이페이지 계정 메뉴에서 할 수 있어요. '
+                        '데이터 이관은 고객센터를 통해 처리돼요.',
                   ),
                   SizedBox(height: 20.h),
                   const AppVersionLabel(),

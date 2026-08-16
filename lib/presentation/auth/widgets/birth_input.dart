@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vybe/design_system/colors.dart';
+import 'package:vybe/presentation/common/widgets/vybe_underline.dart';
 
 /// 생년월일 입력 위젯 (주민등록번호 앞 7자리 형식)
 ///
@@ -125,13 +126,19 @@ class _BirthInputState extends State<BirthInput> {
         color: VybeColors.gray600,
       );
 
+  /// 나머지 6자리 자리표시 점 — 에러일 때만 붉게 물든다(디자인 `SVBirth`).
+  Color get _dotColor => widget.isError
+      ? VybeColors.accentRed500.withValues(alpha: 0.55)
+      : VybeColors.gray700;
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: _lineColor, width: 1)),
-      ),
-      padding: EdgeInsets.symmetric(vertical: 4.h),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+      Padding(
+      padding: EdgeInsets.fromLTRB(0, 4.h, 0, 9.h),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -222,11 +229,12 @@ class _BirthInputState extends State<BirthInput> {
                 6,
                 (_) => Padding(
                   padding: EdgeInsets.only(left: 6.w),
-                  child: Container(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
                     width: 8.r,
                     height: 8.r,
-                    decoration: const BoxDecoration(
-                      color: VybeColors.gray700,
+                    decoration: BoxDecoration(
+                      color: _dotColor,
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -258,6 +266,12 @@ class _BirthInputState extends State<BirthInput> {
           ],
         ],
       ),
+      ),
+      VybeUnderline(
+        color: _lineColor,
+        glow: !widget.readOnly && _isFocused && !widget.isError,
+      ),
+      ],
     );
   }
 }

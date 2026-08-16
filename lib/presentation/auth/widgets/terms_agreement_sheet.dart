@@ -5,6 +5,8 @@ import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/auth/terms/terms_detail_screen.dart';
+import 'package:vybe/presentation/auth/widgets/signup_glass.dart';
+import 'package:vybe/presentation/common/renew/renew_glass.dart';
 import 'package:vybe/presentation/common/widgets/vybe_button.dart';
 
 class _TermsItem {
@@ -15,7 +17,7 @@ class _TermsItem {
   _TermsItem({required this.title, required this.required});
 }
 
-/// 약관 동의 바텀시트
+/// 약관 동의 바텀시트 (디자인 `SVTermsSheet`)
 ///
 /// 필수 3개 항목이 모두 체크되어야 '확인' 버튼 활성화
 /// '>' 버튼 탭 시 [TermsDetailScreen] 으로 이동
@@ -67,140 +69,161 @@ class _TermsAgreementSheetState extends State<TermsAgreementSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: VybeColors.gray800,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(24.r),
-          topRight: Radius.circular(24.r),
-        ),
-      ),
-      padding: EdgeInsets.fromLTRB(
-        20.w,
-        60.h,
-        20.w,
-        40.h + MediaQuery.paddingOf(context).bottom,
-      ),
+    const lime = VybeColors.mainLime500;
+
+    return SignupSheet(
+      padH: 20,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ── 약관 항목 영역 ──
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(4.w, 0, 4.w, 24.h),
+            child: Text(
+              '서비스 이용을 위해\n동의가 필요해요.',
+              style: VybeTypography.heading4.copyWith(
+                color: Colors.white,
+                height: 1.4,
+              ),
+            ),
+          ),
+
+          // ── 전체 동의하기 (박스 없는 큰 체크) ──
+          GestureDetector(
+            onTap: _toggleAll,
+            behavior: HitTestBehavior.opaque,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 15.h),
+              decoration: BoxDecoration(
+                color: _allChecked
+                    ? lime.withValues(alpha: 0.09)
+                    : RenewGlass.tileFill,
+                borderRadius: BorderRadius.circular(14.r),
+                border: Border.all(
+                  color: _allChecked
+                      ? lime.withValues(alpha: 0.30)
+                      : RenewGlass.tileBorder,
+                ),
+              ),
+              child: Row(
                 children: [
-                  // 타이틀
+                  SvgPicture.asset(
+                    _allChecked
+                        ? 'assets/icons/common/conditions/check_checked.svg'
+                        : 'assets/icons/common/conditions/check_unchecked.svg',
+                    width: 20.r,
+                    height: 20.r,
+                  ),
+                  SizedBox(width: 12.w),
                   Text(
-                    '서비스 이용을 위해 동의가 필요해요.',
-                    style: VybeTypography.heading4.copyWith(
-                      color: Colors.white,
+                    '전체 동의하기',
+                    style: TextStyle(
+                      fontFamily: 'Pretendard',
+                      fontWeight: FontWeight.w500,
+                      fontSize: 18.sp,
+                      letterSpacing: 18 * -0.025,
+                      color: _allChecked ? Colors.white : RenewGlass.t2,
                     ),
-                  ),
-                  SizedBox(height: 36.h),
-                  // 전체 동의하기
-                  GestureDetector(
-                    onTap: _toggleAll,
-                    behavior: HitTestBehavior.opaque,
-                    child: Row(
-                      children: [
-                        SvgPicture.asset(
-                          _allChecked
-                              ? 'assets/icons/common/conditions/box_checked.svg'
-                              : 'assets/icons/common/conditions/box_unchecked.svg',
-                          width: 16.r,
-                          height: 16.r,
-                        ),
-                        SizedBox(width: 12.w),
-                        Text(
-                          '전체 동의하기',
-                          style: TextStyle(
-                            fontFamily: 'Pretendard',
-                            fontWeight: FontWeight.w500,
-                            fontSize: 20.sp,
-                            color: VybeColors.gray200,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: 36.h),
-                  // 개별 항목 목록
-                  Column(
-                    children: List.generate(_items.length, (index) {
-                      final item = _items[index];
-                      return Padding(
-                        padding: EdgeInsets.only(
-                          bottom: index < _items.length - 1 ? 16.h : 0,
-                        ),
-                        child: Row(
-                          children: [
-                            // 체크 아이콘 (체크 토글)
-                            GestureDetector(
-                              onTap: () => _toggleItem(index),
-                              child: SvgPicture.asset(
-                                item.checked
-                                    ? 'assets/icons/common/conditions/check_checked.svg'
-                                    : 'assets/icons/common/conditions/check_unchecked.svg',
-                                width: 16.r,
-                                height: 16.r,
-                              ),
-                            ),
-                            SizedBox(width: 12.w),
-                            // 텍스트 (체크 토글)
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () => _toggleItem(index),
-                                behavior: HitTestBehavior.opaque,
-                                child: Row(
-                                  children: [
-                                    Text(
-                                      item.title,
-                                      style: VybeTypography.body2.copyWith(
-                                        color: const Color(0xFFE4E4E5),
-                                      ),
-                                    ),
-                                    SizedBox(width: 8.w),
-                                    Text(
-                                      item.required ? '(필수)' : '(선택)',
-                                      style: VybeTypography.body3.copyWith(
-                                        color: VybeColors.gray500,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            // 꺽쇄 아이콘 (약관 상세 보기)
-                            GestureDetector(
-                              onTap: () => _openDetail(item.title),
-                              child: SvgPicture.asset(
-                                'assets/icons/common/conditions/show_more_conditions.svg',
-                                width: 24.r,
-                                height: 24.r,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }),
                   ),
                 ],
               ),
-              SizedBox(height: 24.h),
-              // 확인 버튼
-              VybeButton(
-                label: '확인',
-                onTap: _allRequiredChecked
-                    ? () {
-                        Navigator.pop(context);
-                        widget.onConfirmed?.call();
-                      }
-                    : null,
-              ),
-
-            ],
+            ),
           ),
+
+          // ── 개별 항목 ──
+          Padding(
+            padding: EdgeInsets.only(top: 10.h),
+            child: Column(
+              children: List.generate(_items.length, (index) {
+                final item = _items[index];
+                return Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 12.w,
+                    vertical: 11.h,
+                  ),
+                  child: Row(
+                    children: [
+                      // 체크 + 텍스트 (같이 토글)
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => _toggleItem(index),
+                          behavior: HitTestBehavior.opaque,
+                          child: Row(
+                            children: [
+                              SvgPicture.asset(
+                                item.checked
+                                    ? 'assets/icons/common/conditions/box_checked.svg'
+                                    : 'assets/icons/common/conditions/box_unchecked.svg',
+                                width: 16.r,
+                                height: 16.r,
+                              ),
+                              SizedBox(width: 12.w),
+                              Expanded(
+                                child: Text.rich(
+                                  TextSpan(
+                                    style: TextStyle(
+                                      fontFamily: 'Pretendard',
+                                      fontSize: 14.sp,
+                                      letterSpacing: 14 * -0.025,
+                                      color: item.checked
+                                          ? RenewGlass.t1
+                                          : RenewGlass.t3,
+                                    ),
+                                    children: [
+                                      TextSpan(
+                                        text: item.required ? '[필수] ' : '[선택] ',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                          color: item.required
+                                              ? lime
+                                              : VybeColors.gray600,
+                                        ),
+                                      ),
+                                      TextSpan(text: item.title),
+                                    ],
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      // 꺽쇠 — 약관 상세 보기
+                      GestureDetector(
+                        onTap: () => _openDetail(item.title),
+                        behavior: HitTestBehavior.opaque,
+                        child: Padding(
+                          padding: EdgeInsets.all(4.r),
+                          child: SvgPicture.asset(
+                            'assets/icons/common/conditions/show_more_conditions.svg',
+                            width: 16.r,
+                            height: 16.r,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ),
+          ),
+
+          SizedBox(height: 22.h),
+          VybeButton(
+            label: '확인',
+            glow: true,
+            onTap: _allRequiredChecked
+                ? () {
+                    Navigator.pop(context);
+                    widget.onConfirmed?.call();
+                  }
+                : null,
+          ),
+        ],
+      ),
     );
   }
 }
