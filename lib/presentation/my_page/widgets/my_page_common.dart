@@ -1,4 +1,3 @@
-import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -53,6 +52,9 @@ class MyPushHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return RenewBar(
+      // 구분선 없음 — 배경이 투명해진 뒤로는 hairline만 남아 화면을 가로지르는
+      // 줄로 보인다. 상단바와 본문은 여백으로 나눈다.
+      bottomBorder: false,
       padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top),
       child: SizedBox(
         height: 46.h,
@@ -304,10 +306,7 @@ class MyField extends StatelessWidget {
           padding: EdgeInsets.only(bottom: 8.h),
           child: Text(
             label,
-            style: RenewGlass.caption(
-              lineHeight: 14,
-              weight: FontWeight.w700,
-            ),
+            style: RenewGlass.caption(lineHeight: 14, weight: FontWeight.w700),
           ),
         ),
         Container(
@@ -481,27 +480,20 @@ class MyBottomBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final safe = MediaQuery.paddingOf(context).bottom;
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ui.ImageFilter.blur(
-          sigmaX: RenewGlass.barBlur,
-          sigmaY: RenewGlass.barBlur,
-        ),
-        child: Container(
-          padding: EdgeInsets.fromLTRB(
-            kMyPagePad.w,
-            12.h,
-            kMyPagePad.w,
-            // 홈 인디케이터가 있으면 그만큼, 없으면 디자인 값 30.
-            safe > 30.h ? safe : 30.h,
-          ),
-          decoration: const BoxDecoration(
-            color: RenewGlass.barFill,
-            border: Border(top: BorderSide(color: RenewGlass.hair)),
-          ),
-          child: child,
-        ),
+    // 배경 없음 — 스크롤 영역 '아래'에 붙는 고정 행이라 뒤로 지나가는 콘텐츠가
+    // 없다. 색을 칠하면 오로라 위에 저 줄만 다른 띠로 보인다(구분은 hairline만).
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        kMyPagePad.w,
+        12.h,
+        kMyPagePad.w,
+        // 홈 인디케이터가 있으면 그만큼, 없으면 디자인 값 30.
+        safe > 30.h ? safe : 30.h,
       ),
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: RenewGlass.hair)),
+      ),
+      child: child,
     );
   }
 }

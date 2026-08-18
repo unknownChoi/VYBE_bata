@@ -92,6 +92,32 @@ class RenewIcons {
       '<path d="M1 21c0-4.4 3.6-8 8-8 1.6 0 3.1.5 4.4 1.3"/>'
       '<line x1="16" y1="17" x2="23" y2="17"/>';
 
+  /// 수정 — 연필.
+  static const String pencil =
+      '<path d="M17 3a2.83 2.83 0 0 1 4 4L7.5 20.5 2 22l1.5-5.5z"/>';
+
+  /// 삭제 — 휴지통.
+  static const String trash =
+      '<polyline points="3 6 5 6 21 6"/>'
+      '<path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>'
+      '<path d="M10 11v6M14 11v6"/>';
+
+  /// 테마 — 초승달.
+  static const String moon =
+      '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>';
+
+  /// 언어 — 지구본.
+  static const String globe =
+      '<circle cx="12" cy="12" r="9"/>'
+      '<path d="M3.6 9h16.8M3.6 15h16.8"/>'
+      '<path d="M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18z"/>';
+
+  /// 자동 로그인 유지 — 자물쇠. (디자인엔 없는 항목 — 기기에 저장되는 설정이라
+  /// '보안' 계열 아이콘을 붙였다)
+  static const String lock =
+      '<rect x="3" y="11" width="18" height="11" rx="2"/>'
+      '<path d="M7 11V7a5 5 0 0 1 10 0v4"/>';
+
   /// 사용자 — 로그인 안내·빈 상태.
   static const String user =
       '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/>';

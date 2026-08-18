@@ -116,10 +116,11 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
               ),
             ),
             // 찜이 없으면 정렬·뷰 전환이 무의미해 툴바를 숨긴다 (디자인과 다름).
+            // 툴바에 배경이 없어 pinned로 두면 카드가 글자 뒤로 비쳐 겹친다
+            // → 목록과 함께 스크롤되게 일반 sliver로 둔다.
             if (!isEmpty)
-              SliverPersistentHeader(
-                pinned: true,
-                delegate: SavedToolbarDelegate(
+              SliverToBoxAdapter(
+                child: SavedToolbar(
                   isGrid: _isGrid,
                   sort: _sort,
                   onView: (g) => setState(() => _isGrid = g),

@@ -711,34 +711,45 @@ class GlassBar extends StatelessWidget {
   /// 상단에도 hairline을 그린다 (찜 툴바처럼 위아래 선이 다 있는 바).
   final bool topBorder;
 
+  /// 바 배경. **기본값은 투명** — 이 바는 대부분 오로라 배경 위 고정 행
+  /// (상단바·탭바·칩 줄·하단 CTA)이라 색을 칠하는 순간 위아래와 다른 띠로 보인다.
+  /// 스크롤 콘텐츠가 **뒤로 지나가는** 바만 [ClubGlass.barFill]처럼 불투명한
+  /// 값을 넘긴다 (안 그러면 글자에 카드가 비친다).
+  final Color fill;
+
   const GlassBar({
     super.key,
     required this.child,
     required this.padding,
     this.border = true,
     this.topBorder = false,
+    this.fill = Colors.transparent,
   });
 
   @override
   Widget build(BuildContext context) {
+    final bar = Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        color: fill,
+        border: Border(
+          top: topBorder
+              ? const BorderSide(color: ClubGlass.hair)
+              : BorderSide.none,
+          bottom: border
+              ? const BorderSide(color: ClubGlass.hair)
+              : BorderSide.none,
+        ),
+      ),
+      child: child,
+    );
+    // 투명하면 블러도 걸지 않는다 — 뒤 배경을 매 프레임 다시 뜨는 비용만 들고,
+    // 오로라는 그라데이션이라 블러해도 눈에 보이는 차이가 없다.
+    if (fill.a == 0) return bar;
     return ClipRect(
       child: BackdropFilter(
         filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          padding: padding,
-          decoration: BoxDecoration(
-            color: ClubGlass.barFill,
-            border: Border(
-              top: topBorder
-                  ? const BorderSide(color: ClubGlass.hair)
-                  : BorderSide.none,
-              bottom: border
-                  ? const BorderSide(color: ClubGlass.hair)
-                  : BorderSide.none,
-            ),
-          ),
-          child: child,
-        ),
+        child: bar,
       ),
     );
   }

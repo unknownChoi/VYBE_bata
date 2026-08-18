@@ -60,7 +60,7 @@ final class NetworkStatusProvider
   NetworkStatus create() => NetworkStatus();
 }
 
-String _$networkStatusHash() => r'b5705665eb08fd2e95c8a1444de850c79242a9ae';
+String _$networkStatusHash() => r'432f201e28976c8d26761943e0d4e8bd55a097ac';
 
 /// 기기 네트워크 연결 상태. `true` = 연결됨.
 ///

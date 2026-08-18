@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -501,69 +500,60 @@ class ReviewSubmitBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 20.h),
-          decoration: const BoxDecoration(
-            color: kReviewBarFill,
-            border: Border(top: BorderSide(color: Color(0x14FFFFFF))),
-          ),
-          child: GestureDetector(
-            onTap: onTap,
-            behavior: HitTestBehavior.opaque,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 220),
-              width: double.infinity,
-              padding: EdgeInsets.symmetric(vertical: 17.h),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                gradient: enabled
-                    ? const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          VybeColors.mainLime500,
-                          VybeColors.mainLime700,
-                        ],
-                      )
-                    : null,
-                color: enabled ? null : const Color(0x12FFFFFF),
-                borderRadius: BorderRadius.circular(16.r),
-                border: enabled
-                    ? null
-                    : Border.all(color: const Color(0x1AFFFFFF)),
-                boxShadow: enabled
-                    ? [
-                        BoxShadow(
-                          color: VybeColors.mainLime500.withValues(alpha: 0.22),
-                          blurRadius: 30.r,
-                          offset: Offset(0, 10.h),
-                        ),
-                      ]
-                    : null,
-              ),
-              child: submitting
-                  ? SizedBox(
-                      width: 18.r,
-                      height: 18.r,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.r,
-                        color: kReviewInk,
-                      ),
-                    )
-                  : Text(
-                      enabled ? label : '별점과 후기를 입력해주세요',
-                      style: TextStyle(
-                        fontFamily: 'Pretendard',
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w700,
-                        color: enabled ? kReviewInk : const Color(0x4DFFFFFF),
-                      ),
+    // 배경 없음 — 화면 맨 아래 고정 행이라 뒤로 지나가는 콘텐츠가 없다.
+    // 칠하면 오로라 위에 이 줄만 어두운 띠로 뜬다(구분은 상단 hairline만).
+    return Container(
+      padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 20.h),
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: Color(0x14FFFFFF))),
+      ),
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(vertical: 17.h),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            gradient: enabled
+                ? const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [VybeColors.mainLime500, VybeColors.mainLime700],
+                  )
+                : null,
+            color: enabled ? null : const Color(0x12FFFFFF),
+            borderRadius: BorderRadius.circular(16.r),
+            border: enabled ? null : Border.all(color: const Color(0x1AFFFFFF)),
+            boxShadow: enabled
+                ? [
+                    BoxShadow(
+                      color: VybeColors.mainLime500.withValues(alpha: 0.22),
+                      blurRadius: 30.r,
+                      offset: Offset(0, 10.h),
                     ),
-            ),
+                  ]
+                : null,
           ),
+          child: submitting
+              ? SizedBox(
+                  width: 18.r,
+                  height: 18.r,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.r,
+                    color: kReviewInk,
+                  ),
+                )
+              : Text(
+                  enabled ? label : '별점과 후기를 입력해주세요',
+                  style: TextStyle(
+                    fontFamily: 'Pretendard',
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w700,
+                    color: enabled ? kReviewInk : const Color(0x4DFFFFFF),
+                  ),
+                ),
         ),
       ),
     );

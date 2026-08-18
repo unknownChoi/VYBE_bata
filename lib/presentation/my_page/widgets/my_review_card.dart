@@ -1,17 +1,20 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/common/renew/renew_glass.dart';
+import 'package:vybe/presentation/common/renew/renew_icons.dart';
 import 'package:vybe/presentation/my_page/viewmodels/my_page_viewmodel.dart';
 import 'package:vybe/presentation/my_page/widgets/my_page_common.dart';
 
-/// '내 리뷰 관리' 목록의 리뷰 카드 1장 (디자인 MRReviewCard).
+/// '내 리뷰' 목록의 리뷰 카드 1장 (디자인 MRReviewCard).
 ///
-/// 유리 카드로 감싸지 않고 헤어라인으로만 나눈다 — 카드가 겹겹이 쌓이면
-/// 글래스 배경이 탁해져 본문이 읽히지 않는다.
+/// `[클럽명 / 별점 · 지역 · 작성일]  [수정][삭제]` → 본문(2줄 + 더보기)
+/// → 첨부 사진 → 하단 메타 줄.
 ///
-/// 클럽명·지역·별점·작성일 / 본문 / 첨부 사진 / [수정][삭제].
-/// 디자인의 '좋아요 수'는 reviews 스키마에 없어 제외.
+/// 디자인의 '좋아요 수'는 reviews 스키마에 없어 하단 줄을 태그 + 공개 표기로
+/// 대체했다. 태그 입력 UI가 아직 없어 대부분 비어 있고, 그때는 '공개'만 남는다.
 class MyReviewCard extends StatelessWidget {
   final MyReviewEntry entry;
   final VoidCallback onEdit;
@@ -28,139 +31,282 @@ class MyReviewCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final review = entry.review;
 
-    return Container(
-      padding: EdgeInsets.symmetric(vertical: 16.h),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: RenewGlass.hair)),
-      ),
+    return RenewGlassCard(
+      radius: 20,
+      padding: 18,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _header(),
-          SizedBox(height: 8.h),
-          Text(
-            review.content,
-            style: RenewGlass.body(color: RenewGlass.t2, lineHeight: 21),
-          ),
+          SizedBox(height: 12.h),
+          _ReviewText(text: review.content),
           if (review.imageUrls.isNotEmpty) ...[
             SizedBox(height: 12.h),
             _PhotoStrip(imageUrls: review.imageUrls),
           ],
-          SizedBox(height: 12.h),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              _ActionChip(label: '수정', onTap: onEdit),
-              SizedBox(width: 8.w),
-              _ActionChip(label: '삭제', danger: true, onTap: onDelete),
-            ],
-          ),
+          _footer(),
         ],
       ),
     );
   }
 
-  /// 클럽명 + 지역 + 별점 / 오른쪽 작성일.
+  /// 클럽명 + `별점 · 지역 · 작성일` / 오른쪽 수정·삭제 버튼.
   Widget _header() {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
-          child: Wrap(
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 8.w,
-            runSpacing: 4.h,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 entry.clubName,
-                style: VybeTypography.body3.copyWith(
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: VybeTypography.button1.copyWith(
                   fontWeight: FontWeight.w700,
                   color: RenewGlass.t1,
                 ),
               ),
-              if (entry.clubArea.isNotEmpty)
-                Text(entry.clubArea, style: RenewGlass.caption(lineHeight: 14)),
-              _RatingBadge(rating: entry.review.rating),
+              SizedBox(height: 6.h),
+              _metaRow(),
             ],
           ),
         ),
         SizedBox(width: 12.w),
-        Text(entry.dateLabel, style: RenewGlass.caption(lineHeight: 14)),
+        _RoundIconButton(icon: RenewIcons.pencil, onTap: onEdit),
+        SizedBox(width: 6.w),
+        _RoundIconButton(
+          icon: RenewIcons.trash,
+          onTap: onDelete,
+          danger: true,
+        ),
       ],
     );
   }
-}
 
-/// 별 하나 + 숫자 (디자인 MRStars) — 5개를 다 그리면 한 줄에 정보가 너무 많다.
-class _RatingBadge extends StatelessWidget {
-  final double rating;
-
-  const _RatingBadge({required this.rating});
-
-  @override
-  Widget build(BuildContext context) {
+  /// 별 5개 + 숫자 · 지역 · 작성일. 좁아지면 지역부터 줄인다
+  /// (작성일은 잘리면 뜻이 사라진다).
+  Widget _metaRow() {
     return Row(
-      mainAxisSize: MainAxisSize.min,
       children: [
-        const RenewStar(size: 13),
-        SizedBox(width: 5.w),
+        RenewStarRow(rating: entry.review.rating, size: 12),
+        SizedBox(width: 6.w),
         Text(
-          rating.toStringAsFixed(1),
+          entry.review.rating.toStringAsFixed(1),
           style: RenewGlass.caption(
             color: RenewGlass.t1,
             lineHeight: 13,
             weight: FontWeight.w700,
           ),
         ),
+        if (entry.clubArea.isNotEmpty) ...[
+          _dot(),
+          Flexible(
+            child: Text(
+              entry.clubArea,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: RenewGlass.caption(lineHeight: 14),
+            ),
+          ),
+        ],
+        _dot(),
+        Text(entry.dateLabel, style: RenewGlass.caption(lineHeight: 14)),
       ],
     );
   }
-}
 
-/// 첨부 사진 가로 목록.
-class _PhotoStrip extends StatelessWidget {
-  final List<String> imageUrls;
+  Widget _dot() => Padding(
+    padding: EdgeInsets.symmetric(horizontal: 6.w),
+    child: const RenewDot(),
+  );
 
-  const _PhotoStrip({required this.imageUrls});
+  /// 하단 메타 줄 — 태그(최대 3개) + 공개 여부.
+  Widget _footer() {
+    final tags = entry.review.tags.take(3).toList();
 
-  static const double _side = 76;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: _side.r,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: imageUrls.length,
-        separatorBuilder: (_, __) => SizedBox(width: 8.w),
-        itemBuilder: (_, i) => Container(
-          width: _side.r,
-          height: _side.r,
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10.r),
-            border: Border.all(color: RenewGlass.quietBorder),
+    return Container(
+      margin: EdgeInsets.only(top: 12.h),
+      padding: EdgeInsets.only(top: 12.h),
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: RenewGlass.hair)),
+      ),
+      child: Row(
+        children: [
+          for (final tag in tags) ...[
+            Flexible(
+              child: Text(
+                '#$tag',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: RenewGlass.caption(
+                  color: RenewGlass.t3,
+                  lineHeight: 14,
+                ),
+              ),
+            ),
+            _dot(),
+          ],
+          Text(
+            '공개',
+            style: RenewGlass.caption(
+              color: RenewGlass.lavender,
+              lineHeight: 14,
+            ),
           ),
-          child: Image.network(
-            imageUrls[i],
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) =>
-                const ColoredBox(color: RenewGlass.tileFill),
-          ),
-        ),
+        ],
       ),
     );
   }
 }
 
-/// 카드 하단 [수정]/[삭제] 작은 버튼 — 높이 30 · radius 8.
-class _ActionChip extends StatelessWidget {
-  final String label;
-  final bool danger;
-  final VoidCallback onTap;
+// ============================================================
+// 본문 (2줄 접기 + 더보기)
+// ============================================================
 
-  const _ActionChip({
-    required this.label,
+/// 기본 2줄로 접고, 실제로 넘칠 때만 더보기/접기를 보여준다.
+///
+/// 디자인은 글자 수(62자)로 판단하지만 그러면 한글·영문·기기 폭에 따라
+/// 안 넘치는데 버튼이 뜨거나 그 반대가 된다 — [TextPainter]로 직접 잰다.
+class _ReviewText extends StatefulWidget {
+  final String text;
+
+  const _ReviewText({required this.text});
+
+  @override
+  State<_ReviewText> createState() => _ReviewTextState();
+}
+
+class _ReviewTextState extends State<_ReviewText> {
+  static const int _collapsedLines = 2;
+
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = RenewGlass.body(color: RenewGlass.t2, lineHeight: 21);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final painter = TextPainter(
+          text: TextSpan(text: widget.text, style: style),
+          maxLines: _collapsedLines,
+          textDirection: TextDirection.ltr,
+          textScaler: MediaQuery.textScalerOf(context),
+        )..layout(maxWidth: constraints.maxWidth);
+        final overflows = painter.didExceedMaxLines;
+        painter.dispose();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.text,
+              maxLines: _expanded ? null : _collapsedLines,
+              overflow: _expanded
+                  ? TextOverflow.clip
+                  : TextOverflow.ellipsis,
+              style: style,
+            ),
+            if (overflows)
+              GestureDetector(
+                onTap: () => setState(() => _expanded = !_expanded),
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: EdgeInsets.only(top: 6.h),
+                  child: Text(
+                    _expanded ? '접기' : '더보기',
+                    style: RenewGlass.caption(
+                      color: RenewGlass.lavender,
+                      lineHeight: 14,
+                      weight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+// ============================================================
+// 첨부 사진
+// ============================================================
+
+/// 첨부 사진 한 줄 (최대 4장). 한 줄에 다 못 들어가면 정사각을 줄여 맞춘다 —
+/// 가로 스크롤을 두면 3px 넘칠 때마다 스크롤 바가 생겨 지저분하다.
+class _PhotoStrip extends StatelessWidget {
+  final List<String> imageUrls;
+
+  const _PhotoStrip({required this.imageUrls});
+
+  static const double _maxSide = 72;
+  static const double _gap = 8;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final gap = _gap.w;
+        final side = math.min(
+          _maxSide.r,
+          (constraints.maxWidth - gap * 3) / 4,
+        );
+
+        return Row(
+          children: [
+            for (var i = 0; i < imageUrls.length; i++) ...[
+              if (i > 0) SizedBox(width: gap),
+              _Photo(url: imageUrls[i], side: side),
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _Photo extends StatelessWidget {
+  final String url;
+  final double side;
+
+  const _Photo({required this.url, required this.side});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: side,
+      height: side,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: RenewGlass.tileFill,
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: RenewGlass.quietBorder),
+      ),
+      child: Image.network(
+        url,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+      ),
+    );
+  }
+}
+
+// ============================================================
+// 수정 · 삭제 버튼
+// ============================================================
+
+/// 32 원형 아이콘 버튼. [danger]는 붉은 톤(삭제).
+class _RoundIconButton extends StatelessWidget {
+  final String icon;
+  final VoidCallback onTap;
+  final bool danger;
+
+  const _RoundIconButton({
+    required this.icon,
     required this.onTap,
     this.danger = false,
   });
@@ -171,25 +317,25 @@ class _ActionChip extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        height: 30.h,
-        padding: EdgeInsets.symmetric(horizontal: 13.w),
+        width: 32.r,
+        height: 32.r,
         alignment: Alignment.center,
         decoration: BoxDecoration(
+          shape: BoxShape.circle,
           color: danger
               ? kMyDanger.withValues(alpha: 0.10)
               : RenewGlass.tileFill,
-          borderRadius: BorderRadius.circular(8.r),
           border: Border.all(
             color: danger
-                ? kMyDanger.withValues(alpha: 0.30)
+                ? kMyDanger.withValues(alpha: 0.26)
                 : RenewGlass.tileBorder,
           ),
         ),
-        child: Text(
-          label,
-          style: VybeTypography.button2.copyWith(
-            color: danger ? kMyDanger : RenewGlass.t1,
-          ),
+        child: RenewIcon(
+          path: icon,
+          size: 14,
+          color: danger ? kMyDanger : RenewGlass.t2,
+          strokeWidth: 1.9,
         ),
       ),
     );

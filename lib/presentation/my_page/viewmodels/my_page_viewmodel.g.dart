@@ -111,3 +111,122 @@ abstract class _$MyPageActions extends $Notifier<void> {
     element.handleCreate(ref, build);
   }
 }
+
+/// 정렬·필터 선택 상태 (화면 표시 전용 — 저장하지 않는다).
+
+@ProviderFor(MyReviewFilterController)
+final myReviewFilterControllerProvider = MyReviewFilterControllerProvider._();
+
+/// 정렬·필터 선택 상태 (화면 표시 전용 — 저장하지 않는다).
+final class MyReviewFilterControllerProvider
+    extends $NotifierProvider<MyReviewFilterController, MyReviewFilter> {
+  /// 정렬·필터 선택 상태 (화면 표시 전용 — 저장하지 않는다).
+  MyReviewFilterControllerProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'myReviewFilterControllerProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$myReviewFilterControllerHash();
+
+  @$internal
+  @override
+  MyReviewFilterController create() => MyReviewFilterController();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(MyReviewFilter value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<MyReviewFilter>(value),
+    );
+  }
+}
+
+String _$myReviewFilterControllerHash() =>
+    r'df9d6dd151dea420e83dda8873830b47b60448a9';
+
+/// 정렬·필터 선택 상태 (화면 표시 전용 — 저장하지 않는다).
+
+abstract class _$MyReviewFilterController extends $Notifier<MyReviewFilter> {
+  MyReviewFilter build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<MyReviewFilter, MyReviewFilter>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<MyReviewFilter, MyReviewFilter>,
+              MyReviewFilter,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}
+
+/// 화면에 실제로 그릴 목록 — 원본 스트림에 정렬·필터를 얹은 것.
+///
+/// 원본([myReviews])은 그대로 남겨 둔다 — 헤더의 전체 개수는 필터와 무관하다.
+
+@ProviderFor(visibleMyReviews)
+final visibleMyReviewsProvider = VisibleMyReviewsProvider._();
+
+/// 화면에 실제로 그릴 목록 — 원본 스트림에 정렬·필터를 얹은 것.
+///
+/// 원본([myReviews])은 그대로 남겨 둔다 — 헤더의 전체 개수는 필터와 무관하다.
+
+final class VisibleMyReviewsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<MyReviewEntry>>,
+          AsyncValue<List<MyReviewEntry>>,
+          AsyncValue<List<MyReviewEntry>>
+        >
+    with $Provider<AsyncValue<List<MyReviewEntry>>> {
+  /// 화면에 실제로 그릴 목록 — 원본 스트림에 정렬·필터를 얹은 것.
+  ///
+  /// 원본([myReviews])은 그대로 남겨 둔다 — 헤더의 전체 개수는 필터와 무관하다.
+  VisibleMyReviewsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'visibleMyReviewsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$visibleMyReviewsHash();
+
+  @$internal
+  @override
+  $ProviderElement<AsyncValue<List<MyReviewEntry>>> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  AsyncValue<List<MyReviewEntry>> create(Ref ref) {
+    return visibleMyReviews(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(AsyncValue<List<MyReviewEntry>> value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<AsyncValue<List<MyReviewEntry>>>(
+        value,
+      ),
+    );
+  }
+}
+
+String _$visibleMyReviewsHash() => r'279c74846753a5a1079f8e5e6988e603f9102d96';

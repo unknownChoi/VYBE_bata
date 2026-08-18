@@ -98,7 +98,8 @@ class _RenewPhotoTabState extends ConsumerState<RenewPhotoTab> {
     final more = filtered.length - visible.length;
 
     return RenewStickyBarHost(
-      bar: _filterBar(photos),
+      // 고정될 때만 불투명 — 스크롤 안의 원본은 배경 없이 오로라를 통과시킨다.
+      bar: _filterBar(photos, floating: true),
       scrollBuilder: (barKey) => CustomScrollView(
         physics: const ClampingScrollPhysics(),
         slivers: [
@@ -142,7 +143,7 @@ class _RenewPhotoTabState extends ConsumerState<RenewPhotoTab> {
     );
   }
 
-  Widget _filterBar(List<PhotoModel> photos) {
+  Widget _filterBar(List<PhotoModel> photos, {bool floating = false}) {
     // 전체 + 카테고리별. 0장인 카테고리는 칩 자체를 숨긴다.
     final entries = <(PhotoCategory?, String, int)>[
       (null, '전체', photos.length),
@@ -151,6 +152,7 @@ class _RenewPhotoTabState extends ConsumerState<RenewPhotoTab> {
     ].where((e) => e.$1 == null || e.$3 > 0).toList();
 
     return RenewBar(
+      fill: floating ? RenewGlass.barFill : Colors.transparent,
       padding: EdgeInsets.symmetric(vertical: 10.h),
       child: SizedBox(
         height: 34.h,

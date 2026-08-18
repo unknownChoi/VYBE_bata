@@ -9,6 +9,7 @@ import 'package:flutter_naver_map/flutter_naver_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
+import 'package:vybe/core/providers/network_failure_observer.dart';
 import 'package:vybe/presentation/auth/auth_gate.dart';
 import 'package:vybe/presentation/common/network_gate/network_gate.dart';
 import 'package:vybe/presentation/common/splash_gate.dart';
@@ -50,7 +51,14 @@ Future<void> main() async {
     onAuthFailed: (ex) => debugPrint('[NaverMap] 인증 실패: $ex'),
   );
 
-  runApp(const ProviderScope(child: VybeApp()));
+  // 어떤 요청이든 실패하면 연결을 다시 확인한다 — 정말 끊겨 있으면
+  // NetworkGate가 곧바로 연결 안내 화면으로 넘긴다.
+  runApp(
+    const ProviderScope(
+      observers: [NetworkFailureObserver()],
+      child: VybeApp(),
+    ),
+  );
 }
 
 class VybeApp extends StatelessWidget {

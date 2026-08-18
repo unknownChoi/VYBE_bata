@@ -66,7 +66,7 @@ final class UserLocationNotifierProvider
 }
 
 String _$userLocationNotifierHash() =>
-    r'2b95c0799836d3b156c07e4e273891ebb0339143';
+    r'241e79e3dd1f1492b08215fefaea7081641eaea7';
 
 /// 전역 내 위치 상태.
 ///

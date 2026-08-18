@@ -195,7 +195,7 @@ final class FavoriteViewModelProvider
   }
 }
 
-String _$favoriteViewModelHash() => r'efa7167d7530ee0e4f0cafe31d481513bc6bcda9';
+String _$favoriteViewModelHash() => r'187834612d7ea44b7a7d7d6076dbaafe0fb10b5c';
 
 /// 낙관적 오버라이드: clubId → true(찜) / false(찜취소)
 /// 스트림 업데이트 전까지 UI에 즉시 반영하기 위해 사용

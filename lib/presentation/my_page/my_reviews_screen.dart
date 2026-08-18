@@ -1,99 +1,110 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/clubs/review_write_screen.dart';
+import 'package:vybe/presentation/common/renew/renew_button.dart';
 import 'package:vybe/presentation/common/renew/renew_glass.dart';
 import 'package:vybe/presentation/common/renew/renew_icons.dart';
+import 'package:vybe/presentation/common/widgets/vybe_aurora.dart';
 import 'package:vybe/presentation/common/widgets/vybe_confirm_dialog.dart';
 import 'package:vybe/presentation/common/widgets/vybe_spinner.dart';
 import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
+import 'package:vybe/presentation/main_scaffold/nav_bar_visibility_provider.dart';
 import 'package:vybe/presentation/my_page/viewmodels/my_page_viewmodel.dart';
 import 'package:vybe/presentation/my_page/widgets/my_page_common.dart';
 import 'package:vybe/presentation/my_page/widgets/my_review_card.dart';
+import 'package:vybe/presentation/my_page/widgets/my_review_toolbar.dart';
 
 // ============================================================
-// 내 리뷰 관리 — 리뉴얼 (my_renew.html · MRReviewsScreen)
+// 내 리뷰 — 리뉴얼 (my_renew_screens.jsx · MRReviewsScreen)
 //
 // collectionGroup 쿼리로 전 클럽에서 내 리뷰를 모아 보여주고
-// 수정(리뷰 작성 화면 재사용)과 삭제(확인 다이얼로그)를 지원한다.
-// 카드는 widgets/my_review_card.dart.
+// 정렬·사진 필터 + 수정(리뷰 작성 화면 재사용) + 삭제를 지원한다.
+// 카드는 widgets/my_review_card.dart, 칩 줄은 widgets/my_review_toolbar.dart.
 //
-// 배경은 오로라 없이 잉크 단색 — 디자인의 푸시 화면(MRScreen)이
-// 배경을 깔아 뒤 화면과 겹쳐 보이지 않게 하는 것과 같은 의도.
+// 디자인의 '좋아요순' 정렬과 카드 하단 좋아요 수는 reviews 스키마에
+// 좋아요 필드가 없어 제외했다.
 // ============================================================
+
+/// 검색 탭 인덱스 (MainScaffold PageView 기준).
+const int _kSearchTabIndex = 3;
 
 class MyReviewsScreen extends ConsumerWidget {
   const MyReviewsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final reviewsAsync = ref.watch(myReviewsProvider);
+    // 헤더 개수는 **필터와 무관한 전체 개수** — 사진 필터를 켰다고 '3개'가
+    // 되면 리뷰가 사라진 것처럼 읽힌다.
+    final total = ref.watch(myReviewsProvider.select((s) => s.value?.length));
+    final visible = ref.watch(visibleMyReviewsProvider);
 
     return Scaffold(
       backgroundColor: RenewGlass.ink,
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      body: Stack(
         children: [
-          const MyPushHeader(title: '내 리뷰 관리'),
-          Expanded(
-            child: reviewsAsync.when(
-              loading: () => const Center(child: VybeSpinner()),
-              error: (_, __) => _message('리뷰를 불러오지 못했어요'),
-              data: (entries) => entries.isEmpty
-                  ? _empty()
-                  : ListView.builder(
-                      padding: EdgeInsets.fromLTRB(
-                        kMyPagePad.w,
-                        0,
-                        kMyPagePad.w,
-                        40.h,
+          const Positioned.fill(child: IgnorePointer(child: VybeAurora())),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              MyPushHeader(
+                title: '내 리뷰',
+                trailing: total == null
+                    ? null
+                    : Text(
+                        '$total개',
+                        style: RenewGlass.caption(lineHeight: 14),
                       ),
-                      itemCount: entries.length + 1,
-                      itemBuilder: (context, i) {
-                        if (i == 0) return _countHeader(entries.length);
-                        final entry = entries[i - 1];
-                        return MyReviewCard(
-                          entry: entry,
-                          onEdit: () => _openEdit(context, entry),
-                          onDelete: () => _confirmDelete(context, ref, entry),
-                        );
-                      },
-                    ),
-            ),
+              ),
+              if (total != null && total > 0) const MyReviewToolbar(),
+              Expanded(
+                child: visible.when(
+                  loading: () => const Center(child: VybeSpinner()),
+                  error: (_, __) => _message('리뷰를 불러오지 못했어요'),
+                  data: (entries) {
+                    if (total == 0) return _empty(context, ref);
+                    // 전체엔 있는데 목록이 비었다 = 사진 필터가 다 걸러낸 것.
+                    if (entries.isEmpty) return _message('사진이 있는 리뷰가 없어요');
+                    return _list(context, ref, entries);
+                  },
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _countHeader(int count) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(0, 16.h, 0, 4.h),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.baseline,
-        textBaseline: TextBaseline.alphabetic,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text.rich(
-            TextSpan(
-              text: '작성한 리뷰 ',
-              style: VybeTypography.body3.copyWith(
-                fontWeight: FontWeight.w700,
-                color: RenewGlass.t1,
-              ),
-              children: [
-                TextSpan(
-                  text: '$count',
-                  style: const TextStyle(color: VybeColors.mainLime500),
-                ),
-              ],
-            ),
-          ),
-          Text('최신순', style: RenewGlass.caption(lineHeight: 14)),
-        ],
+  Widget _list(
+    BuildContext context,
+    WidgetRef ref,
+    List<MyReviewEntry> entries,
+  ) {
+    return ListView.separated(
+      padding: EdgeInsets.fromLTRB(
+        kMyPagePad.w,
+        14.h,
+        kMyPagePad.w,
+        24.h + MediaQuery.paddingOf(context).bottom,
       ),
+      // 마지막 한 칸은 안내 문구.
+      itemCount: entries.length + 1,
+      separatorBuilder: (_, __) => SizedBox(height: 14.h),
+      itemBuilder: (context, i) {
+        if (i == entries.length) {
+          return const RenewFooterNote(
+            text: '리뷰는 클럽 상세 페이지에 공개되며, 운영 정책에 어긋나면 안내 후 삭제될 수 있어요.',
+          );
+        }
+        final entry = entries[i];
+        return MyReviewCard(
+          entry: entry,
+          onEdit: () => _openEdit(context, entry),
+          onDelete: () => _confirmDelete(context, ref, entry),
+        );
+      },
     );
   }
 
@@ -103,7 +114,9 @@ class MyReviewsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _empty() {
+  /// 리뷰가 한 건도 없을 때. 디자인의 '리뷰 쓰기' 버튼은 클럽을 골라야
+  /// 열 수 있으므로 클럽을 찾는 화면(검색 탭)으로 보낸다.
+  Widget _empty(BuildContext context, WidgetRef ref) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -122,9 +135,24 @@ class MyReviewsScreen extends ConsumerWidget {
             '다녀온 클럽의 후기를 남겨보세요',
             style: RenewGlass.body(color: RenewGlass.t4, lineHeight: 20),
           ),
+          SizedBox(height: 20.h),
+          SizedBox(
+            width: 190.w,
+            child: RenewButton(
+              label: '클럽 둘러보기',
+              onTap: () => _openSearch(context, ref),
+            ),
+          ),
         ],
       ),
     );
+  }
+
+  /// 탭 전환 요청은 MainScaffold가 받는다 — 이 화면이 위에 남아 있으면
+  /// 바뀐 탭이 가려지므로 먼저 닫는다.
+  void _openSearch(BuildContext context, WidgetRef ref) {
+    Navigator.of(context).maybePop();
+    ref.read(tabSwitchRequestProvider.notifier).request(_kSearchTabIndex);
   }
 
   /// 리뷰 수정 — 작성 화면을 수정 모드로 연다.

@@ -104,44 +104,7 @@ class SavedHeader extends StatelessWidget {
   }
 }
 
-// ============ 정렬 + 뷰 전환 툴바 (sticky) ============
-
-class SavedToolbarDelegate extends SliverPersistentHeaderDelegate {
-  final bool isGrid;
-  final SavedSortOption sort;
-  final ValueChanged<bool> onView;
-  final ValueChanged<SavedSortOption> onSort;
-
-  SavedToolbarDelegate({
-    required this.isGrid,
-    required this.sort,
-    required this.onView,
-    required this.onSort,
-  });
-
-  // 11(pad) + 34(컨트롤) + 11(pad) + 상하 hairline.
-  double get _extent => 58.h;
-
-  @override
-  double get maxExtent => _extent;
-
-  @override
-  double get minExtent => _extent;
-
-  @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlaps) {
-    return SavedToolbar(
-      isGrid: isGrid,
-      sort: sort,
-      onView: onView,
-      onSort: onSort,
-    );
-  }
-
-  @override
-  bool shouldRebuild(covariant SavedToolbarDelegate old) =>
-      old.isGrid != isGrid || old.sort != sort;
-}
+// ============ 정렬 + 뷰 전환 툴바 ============
 
 class SavedToolbar extends StatefulWidget {
   final bool isGrid;
@@ -219,9 +182,11 @@ class _SavedToolbarState extends State<SavedToolbar> {
 
   @override
   Widget build(BuildContext context) {
-    return GlassBar(
+    // 배경 없음 — GlassBar(블러 + fill + hairline)를 쓰면 이 줄만 오로라 위에
+    // 밝은 띠로 떠서 위(헤더)·아래(목록)와 색이 어긋난다. 화면 배경을 그대로
+    // 통과시키려면 칠하지도, 블러하지도 않아야 한다.
+    return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 11.h),
-      topBorder: true,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [

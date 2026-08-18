@@ -63,16 +63,9 @@ class SavedSkeleton extends StatelessWidget {
             ],
           ),
         ),
-        // 툴바 (정렬 + 뷰 전환)
-        Container(
+        // 툴바 (정렬 + 뷰 전환) — 실제 툴바와 같이 배경 없음(오로라 그대로).
+        Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 11.h),
-          decoration: const BoxDecoration(
-            color: Color(0x8C0E0D12),
-            border: Border(
-              top: BorderSide(color: Color(0x17FFFFFF)),
-              bottom: BorderSide(color: Color(0x17FFFFFF)),
-            ),
-          ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [

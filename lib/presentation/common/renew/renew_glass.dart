@@ -207,12 +207,17 @@ class RenewGlassCard extends StatelessWidget {
 // 바 (탭바 · 칩 줄 · 하단 액션바 공통 배경)
 // ============================================================================
 
-/// barFill + blur + 위/아래 hairline 을 가진 가로 바.
+/// 위/아래 hairline 을 가진 가로 바.
+///
+/// [fill]이 투명(기본)이면 배경도 블러도 없이 뒤 배경(오로라)을 그대로 통과시킨다.
+/// 스크롤 콘텐츠가 **뒤로 지나가는** 바(sticky 복제본 등)만 [RenewGlass.barFill]을
+/// 넘겨 불투명하게 만든다 — 고정 행에 색을 칠하면 위아래와 다른 띠로 보인다.
 class RenewBar extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
   final bool topBorder;
   final bool bottomBorder;
+  final Color fill;
 
   const RenewBar({
     super.key,
@@ -220,31 +225,34 @@ class RenewBar extends StatelessWidget {
     required this.padding,
     this.topBorder = false,
     this.bottomBorder = true,
+    this.fill = Colors.transparent,
   });
 
   @override
   Widget build(BuildContext context) {
+    final bar = Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        color: fill,
+        border: Border(
+          top: topBorder
+              ? const BorderSide(color: RenewGlass.hair)
+              : BorderSide.none,
+          bottom: bottomBorder
+              ? const BorderSide(color: RenewGlass.hair)
+              : BorderSide.none,
+        ),
+      ),
+      child: child,
+    );
+    if (fill.a == 0) return bar;
     return ClipRect(
       child: BackdropFilter(
         filter: ui.ImageFilter.blur(
           sigmaX: RenewGlass.barBlur,
           sigmaY: RenewGlass.barBlur,
         ),
-        child: Container(
-          padding: padding,
-          decoration: BoxDecoration(
-            color: RenewGlass.barFill,
-            border: Border(
-              top: topBorder
-                  ? const BorderSide(color: RenewGlass.hair)
-                  : BorderSide.none,
-              bottom: bottomBorder
-                  ? const BorderSide(color: RenewGlass.hair)
-                  : BorderSide.none,
-            ),
-          ),
-          child: child,
-        ),
+        child: bar,
       ),
     );
   }
@@ -463,11 +471,15 @@ class RenewChip extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
+  /// 라벨 앞 스트로크 아이콘 ([RenewIcons] 패스). null이면 라벨만.
+  final String? iconPath;
+
   const RenewChip({
     super.key,
     required this.label,
     required this.selected,
     required this.onTap,
+    this.iconPath,
   });
 
   @override
@@ -485,12 +497,26 @@ class RenewChip extends StatelessWidget {
             color: selected ? VybeColors.mainLime500 : RenewGlass.tileBorder,
           ),
         ),
-        child: Text(
-          label,
-          style: VybeTypography.button2.copyWith(
-            fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-            color: selected ? RenewGlass.ink : RenewGlass.t2,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (iconPath != null) ...[
+              RenewIcon(
+                path: iconPath!,
+                size: 13,
+                color: selected ? RenewGlass.ink : RenewGlass.t2,
+                strokeWidth: 1.9,
+              ),
+              SizedBox(width: 5.w),
+            ],
+            Text(
+              label,
+              style: VybeTypography.button2.copyWith(
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                color: selected ? RenewGlass.ink : RenewGlass.t2,
+              ),
+            ),
+          ],
         ),
       ),
     );

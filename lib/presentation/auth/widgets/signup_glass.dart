@@ -46,96 +46,91 @@ class SignupHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ui.ImageFilter.blur(
-          sigmaX: RenewGlass.barBlur,
-          sigmaY: RenewGlass.barBlur,
-        ),
-        child: Container(
-          color: RenewGlass.barFill,
-          padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                height: 44.h,
-                child: Stack(
-                  children: [
-                    // 제목은 좌우 버튼과 무관하게 화면 정중앙 (디자인 marginLeft -34)
-                    Center(
-                      child: Text(
-                        title,
-                        // 17sp Medium — iOS 표준 네비게이션 바 크기, VybeTypography 미정의
-                        style: TextStyle(
-                          fontFamily: 'Pretendard',
-                          color: const Color(0xFFEBEDF0),
-                          fontSize: 17.sp,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 17 * -0.025,
-                        ),
-                      ),
+    // 배경 없음 — 스크롤 영역 '위'에 붙는 고정 행이라 뒤로 지나가는 콘텐츠가 없다.
+    // 칠하면 오로라 위에 이 줄만 어두운 띠로 뜬다.
+    return Container(
+      padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            height: 44.h,
+            child: Stack(
+              children: [
+                // 제목은 좌우 버튼과 무관하게 화면 정중앙 (디자인 marginLeft -34)
+                Center(
+                  child: Text(
+                    title,
+                    // 17sp Medium — iOS 표준 네비게이션 바 크기, VybeTypography 미정의
+                    style: TextStyle(
+                      fontFamily: 'Pretendard',
+                      color: const Color(0xFFEBEDF0),
+                      fontSize: 17.sp,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 17 * -0.025,
                     ),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Padding(
-                        padding: EdgeInsets.only(left: 17.w),
-                        child: VybeGlassButton(
-                          onTap: onBack,
-                          size: 34,
-                          iconSize: 18,
-                          hitSize: 40,
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-              Padding(
-                padding: EdgeInsets.fromLTRB(24.w, 6.h, 24.w, 14.h),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Row(
-                        children: List.generate(total, (i) {
-                          return Expanded(
-                            child: Padding(
-                              padding: EdgeInsets.only(right: i == total - 1 ? 0 : 5.w),
-                              child: _RailSegment(
-                                filled: i <= step,
-                                current: i == step,
-                              ),
-                            ),
-                          );
-                        }),
-                      ),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Padding(
+                    padding: EdgeInsets.only(left: 17.w),
+                    child: VybeGlassButton(
+                      onTap: onBack,
+                      size: 34,
+                      iconSize: 18,
+                      hitSize: 40,
                     ),
-                    SizedBox(width: 8.w),
-                    Text.rich(
-                      TextSpan(
-                        style: VybeTypography.caption.copyWith(
-                          height: 1,
-                          color: RenewGlass.t4,
-                          fontFeatures: const [ui.FontFeature.tabularFigures()],
-                        ),
-                        children: [
-                          TextSpan(
-                            text: '${step + 1}',
-                            style: const TextStyle(
-                              color: VybeColors.mainLime500,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          TextSpan(text: ' / $total'),
-                        ],
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(24.w, 6.h, 24.w, 14.h),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Row(
+                    children: List.generate(total, (i) {
+                      return Expanded(
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                            right: i == total - 1 ? 0 : 5.w,
+                          ),
+                          child: _RailSegment(
+                            filled: i <= step,
+                            current: i == step,
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+                SizedBox(width: 8.w),
+                Text.rich(
+                  TextSpan(
+                    style: VybeTypography.caption.copyWith(
+                      height: 1,
+                      color: RenewGlass.t4,
+                      fontFeatures: const [ui.FontFeature.tabularFigures()],
+                    ),
+                    children: [
+                      TextSpan(
+                        text: '${step + 1}',
+                        style: const TextStyle(
+                          color: VybeColors.mainLime500,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      TextSpan(text: ' / $total'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
