@@ -12,9 +12,6 @@ import 'package:vybe/presentation/common/widgets/vybe_liquid_press.dart';
 /// 상단바 안쪽 행 높이 (디자인 VR_CHROME_H = 상태바 54 + 행 46).
 const double kRenewChromeRow = 46;
 
-/// 상단바가 불투명해지는 스크롤 지점.
-const double _solidAt = 210;
-
 /// 상단바에 클럽 이름이 나타나는 스크롤 지점.
 const double _titleAt = 250;
 
@@ -22,7 +19,8 @@ const double _titleAt = 250;
 // 상단바 (VRChrome)
 // ============================================================================
 
-/// 스크롤 위에 떠 있는 상단바. 처음엔 투명하고 히어로를 지나면 유리로 바뀐다.
+/// 스크롤 위에 떠 있는 상단바. **배경을 칠하지 않아** 히어로와 본문이 그대로
+/// 비치고, 스크롤해도 유리 띠로 바뀌지 않는다.
 ///
 /// 뒤로가기 · 공유는 앱 공통 리퀴드 글래스 버튼([VybeGlassButton])을 쓴다.
 ///
@@ -48,41 +46,13 @@ class RenewChrome extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final solid = scrollY > _solidAt.h;
     final topInset = MediaQuery.paddingOf(context).top;
 
-    // 색·블러를 한 진행값(t)으로 같이 굴린다 — 조건부로 BackdropFilter를
-    // 끼웠다 뺐다 하면 위젯 트리가 바뀌어 색 전환이 뚝 끊긴다.
-    return TweenAnimationBuilder<double>(
-      tween: Tween<double>(begin: 0, end: solid ? 1 : 0),
-      duration: const Duration(milliseconds: 240),
-      curve: Curves.easeOut,
-      builder: (context, t, child) {
-        final bar = Container(
-          padding: EdgeInsets.only(top: topInset),
-          decoration: BoxDecoration(
-            color: Color.lerp(Colors.transparent, RenewGlass.barFill, t),
-            border: Border(
-              bottom: BorderSide(
-                color: Color.lerp(Colors.transparent, RenewGlass.hair, t)!,
-              ),
-            ),
-          ),
-          child: child,
-        );
-        // 투명할 땐 블러도 걸지 않는다 — 히어로가 그대로 보여야 하고,
-        // 뒤 배경을 매 프레임 다시 뜨는 비용도 아낀다.
-        if (t < 0.02) return bar;
-        return ClipRect(
-          child: BackdropFilter(
-            filter: ui.ImageFilter.blur(
-              sigmaX: RenewGlass.barBlur * t,
-              sigmaY: RenewGlass.barBlur * t,
-            ),
-            child: bar,
-          ),
-        );
-      },
+    // 배경·블러·구분선 없음 — 뒤 콘텐츠가 그대로 지나간다.
+    // 뒤로가기·공유는 자체 글래스 원이라 어떤 배경 위에서도 읽히고,
+    // 클럽 이름만 히어로를 지나면(_titleAt) 페이드로 나타난다.
+    return Padding(
+      padding: EdgeInsets.only(top: topInset),
       child: SizedBox(
         height: kRenewChromeRow.h,
         child: Row(
@@ -148,7 +118,9 @@ class RenewTabBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return RenewBar(
-      topBorder: true,
+      // 구분선 없음 — 선택된 흰 pill과 여백만으로 위아래를 나눈다.
+      topBorder: false,
+      bottomBorder: false,
       padding: EdgeInsets.symmetric(
         horizontal: RenewGlass.pagePad.w,
         vertical: 9.h,

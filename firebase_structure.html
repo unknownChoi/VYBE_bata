@@ -295,6 +295,7 @@
   <a href="#features" class="sub">설계 원칙 요약</a>
   <a href="#gate-chain" class="sub">앱 시작 게이트 체인</a>
   <a href="#auto-login" class="sub">자동 로그인 / 세션 유지</a>
+  <a href="#feature-phone-account" class="sub">전화번호 주인 판정 · 재로그인</a>
   <a href="#account-deletion" class="sub">회원 탈퇴 · 30일 보관</a>
   <a href="#feature-version" class="sub">버전 게이트 · 강제 업데이트</a>
   <a href="#feature-network" class="sub">네트워크 연결 게이트</a>
@@ -457,7 +458,7 @@ logFirebaseAccess(
   <ul>
     <li>accessToken 은 매번 달라지나 네이버ID 불변 → 항상 같은 Firebase UID 생성</li>
     <li>본인인증은 로그인 방식이 아닌 <strong>신원 확인 수단</strong></li>
-    <li><code>phone</code> 필드로 중복 가입 방지 (같은 전화번호 재가입 불가)</li>
+    <li><code>phone</code> 필드로 <strong>다른 방식의</strong> 중복 가입 방지 — 같은 번호라도 <u>가입할 때와 같은 방식이면 로그인은 허용</u>한다. <a href="#feature-phone-account">전화번호 주인 판정</a></li>
     <li><code>isVerified: false</code> 로 초기 생성 → 본인인증 완료 시 <code>true</code> 로 업데이트</li>
   </ul>
 
@@ -644,6 +645,76 @@ logFirebaseAccess(
   <div class="note"><strong>플러그인 추가분</strong> — <code>shared_preferences</code> 가 새로 붙었으므로 iOS 는 <code>pod install</code>(첫 <code>flutter run</code> 시 자동), Android 는 gradle 재동기화가 한 번 필요하다.</div>
 </section>
 
+<!-- ========================= FEATURE: PHONE ACCOUNT ========================= -->
+<section id="feature-phone-account">
+  <h2>전화번호 주인 판정 · 재로그인 <span class="pill pk">구현 완료 · 2026.08.18</span></h2>
+
+  <div class="note danger"><strong>고쳐진 버그</strong> — 본인인증으로 가입한 계정(<code>phone:010-…</code>)이 로그아웃 후 <u>같은 방식으로 다시 로그인하면 <code>이미 존재하는 계정입니다.</code> 로 막혀 영영 못 들어왔다</u>. <code>checkPhoneDuplicate</code> 가 <code>bool</code> 하나만 돌려줘 "번호 있음 = 무조건 차단"이었기 때문. 이 방식에는 <strong>재로그인 경로 자체가 없었다.</strong></div>
+
+  <h3>차단 기준을 "번호 존재"가 아니라 "주인이 누구냐"로 바꿨다</h3>
+  <p>번호가 이미 쓰인다는 사실만으로는 막을지 통과시킬지 정할 수 없다. 같은 번호라도 <strong>가입할 때와 같은 방식으로 들어온 그 사람</strong>이면 그건 중복 가입이 아니라 <u>재로그인</u>이다.</p>
+
+  <table>
+    <tr><th>상황</th><th>결과</th><th>화면 흐름</th></tr>
+    <tr><td>처음 보는 번호</td><td class="yes">가입</td><td>약관 동의 → 문자 인증 → 가입 완료 화면</td></tr>
+    <tr><td>가입할 때와 <strong>같은 방식</strong>의 내 계정</td><td class="yes">로그인</td><td>약관 <u>생략</u> → <strong>문자 인증</strong> → 홈 직행. <u>Firestore 쓰기 0</u> (가입 완료 화면·프로필 저장 없음)</td></tr>
+    <tr><td><strong>다른 방식</strong>으로 가입된 번호</td><td class="no">차단</td><td><code>이미 존재하는 계정입니다.</code> + <strong>계정 생성 안 함</strong></td></tr>
+    <tr><td>탈퇴 대기(30일) 계정</td><td class="no">차단</td><td>본인이어도 파기 전까진 불가 — 재가입 가능일 안내</td></tr>
+  </table>
+  <div class="note"><strong>재로그인도 문자 인증은 그대로 거친다</strong> — 번호 소유 확인 없이 통과시키면 남의 번호를 적기만 해도 로그인이 된다. 가입과 로그인이 갈리는 건 <u>인증에 성공한 다음</u>뿐이다.</div>
+
+  <h3>시도 중인 uid 는 클라가 정하지 않는다</h3>
+  <p>판정은 <code>checkPhoneDuplicate</code>(Functions) <strong>한 곳</strong>. 앱은 <code>method</code>(= <code>users.provider</code> 와 같은 값)만 넘기고, 실제 비교 대상 uid 는 서버가 만든다.</p>
+  <table>
+    <tr><th>조건</th><th>시도 중인 uid</th><th>근거</th></tr>
+    <tr><td>이미 로그인된 세션이 있다</td><td><code>context.auth.uid</code></td><td>서버가 토큰으로 검증한 값 — 위조 불가. 소셜 로그인 후 프로필을 채우러 온 경우</td></tr>
+    <tr><td>세션 없음 + <code>method === 'identity'</code></td><td><code>phone:{phone}</code></td><td>본인인증 uid 는 번호 하나로 결정된다</td></tr>
+    <tr><td>세션 없음 + 소셜 신규</td><td class="no">없음</td><td>아직 로그인 전이라 <code>users</code> 문서가 존재할 수 없다 → 주인은 무조건 남의 계정</td></tr>
+  </table>
+  <p>주인 문서의 <code>doc.id</code> 와 위 uid 를 서버에서 비교해 <code>sameAccount</code> 불리언 하나만 돌려준다.</p>
+
+  <div class="note danger"><strong>주인의 <code>uid</code>·<code>provider</code> 는 응답에 싣지 않는다</strong> — 이 함수는 <u>비로그인 상태에서 호출된다</u>. uid 를 그대로 내려보내면 번호만 넣어 보고 남의 <code>kakao:{kakaoId}</code>·<code>naver:{naverId}</code> 를 캐낼 수 있다. 차단 문구에 "카카오로 가입된 계정입니다" 처럼 <strong>가입 방식을 적지 않는 것도 같은 이유</strong> — 계정 열거(enumeration)를 돕게 된다. 비교는 서버에서 끝낸다.</div>
+
+  <h3>앱 쪽 흐름</h3>
+  <div class="flow">
+    Welcome <span class="kw">→</span> <code>SignupMethod</code> 결정 (카카오·네이버 버튼 / '본인인증으로 시작하기')<br>
+    <span class="kw">→</span> <code>IdentityVerificationScreen(method:)</code> — 이름·생년월일·번호·통신사<br>
+    <span class="kw">→</span> 마지막 '확인' 에서 <strong>주인 판정 먼저</strong> (약관 시트보다 앞)<br>
+    &nbsp;&nbsp;&nbsp;• 차단 → 토스트 + <code>abortSignup()</code><br>
+    &nbsp;&nbsp;&nbsp;• 내 계정 → 약관 생략 <span class="kw">→</span> <code>CertificationNumberScreen(isLogin: true)</code><br>
+    &nbsp;&nbsp;&nbsp;• 신규 → 약관 시트 <span class="kw">→</span> <code>CertificationNumberScreen(isLogin: false)</code><br>
+    <span class="kw">→</span> 인증번호 화면에서 <strong>한 번 더 판정</strong> <span class="kw">→</span> <code>phoneLogin</code>/<code>finalizeLogin</code> <span class="kw">→</span> <code>saveUserProfile</code>
+  </div>
+
+  <table>
+    <tr><th>결정</th><th>이유</th></tr>
+    <tr><td><code>SignupMethod</code> 를 화면까지 <strong>들고 다닌다</strong></td><td>같은 <code>IdentityVerificationScreen</code> 에 소셜 경로와 본인인증 경로가 둘 다 들어온다. 세션·pending token 유무로 <u>추측</u>하면 '카카오 시도 후 되돌아와 본인인증' 같은 순서에서 틀린다 — 호출한 쪽이 명시한다</td></tr>
+    <tr><td>주인 판정을 <strong>약관 시트보다 앞</strong>으로</td><td>이미 동의한 사용자에게 약관을 다시 받지 않기 위해. 판정 전에는 가입인지 로그인인지 알 수 없다</td></tr>
+    <tr><td>인증번호 화면에서 <strong>재판정</strong></td><td>앞 화면 통과와 계정 생성 사이에 다른 기기에서 같은 번호가 가입될 수 있다. 실제로 계정이 생기는 건 이 시점이다</td></tr>
+    <tr><td>차단 시 <code>abortSignup()</code></td><td>소셜 로그인은 Auth 유저가 이미 있으면 <strong>본인인증 화면에 오기 전에 세션이 붙는다</strong>. 차단만 하고 두면 이름·전화번호가 빈 계정으로 앱에 들어가 "계정 생성도 하면 안 된다"가 깨진다 → pending token 폐기 + 로그아웃</td></tr>
+    <tr><td>재로그인이면 <code>saveUserProfile</code> 을 <strong>부르지 않는다</strong></td><td>로그인은 프로필 수정이 아니다. 값이 그대로여도 <code>updatedAt: serverTimestamp()</code> 가 매번 갱신돼 <u>수정한 적 없는 계정이 로그인할 때마다 수정된 것으로 남는다</u>. <code>isLogin</code> 은 '번호의 주인이 나'일 때만 켜지고, <code>users.phone</code> 을 쓰는 경로(<code>setUserProfile</code> · <code>verifyIdentity</code>)가 <code>isVerified=true</code> 를 같이 쓰므로 <strong>이 시점엔 프로필이 이미 완성돼 있다</strong> — 쓸 게 없다. 소셜 '가입 이어하기' 는 <code>isLogin: false</code> 로 들어와 그대로 저장된다</td></tr>
+    <tr><td>로그인은 <strong>가입 완료 화면을 건너뛴다</strong></td><td>이미 가입한 사용자에게 축하 화면은 오독을 만든다 → <code>enterHomeAfterAuth()</code> 로 홈 직행</td></tr>
+  </table>
+
+  <h3>관련 파일</h3>
+  <table>
+    <tr><th>파일</th><th>역할</th></tr>
+    <tr><td><code>functions/src/auth/check_phone_duplicate.ts</code></td><td>주인 판정 <strong>단일 소스</strong>. 함수 이름은 배포본과 맞추려고 그대로 뒀다(반환값만 확장)</td></tr>
+    <tr><td><code>presentation/auth/signup_flow.dart</code></td><td>공용 조각 — <code>SignupMethod</code> · <code>PhoneAccountStatus</code> · <code>phoneBlockedMessage()</code> · <code>enterHomeAfterAuth()</code></td></tr>
+    <tr><td><code>AuthViewModel.checkPhoneAccount()</code> · <code>abortSignup()</code></td><td>서버 응답 → 4가지 상태로 환산 / 만들다 만 세션 정리</td></tr>
+    <tr><td><code>identity_verification_handler.dart</code></td><td><code>_submitIdentity()</code> — 판정 후 3갈래 분기</td></tr>
+    <tr><td><code>certification_number_handler.dart</code></td><td><code>_onConfirm()</code> — 재판정 → 로그인/가입 마무리</td></tr>
+  </table>
+
+  <div class="note"><strong>배포 순서는 자유</strong> — 구 앱은 <code>method</code> 를 안 보내지만 서버가 <code>'identity'</code> 로 기본값을 잡고, 구 앱은 <code>isDuplicate</code> 만 읽으므로 기존과 똑같이 동작한다(차단). 신 앱이 구 함수에 붙어도 <code>sameAccount</code> 가 없어 <code>?? false</code> → 차단. <u>어느 쪽이든 지금보다 나빠지지 않는다.</u> Functions 는 2026.08.18 배포 완료.</div>
+
+  <div class="note danger"><strong>⚠ 출시 전 필수 — 문자 인증이 아직 가짜다</strong><br>
+  인증번호가 <code>certification_number_handler.dart</code> 에 <code>'123456'</code> 으로 하드코딩돼 있고, <code>phoneLogin</code> 은 번호만 받으면 아무 검증 없이 Custom Token 을 발급한다.
+  지금까지는 "이미 있는 번호는 차단"이 <u>우연히</u> 계정 탈취를 막고 있었는데, 재로그인을 허용하면서 그 방벽이 사라졌다.
+  <strong>남의 전화번호 + <code>123456</code> 만으로 그 계정에 로그인된다.</strong>
+  <u>Firebase Phone Auth(실제 SMS) 연동 전까지 프로덕션 배포 금지.</u></div>
+</section>
+
 <!-- ========================= ACCOUNT DELETION ========================= -->
 <section id="account-deletion">
   <h2>회원 탈퇴 · 30일 보관 <span class="pill pk">구현 완료</span></h2>
@@ -702,7 +773,7 @@ logFirebaseAccess(
     <tr><td><code>onReviewDeleted</code></td><td>삭제된 문서가 <code>isHidden === true</code> 면 <strong>즉시 return</strong></td></tr>
     <tr><td><code>onFavoriteDeleted</code></td><td>동일 — <code>isHidden === true</code> 면 return</td></tr>
     <tr><td><code>kakaoLogin</code> · <code>naverLogin</code> · <code>phoneLogin</code></td><td>Custom Token 발급 <strong>전에</strong> <code>users/{uid}.status === 'pendingDeletion'</code> 확인 → <code>HttpsError('failed-precondition')</code> + <code>details:{purgeAt}</code> 로 거부</td></tr>
-    <tr><td><code>checkPhoneDuplicate</code></td><td>반환값에 <code>pendingDeletion</code>·<code>purgeAt</code> 추가. 탈퇴 대기 계정은 <code>users</code> 문서가 30일 남아 있어 <strong>이미 중복으로 잡힌다</strong> — 통과시키면 같은 번호로 계정이 둘 생겨 <code>phone</code> 유니크 전제가 깨진다. 사유를 실어 보내 앱이 '이미 가입됨'과 '탈퇴 처리 중'을 구분해 안내할 수 있게 했다</td></tr>
+    <tr><td><code>checkPhoneDuplicate</code></td><td>반환값에 <code>pendingDeletion</code>·<code>purgeAt</code> 추가 (<code>sameAccount</code> 는 <a href="#feature-phone-account">주인 판정</a>에서 별도 도입). 탈퇴 대기 계정은 <code>users</code> 문서가 30일 남아 있어 <strong>이미 중복으로 잡힌다</strong> — 통과시키면 같은 번호로 계정이 둘 생겨 <code>phone</code> 유니크 전제가 깨진다. 사유를 실어 보내 앱이 '이미 가입됨'과 '탈퇴 처리 중'을 구분해 안내할 수 있게 했다</td></tr>
   </table>
 
   <div class="note danger"><strong>집계 감산은 트리거가 아니라 <code>requestAccountDeletion</code> 안에서 직접 한다.</strong> <code>isHidden</code> 세팅은 문서 update라 <code>onReviewUpdated</code>가 발화하는데 거기서 또 재계산하면 <strong>이중 감산</strong>이 난다. 감산 주체를 함수 하나로 못 박고 트리거엔 위 가드를 단다. 가드가 없으면 30일 뒤 파기 시 <code>rating</code>·<code>favoriteCount</code>가 <strong>두 번 깎여 음수</strong>가 된다.</div>
@@ -1077,6 +1148,7 @@ photos.userId     COLLECTION + COLLECTION_GROUP                     <span class=
     <tr><td class="field-name">name</td><td class="ftype">string</td><td>사용자 실명</td></tr>
     <tr><td class="field-name">phone</td><td class="ftype">string</td><td>본인인증 완료된 전화번호 (중복 가입 방지 기준)</td></tr>
     <tr><td class="field-name">birthDate</td><td class="ftype">string</td><td>생년월일 YYYYMMDD</td></tr>
+    <tr><td class="field-name">gender</td><td class="ftype">string</td><td><code>"male"</code> | <code>"female"</code> — 주민등록번호 뒷자리 첫 숫자에서 도출 (홀수 남 / 짝수 여). <strong>영문 키만 저장</strong>, 한글 라벨은 화면에서 붙인다. 알 수 없으면 <u>필드를 아예 쓰지 않는다</u> (빈 값 = '미입력'과 구분 불가). 도출은 <code>genderFromCode()</code>(<code>signup_flow.dart</code>) 한 곳</td></tr>
     <tr><td class="field-name">profileImageUrl</td><td class="ftype">string</td><td>Storage 프로필 이미지 URL</td></tr>
     <tr><td class="field-name">provider</td><td class="ftype">string</td><td>"naver" | "apple"</td></tr>
     <tr><td class="field-name">isVerified</td><td class="ftype">boolean</td><td>본인인증 완료 여부 (초기값 false)</td></tr>
@@ -1084,9 +1156,10 @@ photos.userId     COLLECTION + COLLECTION_GROUP                     <span class=
     <tr><td class="field-name">deletedAt</td><td class="ftype">timestamp?</td><td>탈퇴 요청 시각</td></tr>
     <tr><td class="field-name">purgeAt</td><td class="ftype">timestamp?</td><td><code>deletedAt + 30일</code> — 완전 파기 예정 시각 = 재가입 가능 시점</td></tr>
     <tr><td class="field-name">deletionReason</td><td class="ftype">string?</td><td>탈퇴 사유(선택 설문). 안 고르면 빈 문자열</td></tr>
-    <tr><td class="field-name">createdAt</td><td class="ftype">timestamp</td><td>생성 시각</td></tr>
-    <tr><td class="field-name">updatedAt</td><td class="ftype">timestamp</td><td>수정 시각</td></tr>
+    <tr><td class="field-name">createdAt</td><td class="ftype">timestamp</td><td>가입 시각. <strong>문서를 처음 만들 때만</strong> 쓴다 (Rules가 이후 변경을 막는다)</td></tr>
+    <tr><td class="field-name">updatedAt</td><td class="ftype">timestamp</td><td>수정 시각. <u>로그인만으로는 갱신되지 않는다</u> — 재로그인 경로는 users 쓰기가 0이다</td></tr>
   </table>
+  <div class="note danger"><strong><code>createdAt</code> 은 앱이 쓴다 — <code>onUserCreated</code> 트리거에 맡기지 않는다 (2026.08.18)</strong><br>원래 설계는 Auth 신규 유저 트리거가 채우는 것이었는데, <u>그 트리거가 실제로 실행되지 않고 있다</u>. <code>phoneLogin</code> 이 새 uid 를 만든 시각(08:13:55 · 10:21:56)에 <code>onUserCreated</code> 실행 로그가 <strong>한 건도 없고</strong>, 그렇게 만들어진 <code>phone:</code> 유저 문서에는 전부 <code>createdAt</code> 이 비어 있다 (2026-04 에 만들어진 <code>kakao:</code> 문서에는 있다 — 그 사이에 죽었다). 이제 <code>setUserProfile</code> 이 <strong>문서가 없을 때만</strong> <code>createdAt</code> 을 같이 쓴다. Rules 의 update 규칙이 <code>createdAt</code> 변경을 막으므로 <u>이미 비어 있는 문서는 앱에서 못 메운다</u> — 서버 스크립트 백필 필요.</div>
   <div class="note"><code>status</code>·<code>deletedAt</code>·<code>purgeAt</code> 는 <strong>서버 전용</strong> — Rules의 update 금지 키에 들어 있다. 클라가 고칠 수 있으면 탈퇴를 스스로 취소하거나 파기 시점을 뒤로 밀 수 있다. <a href="#account-deletion">회원 탈퇴 설계</a></div>
 </section>
 
@@ -1432,7 +1505,7 @@ photos.userId     COLLECTION + COLLECTION_GROUP                     <span class=
     <tr><td class="field-name">naverLogin</td><td><code>{ accessToken }</code></td><td><code>{ customToken, isNewUser }</code></td><td>네이버 accessToken → Custom Token (<code>naver:{naverId}</code>)</td></tr>
     <tr><td class="field-name">kakaoLogin</td><td><code>{ accessToken }</code></td><td><code>{ customToken, isNewUser }</code></td><td>카카오 accessToken → Custom Token (<code>kakao:{kakaoId}</code>)</td></tr>
     <tr><td class="field-name">phoneLogin</td><td><code>{ phone }</code></td><td><code>{ customToken, isNewUser }</code></td><td>전화번호 기반 Custom Token (<code>phone:{phone}</code>)</td></tr>
-    <tr><td class="field-name">checkPhoneDuplicate</td><td><code>{ phone }</code></td><td><code>{ isDuplicate, pendingDeletion, purgeAt }</code></td><td>users phone 중복 체크 (가입 전 검사). 탈퇴 대기 계정도 중복 — 사유를 함께 반환</td></tr>
+    <tr><td class="field-name">checkPhoneDuplicate</td><td><code>{ phone, method }</code></td><td><code>{ isDuplicate, sameAccount, pendingDeletion, purgeAt }</code></td><td>이 번호의 <strong>주인이 지금 시도 중인 그 계정인지</strong> 판정. <code>sameAccount=true</code> 면 재로그인이라 통과, false 면 다른 방식 가입이라 차단. <a href="#feature-phone-account">상세</a></td></tr>
     <tr><td class="field-name">verifyIdentity</td><td><code>{ impUid }</code></td><td><code>{ verified }</code></td><td>본인인증 결과 검증 → phone/birthDate Firestore 저장</td></tr>
     <tr><td class="field-name">requestAccountDeletion</td><td><code>{ reason? }</code></td><td><code>{ purgeAt }</code></td><td>회원 탈퇴 — 리뷰·사진·찜 <code>isHidden=true</code> + 집계 감산 + Auth <code>disabled</code>. 삭제는 30일 뒤. <a href="#account-deletion">상세</a></td></tr>
       </table>
@@ -1443,7 +1516,7 @@ photos.userId     COLLECTION + COLLECTION_GROUP                     <span class=
   <h3>자동 트리거 함수</h3>
   <table>
     <tr><th>함수명</th><th>트리거</th><th>역할</th></tr>
-    <tr><td class="field-name">onUserCreated</td><td>Auth 신규 유저 생성</td><td>users/{uid} 문서 자동 생성 (provider, isVerified:false, createdAt). 이미 존재하면 덮어쓰지 않음</td></tr>
+    <tr><td class="field-name">onUserCreated</td><td>Auth 신규 유저 생성</td><td>users/{uid} 문서 자동 생성 (provider, createdAt). 이미 존재하면 덮어쓰지 않음.<br>⚠ <strong>현재 실행되지 않는다 (2026.08.18 확인)</strong> — Custom Token 로그인으로 Auth 유저가 생겨도 호출 로그가 없다. <code>createdAt</code> 은 앱(<code>setUserProfile</code>)이 쓰도록 옮겼으므로 <u>지금은 이 함수 없이도 동작</u>한다. 원인 조사 필요</td></tr>
     <tr><td class="field-name">onFavoriteCreated</td><td>favorites/{id} 생성</td><td>clubs.favoriteCount += 1 (<code>FieldValue.increment</code>)</td></tr>
     <tr><td class="field-name">onFavoriteDeleted</td><td>favorites/{id} 삭제</td><td>clubs.favoriteCount -= 1 (0 미만 방지)</td></tr>
     <tr><td class="field-name">onReviewCreated</td><td>reviews/{id} 생성</td><td>ratingSum += rating, reviewCount += 1, rating = ratingSum/reviewCount</td></tr>

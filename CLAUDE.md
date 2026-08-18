@@ -611,8 +611,43 @@ ElevatedButton(onPressed: () {}, child: Text('로그인'))
 #### 핵심 규칙
 - accessToken은 매번 달라지지만 네이버ID는 불변 → 항상 같은 Firebase UID 생성
 - 본인인증은 로그인 방식이 아닌 신원 확인 수단
-- `phone` 필드로 중복 가입 방지 (같은 전화번호 재가입 불가)
+- `phone` 필드로 **다른 방식의** 중복 가입 방지 — 같은 번호라도 **가입할 때와 같은 방식이면 로그인은 허용**한다
+  (막으면 로그아웃한 사용자가 영영 못 들어온다). 판정은 `checkPhoneDuplicate` 참고
 - `isVerified: false` 로 초기 생성 → 본인인증 완료 시 `true` 로 업데이트
+
+#### 전화번호 주인 판정 (재로그인 vs 차단) — 2026.08.18
+
+같은 번호가 이미 쓰이고 있을 때 **막을지 통과시킬지**는 "누가 주인이냐"로 정한다.
+번호가 있다는 이유만으로 막으면 본인인증으로 가입한 사용자가 로그아웃한 뒤
+영영 못 들어온다(실제로 그랬다).
+
+| 상황 | 결과 |
+|------|------|
+| 처음 보는 번호 | 약관 동의 → 문자 인증 → **가입** |
+| 가입할 때와 **같은 방식**의 내 계정 | 약관 생략 → 문자 인증 → **로그인** (홈 직행. 가입완료 화면·프로필 저장 없음 = Firestore 쓰기 0) |
+| **다른 방식**으로 가입된 번호 | 차단 — `이미 존재하는 계정입니다.` + 계정 생성 안 함 |
+| 탈퇴 대기(30일) 계정 | 차단 — 본인이어도 파기 전까진 못 쓴다 (재가입 가능일 안내) |
+
+- 판정은 서버(`checkPhoneDuplicate`) 한 곳. **시도 중인 uid를 클라가 정하지 않는다** —
+  세션이 있으면 `context.auth.uid`, 없고 본인인증 경로면 `phone:{phone}`,
+  소셜 신규면 없음(= 무조건 다른 계정). 앱은 `method`(= `users.provider` 값)만 넘긴다
+- ⚠ **주인의 uid·provider는 응답에 싣지 않는다** — 번호만 넣어 보면 남의 카카오/네이버
+  식별자나 가입 방식을 캐낼 수 있다. 비교는 서버에서 끝내고 `sameAccount` 불리언만 준다
+- 앱 쪽 흐름: `SignupMethod`(진입 방식)를 Welcome → 본인인증 화면 → 인증번호 화면까지
+  들고 다닌다. 공용 조각은 `presentation/auth/signup_flow.dart`
+  (`SignupMethod` · `PhoneAccountStatus` · `phoneBlockedMessage` · `enterHomeAfterAuth`)
+- 차단 시 `AuthViewModel.abortSignup()` 으로 만들다 만 세션을 정리한다 — 소셜 로그인은
+  본인인증 화면에 오기 **전에** 세션이 붙어서, 그냥 두면 이름·전화번호가 빈 계정으로 앱에 들어간다
+- **로그인은 `saveUserProfile`을 부르지 않는다** — 값이 같아도 `updatedAt`이 갱신돼
+  수정한 적 없는 계정이 로그인할 때마다 수정된 것으로 남는다. `isLogin`이 켜졌다는 건
+  이미 프로필이 완성돼 있다는 뜻이라(`users.phone`을 쓰는 경로가 `isVerified=true`를 같이 쓴다)
+  쓸 것도 없다. 소셜 '가입 이어하기'는 `isLogin: false`로 들어와 그대로 저장된다
+- 인증번호 화면에서 **한 번 더** 판정한다. 앞 화면 통과와 계정 생성 사이에 다른 기기에서
+  같은 번호가 가입될 수 있고, 실제로 계정이 생기는 건 그 시점이다
+- ⚠ **문자 인증이 아직 가짜다** — 코드가 `'123456'` 하드코딩이고(`certification_number_handler.dart`),
+  `phoneLogin`은 번호만 받으면 Custom Token을 내준다. 지금까지는 "이미 있는 번호 차단"이
+  우연히 계정 탈취를 막고 있었는데, 재로그인을 허용하면서 그 방벽이 사라졌다.
+  **출시 전 Firebase Phone Auth(실제 SMS) 연동 필수**
 
 #### Flutter 네이버 로그인 코드 패턴
 ```dart
@@ -701,6 +736,10 @@ uid             : string    // Firebase Auth UID (PK)
 name            : string    // 사용자 실명
 phone           : string    // 본인인증 완료된 전화번호 (중복 가입 방지 기준)
 birthDate       : string    // 생년월일 YYYYMMDD
+gender          : string    // "male" | "female" — 주민번호 뒷자리 첫 숫자에서 도출(홀수 남/짝수 여)
+                            //   ⚠ 영문 키만 저장. 한글 라벨은 화면에서 붙인다(provider·facilities와 같은 규칙)
+                            //   알 수 없으면 필드 자체를 안 쓴다 — 빈 값은 '미입력'과 구분이 안 됨
+                            //   도출은 genderFromCode()(presentation/auth/signup_flow.dart) 한 곳
 profileImageUrl : string    // Storage 프로필 이미지 URL
 provider        : string    // "naver" | "apple"
 isVerified      : boolean   // 본인인증 완료 여부 (초기값: false)
@@ -709,9 +748,16 @@ status          : string    // "active" | "pendingDeletion" — 탈퇴 대기 �
 deletedAt       : timestamp?// 탈퇴 요청 시각
 purgeAt         : timestamp?// deletedAt + 30일 = 완전 파기 예정 시각(재가입 가능 시점)
 deletionReason  : string?   // 탈퇴 사유(선택 설문). 안 고르면 빈 문자열
-createdAt       : timestamp
-updatedAt       : timestamp
+createdAt       : timestamp // 가입 시각. **문서를 처음 만들 때만** 쓴다(Rules가 이후 변경을 막음)
+updatedAt       : timestamp // 수정 시각. 로그인만으로는 갱신 안 됨(재로그인 경로는 users 쓰기 0)
 ```
+> ⚠ **`createdAt`은 앱이 쓴다 — `onUserCreated` 트리거에 맡기지 않는다 (2026.08.18)**
+> 원래는 Auth 신규 유저 트리거가 채우는 설계였는데 **그 트리거가 실행되지 않고 있다**
+> (`phoneLogin`이 새 uid를 만든 시각에 `onUserCreated` 호출 로그가 0건, 그렇게 만들어진
+> `phone:` 문서엔 전부 `createdAt`이 비어 있음. 2026-04에 만들어진 `kakao:` 문서엔 있다).
+> 이제 `setUserProfile`이 **문서가 없을 때만** `createdAt`을 같이 쓴다 —
+> Rules의 update 규칙이 `createdAt` 변경을 막아 **이미 비어 있는 문서는 앱에서 못 메운다**
+> (서버 스크립트 백필 필요).
 > `status`·`deletedAt`·`purgeAt`는 **서버 전용** — Rules의 update 금지 키에 들어 있다.
 > 클라가 고칠 수 있으면 탈퇴를 스스로 취소하거나 파기 시점을 뒤로 밀 수 있다.
 
@@ -1118,7 +1164,7 @@ createdAt      : timestamp
 | `naverLogin` | `{ accessToken }` | `{ customToken, isNewUser }` | 네이버 accessToken → Custom Token (`naver:{naverId}`) |
 | `kakaoLogin` | `{ accessToken }` | `{ customToken, isNewUser }` | 카카오 accessToken → Custom Token (`kakao:{kakaoId}`) |
 | `phoneLogin` | `{ phone }` | `{ customToken, isNewUser }` | 전화번호 기반 Custom Token (`phone:{phone}`) |
-| `checkPhoneDuplicate` | `{ phone }` | `{ isDuplicate, pendingDeletion, purgeAt }` | users 컬렉션 phone 중복 체크 (가입 전 검사). 탈퇴 대기 계정도 중복 — 사유를 함께 반환 |
+| `checkPhoneDuplicate` | `{ phone, method }` | `{ isDuplicate, sameAccount, pendingDeletion, purgeAt }` | 이 번호의 **주인이 지금 시도 중인 그 계정인지** 판정. `sameAccount=true`면 재로그인이라 통과, false면 다른 방식 가입이라 차단. 탈퇴 대기 계정은 본인이어도 차단 |
 | `verifyIdentity` | `{ impUid }` | `{ verified }` | 본인인증 결과 검증 → phone/birthDate Firestore 저장 |
 | `requestAccountDeletion` | `{ reason? }` | `{ purgeAt }` | 회원 탈퇴 — 리뷰·사진·찜 `isHidden=true` + 집계 감산 + Auth `disabled`. 삭제는 30일 뒤 |
 
@@ -1130,7 +1176,7 @@ createdAt      : timestamp
 
 | 함수명 | 트리거 | 역할 |
 |--------|--------|------|
-| `onUserCreated` | Firebase Auth 신규 유저 생성 시 | users/{uid} 문서 자동 생성 (provider, isVerified: false, createdAt 세팅) |
+| `onUserCreated` | Firebase Auth 신규 유저 생성 시 | users/{uid} 문서 자동 생성 (provider, createdAt). **⚠ 현재 실행 안 됨 (2026.08.18 확인)** — Custom Token 로그인으로 Auth 유저가 생겨도 호출 로그가 없다. `createdAt`은 앱(`setUserProfile`)이 쓰도록 옮겨 지금은 이 함수 없이도 동작. 원인 조사 필요 |
 | `onFavoriteCreated` | favorites/{favoriteId} 생성 시 | clubs.favoriteCount += 1 (FieldValue.increment 사용) |
 | `onFavoriteDeleted` | favorites/{favoriteId} 삭제 시 | clubs.favoriteCount -= 1 (0 미만 방지 처리 필요). **`isHidden==true`면 skip** |
 | `onReviewCreated` | clubs/{clubId}/reviews/{reviewId} 생성 시 | ratingSum += rating, reviewCount += 1, rating = ratingSum / reviewCount |
@@ -1253,5 +1299,6 @@ promotions/{promotionId}/{index}.{ext}      // 배너 상세 히어로·본문 �
 - 인증 관련 코드는 반드시 위의 **인증 플로우** 섹션을 먼저 참고할 것
 - Firestore 문서 생성/수정 시 반드시 위의 **컬렉션 구조**를 따를 것
 - `favoriteCount` 는 직접 수정 금지 — Cloud Functions 트리거로만 업데이트됨
-- `phone` 필드는 중복 가입 방지 기준 — 회원가입 시 반드시 중복 체크할 것
+- `phone` 필드는 중복 가입 방지 기준 — 회원가입 시 반드시 `checkPhoneDuplicate` 로 확인할 것.
+  **"이미 있는 번호 = 무조건 차단"이 아니다** — 같은 방식의 재로그인은 통과시킨다
 - UI가 이미 구현된 화면 작업 시 Figma MCP 확인 불필요, 로직 레이어만 작성할 것

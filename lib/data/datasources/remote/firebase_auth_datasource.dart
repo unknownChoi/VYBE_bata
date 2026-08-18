@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:vybe/core/utils/firebase_logger.dart';
 import 'package:vybe/core/utils/session_utils.dart';
 import 'package:vybe/domain/exceptions/account_exceptions.dart';
+import 'package:vybe/domain/repositories/auth_repository.dart';
 
 class FirebaseAuthDataSource {
   final FirebaseAuth _auth;
@@ -71,15 +72,29 @@ class FirebaseAuthDataSource {
     return doc.exists;
   }
 
-  Future<bool> checkPhoneDuplicate(String phone) async {
+  /// 서버 함수 이름은 `checkPhoneDuplicate` 그대로 두되(배포본과 맞춘다),
+  /// 돌려주는 건 단순 중복 여부가 아니라 '주인이 나인지'까지 담긴 판정이다.
+  Future<PhoneAccountResult> checkPhoneAccount(
+    String phone,
+    String method,
+  ) async {
     logFirebaseAccess(
       file: 'firebase_auth_datasource.dart',
       service: 'Functions(checkPhoneDuplicate)',
-      purpose: '전화번호 중복 가입 여부 확인',
+      purpose: '전화번호 주인 확인 (재로그인 허용 / 타 방식 가입 차단)',
     );
     final callable = _functions.httpsCallable('checkPhoneDuplicate');
-    final result = await callable.call({'phone': phone});
-    return result.data['isDuplicate'] as bool;
+    final result = await callable.call({'phone': phone, 'method': method});
+    final data = result.data;
+    final purgeMillis = data['purgeAt'];
+    return (
+      isDuplicate: data['isDuplicate'] as bool,
+      sameAccount: data['sameAccount'] as bool? ?? false,
+      pendingDeletion: data['pendingDeletion'] as bool? ?? false,
+      purgeAt: purgeMillis is int
+          ? DateTime.fromMillisecondsSinceEpoch(purgeMillis)
+          : null,
+    );
   }
 
   Future<bool> verifyIdentity(String impUid) async {

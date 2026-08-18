@@ -209,6 +209,8 @@ class _GlassTabs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GlassBar(
+      // 구분선 없음 — 선택된 흰 pill과 여백만으로 위아래를 나눈다.
+      border: false,
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
       child: Container(
         padding: EdgeInsets.all(4.r),

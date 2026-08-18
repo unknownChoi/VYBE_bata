@@ -14,7 +14,8 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$UserModel {
 
- String get uid; String get name; String get phone; String get birthDate; String get profileImageUrl; String get provider; bool get isVerified; DateTime get createdAt; DateTime get updatedAt;
+ String get uid; String get name; String get phone; String get birthDate;/// 'male' | 'female' — 미입력이면 빈 문자열
+ String get gender; String get profileImageUrl; String get provider; bool get isVerified; DateTime get createdAt; DateTime get updatedAt;
 /// Create a copy of UserModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +26,16 @@ $UserModelCopyWith<UserModel> get copyWith => _$UserModelCopyWithImpl<UserModel>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserModel&&(identical(other.uid, uid) || other.uid == uid)&&(identical(other.name, name) || other.name == name)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.birthDate, birthDate) || other.birthDate == birthDate)&&(identical(other.profileImageUrl, profileImageUrl) || other.profileImageUrl == profileImageUrl)&&(identical(other.provider, provider) || other.provider == provider)&&(identical(other.isVerified, isVerified) || other.isVerified == isVerified)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserModel&&(identical(other.uid, uid) || other.uid == uid)&&(identical(other.name, name) || other.name == name)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.birthDate, birthDate) || other.birthDate == birthDate)&&(identical(other.gender, gender) || other.gender == gender)&&(identical(other.profileImageUrl, profileImageUrl) || other.profileImageUrl == profileImageUrl)&&(identical(other.provider, provider) || other.provider == provider)&&(identical(other.isVerified, isVerified) || other.isVerified == isVerified)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,uid,name,phone,birthDate,profileImageUrl,provider,isVerified,createdAt,updatedAt);
+int get hashCode => Object.hash(runtimeType,uid,name,phone,birthDate,gender,profileImageUrl,provider,isVerified,createdAt,updatedAt);
 
 @override
 String toString() {
-  return 'UserModel(uid: $uid, name: $name, phone: $phone, birthDate: $birthDate, profileImageUrl: $profileImageUrl, provider: $provider, isVerified: $isVerified, createdAt: $createdAt, updatedAt: $updatedAt)';
+  return 'UserModel(uid: $uid, name: $name, phone: $phone, birthDate: $birthDate, gender: $gender, profileImageUrl: $profileImageUrl, provider: $provider, isVerified: $isVerified, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -45,7 +46,7 @@ abstract mixin class $UserModelCopyWith<$Res>  {
   factory $UserModelCopyWith(UserModel value, $Res Function(UserModel) _then) = _$UserModelCopyWithImpl;
 @useResult
 $Res call({
- String uid, String name, String phone, String birthDate, String profileImageUrl, String provider, bool isVerified, DateTime createdAt, DateTime updatedAt
+ String uid, String name, String phone, String birthDate, String gender, String profileImageUrl, String provider, bool isVerified, DateTime createdAt, DateTime updatedAt
 });
 
 
@@ -62,12 +63,13 @@ class _$UserModelCopyWithImpl<$Res>
 
 /// Create a copy of UserModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? uid = null,Object? name = null,Object? phone = null,Object? birthDate = null,Object? profileImageUrl = null,Object? provider = null,Object? isVerified = null,Object? createdAt = null,Object? updatedAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? uid = null,Object? name = null,Object? phone = null,Object? birthDate = null,Object? gender = null,Object? profileImageUrl = null,Object? provider = null,Object? isVerified = null,Object? createdAt = null,Object? updatedAt = null,}) {
   return _then(_self.copyWith(
 uid: null == uid ? _self.uid : uid // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,phone: null == phone ? _self.phone : phone // ignore: cast_nullable_to_non_nullable
 as String,birthDate: null == birthDate ? _self.birthDate : birthDate // ignore: cast_nullable_to_non_nullable
+as String,gender: null == gender ? _self.gender : gender // ignore: cast_nullable_to_non_nullable
 as String,profileImageUrl: null == profileImageUrl ? _self.profileImageUrl : profileImageUrl // ignore: cast_nullable_to_non_nullable
 as String,provider: null == provider ? _self.provider : provider // ignore: cast_nullable_to_non_nullable
 as String,isVerified: null == isVerified ? _self.isVerified : isVerified // ignore: cast_nullable_to_non_nullable
@@ -158,10 +160,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String uid,  String name,  String phone,  String birthDate,  String profileImageUrl,  String provider,  bool isVerified,  DateTime createdAt,  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String uid,  String name,  String phone,  String birthDate,  String gender,  String profileImageUrl,  String provider,  bool isVerified,  DateTime createdAt,  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _UserModel() when $default != null:
-return $default(_that.uid,_that.name,_that.phone,_that.birthDate,_that.profileImageUrl,_that.provider,_that.isVerified,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.uid,_that.name,_that.phone,_that.birthDate,_that.gender,_that.profileImageUrl,_that.provider,_that.isVerified,_that.createdAt,_that.updatedAt);case _:
   return orElse();
 
 }
@@ -179,10 +181,10 @@ return $default(_that.uid,_that.name,_that.phone,_that.birthDate,_that.profileIm
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String uid,  String name,  String phone,  String birthDate,  String profileImageUrl,  String provider,  bool isVerified,  DateTime createdAt,  DateTime updatedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String uid,  String name,  String phone,  String birthDate,  String gender,  String profileImageUrl,  String provider,  bool isVerified,  DateTime createdAt,  DateTime updatedAt)  $default,) {final _that = this;
 switch (_that) {
 case _UserModel():
-return $default(_that.uid,_that.name,_that.phone,_that.birthDate,_that.profileImageUrl,_that.provider,_that.isVerified,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.uid,_that.name,_that.phone,_that.birthDate,_that.gender,_that.profileImageUrl,_that.provider,_that.isVerified,_that.createdAt,_that.updatedAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -199,10 +201,10 @@ return $default(_that.uid,_that.name,_that.phone,_that.birthDate,_that.profileIm
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String uid,  String name,  String phone,  String birthDate,  String profileImageUrl,  String provider,  bool isVerified,  DateTime createdAt,  DateTime updatedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String uid,  String name,  String phone,  String birthDate,  String gender,  String profileImageUrl,  String provider,  bool isVerified,  DateTime createdAt,  DateTime updatedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _UserModel() when $default != null:
-return $default(_that.uid,_that.name,_that.phone,_that.birthDate,_that.profileImageUrl,_that.provider,_that.isVerified,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.uid,_that.name,_that.phone,_that.birthDate,_that.gender,_that.profileImageUrl,_that.provider,_that.isVerified,_that.createdAt,_that.updatedAt);case _:
   return null;
 
 }
@@ -214,13 +216,15 @@ return $default(_that.uid,_that.name,_that.phone,_that.birthDate,_that.profileIm
 
 
 class _UserModel extends UserModel {
-  const _UserModel({required this.uid, required this.name, required this.phone, required this.birthDate, required this.profileImageUrl, required this.provider, required this.isVerified, required this.createdAt, required this.updatedAt}): super._();
+  const _UserModel({required this.uid, required this.name, required this.phone, required this.birthDate, required this.gender, required this.profileImageUrl, required this.provider, required this.isVerified, required this.createdAt, required this.updatedAt}): super._();
   
 
 @override final  String uid;
 @override final  String name;
 @override final  String phone;
 @override final  String birthDate;
+/// 'male' | 'female' — 미입력이면 빈 문자열
+@override final  String gender;
 @override final  String profileImageUrl;
 @override final  String provider;
 @override final  bool isVerified;
@@ -237,16 +241,16 @@ _$UserModelCopyWith<_UserModel> get copyWith => __$UserModelCopyWithImpl<_UserMo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserModel&&(identical(other.uid, uid) || other.uid == uid)&&(identical(other.name, name) || other.name == name)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.birthDate, birthDate) || other.birthDate == birthDate)&&(identical(other.profileImageUrl, profileImageUrl) || other.profileImageUrl == profileImageUrl)&&(identical(other.provider, provider) || other.provider == provider)&&(identical(other.isVerified, isVerified) || other.isVerified == isVerified)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserModel&&(identical(other.uid, uid) || other.uid == uid)&&(identical(other.name, name) || other.name == name)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.birthDate, birthDate) || other.birthDate == birthDate)&&(identical(other.gender, gender) || other.gender == gender)&&(identical(other.profileImageUrl, profileImageUrl) || other.profileImageUrl == profileImageUrl)&&(identical(other.provider, provider) || other.provider == provider)&&(identical(other.isVerified, isVerified) || other.isVerified == isVerified)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,uid,name,phone,birthDate,profileImageUrl,provider,isVerified,createdAt,updatedAt);
+int get hashCode => Object.hash(runtimeType,uid,name,phone,birthDate,gender,profileImageUrl,provider,isVerified,createdAt,updatedAt);
 
 @override
 String toString() {
-  return 'UserModel(uid: $uid, name: $name, phone: $phone, birthDate: $birthDate, profileImageUrl: $profileImageUrl, provider: $provider, isVerified: $isVerified, createdAt: $createdAt, updatedAt: $updatedAt)';
+  return 'UserModel(uid: $uid, name: $name, phone: $phone, birthDate: $birthDate, gender: $gender, profileImageUrl: $profileImageUrl, provider: $provider, isVerified: $isVerified, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -257,7 +261,7 @@ abstract mixin class _$UserModelCopyWith<$Res> implements $UserModelCopyWith<$Re
   factory _$UserModelCopyWith(_UserModel value, $Res Function(_UserModel) _then) = __$UserModelCopyWithImpl;
 @override @useResult
 $Res call({
- String uid, String name, String phone, String birthDate, String profileImageUrl, String provider, bool isVerified, DateTime createdAt, DateTime updatedAt
+ String uid, String name, String phone, String birthDate, String gender, String profileImageUrl, String provider, bool isVerified, DateTime createdAt, DateTime updatedAt
 });
 
 
@@ -274,12 +278,13 @@ class __$UserModelCopyWithImpl<$Res>
 
 /// Create a copy of UserModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? uid = null,Object? name = null,Object? phone = null,Object? birthDate = null,Object? profileImageUrl = null,Object? provider = null,Object? isVerified = null,Object? createdAt = null,Object? updatedAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? uid = null,Object? name = null,Object? phone = null,Object? birthDate = null,Object? gender = null,Object? profileImageUrl = null,Object? provider = null,Object? isVerified = null,Object? createdAt = null,Object? updatedAt = null,}) {
   return _then(_UserModel(
 uid: null == uid ? _self.uid : uid // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,phone: null == phone ? _self.phone : phone // ignore: cast_nullable_to_non_nullable
 as String,birthDate: null == birthDate ? _self.birthDate : birthDate // ignore: cast_nullable_to_non_nullable
+as String,gender: null == gender ? _self.gender : gender // ignore: cast_nullable_to_non_nullable
 as String,profileImageUrl: null == profileImageUrl ? _self.profileImageUrl : profileImageUrl // ignore: cast_nullable_to_non_nullable
 as String,provider: null == provider ? _self.provider : provider // ignore: cast_nullable_to_non_nullable
 as String,isVerified: null == isVerified ? _self.isVerified : isVerified // ignore: cast_nullable_to_non_nullable

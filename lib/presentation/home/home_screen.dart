@@ -89,11 +89,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         // 현재 노출 보류 상태 — 위젯 파일은 그대로 남아 있으므로
                         // 재노출 시 이 리스트에 다시 추가하면 된다.
                         children: const [
-                          // HomeLocationGreeting(),
-                          // HomeBanner(),
+                          HomeLocationGreeting(),
+                          HomeBanner(),
                           HomeCategoryGrid(),
-
-                          // HomeNearbyClubs(),
+                          HomeNearbyClubs(),
                         ],
                       ),
                     ),

@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/presentation/auth/certification_number/certification_number_screen.dart';
+import 'package:vybe/presentation/auth/signup_flow.dart';
 import 'package:vybe/presentation/auth/viewmodels/auth_viewmodel.dart';
 import 'package:vybe/presentation/auth/widgets/birth_input.dart';
 import 'package:vybe/presentation/auth/widgets/carrier_dropdown_field.dart';
@@ -46,7 +47,17 @@ enum _Step { name, birth, phone, carrier }
 ///
 /// Figma node: (identity verification screen)
 class IdentityVerificationScreen extends ConsumerStatefulWidget {
-  const IdentityVerificationScreen({super.key});
+  /// 이 화면에 오게 된 로그인 방식.
+  ///
+  /// 소셜 로그인 뒤 프로필을 채우러 온 경우엔 그 소셜 방식이 들어온다.
+  /// 전화번호가 이미 쓰이고 있을 때 '같은 방식의 재로그인'인지 가르는 기준이라
+  /// 화면이 임의로 추측하지 않고 호출한 쪽이 넘겨준다.
+  final SignupMethod method;
+
+  const IdentityVerificationScreen({
+    super.key,
+    this.method = SignupMethod.identity,
+  });
 
   @override
   ConsumerState<IdentityVerificationScreen> createState() =>

@@ -18,6 +18,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/auth/signup_flow.dart';
 import 'package:vybe/presentation/auth/signup_success/signup_success_screen.dart';
 import 'package:vybe/presentation/auth/viewmodels/auth_viewmodel.dart';
 import 'package:vybe/presentation/auth/widgets/otp_cell.dart';
@@ -44,16 +45,32 @@ enum _CertStatus {
 /// 인증번호 입력 화면
 ///
 /// [phoneNumber]: 이전 화면(본인 인증)에서 입력한 전화번호 — 서브타이틀에 표시
+///
+/// 가입이든 재로그인이든 **문자 인증은 똑같이** 거친다 — 화면이 갈리는 건
+/// 인증에 성공한 다음뿐이다([isLogin] 참고).
 class CertificationNumberScreen extends ConsumerStatefulWidget {
   final String phoneNumber;
   final String name;
   final String birthDate; // YYYYMMDD 형식
+
+  /// 'male' | 'female' — 주민번호 뒷자리에서 뽑은 값. 알 수 없으면 null.
+  final String? gender;
+
+  /// 지금 진행 중인 로그인 방식. 번호 주인 재확인에 그대로 넘긴다.
+  final SignupMethod method;
+
+  /// 이미 가입된 내 계정으로 다시 들어오는 중인지.
+  /// true면 인증 성공 후 가입 완료 화면 대신 곧장 홈으로 간다.
+  final bool isLogin;
 
   const CertificationNumberScreen({
     super.key,
     required this.phoneNumber,
     required this.name,
     required this.birthDate,
+    this.gender,
+    this.method = SignupMethod.identity,
+    this.isLogin = false,
   });
 
   @override

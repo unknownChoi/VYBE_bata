@@ -781,6 +781,8 @@ class GlassTopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GlassBar(
+      // 구분선 없음 — 상단바와 본문은 여백으로만 나눈다.
+      border: false,
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
       child: Row(
         children: [

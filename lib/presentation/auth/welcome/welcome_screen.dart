@@ -9,13 +9,13 @@ import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/auth/identity_verification/identity_verification_screen.dart';
+import 'package:vybe/presentation/auth/signup_flow.dart';
 import 'package:vybe/presentation/auth/viewmodels/auth_viewmodel.dart';
 import 'package:vybe/presentation/auth/welcome/login_method_bottom_sheet.dart';
 import 'package:vybe/presentation/common/splash_logo_landing.dart';
 import 'package:vybe/presentation/common/widgets/vybe_aurora.dart';
 import 'package:vybe/presentation/common/widgets/vybe_spinner.dart';
 import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
-import 'package:vybe/presentation/home/viewmodels/banner_viewmodel.dart';
 
 class WelcomeScreen extends ConsumerStatefulWidget {
   /// 앱 루트로 그려지는 화면인지. true면 로고에 [splashLogoLandingKey] 를 달아
@@ -39,33 +39,15 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
 
   String? _loadingButton;
 
-  Future<void> _navigateHome() async {
-    try {
-      final banners = await ref
-          .read(bannerListProvider.future)
-          .timeout(const Duration(seconds: 6));
-      if (!mounted) return;
-      await Future.wait(
-        banners.map((b) async {
-          try {
-            await precacheImage(NetworkImage(b.imageUrl), context)
-                .timeout(const Duration(seconds: 6));
-          } catch (_) {}
-        }),
-      );
-    } catch (_) {}
-    if (!mounted) return;
-    // 로그인 성공 시 루트(AuthGate)가 이미 MainScaffold로 바뀌어 있다.
-    // 이 화면이 push된 상태(마이페이지 등에서 진입)면 스택만 정리하면 된다.
-    Navigator.popUntil(context, (route) => route.isFirst);
-  }
-
   /// 소셜 로그인 직후 분기.
   ///
   /// `isNewUser`(Auth user 존재 여부)만으로는 부족하다 — 가입 도중 앱을 끄면
   /// Auth user는 있는데 프로필이 비어 있고, 그 계정은 `isNewUser=false`로
   /// 돌아온다. 그대로 홈에 들여보내면 이름·전화번호가 없는 유령 계정이 된다.
-  Future<void> _afterSocialLogin(bool isNewUser) async {
+  ///
+  /// [method] 는 본인인증 화면까지 따라간다 — 거기서 전화번호가 이미 쓰이고
+  /// 있을 때 '같은 방식의 재로그인'인지 가르는 기준이다.
+  Future<void> _afterSocialLogin(bool isNewUser, SignupMethod method) async {
     final needsSignup = isNewUser ||
         await ref.read(authViewModelProvider.notifier).needsProfileSetup();
     if (!mounted) return;
@@ -73,11 +55,13 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
     if (needsSignup) {
       Navigator.push(
         context,
-        SwipeBackPageRoute(builder: (_) => const IdentityVerificationScreen()),
+        SwipeBackPageRoute(
+          builder: (_) => IdentityVerificationScreen(method: method),
+        ),
       );
       return;
     }
-    await _navigateHome();
+    await enterHomeAfterAuth(context, ref);
   }
 
   Future<void> _onKakaoLogin() async {
@@ -96,7 +80,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
           .kakaoLogin(token.accessToken);
 
       if (!mounted) return;
-      await _afterSocialLogin(isNewUser);
+      await _afterSocialLogin(isNewUser, SignupMethod.kakao);
     } catch (e) {
       if (!mounted) return;
       VybeToast.show(context, message: e.toString(), isError: true);
@@ -120,7 +104,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
           .naverLogin(accessToken);
 
       if (!mounted) return;
-      await _afterSocialLogin(isNewUser);
+      await _afterSocialLogin(isNewUser, SignupMethod.naver);
     } catch (e) {
       if (!mounted) return;
       VybeToast.show(context, message: e.toString(), isError: true);
@@ -263,7 +247,9 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                                   context,
                                   SwipeBackPageRoute(
                                     builder: (_) =>
-                                        const IdentityVerificationScreen(),
+                                        const IdentityVerificationScreen(
+                                      method: SignupMethod.identity,
+                                    ),
                                   ),
                                 );
                               },

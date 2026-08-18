@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:vybe/data/repositories/auth_repository_impl.dart';
 import 'package:vybe/data/repositories/user_repository_impl.dart';
+import 'package:vybe/presentation/auth/signup_flow.dart';
 
 part 'auth_viewmodel.g.dart';
 
@@ -79,6 +80,7 @@ class AuthViewModel extends _$AuthViewModel {
     required String name,
     required String phone,
     required String birthDate,
+    String? gender,
   }) async {
     final uid = ref.read(authRepositoryProvider).currentUid;
     if (uid == null) return;
@@ -102,11 +104,46 @@ class AuthViewModel extends _$AuthViewModel {
           phone: phone,
           birthDate: birthDate,
           provider: provider,
+          gender: gender,
         );
   }
 
-  Future<bool> checkPhoneDuplicate(String phone) =>
-      ref.read(authRepositoryProvider).checkPhoneDuplicate(phone);
+  /// 이 번호로 [method] 방식의 가입/로그인을 이어가도 되는지 판정한다.
+  ///
+  /// 번호가 이미 쓰인다고 무조건 막으면 재로그인이 영영 불가능해진다 —
+  /// **주인이 나인지**까지 서버가 보고 알려준다.
+  Future<PhoneAccountCheck> checkPhoneAccount(
+    String phone,
+    SignupMethod method,
+  ) async {
+    final r = await ref
+        .read(authRepositoryProvider)
+        .checkPhoneAccount(phone, method.key);
+    if (!r.isDuplicate) {
+      return (status: PhoneAccountStatus.available, purgeAt: null);
+    }
+    if (r.pendingDeletion) {
+      return (status: PhoneAccountStatus.pendingDeletion, purgeAt: r.purgeAt);
+    }
+    return (
+      status: r.sameAccount
+          ? PhoneAccountStatus.ownAccount
+          : PhoneAccountStatus.takenByOther,
+      purgeAt: null,
+    );
+  }
+
+  /// 가입을 중단한다 — 받아 둔 Custom Token을 버리고, 프로필이 없는 채로
+  /// 만들어진 세션이 남아 있으면 로그아웃까지 한다.
+  ///
+  /// 소셜 로그인은 Auth 계정이 이미 있으면 본인인증 화면에 오기 전에
+  /// 세션이 붙는다. 여기서 막고 그냥 두면 이름·전화번호가 빈 계정으로
+  /// 앱에 들어가 버린다 ("계정 생성도 하면 안 된다"가 깨진다).
+  Future<void> abortSignup() async {
+    _pendingCustomToken = null;
+    if (ref.read(authRepositoryProvider).currentUid == null) return;
+    await signOut();
+  }
 
   /// 로그인 세션은 있는데 프로필(본인인증)이 아직 안 끝났는지.
   ///

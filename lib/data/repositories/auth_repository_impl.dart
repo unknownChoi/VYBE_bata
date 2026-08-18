@@ -40,8 +40,8 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<bool> userExists(String uid) => _dataSource.userExists(uid);
 
   @override
-  Future<bool> checkPhoneDuplicate(String phone) =>
-      _dataSource.checkPhoneDuplicate(phone);
+  Future<PhoneAccountResult> checkPhoneAccount(String phone, String method) =>
+      _dataSource.checkPhoneAccount(phone, method);
 
   @override
   Future<bool> verifyIdentity(String impUid) =>

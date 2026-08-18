@@ -165,6 +165,8 @@ class _TopBar extends StatelessWidget {
     final top = MediaQuery.paddingOf(context).top;
 
     return GlassBar(
+      // 구분선 없음 — 상단바와 본문은 여백으로만 나눈다.
+      border: false,
       padding: EdgeInsets.fromLTRB(16.w, top + 8.h, 16.w, 12.h),
       child: Row(
         children: [

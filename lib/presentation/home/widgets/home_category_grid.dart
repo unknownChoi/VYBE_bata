@@ -1,8 +1,11 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/design_system/colors.dart';
+import 'package:vybe/presentation/common/renew/renew_glass.dart';
 import 'package:vybe/presentation/free_entry/free_entry_screen.dart';
 import 'package:vybe/presentation/hip_hop/hip_hop_screen.dart';
 import 'package:vybe/presentation/hot_places/hot_places_screen.dart';
@@ -73,36 +76,14 @@ class HomeCategoryGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 12.h),
-      child: Stack(
-        children: [
-          // 그리드 뒤 은은한 브랜드 글로우
-          Positioned.fill(
-            child: IgnorePointer(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: RadialGradient(
-                    center: const Alignment(-0.75, -0.6),
-                    radius: 0.9,
-                    colors: [
-                      VybeColors.mainPurple500.withValues(alpha: 0.16),
-                      Colors.transparent,
-                    ],
-                    stops: const [0.0, 0.7],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          GridView.count(
-            crossAxisCount: 4,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 18.h,
-            crossAxisSpacing: 8.w,
-            childAspectRatio: 0.8,
-            children: _categories.map((c) => _buildItem(context, c)).toList(),
-          ),
-        ],
+      child: GridView.count(
+        crossAxisCount: 4,
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        mainAxisSpacing: 18.h,
+        crossAxisSpacing: 8.w,
+        childAspectRatio: 0.8,
+        children: _categories.map((c) => _buildItem(context, c)).toList(),
       ),
     );
   }
@@ -114,48 +95,36 @@ class HomeCategoryGrid extends StatelessWidget {
     final isFree = item.label == '입장료 무료';
     final isHiphop = item.label == '힙합';
 
-    final iconInner = Container(
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0x16FFFFFF), Color(0x05FFFFFF)],
+    final radius = BorderRadius.circular(isVybe ? 16.5.r : 18.r);
+
+    // 리퀴드 글래스 — 배경을 블러로 통과시키고 흰색 틴트만 얹는다.
+    // 보라 글로우(배경 RadialGradient · 아이콘 상단 스팟)는 제거 — 색이 도는 대신 투명.
+    final iconInner = ClipRRect(
+      borderRadius: radius,
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(
+          sigmaX: RenewGlass.quietBlur,
+          sigmaY: RenewGlass.quietBlur,
         ),
-        color: VybeColors.gray900,
-        borderRadius: BorderRadius.circular(isVybe ? 16.5.r : 18.r),
-        border: isVybe ? null : Border.all(color: VybeColors.gray800),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(isVybe ? 16.5.r : 18.r),
-        child: Stack(
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0x1FFFFFFF), Color(0x0AFFFFFF)],
+            ),
+            borderRadius: radius,
+            border: isVybe
+                ? null
+                : Border.all(color: RenewGlass.tileBorder, width: 1),
+          ),
           alignment: Alignment.center,
-          children: [
-            // 아이콘 상단 보라 스팟 글로우
-            Positioned(
-              top: -14.h,
-              child: Container(
-                width: 44.w,
-                height: 30.h,
-                decoration: BoxDecoration(
-                  gradient: RadialGradient(
-                    colors: [
-                      VybeColors.mainPurple500.withValues(alpha: 0.35),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            SvgPicture.asset(
-              item.icon,
-              width: 34.r,
-              height: 34.r,
-              colorFilter: const ColorFilter.mode(
-                Colors.white,
-                BlendMode.srcIn,
-              ),
-            ),
-          ],
+          child: SvgPicture.asset(
+            item.icon,
+            width: 34.r,
+            height: 34.r,
+            colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+          ),
         ),
       ),
     );

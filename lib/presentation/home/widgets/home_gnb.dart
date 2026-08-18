@@ -41,14 +41,10 @@ class HomeGnb extends StatelessWidget {
             10.h,
           ),
           decoration: BoxDecoration(
+            // 구분선 없음 — 블러 + 배경 농도만으로 본문과 나눈다.
             color: scrolled
                 ? VybeColors.background.withValues(alpha: 0.82)
                 : Colors.transparent,
-            border: Border(
-              bottom: BorderSide(
-                color: scrolled ? VybeColors.gray900 : Colors.transparent,
-              ),
-            ),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,

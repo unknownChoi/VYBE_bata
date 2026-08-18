@@ -58,6 +58,8 @@ class _ComponentGalleryState extends State<ComponentGallery> {
       backgroundColor: VybeColors.background,
       appBar: AppBar(
         backgroundColor: VybeColors.surface,
+        elevation: 0,
+        scrolledUnderElevation: 0,
         title: const Text(
           'Component Gallery',
           style: TextStyle(color: Colors.white, fontFamily: 'Pretendard'),

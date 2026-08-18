@@ -15,8 +15,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:video_player/video_player.dart';
 import 'package:vybe/design_system/colors.dart';
+import 'package:vybe/presentation/auth/signup_flow.dart';
 import 'package:vybe/presentation/common/widgets/vybe_button.dart';
-import 'package:vybe/presentation/home/viewmodels/banner_viewmodel.dart';
 
 /// 회원가입 완료 화면
 ///
@@ -201,28 +201,9 @@ class _SignupSuccessScreenState extends ConsumerState<SignupSuccessScreen> {
               bottom: 40.h,
               child: VybeButton(
                 label: '바이브 시작하기',
-                onTap: () async {
-                  try {
-                    final banners = await ref
-                        .read(bannerListProvider.future)
-                        .timeout(const Duration(seconds: 6));
-                    if (!context.mounted) return;
-                    await Future.wait(
-                      banners.map((b) async {
-                        try {
-                          await precacheImage(
-                            NetworkImage(b.imageUrl),
-                            context,
-                          ).timeout(const Duration(seconds: 6));
-                        } catch (_) {}
-                      }),
-                    );
-                  } catch (_) {}
-                  if (!context.mounted) return;
-                  // 가입 완료 시점엔 이미 로그인 상태 → 루트(AuthGate)가 MainScaffold.
-                  // 가입 플로우 라우트만 걷어낸다.
-                  Navigator.popUntil(context, (route) => route.isFirst);
-                },
+                // 가입 완료 시점엔 이미 로그인 상태 → 루트(AuthGate)가 MainScaffold.
+                // 가입 플로우 라우트만 걷어낸다.
+                onTap: () => enterHomeAfterAuth(context, ref),
                 variant: VybeButtonVariant.special,
               ),
             ),

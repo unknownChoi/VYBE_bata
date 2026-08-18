@@ -12,6 +12,9 @@ abstract class UserRepository {
     required String phone,
     required String birthDate,
     required String provider,
+
+    /// 'male' | 'female'. 알 수 없으면 null — 필드를 쓰지 않는다.
+    String? gender,
   });
   Future<bool> isPhoneDuplicate(String phone);
   Future<String> uploadProfileImage(String uid, File imageFile);

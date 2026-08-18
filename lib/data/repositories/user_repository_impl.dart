@@ -37,6 +37,7 @@ class UserRepositoryImpl implements UserRepository {
     required String phone,
     required String birthDate,
     required String provider,
+    String? gender,
   }) =>
       _userDataSource.setUserProfile(
         uid: uid,
@@ -44,6 +45,7 @@ class UserRepositoryImpl implements UserRepository {
         phone: phone,
         birthDate: birthDate,
         provider: provider,
+        gender: gender,
       );
 
   @override

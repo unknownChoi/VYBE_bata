@@ -27,10 +27,6 @@ class NetworkErrorScreen extends ConsumerStatefulWidget {
 class _NetworkErrorScreenState extends ConsumerState<NetworkErrorScreen> {
   bool _retrying = false;
 
-  /// 실패한 재시도 횟수. 2회부터 토스트에 같이 보여 준다 —
-  /// 같은 문구만 반복되면 눌렸는지 아닌지 알 수 없다.
-  int _tries = 0;
-
   Future<void> _retry() async {
     if (_retrying) return;
     setState(() => _retrying = true);
@@ -42,15 +38,8 @@ class _NetworkErrorScreenState extends ConsumerState<NetworkErrorScreen> {
 
     // 연결되면 게이트가 이 화면을 트리에서 빼므로 여기선 실패만 처리한다.
     if (connected) return;
-    setState(() {
-      _retrying = false;
-      _tries++;
-    });
-    VybeToast.show(
-      context,
-      message: '여전히 연결되지 않아요${_tries > 1 ? ' ($_tries회)' : ''}',
-      isError: true,
-    );
+    setState(() => _retrying = false);
+    VybeToast.show(context, message: '여전히 연결되지 않아요', isError: true);
   }
 
   Future<void> _openSettings() async {
