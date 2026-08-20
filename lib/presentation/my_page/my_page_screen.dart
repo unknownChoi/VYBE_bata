@@ -14,7 +14,6 @@ import 'package:vybe/presentation/common/widgets/vybe_confirm_dialog.dart';
 import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
 import 'package:vybe/presentation/main_scaffold/nav_bar_hide_route.dart';
 import 'package:vybe/presentation/main_scaffold/nav_bar_visibility_provider.dart';
-import 'package:vybe/presentation/my_page/account_delete_screen.dart';
 import 'package:vybe/presentation/my_page/my_reviews_screen.dart';
 import 'package:vybe/presentation/my_page/notices_screen.dart';
 import 'package:vybe/presentation/my_page/profile_edit_screen.dart';
@@ -212,18 +211,14 @@ class _LoggedInView extends ConsumerWidget {
                   label: '설정',
                   onTap: () => _push(context, const SettingsScreen()),
                 ),
+                // 회원 탈퇴는 설정 화면 하단 '탈퇴하기' 링크로만 진입한다 —
+                // 되돌릴 수 없는 동작이라 마이페이지 메뉴에 노출하지 않는다.
                 MyMenuRow(
                   icon: RenewIcons.logout,
                   label: '로그아웃',
                   danger: true,
-                  onTap: () => _confirmLogout(context, ref),
-                ),
-                MyMenuRow(
-                  icon: RenewIcons.userMinus,
-                  label: '회원 탈퇴',
-                  danger: true,
                   last: true,
-                  onTap: () => _push(context, const AccountDeleteScreen()),
+                  onTap: () => _confirmLogout(context, ref),
                 ),
               ],
             ),

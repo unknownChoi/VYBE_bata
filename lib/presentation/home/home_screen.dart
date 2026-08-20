@@ -8,9 +8,11 @@ import 'package:vybe/presentation/common/widgets/vybe_aurora.dart';
 import 'package:vybe/presentation/home/viewmodels/home_skeleton_provider.dart';
 import 'package:vybe/presentation/home/widgets/home_banner.dart';
 import 'package:vybe/presentation/home/widgets/home_category_grid.dart';
+import 'package:vybe/presentation/home/widgets/home_free_time_clubs.dart';
 import 'package:vybe/presentation/home/widgets/home_gnb.dart';
 import 'package:vybe/presentation/home/widgets/home_location_greeting.dart';
 import 'package:vybe/presentation/home/widgets/home_nearby_clubs.dart';
+import 'package:vybe/presentation/home/widgets/home_notices.dart';
 import 'package:vybe/presentation/home/widgets/home_screen_skeleton.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -85,14 +87,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           top: top + 52.h,
                           bottom: MediaQuery.paddingOf(context).bottom + 100.h,
                         ),
-                        // HomeLocationGreeting / HomeBanner / HomeNearbyClubs는
-                        // 현재 노출 보류 상태 — 위젯 파일은 그대로 남아 있으므로
-                        // 재노출 시 이 리스트에 다시 추가하면 된다.
-                        children: const [
-                          HomeLocationGreeting(),
-                          HomeBanner(),
-                          HomeCategoryGrid(),
-                          HomeNearbyClubs(),
+                        children: [
+                          const HomeLocationGreeting(),
+                          const HomeBanner(),
+                          const HomeCategoryGrid(),
+                          const HomeNearbyClubs(),
+                          const HomeFreeTimeClubs(),
+                          const HomeNotices(),
+                          SizedBox(height: 8.h),
                         ],
                       ),
                     ),

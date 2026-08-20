@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vybe — 내가 할 일</title>
+<style>
+  :root{
+    --bg:#0f0f1a; --panel:#16162a; --panel2:#1c1c34; --border:#2a2a45;
+    --purple:#8b5cf6; --purple-light:#a78bfa; --lime:#a3e635;
+    --text:#e4e4f0; --muted:#9494b8; --code-bg:#0b0b16;
+    --green:#34d399; --red:#f87171; --amber:#fbbf24; --blue:#60a5fa;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+       background:var(--bg);color:var(--text);line-height:1.65;font-size:14px}
+  main{max-width:960px;margin:0 auto;padding:36px 28px 120px}
+  header.page-head{margin-bottom:32px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+  header.page-head h1{font-size:28px;margin:0 0 8px}
+  header.page-head p{color:var(--muted);margin:4px 0;font-size:13px}
+
+  h2{font-size:20px;margin:44px 0 6px;padding-bottom:8px;border-bottom:2px solid var(--purple);display:inline-block}
+  h2 .num{color:var(--purple-light);font-family:"SF Mono",Menlo,monospace;margin-right:8px}
+  .lede{color:var(--muted);font-size:13px;margin:6px 0 18px}
+  h3{font-size:15px;margin:26px 0 10px;color:var(--purple-light)}
+
+  code{font-family:"SF Mono",Menlo,Consolas,monospace;background:var(--code-bg);
+       padding:2px 6px;border-radius:5px;font-size:12.5px;color:var(--lime)}
+  pre{background:var(--code-bg);border:1px solid var(--border);border-radius:10px;
+      padding:14px 16px;overflow-x:auto;font-size:12.5px;line-height:1.6;margin:10px 0}
+  pre code{background:none;padding:0;color:var(--text)}
+  .cmt{color:#6b7280}
+
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13px;
+        background:var(--panel);border-radius:10px;overflow:hidden}
+  th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--border);vertical-align:top}
+  th{background:var(--panel2);color:var(--purple-light);font-weight:600;font-size:11.5px;
+     text-transform:uppercase;letter-spacing:.5px}
+  tr:last-child td{border-bottom:none}
+
+  .note{background:var(--panel2);border-left:3px solid var(--amber);padding:10px 15px;
+        border-radius:0 8px 8px 0;margin:12px 0;font-size:13px;color:var(--muted)}
+  .note strong{color:var(--amber)}
+  .danger{border-left-color:var(--red)} .danger strong{color:var(--red)}
+  .ok{border-left-color:var(--green)} .ok strong{color:var(--green)}
+
+  /* 할 일 카드 */
+  .task{background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--purple);
+        border-radius:10px;padding:14px 18px;margin:12px 0;transition:opacity .15s}
+  .task.done{opacity:.42;border-left-color:var(--green)}
+  .task .top{display:flex;align-items:flex-start;gap:11px}
+  .task input[type=checkbox]{width:17px;height:17px;margin-top:3px;flex-shrink:0;
+        accent-color:var(--purple);cursor:pointer}
+  .task .ttl{font-size:15px;font-weight:700;flex:1}
+  .task.done .ttl{text-decoration:line-through}
+  .task .body{margin-top:8px;padding-left:28px;font-size:13px;color:var(--muted)}
+  .task .body strong{color:var(--text)}
+  .task .body p{margin:7px 0}
+
+  .who{font-size:10.5px;padding:2px 8px;border-radius:12px;font-weight:700;white-space:nowrap;letter-spacing:.3px}
+  .who.me{background:rgba(251,191,36,.16);color:var(--amber)}       /* 사람만 가능 */
+  .who.claude{background:rgba(139,92,246,.22);color:var(--purple-light)} /* Claude 위임 */
+  .who.term{background:rgba(96,165,250,.16);color:var(--blue)}       /* 터미널 한 줄 */
+
+  .sev{font-size:10.5px;padding:2px 8px;border-radius:12px;font-weight:700;white-space:nowrap}
+  .sev.block{background:rgba(248,113,113,.18);color:var(--red)}
+  .sev.soon{background:rgba(163,230,53,.15);color:var(--lime)}
+  .sev.later{background:rgba(148,148,184,.15);color:var(--muted)}
+
+  .yes{color:var(--green);font-weight:700}
+  .no{color:var(--red);font-weight:700}
+  a{color:var(--purple-light)}
+  footer{margin-top:60px;padding-top:18px;border-top:1px solid var(--border);color:var(--muted);font-size:12px}
+  .reset{background:none;border:1px solid var(--border);color:var(--muted);font-size:11px;
+         padding:5px 12px;border-radius:14px;cursor:pointer;font-family:inherit}
+  .reset:hover{color:var(--text);border-color:var(--purple)}
+  .progress{font-size:12px;color:var(--muted);margin-top:10px}
+  .progress b{color:var(--lime)}
+</style>
+</head>
+<body>
+<main>
+
+<header class="page-head">
+  <h1>vybe — 내가 할 일</h1>
+  <p>2026-08-19 기준 · <strong>Firestore·Rules·인덱스·Functions 실측</strong>으로 확인한 실제 상태.</p>
+  <p><code>CLAUDE.md</code> 의 '미구현' 목록은 이미 끝난 항목이 여럿 남아 있어 신뢰하지 말 것 — 아래 <a href="#state">현재 상태</a> 표가 실측이다.</p>
+  <div class="progress" id="progress"></div>
+</header>
+
+<!-- ================= 0. 현재 상태 ================= -->
+<h2 id="state"><span class="num">0</span>현재 상태 (실측)</h2>
+<p class="lede">할 일 목록을 만들기 전에 서버를 직접 조회한 결과. <span class="yes">✓</span> 는 더 손댈 것 없음.</p>
+<table>
+  <tr><th>항목</th><th>상태</th><th>확인 방법</th></tr>
+  <tr><td>Firestore Rules</td><td><span class="yes">✓ 배포됨</span> — notices·promotions·appConfig·searchLogs·searchTrends·searchHashtags·<code>isHidden</code> 가드 전부 반영</td><td>배포본 직접 조회</td></tr>
+  <tr><td>Firestore 인덱스</td><td><span class="yes">✓ 10개 전부 <code>READY</code></span> (<code>firestore.indexes.json</code> 과 일치)</td><td><code>listIndexes</code></td></tr>
+  <tr><td><code>searchLogs</code> TTL</td><td><span class="yes">✓ <code>expireAt</code> ACTIVE</span></td><td><code>gcloud firestore fields ttls list</code></td></tr>
+  <tr><td>Cloud Functions</td><td><span class="yes">✓ 15개 배포됨</span> (+ Algolia Extension 2개)</td><td><code>gcloud functions list</code></td></tr>
+  <tr><td>seed 데이터</td><td><span class="yes">✓</span> notices 16 · promotions 4 · searchHashtags 12 · searchTrends 2 · banners 4 · appConfig 2 · <code>info.facilities</code> 채워짐</td><td>컬렉션 조회</td></tr>
+  <tr><td><code>clubs.freeEntry</code></td><td><span class="yes">✓ 164개 배정 완료</span> — always 72 / timed 47 / none 45</td><td>어제 seed 실행</td></tr>
+  <tr><td><code>performances</code></td><td><span class="no">✗ 0건</span> — 장르 페이지 '오늘의 라인업'이 빈 화면</td><td>컬렉션 조회</td></tr>
+  <tr><td>Algolia Indexable Fields</td><td><span class="no">✗ <code>freeEntry</code>·<code>isFreeEntry</code> 미포함</span></td><td>—</td></tr>
+  <tr><td>앱 코드</td><td><span class="no">✗ 시간대별 무료입장 미구현</span> — DB에만 데이터가 있고 앱은 안 읽는다</td><td>—</td></tr>
+  <tr><td><code>applicationId</code></td><td><span class="no">✗ <code>com.example.vybe</code></span> — Play 스토어 게시 불가</td><td><code>android/app/build.gradle.kts:27</code></td></tr>
+  <tr><td>문자 인증</td><td><span class="no">✗ 가짜</span> — 코드 <code>'123456'</code> 하드코딩</td><td><code>certification_number_handler.dart</code></td></tr>
+</table>
+
+<div class="note ok"><strong>배지 읽는 법</strong> — <span class="who me">사람만</span> 콘솔·스토어·계정이 필요해 내가 대신 못 함 · <span class="who term">터미널</span> 명령 한 줄 (내가 대신 실행 가능) · <span class="who claude">Claude</span> 나한테 시키면 되는 코드 작업.</div>
+
+<!-- ================= 1. 시간대별 무료입장 마무리 ================= -->
+<h2><span class="num">1</span>시간대별 무료입장 마무리 <span class="sev soon">지금</span></h2>
+<p class="lede">데이터는 어제 다 넣었다. 앱이 그걸 읽게 만드는 일만 남았다. <strong>순서가 중요</strong> — 뒤집으면 검색 비용이 튄다.</p>
+
+<div class="task" data-id="algolia-config">
+  <div class="top">
+    <input type="checkbox">
+    <div class="ttl">1-1. Algolia Extension 에 필드 2개 추가</div>
+    <span class="who me">사람만</span>
+  </div>
+  <div class="body">
+    <p>Firebase 콘솔 → <strong>Extensions</strong> → <code>firestore-algolia-search</code> → <strong>확장 프로그램 재구성</strong> → <em>Indexable Fields</em> 맨 뒤에 추가:</p>
+    <pre><code>freeEntry,isFreeEntry</code></pre>
+    <p>기존 목록은 지우지 말고 <strong>뒤에 붙이기만</strong> 할 것. 현재 값:</p>
+    <pre><code>name,area,genre,genreStyles,tags,address,rating,reviewCount,thumbnailUrl,
+entryFeeMin,entryFeeMax,operatingHours,isActive,isVybeRecommended,
+isNonSmoking,favoriteCount,location</code></pre>
+  </div>
+</div>
+
+<div class="task" data-id="reindex">
+  <div class="top">
+    <input type="checkbox">
+    <div class="ttl">1-2. 전체 재색인</div>
+    <span class="who term">터미널</span>
+  </div>
+  <div class="body">
+    <pre><code>node scripts/reindex_clubs.js</code></pre>
+    <p><strong>1-1 을 한 뒤에</strong> 돌려야 한다. Indexable Fields 를 바꿔도 <u>기존 문서는 자동 반영되지 않는다</u> — 이 스크립트가 164개 문서를 전부 touch 해서 다시 밀어 넣는다.</p>
+  </div>
+</div>
+
+<div class="task" data-id="app-impl">
+  <div class="top">
+    <input type="checkbox">
+    <div class="ttl">1-3. 앱 구현 <span style="color:var(--green)">— 홈 섹션까지 완료</span></div>
+    <span class="who claude">Claude</span>
+  </div>
+  <div class="body">
+    <p><strong>2026-08-19 완료</strong> — 판정 함수 · 모델 · timed 쿼리 · 홈 '타임 무료입장' 섹션 + 공지사항 섹션. 테스트 36건 통과.<br>
+    <strong>남은 것</strong> — 입장비 무료 페이지 · 검색 '무료입장' 필터 · 클럽 상세 입장료 표기에 정책 반영. 나한테 이어서 시키면 된다.</p>
+    <table>
+      <tr><th>파일</th><th>할 일</th></tr>
+      <tr><td><code>data/models/free_entry_policy.dart</code></td><td><span class="yes">✓</span> 순수 함수 <code>statusAt(now)</code></td></tr>
+      <tr><td><code>test/free_entry_policy_test.dart</code></td><td><span class="yes">✓</span> 25건 — 자정 넘김 · 어제 창 · 경계 · 깨진 데이터</td></tr>
+      <tr><td><code>data/models/club_model.dart</code></td><td><span class="yes">✓</span> 필드 2개 + 재생성 완료</td></tr>
+      <tr><td><code>remote/firebase_club_datasource.dart</code></td><td><span class="yes">✓</span> <code>getTimedFreeEntryClubs()</code> 신설 / <span class="no">✗</span> <code>getFreeEntryClubs()</code> 교체는 남음</td></tr>
+      <tr><td><code>remote/algolia_club_search_datasource.dart</code></td><td><span class="no">✗</span> <code>_requiredFields</code> — <strong>1-1·1-2 뒤에</strong></td></tr>
+      <tr><td><code>home/widgets/home_free_time_clubs.dart</code></td><td><span class="yes">✓</span> 홈 '타임 무료입장' + 공지사항 섹션</td></tr>
+      <tr><td><code>free_entry/free_entry_screen.dart</code></td><td><span class="no">✗</span> '지금 무료' 뱃지 + 정렬</td></tr>
+      <tr><td><code>search/viewmodels/club_filter_viewmodel.dart</code></td><td><span class="no">✗</span> <code>ClubFilter.freeEntry</code> 교체</td></tr>
+      <tr><td><code>clubs/widgets/club_glass.dart</code> 외 5곳</td><td><span class="no">✗</span> 상세 입장료 표기</td></tr>
+    </table>
+    <p>끝나면:</p>
+    <pre><code>flutter pub run build_runner build --delete-conflicting-outputs
+flutter analyze   <span class="cmt"># 경고 0 유지</span>
+flutter test</code></pre>
+  </div>
+</div>
+
+<div class="note danger"><strong>순서를 뒤집으면</strong> — 1-3 의 <code>_requiredFields</code> 변경을 1-1·1-2 보다 먼저 내보내면 <u>모든 검색 결과가 <code>complete=false</code></u> 가 되어 예전 <code>getClub</code> 조인 폴백으로 떨어진다. 화면은 멀쩡한데 <strong>검색 한 번마다 Firestore read 가 10건씩 되살아난다</strong>.</div>
+
+<div class="task" data-id="verify-free">
+  <div class="top">
+    <input type="checkbox">
+    <div class="ttl">1-4. 실기기 확인</div>
+    <span class="who me">사람만</span>
+  </div>
+  <div class="body">
+    <p>클럽이 전부 <strong>목·금·토 22:00~06:00</strong> 만 영업이라, 무료 뱃지는 그 시간에만 보인다. 낮에 확인하려면 기기 시각을 <strong>금요일 밤 23:30</strong> 쯤으로 바꾸고 볼 것 (판정이 기기 로컬 시간 기준).</p>
+    <p>볼 것 — 입장비 무료 페이지 <strong>119개</strong>(상시 72 + 시간대 47) · '지금 무료' 뱃지 · 창 밖일 때 <strong>평상시 요금</strong>으로 돌아오는지.</p>
+  </div>
+</div>
+
+<!-- ================= 2. 데이터 구멍 ================= -->
+<h2><span class="num">2</span>비어 있는 데이터 <span class="sev soon">지금</span></h2>
+
+<div class="task" data-id="seed-perf">
+  <div class="top">
+    <input type="checkbox">
+    <div class="ttl">2-1. 공연 일정 다시 시드</div>
+    <span class="who term">터미널</span>
+  </div>
+  <div class="body">
+    <p><code>performances</code> 컬렉션이 <strong>0건</strong>이다. 장르 페이지(힙합)의 <strong>'오늘의 라인업' · Hero 캐러셀 · 포스터 live 뱃지가 전부 빈 화면</strong>이라는 뜻.</p>
+    <p>스케줄 함수 <code>cleanupPastPerformances</code>(매일 04:00)가 지난 공연을 지우는데, 새 공연이 안 들어와서 말라붙은 상태로 보인다.</p>
+    <pre><code>node scripts/seed_performances.js</code></pre>
+    <p class="cmt">※ 스크립트가 과거 날짜로 박혀 있으면 넣자마자 다음 새벽에 또 지워진다 — 날짜를 앞으로 잡고 돌릴 것. 확인 필요하면 나한테 스크립트 봐 달라고 하면 된다.</p>
+  </div>
+</div>
+
+<!-- ================= 3. 출시 블로커 ================= -->
+<h2><span class="num">3</span>출시 전 반드시 <span class="sev block">블로커</span></h2>
+<p class="lede">이거 셋은 안 하면 <strong>스토어에 못 올리거나, 올리면 안 된다</strong>.</p>
+
+<div class="task" data-id="sms-auth">
+  <div class="top">
+    <input type="checkbox">
+    <div class="ttl">3-1. 문자 인증 실제 연동 <span style="color:var(--red)">— 보안</span></div>
+    <span class="who claude">Claude</span> <span class="who me">사람만</span>
+  </div>
+  <div class="body">
+    <p><strong>현재 인증번호가 <code>'123456'</code> 하드코딩</strong>이고(<code>certification_number_handler.dart</code>), <code>phoneLogin</code> 함수는 <u>전화번호만 받으면 로그인 토큰을 내준다</u>.</p>
+    <p>즉 <strong>남의 전화번호를 알면 그 계정으로 로그인된다.</strong> 예전엔 "이미 있는 번호는 무조건 차단" 규칙이 우연히 이걸 막고 있었는데, 재로그인을 허용하면서 그 방벽이 사라졌다.</p>
+    <p>할 일 — Firebase 콘솔에서 <strong>Phone Authentication</strong> 활성화 + SMS 할당량·요금 확인(<span class="who me">사람만</span>), 앱·함수 연동(<span class="who claude">Claude</span>).</p>
+  </div>
+</div>
+
+<div class="task" data-id="appid">
+  <div class="top">
+    <input type="checkbox">
+    <div class="ttl">3-2. Android 패키지명 확정</div>
+    <span class="who me">사람만</span>
+  </div>
+  <div class="body">
+    <p><code>android/app/build.gradle.kts:27</code> 이 아직 <code>com.example.vybe</code> — <strong><code>com.example.</code> 로 시작하는 패키지는 Play 스토어가 거부</strong>한다.</p>
+    <p>먼저 <u>쓸 이름을 정해야</u> 한다(예: <code>com.vybe.app</code>). 정하면 나한테 말할 것 — gradle · Firebase Android 앱 등록 · <code>google-services.json</code> 재발급 · 카카오/네이버 SDK 패키지 설정까지 <strong>같이 바뀌어야</strong> 해서 한 곳만 고치면 로그인이 깨진다.</p>
+  </div>
+</div>
+
+<div class="task" data-id="ios-store">
+  <div class="top">
+    <input type="checkbox">
+    <div class="ttl">3-3. iOS <code>storeUrl</code> 채우기</div>
+    <span class="who me">사람만</span>
+  </div>
+  <div class="body">
+    <p>App Store Connect 등록 후 <code>appConfig/ios.storeUrl</code> 에 <code>https://apps.apple.com/kr/app/id{앱ID}</code> 를 넣는다.</p>
+    <p><strong>iOS 는 폴백이 없다</strong> — 비어 있으면 강제 업데이트 화면의 '업데이트' 버튼이 토스트만 띄우고 아무 데도 안 간다. (Android 는 비어 있어도 설치된 패키지명으로 스토어를 연다)</p>
+    <p class="cmt">지금 <code>appConfig</code> 두 문서 모두 값이 전부 비어 있음 = 버전 게이트가 사실상 꺼진 상태. 의도된 안전 상태이니 <strong>문서를 지우지는 말 것</strong>(지우면 게이트가 영구히 꺼진다).</p>
+  </div>
+</div>
+
+<!-- ================= 4. 출시 전 챙길 것 ================= -->
+<h2><span class="num">4</span>출시 전 챙길 것 <span class="sev later">다음</span></h2>
+
+<div class="task" data-id="privacy">
+  <div class="top">
+    <input type="checkbox">
+    <div class="ttl">4-1. 개인정보처리방침에 '30일 보관' 문구</div>
+    <span class="who me">사람만</span>
+  </div>
+  <div class="body">
+    <p>회원 탈퇴가 즉시 삭제가 아니라 <strong>30일 보관 후 파기</strong>다. 방침에 그 내용이 없으면 실제 동작과 고지가 어긋난다. 법무 확인 필요.</p>
+  </div>
+</div>
+
+<div class="task" data-id="deploy-app">
+  <div class="top">
+    <input type="checkbox">
+    <div class="ttl">4-2. 회원 탈퇴 앱 배포 + 실계정 종단 테스트</div>
+    <span class="who me">사람만</span>
+  </div>
+  <div class="body">
+    <p>서버는 2026-08-17 에 전부 배포됐고 앱만 안 나갔다. 실계정 테스트는 권한(<code>iam.serviceAccounts.signJwt</code>) 이 없어 못 했으니 <strong>앱 배포 후 실기기</strong>에서 볼 것 — 탈퇴 → 리뷰·사진 즉시 사라짐 → 재로그인 차단(재가입 가능일 안내).</p>
+  </div>
+</div>
+
+<div class="task" data-id="storage-rules">
+  <div class="top">
+    <input type="checkbox">
+    <div class="ttl">4-3. Storage Rules 배포 검증</div>
+    <span class="who term">터미널</span>
+  </div>
+  <div class="body">
+    <p>Firestore Rules 는 배포 확인했는데 <strong>Storage 는 확인 못 했다</strong>.</p>
+    <pre><code>firebase deploy --only storage</code></pre>
+    <p>확인할 것 — <code>promotions/**</code> · <code>notices/**</code> 경로 규칙이 들어 있는지.</p>
+  </div>
+</div>
+
+<div class="task" data-id="location-chip">
+  <div class="top">
+    <input type="checkbox">
+    <div class="ttl">4-4. 입장비 무료 · 서비스 음료 화면 위치 연동</div>
+    <span class="who claude">Claude</span>
+  </div>
+  <div class="body">
+    <p>두 화면의 위치 칩이 아직 <strong>'홍대' 고정</strong>이다. 그런데 라벨만 바꾸면 안 된다 — 이 화면들은 좌표가 아니라 <u>지역 간 거리표</u>(홍대·강남·이태원·압구정·건대)로 거리를 재서, 표에 없는 지역('신촌'·'내 주변')이 오면 <strong>거리가 전부 0</strong> 이 된다.</p>
+    <p>먼저 카드 뷰모델에 클럽 좌표를 실어 실제 haversine 거리로 바꾸는 작업이 선행돼야 한다.</p>
+  </div>
+</div>
+
+<!-- ================= 5. 어드민 페이지 ================= -->
+<h2><span class="num">5</span>어드민 페이지 (별도 프로젝트) <span class="sev later">나중</span></h2>
+<p class="lede">지금은 전부 <code>scripts/*.js</code> 를 직접 돌려서 처리 중. 웹 어드민이 생기면 여기 모아 붙일 것.</p>
+<table>
+  <tr><th>기능</th><th>왜 필요한가</th></tr>
+  <tr><td>클럽 <code>freeEntry</code> 편집 (요일·시간)</td><td>지금 데이터는 해시로 만든 <strong>샘플</strong>이라 실제 클럽 정책과 무관. <span class="no">⚠</span> <code>freeEntry</code> 와 <code>isFreeEntry</code> 를 <strong>반드시 같이</strong> 써야 한다 (트리거가 없다)</td></tr>
+  <tr><td>공지 · 프로모션 작성</td><td>현재 앱은 읽기 전용, 쓰기 경로가 seed 스크립트뿐</td></tr>
+  <tr><td>버전 정책 편집 (<code>appConfig</code>)</td><td>강제 업데이트를 콘솔 직접 편집으로 켜는 건 위험 — 값 하나로 전 유저가 잠긴다</td></tr>
+  <tr><td><code>pendingDeletion</code> 조회 · 즉시 파기</td><td>탈퇴 대기 계정을 운영에서 볼 방법이 없음</td></tr>
+  <tr><td>편의시설 실제 데이터 입력</td><td>현재 <code>info.facilities</code> 도 clubId 해시로 만든 샘플</td></tr>
+</table>
+
+<!-- ================= 6. 문서 ================= -->
+<h2><span class="num">6</span>문서 정리 <span class="sev later">나중</span></h2>
+<div class="task" data-id="doc-fix">
+  <div class="top">
+    <input type="checkbox">
+    <div class="ttl">6-1. <code>CLAUDE.md</code> '미구현' 목록 정리</div>
+    <span class="who claude">Claude</span>
+  </div>
+  <div class="body">
+    <p>실측해 보니 <strong>이미 끝난 항목이 미구현으로 남아 있다</strong> — 공지·프로모션·검색 트렌드 배포, 편의시설 seed, <code>searchLogs</code> TTL, reviews collectionGroup 인덱스가 전부 완료 상태다.</p>
+    <p>이대로 두면 다음에 이 문서를 근거로 작업할 때 <u>이미 한 일을 또 하거나, 안 한 일을 했다고 착각</u>한다. 나한테 "미구현 목록 실제 상태로 정리해줘" 라고 하면 된다.</p>
+  </div>
+</div>
+
+<footer>
+  <p>체크 상태는 이 브라우저에만 저장된다(localStorage). <button class="reset" id="reset">전체 초기화</button></p>
+  <p>설계 상세 → <code>firebase_structure.html</code> · 작업 지침 → <code>CLAUDE.md</code></p>
+</footer>
+
+</main>
+<script>
+(function(){
+  var KEY='vybe-todo-v1';
+  var saved={};
+  try{ saved=JSON.parse(localStorage.getItem(KEY)||'{}'); }catch(e){ saved={}; }
+  var tasks=[].slice.call(document.querySelectorAll('.task'));
+
+  function paint(){
+    var done=0;
+    tasks.forEach(function(t){
+      var cb=t.querySelector('input[type=checkbox]');
+      t.classList.toggle('done',cb.checked);
+      if(cb.checked) done++;
+    });
+    document.getElementById('progress').innerHTML=
+      '완료 <b>'+done+'</b> / '+tasks.length+' 개';
+  }
+
+  tasks.forEach(function(t){
+    var id=t.dataset.id, cb=t.querySelector('input[type=checkbox]');
+    cb.checked=!!saved[id];
+    cb.addEventListener('change',function(){
+      saved[id]=cb.checked;
+      try{ localStorage.setItem(KEY,JSON.stringify(saved)); }catch(e){}
+      paint();
+    });
+  });
+
+  document.getElementById('reset').addEventListener('click',function(){
+    saved={};
+    try{ localStorage.removeItem(KEY); }catch(e){}
+    tasks.forEach(function(t){ t.querySelector('input[type=checkbox]').checked=false; });
+    paint();
+  });
+
+  paint();
+})();
+</script>
+</body>
+</html>

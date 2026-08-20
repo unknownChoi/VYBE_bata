@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:vybe/data/models/free_entry_policy.dart';
 import 'package:vybe/data/models/operating_hours.dart';
 import 'package:vybe/data/models/service_drink.dart';
 
@@ -38,9 +39,19 @@ abstract class ClubModel with _$ClubModel {
     @Default(false) bool isNonSmoking,
     @Default(ServiceDrink.none) ServiceDrink serviceDrink,
     @Default('') String freeEntryCondition,
+    /// 무료입장 정책 — 상시 / 시간대 / 없음. 지금 무료인지는 `freeEntry.statusAt()`.
+    @Default(FreeEntryPolicy.none) FreeEntryPolicy freeEntry,
+    /// `freeEntry.type != none` 파생값. 쿼리·필터 전용 (판정에는 쓰지 않는다).
+    @Default(false) bool isFreeEntry,
     required DateTime createdAt,
     required DateTime updatedAt,
   }) = _ClubModel;
+
+  /// 무료입장 조건 문구. 새 필드가 비면 레거시 `freeEntryCondition` 으로 폴백한다
+  /// (백필과 앱 배포 사이에 낀 문서가 문구를 잃지 않게).
+  String get freeEntryLabel => freeEntry.condition.isNotEmpty
+      ? freeEntry.condition
+      : freeEntryCondition;
 
   factory ClubModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
@@ -78,6 +89,9 @@ abstract class ClubModel with _$ClubModel {
       serviceDrink: ServiceDrink.fromMap(
           data['serviceDrink'] as Map<String, dynamic>?),
       freeEntryCondition: data['freeEntryCondition'] as String? ?? '',
+      freeEntry: FreeEntryPolicy.fromMap(
+          data['freeEntry'] as Map<String, dynamic>?),
+      isFreeEntry: data['isFreeEntry'] as bool? ?? false,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
@@ -121,6 +135,11 @@ abstract class ClubModel with _$ClubModel {
       serviceDrink:
           ServiceDrink.fromMap(_asStringMapOrNull(data['serviceDrink'])),
       freeEntryCondition: data['freeEntryCondition'] as String? ?? '',
+      // ⚠ Algolia Indexable Fields 에 freeEntry/isFreeEntry 가 아직 없다.
+      //   검색 hit 에는 안 실려 오므로 여기선 기본값(none)이 된다 —
+      //   Extension 설정 + 재색인 후에 _requiredFields 에도 추가할 것.
+      freeEntry: FreeEntryPolicy.fromMap(_asStringMapOrNull(data['freeEntry'])),
+      isFreeEntry: data['isFreeEntry'] as bool? ?? false,
       createdAt: _parseSearchDate(data['createdAt']),
       updatedAt: _parseSearchDate(data['updatedAt']),
     );

@@ -106,32 +106,38 @@ class VybeConfirmDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        // 스크림 — 탭하면 취소.
-        Positioned.fill(
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => Navigator.of(context).pop(false),
-            child: BackdropFilter(
-              filter: ui.ImageFilter.blur(
-                sigmaX: _kScrimSigma,
-                sigmaY: _kScrimSigma,
+    // showGeneralDialog는 showDialog와 달리 Material을 씌워 주지 않는다.
+    // Material 조상이 없으면 Text가 전부 노란 이중 밑줄로 그려지므로
+    // 배경을 안 칠하는 transparency 타입으로 감싼다.
+    return Material(
+      type: MaterialType.transparency,
+      child: Stack(
+        children: [
+          // 스크림 — 탭하면 취소.
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => Navigator.of(context).pop(false),
+              child: BackdropFilter(
+                filter: ui.ImageFilter.blur(
+                  sigmaX: _kScrimSigma,
+                  sigmaY: _kScrimSigma,
+                ),
+                child: const ColoredBox(color: Color(0xA80E0D12)),
               ),
-              child: const ColoredBox(color: Color(0xA80E0D12)),
             ),
           ),
-        ),
-        Center(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 24.w),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: _kMaxWidth.w),
-              child: _card(context),
+          Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24.w),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: _kMaxWidth.w),
+                child: _card(context),
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

@@ -58,6 +58,28 @@ class FirebaseClubDataSource {
     return snapshot.docs.map(ClubModel.fromFirestore).toList();
   }
 
+  /// **시간대 무료입장**(freeEntry.type='timed') 클럽 목록. 홈 '이 시간에만 무료입장' 소스.
+  ///
+  /// 상시 무료(always)는 뺀다 — 이 섹션은 "지금/곧 무료가 되는 시간창"을 보여주는
+  /// 곳이라 24시간 무료인 클럽이 섞이면 시간 표기가 의미를 잃는다.
+  /// (상시 무료까지 모두 보려면 입장비 무료 페이지 [getFreeEntryClubs])
+  ///
+  /// 등호 2개(isActive, freeEntry.type)라 복합 인덱스 없이 단일 필드 인덱스로 처리된다.
+  /// 지금 무료인지 판정은 서버가 못 한다(요일×시:분×자정 넘김) — `FreeEntryPolicy`가 한다.
+  Future<List<ClubModel>> getTimedFreeEntryClubs() async {
+    logFirebaseAccess(
+      file: 'firebase_club_datasource.dart',
+      service: "Firestore(clubs) [where isActive=true, freeEntry.type='timed']",
+      purpose: '홈 시간대 무료입장 클럽 목록 조회',
+    );
+    final snapshot = await _firestore
+        .collection('clubs')
+        .where('isActive', isEqualTo: true)
+        .where('freeEntry.type', isEqualTo: 'timed')
+        .get();
+    return snapshot.docs.map(ClubModel.fromFirestore).toList();
+  }
+
   /// 힙합 클럽 목록(genre=힙합). 힙합 페이지 인기 클럽 TOP 10 데이터 소스.
   /// 정렬(평점/리뷰순)·상위 N개는 화면에서 처리.
   Future<List<ClubModel>> getHipHopClubs() async {

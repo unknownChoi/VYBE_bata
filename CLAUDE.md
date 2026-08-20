@@ -235,6 +235,7 @@ clubs 쓰기 → Firebase Extension(firestore-algolia-search) → Algolia `clubs
   Indexable Fields: name,area,genre,genreStyles,tags,address,rating,reviewCount,
   thumbnailUrl,entryFeeMin,entryFeeMax,operatingHours,isActive,isVybeRecommended,
   isNonSmoking,favoriteCount,location
+  (⚠ `freeEntry`·`isFreeEntry`는 **아직 미추가** — 시간대별 무료입장 앱 구현 전에 추가 + 재색인 필요)
 - **Firestore 조인 제거 (2026.07.31)** — 목록 카드·필터·정렬·지도 핀에 필요한 필드를
   전부 인덱싱해 검색 시 Firestore 문서 read가 0이 됨. 필요 필드 목록은
   `AlgoliaClubSearchDataSource._requiredFields` (단일 소스).
@@ -497,6 +498,21 @@ ElevatedButton(onPressed: () {}, child: Text('로그인'))
   - 배포 순서·주의는 아래 '미구현' 항목 참고. 상세 설계는 `firebase_structure.html#account-deletion`
 
 ### 미구현 / 진행 중 ✗
+- **시간대별 무료입장 — 홈 섹션까지 완료, 나머지 화면 미적용 (2026.08.19)**
+  Firestore `clubs`에 `freeEntry`·`isFreeEntry` 배정 완료(164개, timed 47).
+  **완료** — `data/models/free_entry_policy.dart`(순수 함수 `statusAt()` +
+  `test/free_entry_policy_test.dart` 25건), `ClubModel.freeEntry`·`isFreeEntry`,
+  `getTimedFreeEntryClubs()`, 홈 '이 시간에만 무료입장' 섹션(`home/widgets/home_free_time_clubs.dart`).
+  남은 것은 **순서대로**:
+  ① Algolia Extension Indexable Fields에 `freeEntry`·`isFreeEntry` 추가 → `node scripts/reindex_clubs.js`
+  ② 앱 `AlgoliaClubSearchDataSource._requiredFields`에 두 필드 추가 (①보다 먼저 하면 **모든 검색 hit이
+  `complete=false`** → `getClub` 조인 폴백으로 read 부활). 그때까지 검색 hit의 `freeEntry`는 `none`
+  ③ 나머지 화면 — 입장비 무료 페이지(`getFreeEntryClubs()`를 `isFreeEntry==true`로 교체 + timed 표기),
+  `ClubFilter.freeEntry`, 클럽 상세 `formatEntryFee` 계열 표기
+  ④ 어드민 편집 UI (요일·시간 입력 + `isFreeEntry` 동시 쓰기)
+  - Rules·인덱스·Cloud Functions 변경 **없음** (집계 아님 · clubs 쓰기는 어드민 전용 · 등호 2개라 복합 인덱스 불필요)
+  - 구버전 앱은 `entryFeeMin==0`만 보므로 timed 클럽이 무료 목록에서 **안 보일 뿐**(누락) 오표기는 아니다
+    → 강제 업데이트 사안 아님. 상세 설계는 `firebase_structure.html#feature-free-entry`
 - 회원 탈퇴 잔여 작업 — **서버는 2026.08.17 전부 배포 완료**
   (백필 4865건 · 인덱스 · Rules · Functions 15개 · 스케줄 잡 ENABLED).
   남은 것 ① **앱 빌드·배포** (`isHidden` 쿼리 필터와 탈퇴 화면이 여기 들어 있다)
@@ -787,8 +803,10 @@ operatingHours      : object    // 요일별 영업시간
                                 //   휴무일: { isOpen: false }
 closeTime           : string    // (레거시) 일부 클럽에 존재하는 단일 마감시각 필드.
                                 //   영업시간 표시는 operatingHours 기준 — closeTime 신규 사용 금지
-entryFeeMin         : number    // 입장료 최소 (원, 0이면 무료)
-entryFeeMax         : number    // 입장료 최대 (원)
+entryFeeMin         : number    // 평상시 입장료 최소 (원, 0이면 상시 무료)
+                                //   ⚠ freeEntry.type='timed' 클럽은 0으로 두지 말 것 — 무료 시간이 끝났을 때
+                                //     보여 줄 요금이 사라지고, 구버전 앱이 상시 무료로 오인한다
+entryFeeMax         : number    // 평상시 입장료 최대 (원)
 heroImageUrls       : array     // 상단 슬라이더 이미지 URL 목록 (상세 페이지 히어로)
 imageUrls           : array     // 갤러리(사진탭) 이미지 URL 목록
 menuBoardUrls       : array     // 메뉴판 이미지 URL 목록
@@ -803,14 +821,44 @@ serviceDrink        : object    // 무료 서비스 음료 정보 (서비스 음
                                 //   comment   : 제공 코멘트 (예: "1인 음료 무제한", "테이블당 맥주 6병")
                                 //   drinks    : 음료 종류 ["양주","샴페인","칵테일","맥주","와인"]
                                 //   서비스 음료 페이지: isOffered=true 필터 + drinks로 종류 필터
-freeEntryCondition  : string    // 입장비 무료 조건 코멘트 (입장비 무료 페이지 데이터 소스)
+freeEntryCondition  : string    // (레거시) 입장비 무료 조건 코멘트. freeEntry.condition으로 이관됨
                                 //   예: "여성 무료입장", "새벽 2시까지 무료", "게스트리스트 등록 시 무료"
-                                //   입장비 무료(entryFeeMin=0) 클럽마다 서로 다른 코멘트. 빈 값이면 '입장비 무료' fallback
                                 //   seed_free_entry.js로 배정 (entryFeeMin=0 클럽 대상)
-                                //   입장비 무료 페이지: isActive=true + entryFeeMin=0 필터 (getFreeEntryClubs)
+                                //   앱은 freeEntry.condition이 비었을 때만 폴백으로 읽는다 — 다음 배포에서 제거
+freeEntry           : object    // 무료입장 정책 (필드 없으면 type='none'으로 간주)
+                                //   { type: string, condition: string, windows: array }
+                                //   type      : "none" | "always" | "timed"
+                                //     always : 상시 무료(entryFeeMin=0) / timed : 특정 시간대만 무료
+                                //   condition : 조건 코멘트 (예: "자정 이전 입장 무료")
+                                //   windows   : type='timed'일 때만. [{ days, start, end, label }]
+                                //     days  : ["thu","fri","sat"] — operatingHours와 같은 키. 빈 배열이면 매일
+                                //     start : "22:00" 포함 / end : "01:00" 미포함
+                                //     end <= start 면 자정을 넘긴 창 — 창은 **시작 요일**에 속한다
+                                //       (금 23:00~02:00 은 토 01:00 도 무료 → 판정은 어제 창도 같이 봐야 한다)
+                                //   ⚠ 지금 무료인지 판정은 앱 순수 함수 FreeEntryPolicy.statusAt() 단일 소스.
+                                //     Firestore는 "요일 × 시:분 × 자정 넘김"을 쿼리할 수 없다
+                                //   ⚠ 무료 뱃지는 영업 중일 때만 표시 — 문 닫은 클럽의 '지금 무료'는 거짓 정보
+                                //   홈 '이 시간에만 무료입장'은 getTimedFreeEntryClubs()
+                                //     (isActive=true + freeEntry.type='timed') — 상시 무료는 뺀다
+isFreeEntry         : boolean   // = (freeEntry.type != "none") 파생값
+                                //   입장비 무료 페이지 쿼리(isActive=true + isFreeEntry=true) · 검색 '무료입장'
+                                //   필터 · Algolia 인덱스 전용. 등호 2개라 복합 인덱스 불필요
+                                //   ⚠ 트리거로 만들지 않는다 — clubs write가 Algolia Extension 동기화를 다시
+                                //     태워 쓰기·색인이 2배가 된다(구 onClubWritten을 지운 이유와 같다).
+                                //     freeEntry를 쓰는 쪽(seed·어드민)이 반드시 같이 쓴다
 createdAt           : timestamp
 updatedAt           : timestamp
 ```
+> **시간대별 무료입장 (2026.08.18 데이터 배정 완료 · 앱 미구현)** — `node scripts/seed_free_entry_windows.js`로
+> 전 클럽 164개에 `freeEntry`·`isFreeEntry`를 채웠다. 배정은 **지역별로 유료 클럽(`entryFeeMin>0`)의 절반**
+> (홍대 16 · 강남 13 · 이태원 10 · 건대 6 · 신촌 2 = **timed 47** / always 72 / none 45).
+> 상시 무료 클럽을 timed 후보에서 뺀 이유는 무료 시간이 끝났을 때 보여 줄 평상시 요금이 0원이라 없기 때문.
+> 선정·시간대 모두 clubId 해시 기반이라 재실행해도 같은 결과(`--force` 재배정, `--dry` 확인만).
+> ⚠ **창(window)은 전부 영업시간 안에 둔다** — DB의 164개 클럽은 전부 **목·금·토만 영업**
+> (목·금 22:00~06:00, 토 22:00~05:00, 월·화·수·일 휴무). 밖에 창을 두면(오픈런 20:00~22:00, 주중 무료 등)
+> '지금 무료'가 영영 안 뜬다. 영업일이 늘면 패턴 풀도 같이 늘릴 것.
+> 실제 조사 데이터가 아니라 화면 확인용 샘플 — 운영 데이터는 어드민 편집 UI로 덮어쓴다.
+> 설계 상세는 `firebase_structure.html#feature-free-entry`.
 
 #### clubs/{clubId}/info/{clubId}
 ```

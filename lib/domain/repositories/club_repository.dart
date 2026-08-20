@@ -28,6 +28,9 @@ abstract class ClubRepository {
   Future<List<ClubModel>> getActiveClubs();
   Future<List<ClubModel>> getServiceDrinkClubs();
   Future<List<ClubModel>> getFreeEntryClubs();
+
+  /// 시간대 무료입장(freeEntry.type='timed') 클럽. 홈 '이 시간에만 무료입장' 섹션.
+  Future<List<ClubModel>> getTimedFreeEntryClubs();
   Future<List<ClubModel>> getHipHopClubs();
   Stream<List<ClubModel>> watchActiveClubs();
   Future<ClubModel?> getClub(String clubId);

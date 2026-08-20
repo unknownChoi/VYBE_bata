@@ -151,6 +151,7 @@
   .pill.pk { background: rgba(139,92,246,.2); color: var(--purple-light); }
   .pill.fk { background: rgba(96,165,250,.15); color: var(--blue); }
   .pill.legacy { background: rgba(148,148,184,.15); color: var(--muted); }
+  .pill.plan { background: rgba(96,165,250,.15); color: var(--blue); }
 
   .flow {
     background: var(--panel);
@@ -306,6 +307,7 @@
   <a href="#feature-banner" class="sub">배너 → 프로모션 상세</a>
   <a href="#feature-notice" class="sub">공지사항 게시 제어</a>
   <a href="#feature-performance" class="sub">공연 일정 · 장르 페이지</a>
+  <a href="#feature-free-entry" class="sub">시간대별 무료입장 (앱 미구현)</a>
 
   <a class="group">Firestore</a>
   <a href="#firestore" class="sub">컬렉션 전체 맵</a>
@@ -1105,6 +1107,144 @@ photos.userId     COLLECTION + COLLECTION_GROUP                     <span class=
   <p>인덱스는 <code>performances(genre, date, startAt)</code>. 집계 필드가 없어 트리거는 불필요하다. 장르 페이지 구조는 EDM · K-POP 에 그대로 재사용할 수 있다.</p>
 </section>
 
+<!-- ========================= FEATURE: FREE ENTRY WINDOW ========================= -->
+<section id="feature-free-entry">
+  <h2>시간대별 무료입장 <span class="pill pk">데이터 · 홈 섹션 완료</span> <span class="pill plan">나머지 화면 미적용</span></h2>
+  <p>요구는 둘이다 — ① 일정 <strong>시간대</strong>에는 입장비가 무료인 클럽이 있다 ② 그 시간이 아니면 <strong>일반 입장비</strong>. 지금 스키마엔 시간축이 없어 <code>entryFeeMin == 0</code> 하나로 '무료'를 표현하고 있고, 이 값은 <u>켜면 24시간 무료</u>다. 그래서 필드를 하나 더 얹는 게 아니라 <strong>의미를 갈라야</strong> 한다.</p>
+
+  <h3>설계 핵심 3줄</h3>
+  <table>
+    <tr><th>결정</th><th>이유</th></tr>
+    <tr><td><code>entryFeeMin</code>·<code>entryFeeMax</code> 는 <strong>평상시(유료) 입장비</strong>로 의미 고정</td><td>요구 ②가 곧 이 필드다. 무료 여부를 여기 섞으면 "무료 시간이 끝나면 얼마인가"를 저장할 자리가 사라진다</td></tr>
+    <tr><td>무료는 <code>freeEntry</code> <strong>정책 객체</strong>가 단독 소유</td><td>상시 무료 · 시간대 무료 · 무료 없음을 한 필드에서 구분. 조건 코멘트도 같이 들고 다닌다</td></tr>
+    <tr><td>지금 무료인지는 <strong>클라 순수 함수</strong>가 판정, 쿼리는 불리언 하나만</td><td>Firestore 는 "요일 × 시:분 × 자정 넘김" 을 쿼리할 수 없다. 서버 쿼리는 <u>무료 정책을 가졌는가</u>까지만 좁히고, 지금 시각 판정은 메모리에서 끝낸다</td></tr>
+  </table>
+
+  <h3>스키마 — <code>clubs/{clubId}</code> 에 추가</h3>
+  <pre><code><span class="kw">freeEntry</span> : object          <span class="cmt"># 무료입장 정책 (없으면 type='none' 으로 간주)</span>
+  type       : string       <span class="cmt"># "none" | "always" | "timed"</span>
+  condition  : string       <span class="cmt"># 조건 코멘트 — 기존 freeEntryCondition 승계</span>
+                            <span class="cmt">#   예: "여성 무료입장", "게스트리스트 등록 시 무료"</span>
+  windows    : array        <span class="cmt"># type='timed' 일 때만. 비면 timed 여도 무료 아님</span>
+    [{ days  : ["fri","sat"]   <span class="cmt"># operatingHours 와 같은 키. 빈 배열 = 매일</span>
+       start : "22:00"         <span class="cmt"># 포함</span>
+       end   : "01:00"         <span class="cmt"># 미포함. end &lt;= start 면 자정 넘김</span>
+       label : "오픈런"  }]     <span class="cmt"># 선택. 창별 부가 문구</span>
+
+<span class="kw">isFreeEntry</span> : boolean       <span class="cmt"># = (type != "none") 파생값. 쿼리·Algolia 전용</span></code></pre>
+
+  <div class="note danger"><strong><code>timed</code> 클럽의 <code>entryFeeMin</code> 을 0 으로 만들지 말 것.</strong> 0 으로 두면 ① 무료 시간이 끝나도 화면이 계속 '무료' 로 뜨고 ② 구버전 앱·미변경 경로(<code>entryFeeMin == 0</code> 판정)가 <u>상시 무료로 오인</u>한다. <code>timed</code> 의 <code>entryFeeMin</code> 은 반드시 <strong>평상시 요금</strong>이다.</div>
+  <div class="note"><strong><code>type</code> 을 <code>windows</code> 유무로 대신하지 않는 이유</strong> — '상시 무료' 와 '시간대 무료인데 창을 아직 안 넣었다' 가 구분돼야 한다. 후자를 상시 무료로 읽으면 유료 클럽이 무료로 노출된다.</div>
+
+  <h3>판정 로직 (순수 함수 · 단일 소스)</h3>
+  <p>파일 <code>lib/data/models/free_entry_policy.dart</code> — <code>operating_hours.dart</code> 와 같은 자리, Firebase 의존 0. 테스트 <code>test/free_entry_policy_test.dart</code>.</p>
+  <pre><code><span class="kw">class</span> <span class="typ">FreeEntryStatus</span> {
+  <span class="kw">final bool</span> isFreeNow;          <span class="cmt">// 지금 이 순간 무료인가</span>
+  <span class="kw">final</span> <span class="typ">FreeEntryWindow</span>? active;  <span class="cmt">// 지금 걸린 창 (끝나는 시각 표기용)</span>
+  <span class="kw">final</span> <span class="typ">DateTime</span>? nextStartAt;    <span class="cmt">// 다음 무료 시작 (예: 오늘 22:00) — 없으면 null</span>
+}
+
+<span class="typ">FreeEntryStatus</span> statusAt(<span class="typ">DateTime</span> now)</code></pre>
+  <table>
+    <tr><th>규칙</th><th>내용</th></tr>
+    <tr><td>경계</td><td><code>start</code> 포함 · <code>end</code> 미포함 — <code>DayHours.isCurrentlyOpen</code> 과 동일 규칙</td></tr>
+    <tr><td>자정 넘김</td><td><code>end &lt;= start</code> 면 다음 날로 이어진다. 창은 <strong>시작 요일</strong>에 속한다 — 금 <code>23:00~02:00</code> 은 <u>토요일 01:00 도 무료</u></td></tr>
+    <tr><td>전날 검사</td><td>그래서 판정은 <strong>오늘 창 + 어제 창</strong> 을 같이 본다. 오늘 것만 보면 새벽 무료가 통째로 사라진다 (영업시간과 똑같은 함정)</td></tr>
+    <tr><td>다중 창</td><td>한 요일에 창이 여러 개 가능 (예: <code>20:00~21:00</code>, <code>02:00~04:00</code>). 겹치면 합집합</td></tr>
+    <tr><td>시계</td><td><strong>기기 로컬 시간</strong>(KST 가정). 서버 시각을 안 쓰는 이유 — 판정마다 왕복을 넣을 이유가 없고, 기기 시계가 틀리면 영업중 뱃지가 이미 틀린다. 같은 위험을 하나 더 늘리지 않는다</td></tr>
+  </table>
+  <div class="note danger"><strong>'지금 무료' 뱃지는 영업 중일 때만 띄운다</strong> — <code>operatingHours.today.isCurrentlyOpen == false</code> 인데 무료 창에 걸릴 수 있다(휴무일 · 창 설정 실수). 문 닫은 클럽에 '지금 무료' 는 <u>거짓 정보</u>다. 무료 창만 보고 그리지 말 것.</div>
+
+  <h3>화면 문구 매트릭스</h3>
+  <table>
+    <tr><th>상태</th><th>카드 / 상세 표기</th></tr>
+    <tr><td><code>timed</code> · 창 안 · 영업 중</td><td><strong>지금 무료</strong> · <code>01:00까지</code> (라임 액센트)</td></tr>
+    <tr><td><code>timed</code> · 오늘 창이 남음</td><td><code>22:00부터 무료</code> + 평상시 요금 병기</td></tr>
+    <tr><td><code>timed</code> · 오늘 창 없음</td><td>평상시 요금 + <code>금·토 22시 무료</code></td></tr>
+    <tr><td><code>always</code></td><td><code>무료입장</code> (현재 동작 그대로)</td></tr>
+    <tr><td><code>none</code></td><td>평상시 요금만</td></tr>
+  </table>
+  <div class="note"><strong>입장비 무료 페이지 정렬</strong> — '지금 무료' 를 맨 위로, 그다음 <code>nextStartAt</code> 이 가까운 순. 낮에 들어와도 목록이 비지 않고 "오늘 몇 시부터" 가 보인다.</div>
+  <div class="note"><strong>검색 필터 '무료입장' 칩은 <code>isFreeEntry</code> 기준</strong> — '지금 무료' 로 좁히지 않는다. 낮에 눌러 0건이 나오면 필터가 고장 난 것처럼 읽힌다. 대신 카드에 시간 뱃지를 달아 구분한다.</div>
+
+  <h3>수정 접점</h3>
+  <table>
+    <tr><th>레이어</th><th>파일</th><th>할 일</th></tr>
+    <tr><td>모델</td><td><code>data/models/free_entry_policy.dart</code> <span class="pill pk">완료</span></td><td><code>FreeEntryWindow</code> · <code>FreeEntryPolicy</code> · <code>statusAt()</code>. 순수 Dart(freezed 아님 — <code>OperatingHours</code> 와 동일 방식). 테스트 <code>test/free_entry_policy_test.dart</code> 25건</td></tr>
+    <tr><td>모델</td><td><code>data/models/club_model.dart</code> <span class="pill pk">완료</span></td><td><code>freeEntry</code>·<code>isFreeEntry</code> 필드 + 파싱. 레거시 폴백 <code>freeEntryLabel</code></td></tr>
+    <tr><td>datasource</td><td><code>remote/firebase_club_datasource.dart</code></td><td><span class="pill pk">완료</span> <code>getTimedFreeEntryClubs()</code> 신설 — <code>isActive==true + freeEntry.type=='timed'</code> (홈 섹션용, 상시 무료 제외).<br><span class="pill plan">남음</span> <code>getFreeEntryClubs()</code> 를 <code>isFreeEntry==true</code> 로 교체 (입장비 무료 페이지)</td></tr>
+    <tr><td>datasource</td><td><code>remote/algolia_club_search_datasource.dart</code></td><td><code>_requiredFields</code> 에 <code>freeEntry</code>·<code>isFreeEntry</code> 추가 — <strong>재색인 뒤에</strong> (아래 배포 순서 3)</td></tr>
+    <tr><td>화면</td><td><code>home/widgets/home_free_time_clubs.dart</code> <span class="pill pk">완료</span></td><td>홈 '이 시간에만 무료입장' — 지금 무료 pill(맥박) · 남은 시간 · <code>22:00 – 23:30</code> · 평상시 요금 취소선. 문구·정렬 조립은 <code>home/home_models.dart</code></td></tr>
+    <tr><td>화면</td><td><code>free_entry/free_entry_screen.dart</code></td><td>카드 <code>cond</code>/<code>cover</code> 를 <code>FreeEntryStatus</code> 기반으로. '지금 무료' 뱃지 + 정렬 키 추가</td></tr>
+    <tr><td>화면</td><td><code>search/viewmodels/club_filter_viewmodel.dart</code></td><td><code>ClubFilter.freeEntry</code> → <code>c.isFreeEntry</code></td></tr>
+    <tr><td>화면</td><td><code>clubs/widgets/club_glass.dart</code> <code>formatEntryFee()</code></td><td>정책을 받는 <code>formatEntryFeeWithPolicy()</code> 신설. 기존 함수는 <code>none</code> 경로로 유지 → 호출부 5곳(<code>renew_store_info_card</code> · <code>renew_info_tab</code> · <code>detail_home_tab</code> · <code>detail_info_tab</code> · <code>club_pin_card</code> · <code>club_nearby_list_item</code>)을 한 번에 안 고쳐도 화면이 안 깨진다</td></tr>
+    <tr><td>화면</td><td><code>search/widgets/club_list_item.dart</code></td><td><code>final free = club.entryFeeMin == 0</code> → 정책 판정으로 교체 (칩 색·문구 분기 지점)</td></tr>
+    <tr><td>스크립트</td><td><code>scripts/seed_free_entry_windows.js</code> <span class="pill pk">완료</span></td><td>마이그레이션 + 샘플 창 배정 — 164개 실행 완료 (아래)</td></tr>
+  </table>
+  <div class="note ok"><strong>Cloud Functions · Rules · 인덱스 변경 없음.</strong> 집계 필드가 아니라 트리거 불필요, <code>clubs</code> 쓰기는 이미 어드민 전용, 쿼리는 등호 2개(<code>isActive</code>·<code>isFreeEntry</code>)라 단일 필드 인덱스 병합으로 처리돼 복합 인덱스도 필요 없다.</div>
+  <div class="note danger"><strong><code>isFreeEntry</code> 파생값을 트리거로 만들지 않는다</strong> — <code>clubs</code> 문서에 트리거를 걸면 그 write 가 다시 Algolia Extension 동기화를 태워 클럽 문서당 쓰기·색인이 2배가 된다(구 <code>onClubWritten</code> 을 지운 이유와 같다). <code>freeEntry.type</code> 을 쓰는 쪽(seed 스크립트 · 어드민 페이지)이 <code>isFreeEntry</code> 를 <u>같이</u> 쓴다. 어드민 편집 UI 를 만들 때 이 한 쌍을 반드시 묶을 것.</div>
+
+  <h3>샘플 데이터 <span class="pill pk">배정 완료 · 2026-08-18</span></h3>
+  <p><code>node scripts/seed_free_entry_windows.js</code> — 전 클럽 <strong>164개</strong>에 <code>freeEntry</code>·<code>isFreeEntry</code> 를 채웠다. 배정은 <strong>지역별로 유료 클럽(<code>entryFeeMin &gt; 0</code>)의 절반</strong>.</p>
+  <table>
+    <tr><th>지역</th><th>전체</th><th>상시무료 <code>always</code></th><th>유료</th><th>→ 시간대 무료 <code>timed</code></th></tr>
+    <tr><td>홍대</td><td>57</td><td>26</td><td>31</td><td><strong>16</strong></td></tr>
+    <tr><td>강남</td><td>39</td><td>13</td><td>26</td><td><strong>13</strong></td></tr>
+    <tr><td>이태원</td><td>32</td><td>13</td><td>19</td><td><strong>10</strong></td></tr>
+    <tr><td>건대</td><td>26</td><td>14</td><td>12</td><td><strong>6</strong></td></tr>
+    <tr><td>신촌</td><td>10</td><td>6</td><td>4</td><td><strong>2</strong></td></tr>
+    <tr><td><strong>합계</strong></td><td><strong>164</strong></td><td><strong>72</strong></td><td><strong>92</strong></td><td><strong>47</strong></td></tr>
+  </table>
+  <p>결과 — <code>always</code> 72 · <code>timed</code> 47 · <code>none</code> 45. 입장비 무료 페이지 쿼리(<code>isActive==true + isFreeEntry==true</code>)는 <strong>119건</strong>이 잡히고, 복합 인덱스 없이 통과하는 것을 실제 <code>runQuery</code> 로 확인했다.</p>
+
+  <div class="note danger"><strong>상시 무료 클럽은 <code>timed</code> 후보에서 뺐다</strong> — "지역별 절반"의 모집단은 <u>유료 클럽</u>이다. <code>entryFeeMin == 0</code> 인 클럽을 <code>timed</code> 로 만들면 무료 시간이 끝났을 때 <strong>보여 줄 평상시 요금이 없다</strong>(0원). <code>timed</code> 의 <code>entryFeeMin</code> 은 반드시 평상시 요금이라는 규칙이 모집단을 결정한다.</div>
+
+  <div class="note danger"><strong>무료 창은 전부 영업시간 안에 넣었다</strong> — DB 의 164개 클럽은 전부 <u>목·금·토만 영업</u>(목·금 <code>22:00~06:00</code>, 토 <code>22:00~05:00</code>, 월·화·수·일 휴무)이다. 여기 밖에 창을 두면(예: 오픈런 <code>20:00~22:00</code>, 주중 무료) <strong>'지금 무료' 가 영영 안 뜬다</strong> — 무료 뱃지는 영업 중일 때만 그리기 때문. 그래서 패턴 풀은 <code>22:00~05:00</code> 구간 안에서만 만들었다. <u>영업일이 늘면 패턴 풀도 같이 늘려야 한다.</u></div>
+
+  <h3>배정된 시간대 패턴 (10종)</h3>
+  <table>
+    <tr><th>요일</th><th>시간</th><th>condition</th><th>비고</th></tr>
+    <tr><td>목·금·토</td><td><code>22:00~23:30</code></td><td>오픈런 1시간 30분 무료입장</td><td>—</td></tr>
+    <tr><td>목·금·토</td><td><code>22:00~00:00</code></td><td>자정 이전 입장 무료</td><td><code>end='00:00'</code> → 자정 넘김 분기가 <code>[22:00,24:00)</code> 로 평가</td></tr>
+    <tr><td>목·금·토</td><td><code>23:00~01:00</code></td><td>23시~1시 무료입장</td><td><strong>자정 넘김</strong> — 판정이 어제 창을 같이 보는지 검증하는 케이스</td></tr>
+    <tr><td>목·금</td><td><code>22:00~00:00</code></td><td>목·금 자정 전 무료입장</td><td>—</td></tr>
+    <tr><td>목</td><td><code>22:00~06:00</code></td><td>목요일 전 시간대 무료</td><td><strong>자정 넘김</strong> · 영업 종료까지 통째로</td></tr>
+    <tr><td>금·토</td><td><code>02:00~05:00</code></td><td>새벽 2시 이후 무료입장</td><td>—</td></tr>
+    <tr><td>금·토</td><td><code>03:00~05:00</code></td><td>금·토 새벽 3시 이후 무료</td><td>—</td></tr>
+    <tr><td>금·토</td><td><code>22:00~23:00</code> + <code>03:00~05:00</code></td><td>오픈 직후·새벽 2타임 무료</td><td><strong>창 2개</strong> — 다중 창 경로 검증</td></tr>
+    <tr><td>토</td><td><code>01:00~05:00</code></td><td>토요일 새벽 1시 이후 무료</td><td>토요일 창은 <u>금요일 밤에서 넘어온 시간</u>이 아니라 토요일 자체 시작</td></tr>
+    <tr><td>매일 (<code>days: []</code>)</td><td><code>22:00~23:00</code></td><td>오픈 1시간 한정 무료</td><td>영업일이 목·금·토뿐이라 실효는 같지만 <strong>'매일' 경로</strong>도 데이터에 넣어 뒀다</td></tr>
+  </table>
+  <div class="note"><strong>선정·패턴 모두 <code>clubId</code> 해시</strong> — 몇 번을 돌려도 같은 클럽은 같은 결과(<code>seed_facilities.js</code> 와 같은 방식). 패턴은 <code>hash(clubId + '#window')</code> 로 <u>선정에 쓴 해시와 분리</u>했다 — 같은 해시를 그대로 나누면 패턴이 한쪽으로 쏠린다. 재배정은 <code>--force</code>, 확인만 하려면 <code>--dry</code>.</div>
+  <div class="note"><strong>실제 시설·요금 조사 데이터가 아니라 화면 확인용 샘플</strong>이다(<code>seed_facilities.js</code> 와 같은 성격). 운영 데이터는 어드민 편집 UI 로 덮어쓴다.</div>
+
+  <div class="note ok"><strong>홈 '이 시간에만 무료입장' 섹션 완료 (2026-08-19)</strong> — <code>freeEntry.type=='timed'</code> 47곳을 가져와 <u>지금 무료 → 곧 시작 → 가까운 순</u>으로 정렬한다. 판정 기준 시각(<code>now</code>)은 목록 전체가 하나를 공유한다 — 카드마다 <code>DateTime.now()</code> 를 읽으면 정렬과 표기가 어긋난다. <strong>'지금 무료'는 영업 중일 때만</strong> 켜고(<code>operatingHours.today.isCurrentlyOpen</code>), 창 밖이면 <code>22:00부터</code>(오늘이 아니면 <code>금 22:00부터</code>) + 평상시 요금을 함께 보여준다.</div>
+  <div class="note danger"><strong>테스트에서 잡힌 실제 버그</strong> — <code>start == end</code> 이거나 시각 문자열이 깨진 창(<code>"22:99"</code>·<code>"25:00"</code>)이 <u>24시간 무료</u>로 평가됐다. 유료 클럽이 종일 무료로 노출되는 방향이라 <code>FreeEntryWindow.isValid</code> 로 막았다 — <strong>잘못된 창은 무시</strong>하고, 진짜 24시간 무료는 <code>type: 'always'</code> 로 쓴다.</div>
+  <h3>마이그레이션 · 배포 순서</h3>
+  <div class="tree"><span class="str">1.</span> node scripts/seed_free_entry_windows.js     <span class="yes">✓ 완료 (2026-08-18)</span>
+      entryFeeMin == 0  →  freeEntry.type = <span class="str">'always'</span>
+      freeEntryCondition →  freeEntry.condition (그대로 이관)
+      지역별 유료 클럽 절반   →  freeEntry.type = <span class="str">'timed'</span> + windows
+      전 클럽에 isFreeEntry 채움 (없는 문서 = 쿼리에 안 잡힘)
+
+<span class="str">2.</span> Algolia Extension Indexable Fields 에 freeEntry, isFreeEntry 추가
+   → node scripts/reindex_clubs.js               <span class="cmt"># 전체 touch 재색인</span>
+
+<span class="str">3.</span> 앱: _requiredFields 에 두 필드 추가                <span class="cmt"># 2 이후에 — 아직 안 함</span>
+
+<span class="str">4.</span> 앱 빌드·배포</div>
+  <div class="note danger"><strong>순서를 지켜야 하는 이유</strong> — ① 백필 전에 앱을 내보내면 <code>where isFreeEntry == true</code> 가 <u>필드 없는 문서를 못 잡아</u> 입장비 무료 페이지가 빈 화면이 된다(리뷰 <code>isHidden</code> 때와 같은 함정). ② 재색인 전에 <code>_requiredFields</code> 를 늘리면 <u>모든 검색 hit 이 <code>complete=false</code></u> 가 되어 <code>getClub</code> 조인 폴백으로 떨어진다 — 화면은 멀쩡하지만 Firestore read 가 검색당 10건씩 되살아난다.</div>
+  <div class="note"><strong>구버전 앱 호환</strong> — 구버전은 <code>entryFeeMin == 0</code> 만 본다. <code>always</code> 클럽은 그대로 동작하고, <code>timed</code> 클럽은 무료 목록에서 <u>안 보일 뿐</u>(누락)이지 잘못 표기되지는 않는다. 강제 업데이트를 걸 사안이 아니다.</div>
+  <div class="note"><code>freeEntryCondition</code> 은 <span class="pill legacy">레거시</span> 로 <strong>한 배포 동안 남긴다</strong> — 파싱은 <code>freeEntry.condition</code> 이 비었을 때만 폴백으로 읽고, 다음 배포에서 필드를 지운다. 백필과 앱 배포 사이에 낀 기기가 조건 코멘트를 잃지 않게.</div>
+
+  <h3>결정 안 한 것 (범위 밖)</h3>
+  <ul>
+    <li><strong>대상 조건</strong>('여성만' · '대학생 인증') 은 여전히 <code>condition</code> <u>문자열</u>이다. 시간 축만 구조화하고 대상 축은 안 건드린다 — 필터로 쓰지 않기 때문. 필터가 필요해지면 <code>target</code> 배열을 창 안에 추가하면 된다</li>
+    <li><strong>날짜 지정 무료</strong>(특정 하루 이벤트) 는 <code>promotions</code>/<code>performances</code> 쪽 일이다. <code>freeEntry</code> 는 <u>매주 반복</u>되는 정책만 담는다</li>
+    <li><strong>어드민 편집 UI</strong> — 요일 토글 + 시:분 입력 + <code>isFreeEntry</code> 동시 쓰기. 어드민 페이지 구축 때 함께</li>
+  </ul>
+</section>
+
 <!-- ========================= FIRESTORE MAP ========================= -->
 <section id="firestore">
   <h2>Firestore — 컬렉션 전체 맵</h2>
@@ -1183,7 +1323,7 @@ photos.userId     COLLECTION + COLLECTION_GROUP                     <span class=
     <tr><td class="field-name">reviewCount</td><td class="ftype">number</td><td>리뷰 수 <span class="pill auto">자동</span></td></tr>
     <tr><td class="field-name">operatingHours</td><td class="ftype">object</td><td>요일별 영업시간 <code>{ mon..sun }</code>, 각 요일 <code>{ isOpen, open?, close? }</code>. 예: <code>{ isOpen: true, open: "22:00", close: "06:00" }</code>, 휴무일 <code>{ isOpen: false }</code></td></tr>
     <tr><td class="field-name">closeTime</td><td class="ftype">string</td><td><span class="pill legacy">레거시</span> 단일 마감시각. 영업시간 표시는 operatingHours 기준 — 신규 사용 금지</td></tr>
-    <tr><td class="field-name">entryFeeMin</td><td class="ftype">number</td><td>입장료 최소 (원, 0이면 무료)</td></tr>
+    <tr><td class="field-name">entryFeeMin</td><td class="ftype">number</td><td>입장료 최소 (원, 0이면 상시 무료). <strong>시간대별 무료입장 도입 후에는 <u>평상시(유료) 요금</u></strong> — <code>freeEntry.type='timed'</code> 클럽은 0 으로 두지 말 것 (<a class="anchor-link" href="#feature-free-entry">계획 ↗</a>)</td></tr>
     <tr><td class="field-name">entryFeeMax</td><td class="ftype">number</td><td>입장료 최대 (원)</td></tr>
     <tr><td class="field-name">heroImageUrls</td><td class="ftype">array</td><td>상단 슬라이더 이미지 URL (상세 히어로)</td></tr>
     <tr><td class="field-name">imageUrls</td><td class="ftype">array</td><td>갤러리(사진탭) 이미지 URL</td></tr>
@@ -1194,7 +1334,9 @@ photos.userId     COLLECTION + COLLECTION_GROUP                     <span class=
     <tr><td class="field-name">isActive</td><td class="ftype">boolean</td><td>false면 앱에 노출 안 됨</td></tr>
     <tr><td class="field-name">isVybeRecommended</td><td class="ftype">boolean</td><td>vybe 추천 여부</td></tr>
     <tr><td class="field-name">serviceDrink</td><td class="ftype">object</td><td>무료 서비스 음료 정보 — <code>{ isOffered, comment, drinks }</code><br><code>isOffered</code>: 제공 여부(필터/노출 기준, 미제공이면 생략 or false) · <code>comment</code>: 코멘트(예: "1인 음료 무제한", "테이블당 맥주 6병") · <code>drinks</code>: 종류 배열 ["양주","샴페인","칵테일","맥주","와인"]. <strong>서비스 음료 페이지</strong> 데이터 소스 (isOffered=true 필터 + drinks 종류 필터)</td></tr>
-    <tr><td class="field-name">freeEntryCondition</td><td class="ftype">string</td><td>입장비 무료 조건 코멘트 (예: "여성 무료입장", "새벽 2시까지 무료", "게스트리스트 등록 시 무료"). 입장비 무료(entryFeeMin=0) 클럽마다 서로 다른 코멘트, 빈 값이면 '입장비 무료' fallback. <code>seed_free_entry.js</code>로 배정. <strong>입장비 무료 페이지</strong> 데이터 소스 (isActive=true + entryFeeMin=0 필터, getFreeEntryClubs)</td></tr>
+    <tr><td class="field-name">freeEntryCondition</td><td class="ftype">string</td><td>입장비 무료 조건 코멘트 (예: "여성 무료입장", "새벽 2시까지 무료", "게스트리스트 등록 시 무료"). 입장비 무료(entryFeeMin=0) 클럽마다 서로 다른 코멘트, 빈 값이면 '입장비 무료' fallback. <code>seed_free_entry.js</code>로 배정. <strong>입장비 무료 페이지</strong> 데이터 소스 (isActive=true + entryFeeMin=0 필터, getFreeEntryClubs). <span class="pill legacy">레거시 예정</span> → <code>freeEntry.condition</code> 으로 이관 (<a class="anchor-link" href="#feature-free-entry">계획 ↗</a>)</td></tr>
+    <tr><td class="field-name">freeEntry</td><td class="ftype">object</td><td><span class="pill pk">배정 완료</span> 무료입장 정책 — <code>{ type, condition, windows }</code>. <code>type</code>: <code>"none"|"always"|"timed"</code> · <code>windows</code>: <code>[{ days, start, end, label }]</code> (요일 배열 · <code>start</code> 포함 · <code>end</code> 미포함 · <code>end&lt;=start</code> 면 자정 넘김). 지금 무료인지 판정은 앱 순수 함수 <code>FreeEntryPolicy.statusAt()</code> 단일 소스 (<a class="anchor-link" href="#feature-free-entry">설계 ↗</a>)</td></tr>
+    <tr><td class="field-name">isFreeEntry</td><td class="ftype">boolean</td><td><span class="pill pk">배정 완료</span> = <code>freeEntry.type != "none"</code> 파생값. 입장비 무료 페이지 쿼리(<code>isActive==true + isFreeEntry==true</code>) · 검색 '무료입장' 필터 · Algolia 인덱스 전용. <strong>트리거로 만들지 않는다</strong> — <code>freeEntry</code> 를 쓰는 쪽(seed·어드민)이 같이 쓴다</td></tr>
     <tr><td class="field-name">createdAt</td><td class="ftype">timestamp</td><td>생성 시각</td></tr>
     <tr><td class="field-name">updatedAt</td><td class="ftype">timestamp</td><td>수정 시각</td></tr>
   </table>
@@ -1570,7 +1712,7 @@ photos.userId     COLLECTION + COLLECTION_GROUP                     <span class=
           → 관련도순 clubId 페이지 (10개씩, page 번호 커서)
           → clubId로 Firestore getClub 조인               <span class="cmt">// 인덱스엔 표시용 일부 필드만</span></div>
   <ul>
-    <li>Extension 설정: Collection Path <code>clubs</code>, Index <code>clubs</code>, Indexable Fields: name,area,genre,genreStyles,tags,address,rating,thumbnailUrl,entryFeeMin,isActive,favoriteCount</li>
+    <li>Extension 설정: Collection Path <code>clubs</code>, Index <code>clubs</code>, objectID = doc.id(= clubId), Indexable Fields: name,area,genre,genreStyles,tags,address,rating,reviewCount,thumbnailUrl,entryFeeMin,entryFeeMax,operatingHours,isActive,isVybeRecommended,isNonSmoking,favoriteCount,location<br><strong>⚠ <code>freeEntry</code>·<code>isFreeEntry</code> 는 아직 미추가</strong> — 시간대별 무료입장 앱 구현 전에 추가 + 재색인 (<a class="anchor-link" href="#feature-free-entry">계획 ↗</a>)</li>
     <li>진입점 <code>ClubRepositoryImpl.searchClubsPage</code> 하나 — viewmodel/화면은 엔진 무관</li>
     <li>비활성 클럽 제외는 조인 후 <code>isActive</code> 재확인으로 처리 — Algolia <code>filters</code>는 <code>attributesForFaceting</code> 미선언 속성이면 조용히 0건이라 사용 안 함</li>
     <li>.env 키: <code>ALGOLIA_APP_ID</code> / <code>ALGOLIA_SEARCH_API_KEY</code> — 없으면 검색 결과 빈 값</li>
