@@ -19,8 +19,7 @@ class FirebaseAuthDataSource {
   Stream<User?> get authStateChanges => _auth.authStateChanges();
   User? get currentUser => _auth.currentUser;
 
-  Future<({String customToken, bool isNewUser})> kakaoLogin(
-      String accessToken) async {
+  Future<LoginTokenResult> kakaoLogin(String accessToken) async {
     logFirebaseAccess(
       file: 'firebase_auth_datasource.dart',
       service: 'Functions(kakaoLogin)',
@@ -33,11 +32,12 @@ class FirebaseAuthDataSource {
     return (
       customToken: result.data['customToken'] as String,
       isNewUser: result.data['isNewUser'] as bool,
+      // 구버전 서버(복구 기능 배포 전)는 이 필드를 안 준다 → 복구 안 됨으로 본다.
+      restored: result.data['restored'] as bool? ?? false,
     );
   }
 
-  Future<({String customToken, bool isNewUser})> naverLogin(
-      String accessToken) async {
+  Future<LoginTokenResult> naverLogin(String accessToken) async {
     logFirebaseAccess(
       file: 'firebase_auth_datasource.dart',
       service: 'Functions(naverLogin)',
@@ -50,6 +50,8 @@ class FirebaseAuthDataSource {
     return (
       customToken: result.data['customToken'] as String,
       isNewUser: result.data['isNewUser'] as bool,
+      // 구버전 서버(복구 기능 배포 전)는 이 필드를 안 준다 → 복구 안 됨으로 본다.
+      restored: result.data['restored'] as bool? ?? false,
     );
   }
 
@@ -94,6 +96,7 @@ class FirebaseAuthDataSource {
       purgeAt: purgeMillis is int
           ? DateTime.fromMillisecondsSinceEpoch(purgeMillis)
           : null,
+      restorable: data['restorable'] as bool? ?? false,
     );
   }
 
@@ -108,7 +111,7 @@ class FirebaseAuthDataSource {
     return result.data['verified'] as bool;
   }
 
-  Future<({String customToken, bool isNewUser})> phoneLogin(String phone) async {
+  Future<LoginTokenResult> phoneLogin(String phone) async {
     logFirebaseAccess(
       file: 'firebase_auth_datasource.dart',
       service: 'Functions(phoneLogin)',
@@ -121,10 +124,13 @@ class FirebaseAuthDataSource {
     return (
       customToken: result.data['customToken'] as String,
       isNewUser: result.data['isNewUser'] as bool,
+      // 구버전 서버(복구 기능 배포 전)는 이 필드를 안 준다 → 복구 안 됨으로 본다.
+      restored: result.data['restored'] as bool? ?? false,
     );
   }
 
   /// 회원 탈퇴 요청. 데이터를 즉시 지우지 않고 30일 보관 후 파기한다.
+  /// 보관 중 같은 계정으로 다시 로그인하면 서버가 되살린다(복구).
   /// 반환값은 완전 파기 예정 시각(= 재가입 가능 시점).
   Future<DateTime> requestAccountDeletion(String reason) async {
     logFirebaseAccess(
@@ -142,6 +148,9 @@ class FirebaseAuthDataSource {
   /// 서버가 `failed-precondition` + `details.purgeAt` 으로 거부하므로,
   /// 화면이 원시 FirebaseFunctionsException 문구 대신 재가입 가능일을
   /// 안내할 수 있게 여기서 변환한다.
+  ///
+  /// 보관 기간이 남아 있으면 서버가 거부 대신 **복구**하므로, 이 예외는
+  /// 파기 시각이 이미 지난 계정에서만 올라온다(그때는 purgeAt 이 null).
   Future<HttpsCallableResult> _callGuardingDeletion(
     Future<HttpsCallableResult> Function() call,
   ) async {

@@ -5,6 +5,7 @@ import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/presentation/clubs/club_detail_route.dart';
 import 'package:vybe/presentation/clubs/performance_schedule_screen.dart';
+import 'package:vybe/presentation/clubs/renew/widgets/renew_free_entry.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_home_sections.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_store_info_card.dart';
 import 'package:vybe/presentation/clubs/table_pricing_screen.dart';
@@ -18,7 +19,10 @@ import 'package:vybe/presentation/common/widgets/vybe_spinner.dart';
 /// 클럽 상세 리뉴얼 · 홈 탭.
 ///
 /// 디자인 club_renew.jsx 홈 패널 순서 —
-/// 매장 정보 / 오늘의 라인업 / 테이블 / 메뉴 / 사진 / 주변 클럽 + 안내 문구.
+/// 시간대별 무료입장 / 매장 정보 / 오늘의 라인업 / 테이블 / 메뉴 / 사진 /
+/// 주변 클럽 + 안내 문구.
+///
+/// 무료입장 섹션은 정책이 있는 클럽에서만 나온다 (없으면 자리 자체가 없다).
 /// 카드 한 장씩 감싸지 않고 배경 위에 섹션을 32 간격으로 쌓는다.
 class RenewHomeTab extends ConsumerWidget {
   final String clubId;
@@ -53,7 +57,10 @@ class RenewHomeTab extends ConsumerWidget {
     final days = ref.watch(clubScheduleProvider(clubId)).value ?? const [];
     final lineup = days.isEmpty || days.first.acts.isEmpty ? null : days.first;
 
+    final freeEntry = RenewFreeEntrySection.maybeBuild(club);
+
     final sections = <Widget>[
+      if (freeEntry != null) freeEntry,
       RenewStoreInfoCard(club: club, info: info),
       if (lineup != null)
         RenewLineupSection(

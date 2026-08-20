@@ -3,9 +3,10 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/core/utils/url_utils.dart';
 import 'package:vybe/data/models/club_info_model.dart';
 import 'package:vybe/data/models/club_model.dart';
+import 'package:vybe/presentation/clubs/renew/widgets/renew_free_entry.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_hours_table.dart';
 import 'package:vybe/presentation/clubs/widgets/club_glass.dart'
-    show SubwayStationLine, formatEntryFee;
+    show SubwayStationLine;
 import 'package:vybe/presentation/common/renew/renew_glass.dart';
 import 'package:vybe/presentation/common/renew/renew_icons.dart';
 
@@ -116,25 +117,10 @@ class _RenewStoreInfoCardState extends State<RenewStoreInfoCard> {
                   ),
                 ),
               ),
-              // 입장료
+              // 입장료 — 무료입장 정책이 있으면 pill + 무료 시간대 한 줄이 붙는다
               RenewInfoRow(
                 svgPath: RenewIcons.ticket,
-                child: Row(
-                  children: [
-                    Text('입장료 ', style: RenewGlass.body(lineHeight: 20)),
-                    Text(
-                      formatEntryFee(
-                        min: club.entryFeeMin,
-                        max: club.entryFeeMax,
-                      ),
-                      style: RenewGlass.body(
-                        color: RenewGlass.t1,
-                        lineHeight: 20,
-                        weight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
+                child: RenewFeeRow(club: club),
               ),
               // 인스타그램
               RenewInfoRow(

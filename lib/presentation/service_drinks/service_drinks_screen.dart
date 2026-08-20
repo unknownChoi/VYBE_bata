@@ -66,20 +66,20 @@ class _DrinkClub implements ClubSortable {
   });
 
   _DrinkClub copyWithDist(double d) => _DrinkClub(
-        id: id,
-        name: name,
-        area: area,
-        genre: genre,
-        dist: d,
-        rating: rating,
-        perk: perk,
-        drinks: drinks,
-        open: open,
-        hours: hours,
-        thumbnailUrl: thumbnailUrl,
-        isVybeRecommended: isVybeRecommended,
-        gradient: gradient,
-      );
+    id: id,
+    name: name,
+    area: area,
+    genre: genre,
+    dist: d,
+    rating: rating,
+    perk: perk,
+    drinks: drinks,
+    open: open,
+    hours: hours,
+    thumbnailUrl: thumbnailUrl,
+    isVybeRecommended: isVybeRecommended,
+    gradient: gradient,
+  );
 }
 
 // 썸네일 없을 때 clubId 해시 기반 일관 그라데이션 fallback.
@@ -143,12 +143,12 @@ class _ServiceDrinksScreenState extends ConsumerState<ServiceDrinksScreen>
 
   // source(실데이터) → 내 위치 기준 거리 재계산 → 종류 필터 → 정렬.
   List<_DrinkClub> _filtered(List<_DrinkClub> source) => buildClubList(
-        source,
-        loc: _loc,
-        sort: _sort,
-        withDist: (c, d) => c.copyWithDist(d),
-        keep: (c) => _type == kFilterAll || c.drinks.contains(_type),
-      );
+    source,
+    loc: _loc,
+    sort: _sort,
+    withDist: (c, d) => c.copyWithDist(d),
+    keep: (c) => _type == kFilterAll || c.drinks.contains(_type),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -208,8 +208,8 @@ class _ServiceDrinksScreenState extends ConsumerState<ServiceDrinksScreen>
                         onSave: uid == null
                             ? null
                             : () => ref
-                                .read(favoriteViewModelProvider.notifier)
-                                .toggleFavorite(uid, c.id, saved),
+                                  .read(favoriteViewModelProvider.notifier)
+                                  .toggleFavorite(uid, c.id, saved),
                         onTap: () => openClubDetail(context, c.id),
                       ),
                     );
@@ -229,24 +229,30 @@ class _ServiceDrinksScreenState extends ConsumerState<ServiceDrinksScreen>
                         )
                       else if (clubsAsync.hasError)
                         Padding(
-                          padding:
-                              EdgeInsets.symmetric(vertical: 60.h, horizontal: 24.w),
+                          padding: EdgeInsets.symmetric(
+                            vertical: 60.h,
+                            horizontal: 24.w,
+                          ),
                           child: Text(
                             '서비스 음료 클럽을 불러오지 못했어요',
                             textAlign: TextAlign.center,
-                            style: VybeTypography.body4
-                                .copyWith(color: VybeColors.gray500),
+                            style: VybeTypography.body4.copyWith(
+                              color: VybeColors.gray500,
+                            ),
                           ),
                         )
                       else if (list.isEmpty)
                         Padding(
-                          padding:
-                              EdgeInsets.symmetric(vertical: 60.h, horizontal: 24.w),
+                          padding: EdgeInsets.symmetric(
+                            vertical: 60.h,
+                            horizontal: 24.w,
+                          ),
                           child: Text(
                             '해당 음료를 제공하는 클럽이 아직 없어요',
                             textAlign: TextAlign.center,
-                            style: VybeTypography.body4
-                                .copyWith(color: VybeColors.gray500),
+                            style: VybeTypography.body4.copyWith(
+                              color: VybeColors.gray500,
+                            ),
                           ),
                         ),
                       const VybeFooterNote(
@@ -311,7 +317,10 @@ class _Intro extends StatelessWidget {
               ),
               children: const [
                 TextSpan(text: '내 주변에서 '),
-                TextSpan(text: '무료 음료', style: TextStyle(color: _drink)),
+                TextSpan(
+                  text: '무료 음료',
+                  style: TextStyle(color: _drink),
+                ),
                 TextSpan(text: '\n주는 클럽'),
               ],
             ),
@@ -333,15 +342,18 @@ class _Intro extends StatelessWidget {
                       width: 7.r,
                       height: 7.r,
                       decoration: const BoxDecoration(
-                          color: _drink, shape: BoxShape.circle),
+                        color: _drink,
+                        shape: BoxShape.circle,
+                      ),
                     ),
                     SizedBox(width: 5.w),
                     Text(
                       '지금 제공 중',
                       style: VybeTypography.caption.copyWith(
-                          height: 14 / 12,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white),
+                        height: 14 / 12,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
                     ),
                   ],
                 ),
@@ -349,20 +361,25 @@ class _Intro extends StatelessWidget {
               SizedBox(width: 7.w),
               Text.rich(
                 TextSpan(
-                  style: VybeTypography.caption
-                      .copyWith(color: VybeColors.gray400),
+                  style: VybeTypography.caption.copyWith(
+                    color: VybeColors.gray400,
+                  ),
                   children: [
                     TextSpan(
-                        text: loc,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700)),
+                      text: loc,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                     const TextSpan(text: ' 근처 '),
                     TextSpan(
-                        text: '$count곳',
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700)),
+                      text: '$count곳',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -401,15 +418,17 @@ class _TypeFilter extends StatelessWidget {
               decoration: BoxDecoration(
                 color: sel ? _drink : VybeColors.gray900,
                 borderRadius: BorderRadius.circular(999.r),
-                border:
-                    sel ? null : Border.all(color: VybeColors.gray800),
+                border: sel ? null : Border.all(color: VybeColors.gray800),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (!isAll) ...[
-                    Icon(Icons.liquor_rounded,
-                        size: 13.r, color: sel ? _drinkInk : _drink),
+                    Icon(
+                      Icons.liquor_rounded,
+                      size: 13.r,
+                      color: sel ? _drinkInk : _drink,
+                    ),
                     SizedBox(width: 4.w),
                   ],
                   Text(
@@ -446,16 +465,21 @@ class _DrinkCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: ClipRRect(
-      borderRadius: BorderRadius.circular(18.r),
       child: Container(
         height: 208.h,
+        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: club.gradient,
           ),
+          borderRadius: BorderRadius.circular(18.r),
+        ),
+        // ⚠ 테두리는 자식 위(foregroundDecoration)에. decoration 에 두면 자식이
+        // 바깥 라운드렉트로 클립되면서 코너 호에서 선을 덮어, 직선부만 남고
+        // 모서리가 끊긴 것처럼 보인다. (CLAUDE.md '라운드 카드에 테두리' 참고)
+        foregroundDecoration: BoxDecoration(
           border: Border.all(color: VybeColors.gray800),
           borderRadius: BorderRadius.circular(18.r),
         ),
@@ -478,7 +502,11 @@ class _DrinkCard extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.bottomCenter,
                   end: Alignment.topCenter,
-                  colors: [Color(0xF50C0C0F), Color(0x400C0C0F), Colors.transparent],
+                  colors: [
+                    Color(0xF50C0C0F),
+                    Color(0x400C0C0F),
+                    Colors.transparent,
+                  ],
                   stops: [0.14, 0.56, 0.78],
                 ),
               ),
@@ -511,8 +539,11 @@ class _DrinkCard extends StatelessWidget {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.liquor_rounded,
-                              size: 14.r, color: _drinkInk),
+                          Icon(
+                            Icons.liquor_rounded,
+                            size: 14.r,
+                            color: _drinkInk,
+                          ),
                           SizedBox(width: 6.w),
                           Flexible(
                             child: Text(
@@ -520,8 +551,9 @@ class _DrinkCard extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: VybeTypography.button2.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                  color: _drinkInk),
+                                fontWeight: FontWeight.w800,
+                                color: _drinkInk,
+                              ),
                             ),
                           ),
                         ],
@@ -571,73 +603,82 @@ class _DrinkCard extends StatelessWidget {
                         ),
                       ),
                       child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // 이름·별점·평점은 텍스트 baseline 정렬 유지.
-                        Row(
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Flexible(
-                            child: Text(
-                              club.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: VybeTypography.heading4
-                                  .copyWith(color: Colors.white),
-                            ),
+                          // 이름·별점·평점은 텍스트 baseline 정렬 유지.
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.baseline,
+                            textBaseline: TextBaseline.alphabetic,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  club.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: VybeTypography.heading4.copyWith(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                              // VYBE 추천 뱃지 — 클럽 이름 옆.
+                              if (club.isVybeRecommended) ...[
+                                SizedBox(width: 6.w),
+                                const VybeRecommendBadge(size: 10),
+                              ],
+                              SizedBox(width: 8.w),
+                              Icon(
+                                Icons.star_rounded,
+                                size: 12.r,
+                                color: VybeColors.mainLime500,
+                              ),
+                              SizedBox(width: 3.w),
+                              Text(
+                                club.rating.toStringAsFixed(2),
+                                style: VybeTypography.caption.copyWith(
+                                  fontSize: 12.sp,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
                           ),
-                          // VYBE 추천 뱃지 — 클럽 이름 옆.
-                          if (club.isVybeRecommended) ...[
-                            SizedBox(width: 6.w),
-                            const VybeRecommendBadge(size: 10),
-                          ],
-                          SizedBox(width: 8.w),
-                          Icon(Icons.star_rounded,
-                              size: 12.r, color: VybeColors.mainLime500),
-                          SizedBox(width: 3.w),
-                          Text(
-                            club.rating.toStringAsFixed(2),
-                            style: VybeTypography.caption.copyWith(
-                                fontSize: 12.sp,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white),
+                          SizedBox(height: 7.h),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.place_rounded,
+                                size: 11.r,
+                                color: VybeColors.gray300,
+                              ),
+                              SizedBox(width: 3.w),
+                              Text(
+                                '${club.area} · ${club.dist.toStringAsFixed(1)}km',
+                                style: VybeTypography.caption.copyWith(
+                                  fontSize: 12.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: VybeColors.gray300,
+                                ),
+                              ),
+                              const VybeMetaDot(),
+                              Text(
+                                club.genre,
+                                style: VybeTypography.caption.copyWith(
+                                  fontSize: 12.sp,
+                                  color: VybeColors.gray400,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                  SizedBox(height: 7.h),
-                  Row(
-                    children: [
-                      Icon(Icons.place_rounded,
-                          size: 11.r, color: VybeColors.gray300),
-                      SizedBox(width: 3.w),
-                      Text(
-                        '${club.area} · ${club.dist.toStringAsFixed(1)}km',
-                        style: VybeTypography.caption.copyWith(
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w600,
-                            color: VybeColors.gray300),
-                      ),
-                      const VybeMetaDot(),
-                      Text(
-                        club.genre,
-                        style: VybeTypography.caption.copyWith(
-                            fontSize: 12.sp, color: VybeColors.gray400),
-                      ),
-                    ],
-                  ),
-                      ],
-                    ),
-                    ),
                     ),
                   ),
                 ),
               ),
+            ),
           ],
         ),
-      ),
       ),
     );
   }
 }
-

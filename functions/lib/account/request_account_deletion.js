@@ -1,8 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.requestAccountDeletion = void 0;
-exports.applyRatingDelta = applyRatingDelta;
-exports.applyFavoriteDelta = applyFavoriteDelta;
 const v1_1 = require("firebase-functions/v1");
 const admin = require("firebase-admin");
 const account_common_1 = require("./account_common");
@@ -102,7 +100,7 @@ async function hideReviews(uid) {
         batch.update(doc.ref, { isHidden: true });
     });
     for (const [clubId, delta] of deltas) {
-        await applyRatingDelta(clubId, -delta.sum, -delta.count);
+        await (0, account_common_1.applyRatingDelta)(clubId, -delta.sum, -delta.count);
     }
     return targets.length;
 }
@@ -149,38 +147,8 @@ async function hideFavorites(uid) {
         batch.update(doc.ref, { isHidden: true });
     });
     for (const [clubId, count] of perClub) {
-        await applyFavoriteDelta(clubId, -count);
+        await (0, account_common_1.applyFavoriteDelta)(clubId, -count);
     }
     return targets.length;
-}
-/** clubs/{clubId} 의 ratingSum·reviewCount 를 델타만큼 옮기고 rating 재계산. */
-async function applyRatingDelta(clubId, sumDelta, countDelta) {
-    const clubRef = admin.firestore().collection("clubs").doc(clubId);
-    await admin.firestore().runTransaction(async (tx) => {
-        var _a, _b, _c;
-        const snap = await tx.get(clubRef);
-        if (!snap.exists)
-            return;
-        const club = (_a = snap.data()) !== null && _a !== void 0 ? _a : {};
-        const newSum = Math.max(0, ((_b = club.ratingSum) !== null && _b !== void 0 ? _b : 0) + sumDelta);
-        const newCount = Math.max(0, ((_c = club.reviewCount) !== null && _c !== void 0 ? _c : 0) + countDelta);
-        tx.update(clubRef, {
-            ratingSum: newSum,
-            reviewCount: newCount,
-            rating: newCount > 0 ? Math.round((newSum / newCount) * 10) / 10 : 0,
-        });
-    });
-}
-/** clubs/{clubId} 의 favoriteCount 를 델타만큼 옮긴다 (0 미만 방지). */
-async function applyFavoriteDelta(clubId, delta) {
-    const clubRef = admin.firestore().collection("clubs").doc(clubId);
-    await admin.firestore().runTransaction(async (tx) => {
-        var _a, _b;
-        const snap = await tx.get(clubRef);
-        if (!snap.exists)
-            return;
-        const current = (_b = (_a = snap.data()) === null || _a === void 0 ? void 0 : _a.favoriteCount) !== null && _b !== void 0 ? _b : 0;
-        tx.update(clubRef, { favoriteCount: Math.max(0, current + delta) });
-    });
 }
 //# sourceMappingURL=request_account_deletion.js.map

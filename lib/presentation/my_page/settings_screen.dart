@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/core/storage/local_prefs.dart';
+import 'package:vybe/presentation/auth/terms/legal_documents.dart';
 import 'package:vybe/presentation/auth/terms/terms_detail_screen.dart';
 import 'package:vybe/presentation/auth/viewmodels/auth_viewmodel.dart';
 import 'package:vybe/presentation/common/renew/renew_glass.dart';
@@ -235,6 +236,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
+  void _openLegal(LegalDoc doc) =>
+      pushHidingNavBar<void>(context, TermsDetailScreen(doc: doc));
+
   Widget _accountGroup() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -246,14 +250,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           control: const _ValueChevron(),
           onTap: () => VybeToast.show(context, message: '고객센터는 준비 중이에요'),
         ),
+        // 법적 고지는 문서마다 별개다 — 한 화면에 뭉치면 어느 문서에 동의했는지
+        // 확인할 수 없다. 마케팅 동의(선택)는 알림 설정에서 다루므로 여기선 뺀다.
         _row(
           icon: RenewIcons.user,
-          label: '약관 및 개인정보 처리방침',
+          label: LegalDoc.terms.title,
           control: const _ValueChevron(),
-          onTap: () => pushHidingNavBar<void>(
-            context,
-            const TermsDetailScreen(title: '약관 및 개인정보 처리방침'),
-          ),
+          onTap: () => _openLegal(LegalDoc.terms),
+        ),
+        _row(
+          icon: RenewIcons.user,
+          label: LegalDoc.privacy.title,
+          control: const _ValueChevron(),
+          onTap: () => _openLegal(LegalDoc.privacy),
+        ),
+        _row(
+          icon: RenewIcons.user,
+          label: LegalDoc.location.title,
+          control: const _ValueChevron(),
+          onTap: () => _openLegal(LegalDoc.location),
         ),
         _row(
           icon: RenewIcons.logout,

@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_naver_login/flutter_naver_login.dart';
@@ -10,6 +11,8 @@ import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/auth/identity_verification/identity_verification_screen.dart';
 import 'package:vybe/presentation/auth/signup_flow.dart';
+import 'package:vybe/presentation/auth/terms/legal_documents.dart';
+import 'package:vybe/presentation/auth/terms/terms_detail_screen.dart';
 import 'package:vybe/presentation/auth/viewmodels/auth_viewmodel.dart';
 import 'package:vybe/presentation/auth/welcome/login_method_bottom_sheet.dart';
 import 'package:vybe/presentation/common/splash_logo_landing.dart';
@@ -37,7 +40,61 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
   static const _appleIconPath = 'assets/icons/auth/social_login_apple_icon.svg';
   static const _vybeWhiteLogo = 'assets/icons/common/vybe_white_logo.svg';
 
+  /// 가입 시 동의하게 되는 **필수** 문서. 마케팅 수신 동의(선택)는 넣지 않는다 —
+  /// "가입 시 동의합니다" 문구에 선택 동의를 섞으면 사실과 다르다.
+  static const _agreedDocs = [
+    LegalDoc.terms,
+    LegalDoc.privacy,
+    LegalDoc.location,
+  ];
+
   String? _loadingButton;
+
+  /// 약관 링크의 탭 인식기.
+  ///
+  /// [TapGestureRecognizer] 는 위젯이 아니라 직접 [dispose] 해야 한다 —
+  /// build 안에서 만들면 리빌드마다 새로 생겨 그대로 샌다.
+  late final Map<LegalDoc, TapGestureRecognizer> _legalTaps;
+
+  @override
+  void initState() {
+    super.initState();
+    _legalTaps = {
+      for (final doc in _agreedDocs)
+        doc: TapGestureRecognizer()..onTap = () => _openLegal(doc),
+    };
+  }
+
+  @override
+  void dispose() {
+    for (final recognizer in _legalTaps.values) {
+      recognizer.dispose();
+    }
+    super.dispose();
+  }
+
+  /// 약관 전문 화면을 연다.
+  ///
+  /// 로그인이 진행 중일 때는 막는다 — 소셜 SDK 창이 떠 있는 사이에 화면을
+  /// 더 쌓으면 콜백이 돌아왔을 때 어디로 보낼지가 어긋난다.
+  void _openLegal(LegalDoc doc) {
+    if (_loadingButton != null) return;
+    Navigator.push(
+      context,
+      SwipeBackPageRoute(builder: (_) => TermsDetailScreen(doc: doc)),
+    );
+  }
+
+  /// 밑줄 친 약관 링크 한 조각.
+  TextSpan _legalLink(LegalDoc doc) => TextSpan(
+    text: doc.title,
+    style: const TextStyle(
+      color: VybeColors.gray400,
+      decoration: TextDecoration.underline,
+      decorationColor: VybeColors.gray400,
+    ),
+    recognizer: _legalTaps[doc],
+  );
 
   /// 소셜 로그인 직후 분기.
   ///
@@ -47,10 +104,19 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
   ///
   /// [method] 는 본인인증 화면까지 따라간다 — 거기서 전화번호가 이미 쓰이고
   /// 있을 때 '같은 방식의 재로그인'인지 가르는 기준이다.
+  ///
+  /// 탈퇴 대기(보관 30일) 계정의 복구는 **서버 로그인 함수가 이미 끝냈다** —
+  /// 여기서는 결과만 알린다.
   Future<void> _afterSocialLogin(bool isNewUser, SignupMethod method) async {
-    final needsSignup = isNewUser ||
-        await ref.read(authViewModelProvider.notifier).needsProfileSetup();
+    final vm = ref.read(authViewModelProvider.notifier);
+    final needsSignup = isNewUser || await vm.needsProfileSetup();
     if (!mounted) return;
+
+    // 탈퇴 대기 계정이면 서버가 로그인 시점에 되살렸다(보관 30일 안일 때만).
+    // 조용히 복구하면 사용자가 탈퇴가 취소된 걸 모른다.
+    if (vm.accountRestored) {
+      VybeToast.show(context, message: kAccountRestoredMessage);
+    }
 
     if (needsSignup) {
       Navigator.push(
@@ -240,20 +306,20 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                     onTap: _loadingButton != null
                         ? null
                         : () => showLoginMethodBottomSheet(
-                              context,
-                              onIdentityLogin: () {
-                                Navigator.pop(context);
-                                Navigator.push(
-                                  context,
-                                  SwipeBackPageRoute(
-                                    builder: (_) =>
-                                        const IdentityVerificationScreen(
-                                      method: SignupMethod.identity,
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
+                            context,
+                            onIdentityLogin: () {
+                              Navigator.pop(context);
+                              Navigator.push(
+                                context,
+                                SwipeBackPageRoute(
+                                  builder: (_) =>
+                                      const IdentityVerificationScreen(
+                                        method: SignupMethod.identity,
+                                      ),
+                                ),
+                              );
+                            },
+                          ),
                     child: SizedBox(
                       width: double.infinity,
                       child: Text(
@@ -282,26 +348,16 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                         color: VybeColors.gray600,
                         height: 1.5,
                       ),
-                      children: const [
-                        TextSpan(text: '가입 시 '),
-                        TextSpan(
-                          text: '서비스 약관',
-                          style: TextStyle(
-                            color: VybeColors.gray400,
-                            decoration: TextDecoration.underline,
-                            decorationColor: VybeColors.gray400,
-                          ),
-                        ),
-                        TextSpan(text: ' 및 '),
-                        TextSpan(
-                          text: '개인정보 처리방침',
-                          style: TextStyle(
-                            color: VybeColors.gray400,
-                            decoration: TextDecoration.underline,
-                            decorationColor: VybeColors.gray400,
-                          ),
-                        ),
-                        TextSpan(text: '에 동의합니다.'),
+                      children: [
+                        const TextSpan(text: '가입 시 '),
+                        for (var i = 0; i < _agreedDocs.length; i++) ...[
+                          if (i > 0)
+                            TextSpan(
+                              text: i == _agreedDocs.length - 1 ? ' 및 ' : ', ',
+                            ),
+                          _legalLink(_agreedDocs[i]),
+                        ],
+                        const TextSpan(text: '에 동의합니다.'),
                       ],
                     ),
                     textAlign: TextAlign.center,

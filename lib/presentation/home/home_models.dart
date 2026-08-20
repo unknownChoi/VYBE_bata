@@ -89,7 +89,8 @@ HomeFreeTimeClub? toHomeFreeTimeClub(
 
   // '지금 무료'는 영업 중일 때만. 무료 창이 영업시간 밖으로 잘못 잡혀 있어도
   // 문 닫은 클럽을 무료라고 띄우지 않는다.
-  final openNow = club.operatingHours.today.isCurrentlyOpen;
+  // 무료 창 판정과 같은 [now] 로 물어야 두 답이 어긋나지 않는다.
+  final openNow = club.operatingHours.dayAt(now).isOpenAt(now);
   final freeNow = status.isFreeNow && openNow;
 
   return HomeFreeTimeClub(

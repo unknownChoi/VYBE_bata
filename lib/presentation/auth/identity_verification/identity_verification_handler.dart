@@ -108,6 +108,7 @@ mixin _IdentityVerificationHandlerMixin on ConsumerState<IdentityVerificationScr
   /// - 처음 보는 번호        → 약관 동의 → 인증번호(가입)
   /// - 같은 방식의 내 계정    → 약관 생략 → 인증번호(**로그인**)
   ///     이미 동의한 사람에게 약관을 다시 받지 않는다. 문자 인증은 그대로 거친다.
+  ///     탈퇴 대기 중이어도 파기 전이면 여기로 온다 — 로그인이 곧 복구다.
   /// - 다른 방식으로 가입된 번호 → 막는다. 계정도 만들지 않는다.
   Future<void> _submitIdentity() async {
     final phone = _phoneCtrl.text;
@@ -130,6 +131,11 @@ mixin _IdentityVerificationHandlerMixin on ConsumerState<IdentityVerificationScr
             isError: true,
           );
         case PhoneAccountStatus.ownAccount:
+          // 탈퇴 대기 중이던 내 계정이면 인증을 마치는 순간 되살아난다.
+          // 아무 말 없이 복구하면 사용자가 탈퇴가 취소된 걸 모른다.
+          if (check.restorable) {
+            VybeToast.show(context, message: kAccountRestoreNotice);
+          }
           _goToCertification(phone, isLogin: true);
         case PhoneAccountStatus.available:
           _showTermsSheet(phone);

@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/auth/terms/legal_documents.dart';
 import 'package:vybe/presentation/auth/terms/terms_detail_screen.dart';
 import 'package:vybe/presentation/auth/widgets/signup_glass.dart';
 import 'package:vybe/presentation/common/renew/renew_glass.dart';
@@ -12,9 +13,14 @@ import 'package:vybe/presentation/common/widgets/vybe_button.dart';
 class _TermsItem {
   final String title;
   final bool required;
+
+  /// 이 항목이 가리키는 문서. null 이면 읽을 문서가 없는 확인 항목이라
+  /// 꺽쇠(전문 보기)를 그리지 않는다.
+  final LegalDoc? doc;
+
   bool checked = false;
 
-  _TermsItem({required this.title, required this.required});
+  _TermsItem({required this.title, required this.required, this.doc});
 }
 
 /// 약관 동의 바텀시트 (디자인 `SVTermsSheet`)
@@ -34,11 +40,26 @@ class TermsAgreementSheet extends StatefulWidget {
 }
 
 class _TermsAgreementSheetState extends State<TermsAgreementSheet> {
+  // 위치기반서비스 동의가 필수인 이유 — 앱이 단말기 GPS 로 주변 클럽을 찾는데,
+  // 위치정보법 제18조가 이용약관과 **별도의** 약관·동의를 요구한다.
   final List<_TermsItem> _items = [
-    _TermsItem(title: '개인정보 수집∙이용 동의', required: true),
+    _TermsItem(
+      title: '개인정보 수집·이용 동의',
+      required: true,
+      doc: LegalDoc.privacy,
+    ),
     _TermsItem(title: '만 19세 이상입니다', required: true),
-    _TermsItem(title: '서비스 이용약관 동의', required: true),
-    _TermsItem(title: '개인정보 마케팅 활용 동의', required: false),
+    _TermsItem(title: '서비스 이용약관 동의', required: true, doc: LegalDoc.terms),
+    _TermsItem(
+      title: '위치기반서비스 이용 동의',
+      required: true,
+      doc: LegalDoc.location,
+    ),
+    _TermsItem(
+      title: '마케팅 정보 수신 동의',
+      required: false,
+      doc: LegalDoc.marketing,
+    ),
   ];
 
   bool get _allChecked => _items.every((item) => item.checked);
@@ -58,12 +79,10 @@ class _TermsAgreementSheetState extends State<TermsAgreementSheet> {
     setState(() => _items[index].checked = !_items[index].checked);
   }
 
-  void _openDetail(String title) {
+  void _openDetail(LegalDoc doc) {
     Navigator.push(
       context,
-      SwipeBackPageRoute(
-        builder: (_) => TermsDetailScreen(title: title),
-      ),
+      SwipeBackPageRoute(builder: (_) => TermsDetailScreen(doc: doc)),
     );
   }
 
@@ -191,19 +210,24 @@ class _TermsAgreementSheetState extends State<TermsAgreementSheet> {
                           ),
                         ),
                       ),
-                      // 꺽쇠 — 약관 상세 보기
-                      GestureDetector(
-                        onTap: () => _openDetail(item.title),
-                        behavior: HitTestBehavior.opaque,
-                        child: Padding(
-                          padding: EdgeInsets.all(4.r),
-                          child: SvgPicture.asset(
-                            'assets/icons/common/conditions/show_more_conditions.svg',
-                            width: 16.r,
-                            height: 16.r,
+                      // 꺽쇠 — 약관 상세 보기.
+                      // 읽을 문서가 없는 항목('만 19세 이상입니다')은 자리만 비워
+                      // 다른 줄의 텍스트 폭이 어긋나지 않게 한다.
+                      if (item.doc case final doc?)
+                        GestureDetector(
+                          onTap: () => _openDetail(doc),
+                          behavior: HitTestBehavior.opaque,
+                          child: Padding(
+                            padding: EdgeInsets.all(4.r),
+                            child: SvgPicture.asset(
+                              'assets/icons/common/conditions/show_more_conditions.svg',
+                              width: 16.r,
+                              height: 16.r,
+                            ),
                           ),
-                        ),
-                      ),
+                        )
+                      else
+                        SizedBox(width: 24.r),
                     ],
                   ),
                 );

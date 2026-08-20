@@ -4,7 +4,7 @@ exports.kakaoLogin = void 0;
 const v1_1 = require("firebase-functions/v1");
 const admin = require("firebase-admin");
 const axios_1 = require("axios");
-const account_common_1 = require("../account/account_common");
+const restore_account_1 = require("../account/restore_account");
 exports.kakaoLogin = v1_1.https.onCall(async (data) => {
     var _a, _b;
     const accessToken = data === null || data === void 0 ? void 0 : data.accessToken;
@@ -28,9 +28,10 @@ exports.kakaoLogin = v1_1.https.onCall(async (data) => {
         throw new v1_1.https.HttpsError("internal", "카카오 ID를 가져올 수 없습니다.");
     }
     const uid = `kakao:${kakaoId}`;
-    // 탈퇴 대기 계정이면 여기서 막는다. Auth 가 disabled 라 토큰을 줘도 어차피
-    // 로그인이 안 되지만, 그러면 앱이 이유(재가입 가능일)를 알 수 없다.
-    await (0, account_common_1.assertNotPendingDeletion)(uid);
+    // 탈퇴 대기 계정이면 보관 기간 안에 한해 여기서 되살린다. Auth 가 disabled
+    // 인 채로 토큰을 주면 앱의 signInWithCustomToken 이 거부되므로 발급 전에
+    // 풀어야 한다. 파기 시점이 지났으면 failed-precondition 으로 막힌다.
+    const restored = await (0, restore_account_1.restorePendingDeletionOnLogin)(uid);
     let isNewUser = false;
     try {
         await admin.auth().getUser(uid);
@@ -41,7 +42,7 @@ exports.kakaoLogin = v1_1.https.onCall(async (data) => {
     const customToken = await admin.auth().createCustomToken(uid, {
         provider: "kakao",
     });
-    v1_1.logger.info(`kakaoLogin: uid=${uid}, isNewUser=${isNewUser}`);
-    return { customToken, isNewUser };
+    v1_1.logger.info(`kakaoLogin: uid=${uid}, isNewUser=${isNewUser}, restored=${restored}`);
+    return { customToken, isNewUser, restored };
 });
 //# sourceMappingURL=kakao_login.js.map

@@ -282,15 +282,17 @@ void main() {
       await tester.pumpWidget(app(cards: freeTimeCards, noticeList: notices));
       await settle(tester);
 
-      expect(find.text('타임 무료입장'), findsOneWidget);
-      expect(find.text('이 시간대에만 입장료 0원'), findsOneWidget);
+      expect(find.text('이 시간에만 무료입장'), findsOneWidget);
+      expect(find.text('이 시간 지나면 원래 입장료'), findsOneWidget);
       // 진행 중 카드
       expect(find.text('지금 무료'), findsOneWidget);
       expect(find.text('38분 남음'), findsOneWidget);
       expect(find.text('22:00 – 23:30'), findsOneWidget);
       expect(find.text('₩20,000'), findsOneWidget);
       expect(find.text('어썸레드'), findsOneWidget);
-      expect(find.text('0.4km'), findsOneWidget);
+      // 카드 하단은 거리 대신 지역 · 장르를 쓴다 (주변 클럽 카드와 같은 구성)
+      expect(find.text('홍대'), findsOneWidget);
+      expect(find.text('힙합'), findsOneWidget);
       // 예정 카드는 시작 시각을 대신 보여준다
       expect(find.text('23:30부터'), findsOneWidget);
       expect(find.text('케이크샵'), findsOneWidget);

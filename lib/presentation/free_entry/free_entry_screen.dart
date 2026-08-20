@@ -64,19 +64,19 @@ class _EntryClub implements ClubSortable {
   });
 
   _EntryClub copyWithDist(double d) => _EntryClub(
-        id: id,
-        name: name,
-        area: area,
-        genre: genre,
-        dist: d,
-        rating: rating,
-        cover: cover,
-        cond: cond,
-        open: open,
-        thumbnailUrl: thumbnailUrl,
-        gradient: gradient,
-        vybe: vybe,
-      );
+    id: id,
+    name: name,
+    area: area,
+    genre: genre,
+    dist: d,
+    rating: rating,
+    cover: cover,
+    cond: cond,
+    open: open,
+    thumbnailUrl: thumbnailUrl,
+    gradient: gradient,
+    vybe: vybe,
+  );
 }
 
 // 썸네일 없을 때 clubId 해시 기반 일관 그라데이션 fallback.
@@ -127,18 +127,19 @@ class _FreeEntryScreenState extends ConsumerState<FreeEntryScreen>
   void _onLocationTap() {
     // 홍대 좌표로 인식 → 검색 로딩 시작. (홈·주변 페이지 최초 로딩 좌표와 동일)
     debugPrint(
-        '위치 선택: ${AppGeo.hongdaeLabel} (${AppGeo.hongdaeLat}, ${AppGeo.hongdaeLng})');
+      '위치 선택: ${AppGeo.hongdaeLabel} (${AppGeo.hongdaeLat}, ${AppGeo.hongdaeLng})',
+    );
     runLocationFlip(onResolved: () => _loc = AppGeo.hongdaeLabel);
   }
 
   // source(실데이터) → 내 위치 기준 거리 재계산 → 지역 필터 → 정렬.
   List<_EntryClub> _filtered(List<_EntryClub> source) => buildClubList(
-        source,
-        loc: _loc,
-        sort: _sort,
-        withDist: (c, d) => c.copyWithDist(d),
-        keep: (c) => _region == kFilterAll || c.area == _region,
-      );
+    source,
+    loc: _loc,
+    sort: _sort,
+    withDist: (c, d) => c.copyWithDist(d),
+    keep: (c) => _region == kFilterAll || c.area == _region,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -198,8 +199,8 @@ class _FreeEntryScreenState extends ConsumerState<FreeEntryScreen>
                         onSave: uid == null
                             ? null
                             : () => ref
-                                .read(favoriteViewModelProvider.notifier)
-                                .toggleFavorite(uid, c.id, saved),
+                                  .read(favoriteViewModelProvider.notifier)
+                                  .toggleFavorite(uid, c.id, saved),
                         onTap: () => openClubDetail(context, c.id),
                       ),
                     );
@@ -219,26 +220,32 @@ class _FreeEntryScreenState extends ConsumerState<FreeEntryScreen>
                         )
                       else if (clubsAsync.hasError)
                         Padding(
-                          padding:
-                              EdgeInsets.symmetric(vertical: 60.h, horizontal: 24.w),
+                          padding: EdgeInsets.symmetric(
+                            vertical: 60.h,
+                            horizontal: 24.w,
+                          ),
                           child: Text(
                             '입장비 무료 클럽을 불러오지 못했어요',
                             textAlign: TextAlign.center,
-                            style: VybeTypography.body4
-                                .copyWith(color: VybeColors.gray500),
+                            style: VybeTypography.body4.copyWith(
+                              color: VybeColors.gray500,
+                            ),
                           ),
                         )
                       else if (list.isEmpty)
                         Padding(
-                          padding:
-                              EdgeInsets.symmetric(vertical: 60.h, horizontal: 24.w),
+                          padding: EdgeInsets.symmetric(
+                            vertical: 60.h,
+                            horizontal: 24.w,
+                          ),
                           child: Text(
                             _region == kFilterAll
                                 ? '입장비 무료 클럽이 아직 없어요'
                                 : '$_region 지역에 입장비 무료 클럽이 없어요',
                             textAlign: TextAlign.center,
-                            style: VybeTypography.body4
-                                .copyWith(color: VybeColors.gray500),
+                            style: VybeTypography.body4.copyWith(
+                              color: VybeColors.gray500,
+                            ),
                           ),
                         ),
                       const VybeFooterNote(
@@ -306,8 +313,10 @@ class _Intro extends StatelessWidget {
             transitionBuilder: (child, anim) => FadeTransition(
               opacity: anim,
               child: SlideTransition(
-                position: Tween(begin: const Offset(0, 0.3), end: Offset.zero)
-                    .animate(anim),
+                position: Tween(
+                  begin: const Offset(0, 0.3),
+                  end: Offset.zero,
+                ).animate(anim),
                 child: child,
               ),
             ),
@@ -318,7 +327,9 @@ class _Intro extends StatelessWidget {
                 children: [
                   TextSpan(text: '$prefix '),
                   const TextSpan(
-                      text: '입장비 무료', style: TextStyle(color: _entry)),
+                    text: '입장비 무료',
+                    style: TextStyle(color: _entry),
+                  ),
                   const TextSpan(text: '\n클럽 모아보기'),
                 ],
               ),
@@ -341,15 +352,18 @@ class _Intro extends StatelessWidget {
                       width: 7.r,
                       height: 7.r,
                       decoration: const BoxDecoration(
-                          color: _entry, shape: BoxShape.circle),
+                        color: _entry,
+                        shape: BoxShape.circle,
+                      ),
                     ),
                     SizedBox(width: 5.w),
                     Text(
                       '지금 무료입장',
                       style: VybeTypography.caption.copyWith(
-                          height: 14 / 12,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white),
+                        height: 14 / 12,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
                     ),
                   ],
                 ),
@@ -357,18 +371,25 @@ class _Intro extends StatelessWidget {
               SizedBox(width: 7.w),
               Text.rich(
                 TextSpan(
-                  style: VybeTypography.caption
-                      .copyWith(color: VybeColors.gray400),
+                  style: VybeTypography.caption.copyWith(
+                    color: VybeColors.gray400,
+                  ),
                   children: [
                     TextSpan(
-                        text: prefix,
-                        style: const TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.w700)),
+                      text: prefix,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                     const TextSpan(text: ' 근처 '),
                     TextSpan(
-                        text: '$count곳',
-                        style: const TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.w700)),
+                      text: '$count곳',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -442,41 +463,50 @@ class _EntryCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18.r),
-        child: Container(
-          height: 208.h,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: club.gradient,
-            ),
-            border: Border.all(color: VybeColors.gray800),
-            borderRadius: BorderRadius.circular(18.r),
+      child: Container(
+        height: 208.h,
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: club.gradient,
           ),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              // 클럽 썸네일 (없으면 gradient만).
-              if (club.thumbnailUrl.isNotEmpty)
-                Positioned.fill(
-                  child: SkeletonImage(
-                    url: club.thumbnailUrl,
-                    fit: BoxFit.cover,
-                    minSkeleton: const Duration(seconds: 1),
-                  ),
-                ),
-              const DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [Color(0xF50C0C0F), Color(0x400C0C0F), Colors.transparent],
-                    stops: [0.14, 0.56, 0.78],
-                  ),
+          borderRadius: BorderRadius.circular(18.r),
+        ),
+        // ⚠ 테두리는 자식 위(foregroundDecoration)에. decoration 에 두면 자식이
+        // 바깥 라운드렉트로 클립되면서 코너 호에서 선을 덮어, 직선부만 남고
+        // 모서리가 끊긴 것처럼 보인다. (CLAUDE.md '라운드 카드에 테두리' 참고)
+        foregroundDecoration: BoxDecoration(
+          border: Border.all(color: VybeColors.gray800),
+          borderRadius: BorderRadius.circular(18.r),
+        ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // 클럽 썸네일 (없으면 gradient만).
+            if (club.thumbnailUrl.isNotEmpty)
+              Positioned.fill(
+                child: SkeletonImage(
+                  url: club.thumbnailUrl,
+                  fit: BoxFit.cover,
+                  minSkeleton: const Duration(seconds: 1),
                 ),
               ),
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [
+                    Color(0xF50C0C0F),
+                    Color(0x400C0C0F),
+                    Colors.transparent,
+                  ],
+                  stops: [0.14, 0.56, 0.78],
+                ),
+              ),
+            ),
             // 무료입장 리본.
             Positioned(
               top: 12.h,
@@ -499,13 +529,18 @@ class _EntryCard extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.confirmation_number_rounded,
-                        size: 15.r, color: _entryInk),
+                    Icon(
+                      Icons.confirmation_number_rounded,
+                      size: 15.r,
+                      color: _entryInk,
+                    ),
                     SizedBox(width: 6.w),
                     Text(
                       '입장비 무료',
                       style: VybeTypography.button2.copyWith(
-                          fontWeight: FontWeight.w800, color: _entryInk),
+                        fontWeight: FontWeight.w800,
+                        color: _entryInk,
+                      ),
                     ),
                   ],
                 ),
@@ -540,8 +575,10 @@ class _EntryCard extends StatelessWidget {
                           club.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: VybeTypography.heading4
-                              .copyWith(color: Colors.white, height: 1.0),
+                          style: VybeTypography.heading4.copyWith(
+                            color: Colors.white,
+                            height: 1.0,
+                          ),
                         ),
                       ),
                       // VYBE 추천 뱃지 — 클럽 이름 옆.
@@ -550,37 +587,48 @@ class _EntryCard extends StatelessWidget {
                         const VybeRecommendBadge(size: 10),
                       ],
                       SizedBox(width: 8.w),
-                      Icon(Icons.star_rounded,
-                          size: 12.r, color: VybeColors.mainLime500),
+                      Icon(
+                        Icons.star_rounded,
+                        size: 12.r,
+                        color: VybeColors.mainLime500,
+                      ),
                       SizedBox(width: 3.w),
                       Text(
                         club.rating.toStringAsFixed(2),
                         style: VybeTypography.caption.copyWith(
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white),
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
                       ),
                     ],
                   ),
                   SizedBox(height: 6.h),
                   Row(
                     children: [
-                      Icon(Icons.place_rounded,
-                          size: 11.r, color: VybeColors.gray300),
+                      Icon(
+                        Icons.place_rounded,
+                        size: 11.r,
+                        color: VybeColors.gray300,
+                      ),
                       SizedBox(width: 3.w),
                       Text(
                         '${club.area} · ${club.dist.toStringAsFixed(1)}km',
                         style: VybeTypography.caption.copyWith(
-                            fontSize: 12.sp,
-                            height: 1.0,
-                            fontWeight: FontWeight.w600,
-                            color: VybeColors.gray300),
+                          fontSize: 12.sp,
+                          height: 1.0,
+                          fontWeight: FontWeight.w600,
+                          color: VybeColors.gray300,
+                        ),
                       ),
                       const VybeMetaDot(),
                       Text(
                         club.genre,
                         style: VybeTypography.caption.copyWith(
-                            fontSize: 12.sp, height: 1.0, color: VybeColors.gray400),
+                          fontSize: 12.sp,
+                          height: 1.0,
+                          color: VybeColors.gray400,
+                        ),
                       ),
                     ],
                   ),
@@ -591,18 +639,24 @@ class _EntryCard extends StatelessWidget {
                       Flexible(
                         child: Container(
                           padding: EdgeInsets.symmetric(
-                              horizontal: 9.w, vertical: 4.h),
+                            horizontal: 9.w,
+                            vertical: 4.h,
+                          ),
                           decoration: BoxDecoration(
                             color: _entry.withValues(alpha: 0.16),
                             borderRadius: BorderRadius.circular(8.r),
                             border: Border.all(
-                                color: _entry.withValues(alpha: 0.34)),
+                              color: _entry.withValues(alpha: 0.34),
+                            ),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.confirmation_number_outlined,
-                                  size: 11.r, color: _entry),
+                              Icon(
+                                Icons.confirmation_number_outlined,
+                                size: 11.r,
+                                color: _entry,
+                              ),
                               SizedBox(width: 5.w),
                               Flexible(
                                 child: Text(
@@ -644,7 +698,6 @@ class _EntryCard extends StatelessWidget {
               ),
             ),
           ],
-          ),
         ),
       ),
     );

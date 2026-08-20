@@ -45,56 +45,59 @@ class ClubListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final grad =
-        gradientForKey(_fallbackGradients, club.clubId);
+    final grad = gradientForKey(_fallbackGradients, club.clubId);
     return GestureDetector(
       onTap: () => _openDetail(context),
       behavior: HitTestBehavior.opaque,
       child: Padding(
         padding: EdgeInsets.fromLTRB(24.w, 0, 24.w, 14.h),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(18.r),
-          child: Container(
-            height: 208.h,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: grad,
-              ),
-              border: Border.all(color: VybeColors.gray800),
-              borderRadius: BorderRadius.circular(18.r),
+        child: Container(
+          height: 208.h,
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: grad,
             ),
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                // 클럽 썸네일 (없으면 gradient만).
-                if (club.thumbnailUrl.isNotEmpty)
-                  Positioned.fill(
-                    child: SkeletonImage(
-                      url: club.thumbnailUrl,
-                      fit: BoxFit.cover,
-                      minSkeleton: const Duration(seconds: 1),
-                    ),
+            borderRadius: BorderRadius.circular(18.r),
+          ),
+          // ⚠ 테두리는 자식 위(foregroundDecoration)에. decoration 에 두면 자식이
+          // 바깥 라운드렉트로 클립되면서 코너 호에서 선을 덮어, 직선부만 남고
+          // 모서리가 끊긴 것처럼 보인다. (CLAUDE.md '라운드 카드에 테두리' 참고)
+          foregroundDecoration: BoxDecoration(
+            border: Border.all(color: VybeColors.gray800),
+            borderRadius: BorderRadius.circular(18.r),
+          ),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // 클럽 썸네일 (없으면 gradient만).
+              if (club.thumbnailUrl.isNotEmpty)
+                Positioned.fill(
+                  child: SkeletonImage(
+                    url: club.thumbnailUrl,
+                    fit: BoxFit.cover,
+                    minSkeleton: const Duration(seconds: 1),
                   ),
-                // 상단 우측 화이트 하이라이트 (radial).
-                const Positioned.fill(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: RadialGradient(
-                        center: Alignment(0.4, -0.85),
-                        radius: 0.9,
-                        colors: [Color(0x2EFFFFFF), Color(0x00000000)],
-                        stops: [0.0, 0.55],
-                      ),
+                ),
+              // 상단 우측 화이트 하이라이트 (radial).
+              const Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: RadialGradient(
+                      center: Alignment(0.4, -0.85),
+                      radius: 0.9,
+                      colors: [Color(0x2EFFFFFF), Color(0x00000000)],
+                      stops: [0.0, 0.55],
                     ),
                   ),
                 ),
-                _buildStatusPill(),
-                _buildSaveButton(),
-                _buildGlassBar(),
-              ],
-            ),
+              ),
+              _buildStatusPill(),
+              _buildSaveButton(),
+              _buildGlassBar(),
+            ],
           ),
         ),
       ),
@@ -193,8 +196,10 @@ class ClubListItem extends StatelessWidget {
                           club.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: VybeTypography.heading4
-                              .copyWith(color: Colors.white, height: 1.0),
+                          style: VybeTypography.heading4.copyWith(
+                            color: Colors.white,
+                            height: 1.0,
+                          ),
                         ),
                       ),
                       // VYBE 추천 뱃지 — 클럽 이름 옆.
@@ -203,21 +208,27 @@ class ClubListItem extends StatelessWidget {
                         const VybeRecommendBadge(size: 10),
                       ],
                       SizedBox(width: 8.w),
-                      Icon(Icons.star_rounded,
-                          size: 12.r, color: VybeColors.mainLime500),
+                      Icon(
+                        Icons.star_rounded,
+                        size: 12.r,
+                        color: VybeColors.mainLime500,
+                      ),
                       SizedBox(width: 3.w),
                       Text(
                         club.rating.toStringAsFixed(2),
                         style: VybeTypography.caption.copyWith(
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white),
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
                       ),
                       SizedBox(width: 6.w),
                       Text(
                         '리뷰 ${club.reviewCount}',
                         style: VybeTypography.caption.copyWith(
-                            fontSize: 12.sp, color: VybeColors.gray400),
+                          fontSize: 12.sp,
+                          color: VybeColors.gray400,
+                        ),
                       ),
                     ],
                   ),
@@ -225,32 +236,45 @@ class ClubListItem extends StatelessWidget {
                   // 지역 · 장르 · 영업종료 시각.
                   Row(
                     children: [
-                      Icon(Icons.place_rounded,
-                          size: 11.r, color: VybeColors.gray300),
+                      Icon(
+                        Icons.place_rounded,
+                        size: 11.r,
+                        color: VybeColors.gray300,
+                      ),
                       SizedBox(width: 3.w),
                       Text(
                         club.area,
                         style: VybeTypography.caption.copyWith(
-                            fontSize: 12.sp,
-                            height: 1.0,
-                            fontWeight: FontWeight.w600,
-                            color: VybeColors.gray300),
+                          fontSize: 12.sp,
+                          height: 1.0,
+                          fontWeight: FontWeight.w600,
+                          color: VybeColors.gray300,
+                        ),
                       ),
                       const VybeMetaDot(),
                       Text(
                         club.genre,
                         style: VybeTypography.caption.copyWith(
-                            fontSize: 12.sp, height: 1.0, color: VybeColors.gray400),
+                          fontSize: 12.sp,
+                          height: 1.0,
+                          color: VybeColors.gray400,
+                        ),
                       ),
                       if (_isOpen && _closeTime != null) ...[
                         const VybeMetaDot(),
-                        Icon(Icons.access_time_rounded,
-                            size: 11.r, color: VybeColors.gray400),
+                        Icon(
+                          Icons.access_time_rounded,
+                          size: 11.r,
+                          color: VybeColors.gray400,
+                        ),
                         SizedBox(width: 3.w),
                         Text(
                           '$_closeTime 영업종료',
                           style: VybeTypography.caption.copyWith(
-                              fontSize: 12.sp, height: 1.0, color: VybeColors.gray400),
+                            fontSize: 12.sp,
+                            height: 1.0,
+                            color: VybeColors.gray400,
+                          ),
                         ),
                       ],
                     ],
@@ -270,8 +294,8 @@ class ClubListItem extends StatelessWidget {
   Widget _buildFeeChip(bool free) {
     final label = free
         ? (club.entryFeeMax == 0
-            ? '입장료 무료'
-            : '입장료 0 ~ ${_formatPrice(club.entryFeeMax)}원')
+              ? '입장료 무료'
+              : '입장료 0 ~ ${_formatPrice(club.entryFeeMax)}원')
         : '입장료 ${_formatPrice(club.entryFeeMin)} ~ ${_formatPrice(club.entryFeeMax)}원';
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 9.w, vertical: 4.h),

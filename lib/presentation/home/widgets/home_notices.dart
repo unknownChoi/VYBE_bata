@@ -26,7 +26,7 @@ class HomeNotices extends ConsumerWidget {
     final noticesAsync = ref.watch(homeNoticesProvider);
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(0, 8.h, 0, 8.h),
+      padding: EdgeInsets.fromLTRB(0, 20.h, 0, 8.h),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

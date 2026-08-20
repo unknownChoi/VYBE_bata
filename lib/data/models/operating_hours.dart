@@ -16,9 +16,15 @@ class DayHours {
     );
   }
 
-  bool get isCurrentlyOpen {
+  bool get isCurrentlyOpen => isOpenAt(DateTime.now());
+
+  /// [now] 기준 영업 중인지.
+  ///
+  /// ⚠ 시각을 주입받는 판정([FreeEntryPolicy.statusAt] 등)과 **같은 시각**으로
+  /// 물어야 한다. 한쪽은 주입 시각, 한쪽은 벽시계를 쓰면 "무료 창 안인데 영업
+  /// 종료"처럼 서로 어긋난 답이 나온다.
+  bool isOpenAt(DateTime now) {
     if (!isOpen || open == null || close == null) return false;
-    final now = DateTime.now();
     final cur = now.hour * 60 + now.minute;
     final o = _toMin(open!);
     final c = _toMin(close!);
@@ -31,10 +37,10 @@ class DayHours {
   }
 
   Map<String, dynamic> toMap() => {
-        'isOpen': isOpen,
-        if (open != null) 'open': open,
-        if (close != null) 'close': close,
-      };
+    'isOpen': isOpen,
+    if (open != null) 'open': open,
+    if (close != null) 'close': close,
+  };
 
   @override
   bool operator ==(Object other) =>
@@ -67,7 +73,10 @@ class OperatingHours {
     this.sun = DayHours.closed,
   });
 
-  DayHours get today => dayOf(DateTime.now().weekday);
+  DayHours get today => dayAt(DateTime.now());
+
+  /// [now] 요일의 영업시간. [today] 와 달리 벽시계를 안 읽는다.
+  DayHours dayAt(DateTime now) => dayOf(now.weekday);
 
   DayHours dayOf(int weekday) {
     switch (weekday) {
@@ -104,14 +113,14 @@ class OperatingHours {
   }
 
   Map<String, dynamic> toMap() => {
-        'mon': mon.toMap(),
-        'tue': tue.toMap(),
-        'wed': wed.toMap(),
-        'thu': thu.toMap(),
-        'fri': fri.toMap(),
-        'sat': sat.toMap(),
-        'sun': sun.toMap(),
-      };
+    'mon': mon.toMap(),
+    'tue': tue.toMap(),
+    'wed': wed.toMap(),
+    'thu': thu.toMap(),
+    'fri': fri.toMap(),
+    'sat': sat.toMap(),
+    'sun': sun.toMap(),
+  };
 
   @override
   bool operator ==(Object other) =>

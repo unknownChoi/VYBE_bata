@@ -298,6 +298,7 @@
   <a href="#auto-login" class="sub">자동 로그인 / 세션 유지</a>
   <a href="#feature-phone-account" class="sub">전화번호 주인 판정 · 재로그인</a>
   <a href="#account-deletion" class="sub">회원 탈퇴 · 30일 보관</a>
+  <a href="#account-restore" class="sub">└ 보관 기간 내 재로그인 복구</a>
   <a href="#feature-version" class="sub">버전 게이트 · 강제 업데이트</a>
   <a href="#feature-network" class="sub">네트워크 연결 게이트</a>
   <a href="#feature-location" class="sub">위치 기반 지역 판정</a>
@@ -723,6 +724,8 @@ logFirebaseAccess(
 
   <div class="note"><strong>서버 배포 완료 (2026.08.17)</strong> — 백필·인덱스·Rules·Functions 전부 반영돼 <u>지금 운영 중</u>이다. 남은 것은 <strong>앱 빌드·배포</strong>(<code>isHidden</code> 쿼리 필터와 탈퇴 화면이 여기 들어 있다)와 개인정보처리방침 문구. <a href="#account-deletion-status">현황·검증</a></div>
 
+  <div class="note danger"><strong>보관 기간 내 재로그인 = 자동 복구 (2026.08.20) — 아직 미배포.</strong> 탈퇴한 계정도 파기 전에 같은 계정으로 로그인하면 되살아난다. <a href="#account-restore">복구 설계</a></div>
+
   <h3>요구가 두 축이라 "삭제"와 "숨김"을 나눴다</h3>
   <table>
     <tr><th>요구</th><th>뜻하는 것</th></tr>
@@ -774,8 +777,8 @@ logFirebaseAccess(
     <tr><td><code>onReviewUpdated</code></td><td><code>before.isHidden !== after.isHidden</code> 이면 <strong>즉시 return</strong> (이미 숨겨진 리뷰의 별점 수정도 return)</td></tr>
     <tr><td><code>onReviewDeleted</code></td><td>삭제된 문서가 <code>isHidden === true</code> 면 <strong>즉시 return</strong></td></tr>
     <tr><td><code>onFavoriteDeleted</code></td><td>동일 — <code>isHidden === true</code> 면 return</td></tr>
-    <tr><td><code>kakaoLogin</code> · <code>naverLogin</code> · <code>phoneLogin</code></td><td>Custom Token 발급 <strong>전에</strong> <code>users/{uid}.status === 'pendingDeletion'</code> 확인 → <code>HttpsError('failed-precondition')</code> + <code>details:{purgeAt}</code> 로 거부</td></tr>
-    <tr><td><code>checkPhoneDuplicate</code></td><td>반환값에 <code>pendingDeletion</code>·<code>purgeAt</code> 추가 (<code>sameAccount</code> 는 <a href="#feature-phone-account">주인 판정</a>에서 별도 도입). 탈퇴 대기 계정은 <code>users</code> 문서가 30일 남아 있어 <strong>이미 중복으로 잡힌다</strong> — 통과시키면 같은 번호로 계정이 둘 생겨 <code>phone</code> 유니크 전제가 깨진다. 사유를 실어 보내 앱이 '이미 가입됨'과 '탈퇴 처리 중'을 구분해 안내할 수 있게 했다</td></tr>
+    <tr><td><code>kakaoLogin</code> · <code>naverLogin</code> · <code>phoneLogin</code></td><td>Custom Token 발급 <strong>전에</strong> <code>restorePendingDeletionOnLogin(uid)</code> — 보관 기간이 남아 있으면 <strong>계정을 되살리고</strong> <code>restored:true</code>, 파기 시각이 지났으면 <code>HttpsError('failed-precondition')</code> + <code>details:{purgeAt:null}</code> 로 거부. <a href="#account-restore">복구 설계</a></td></tr>
+    <tr><td><code>checkPhoneDuplicate</code></td><td>반환값에 <code>pendingDeletion</code>·<code>purgeAt</code>·<code>restorable</code> 추가 (<code>sameAccount</code> 는 <a href="#feature-phone-account">주인 판정</a>에서 별도 도입). 탈퇴 대기 계정은 <code>users</code> 문서가 30일 남아 있어 <strong>이미 중복으로 잡힌다</strong> — <strong>본인 + 파기 전</strong>이면 <code>restorable</code> 로 통과시키고(이어지는 로그인이 복구한다), 남의 번호이거나 파기일이 지났으면 사유를 실어 차단한다</td></tr>
   </table>
 
   <div class="note danger"><strong>집계 감산은 트리거가 아니라 <code>requestAccountDeletion</code> 안에서 직접 한다.</strong> <code>isHidden</code> 세팅은 문서 update라 <code>onReviewUpdated</code>가 발화하는데 거기서 또 재계산하면 <strong>이중 감산</strong>이 난다. 감산 주체를 함수 하나로 못 박고 트리거엔 위 가드를 단다. 가드가 없으면 30일 뒤 파기 시 <code>rating</code>·<code>favoriteCount</code>가 <strong>두 번 깎여 음수</strong>가 된다.</div>
@@ -824,7 +827,36 @@ photos.userId     COLLECTION + COLLECTION_GROUP                     <span class=
     <tr><td><code>my_page/settings_screen.dart</code></td><td>하단 안내문 수정 — "계정 삭제는 고객센터" → 앱 내 탈퇴 경로 안내</td></tr>
   </table>
 
-  <div class="note"><strong>모든 단계가 되돌릴 수 있게 짜여 있다</strong> — 숨김·집계 감산·<code>disabled</code> 전부 역연산이 있다. 탈퇴 철회 기능은 아직 없지만, 필요해지면 <code>cancelAccountDeletion</code> 하나를 붙이는 것으로 끝난다.</div>
+  <h3 id="account-restore">보관 기간 내 재로그인 = 복구 <span class="pill pk">2026.08.20</span></h3>
+  <p>별도의 '탈퇴 철회' 버튼을 두지 않았다 — <strong>로그인이 곧 복구</strong>다. 되돌아온 사용자가 하는 행동은 어차피 로그인이고, 철회 화면을 따로 만들면 탈퇴 대기 계정에게만 보이는 로그인 앞 단계를 하나 더 유지해야 한다.</p>
+
+  <div class="tree">로그인 시도 (kakao / naver / phone)
+   │
+   ├─▶ <span class="cmt"># restorePendingDeletionOnLogin(uid) — Custom Token 발급 전</span>
+   │    users.status != 'pendingDeletion'  ─▶ 아무것도 안 함 (restored=false)
+   │    purgeAt 없음 · purgeAt &lt;= now      ─▶ failed-precondition (복구 안 함)
+   │    그 외(보관 기간 안)                 ─▶ 복구:
+   │        reviews/photos/favorites.isHidden = false
+   │        clubs.rating · reviewCount · favoriteCount <strong>가산</strong>
+   │        Auth 계정 disabled = false
+   │        users.status = 'active' · deletedAt · purgeAt · deletionReason 삭제
+   │
+   └─▶ Custom Token 발급 → 앱 signInWithCustomToken → 홈</div>
+
+  <table>
+    <tr><th>왜 그렇게 했나</th><th>이유</th></tr>
+    <tr><td>토큰 발급 <strong>전</strong>에 복구</td><td>Auth 계정이 <code>disabled</code> 인 채로 토큰을 주면 앱의 <code>signInWithCustomToken</code> 이 <code>auth/user-disabled</code> 로 거부된다</td></tr>
+    <tr><td><code>purgeAt</code> 이 지났으면 <strong>안</strong> 살린다</td><td>되살려 놔도 그날 새벽 <code>purgeDeletedUsers</code> 가 데이터를 지운다. 이때 <code>purgeAt</code> 을 <strong>null 로</strong> 보내는 것도 의도 — 이미 지난 날짜를 "그날부터 가입 가능"이라 안내하면 거짓말이다</td></tr>
+    <tr><td>상태 필드를 <strong>맨 마지막</strong>에 지움</td><td>중간에 실패하면 <code>status</code> 가 <code>pendingDeletion</code> 으로 남아 다음 로그인이 처음부터 다시 시도한다. 각 단계가 <code>isHidden==true</code> 인 문서만 손대므로 재실행해도 <strong>이중 가산이 없다</strong>(숨김 쪽과 대칭)</td></tr>
+    <tr><td>가산 주체도 함수 하나</td><td><code>isHidden</code> 을 false 로 되돌리는 것도 update 라 <code>onReviewUpdated</code> 가 발화한다. 그 트리거는 <code>isHidden</code> 전이를 <strong>양방향 모두</strong> 건너뛰게 돼 있어 그대로 재사용된다 — 가드를 추가할 필요가 없었다</td></tr>
+    <tr><td>Storage 손댈 것 없음</td><td>탈퇴는 파일을 지우지 않고 숨기기만 했다. 파기 단계에서만 삭제한다</td></tr>
+  </table>
+
+  <div class="note danger"><strong><code>checkPhoneDuplicate</code> 를 같이 고치지 않으면 복구까지 도달하지 못한다</strong> — 본인인증 경로는 로그인 <u>전에</u> 번호 주인을 먼저 묻고, 예전 규칙(<code>!pending &amp;&amp; ...</code>)에선 본인이어도 <code>sameAccount=false</code> 라 화면에서 먼저 막혔다. 이제 <strong>본인 + 파기 전</strong>이면 <code>sameAccount=true</code>·<code>pendingDeletion=false</code>·<code>restorable=true</code> 로 통과시킨다.</div>
+
+  <div class="note"><strong>앱 안내</strong> — 복구는 조용히 일어나면 안 된다(사용자가 탈퇴가 취소된 걸 모른다). 본인인증 경로는 인증 화면으로 넘어가기 전 <code>kAccountRestoreNotice</code> 로 예고하고, 복구가 끝나면 <code>kAccountRestoredMessage</code> 토스트를 띄운다(소셜은 <code>WelcomeScreen</code>, 본인인증은 인증번호 화면). 문구 상수는 <code>presentation/auth/signup_flow.dart</code> 한 곳. 탈퇴 화면의 타임라인·완료 오버레이 문구도 "보관 기간엔 로그인도 막힌다" → "다시 로그인하면 복구된다"로 고쳤다 — <strong>새로 가입하는 것은 여전히 파기일 이후</strong>다.</div>
+
+  <div class="note"><strong>배포 짝은 자유</strong> — 서버만 먼저 내보내도 구앱은 새 필드를 무시하고 복구된 계정으로 그냥 로그인된다(안내 토스트만 없음). 앱만 먼저 내보내도 구서버가 <code>restored</code>·<code>restorable</code> 을 안 주므로 <code>false</code> 폴백 → 예전처럼 차단될 뿐이다.</div>
 
   <h3 id="account-deletion-status">배포 현황 <span class="pill pk">서버 완료 · 앱만 남음</span></h3>
   <table>
@@ -833,7 +865,8 @@ photos.userId     COLLECTION + COLLECTION_GROUP                     <span class=
     <tr><td>인덱스</td><td class="yes">복합 3개 + fieldOverrides 2개, 전부 READY</td></tr>
     <tr><td>Rules</td><td class="yes">배포됨</td></tr>
     <tr><td>Functions</td><td class="yes"><code>requestAccountDeletion</code>·<code>purgeDeletedUsers</code> 생성, 스케줄 잡 <code>every day 04:30 Asia/Seoul</code> ENABLED</td></tr>
-    <tr><td>앱</td><td class="no"><strong>남음</strong> — <code>isHidden</code> 쿼리 필터·쓰기 기본값·탈퇴 화면이 여기 들어 있다</td></tr>
+    <tr><td>Functions — 복구 (2026.08.20)</td><td class="no"><strong>남음</strong> — <code>restore_account.ts</code> 신규 + <code>kakaoLogin</code>·<code>naverLogin</code>·<code>phoneLogin</code>·<code>checkPhoneDuplicate</code> 수정. <code>firebase deploy --only functions:kakaoLogin,functions:naverLogin,functions:phoneLogin,functions:checkPhoneDuplicate</code></td></tr>
+    <tr><td>앱</td><td class="no"><strong>남음</strong> — <code>isHidden</code> 쿼리 필터·쓰기 기본값·탈퇴 화면·복구 안내가 여기 들어 있다</td></tr>
   </table>
   <div class="note danger"><strong>구 <code>deleteUser</code> 함수는 삭제됐다 (2026.08.17).</strong> 소스에서는 <code>bb2fb34</code> 에서 이미 빠졌는데 배포본만 살아 있었다. <code>users/{uid}</code> 문서 · Storage · Auth 계정을 <strong>즉시 하드 삭제</strong>하고 리뷰·사진·찜은 그대로 둬 고아 데이터를 남기는, 30일 보관 요구와 정면으로 어긋나는 경로였다. 호출부·최근 30일 호출 로그 모두 0이라 제거(소스는 git 이력에 남아 있다). <strong>탈퇴 경로는 <code>requestAccountDeletion</code> 하나뿐이다.</strong></div>
   <div class="note"><strong>순서 주의</strong> — 백필과 인덱스는 앱보다 <u>먼저</u>여야 한다. 앱을 먼저 내보내면 <code>where isHidden == false</code> 가 0건을 돌려줘 리뷰 탭·사진 탭이 빈 화면이 되고, 인덱스가 없으면 같은 쿼리가 <code>failed-precondition</code> 으로 죽는다. 지금은 서버가 다 돼 있어 <strong>앱은 아무 때나 내보내도 안전</strong>하다.</div>

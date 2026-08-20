@@ -42,6 +42,7 @@ export const checkPhoneDuplicate = https.onCall(async (data, context) => {
       sameAccount: false,
       pendingDeletion: false,
       purgeAt: null,
+      restorable: false,
     };
   }
 
@@ -56,13 +57,24 @@ export const checkPhoneDuplicate = https.onCall(async (data, context) => {
 
   const attemptedUid = context.auth?.uid ??
     (method === "identity" ? `phone:${phone}` : null);
+  const isOwner = attemptedUid !== null && attemptedUid === doc.id;
+
+  // 탈퇴 대기라도 **본인이 파기 전에** 돌아온 것이면 막지 않는다 —
+  // 이어지는 로그인(phoneLogin 등)이 계정을 되살린다
+  // (restorePendingDeletionOnLogin). 파기 시각이 지났으면 되살려도 다음
+  // 배치가 지우므로 그대로 차단한다.
+  const restorable = pending && isOwner &&
+    purgeAt !== undefined && purgeAt.toMillis() > Date.now();
+  const blocked = pending && !restorable;
 
   return {
     isDuplicate: true,
     // 같은 계정이 같은 방식으로 다시 들어온 경우 = 재로그인. 앱이 통과시킨다.
-    // 탈퇴 대기 중이면 본인이어도 통과시키지 않는다(파기 전까진 못 쓴다).
-    sameAccount: !pending && attemptedUid !== null && attemptedUid === doc.id,
-    pendingDeletion: pending,
-    purgeAt: pending ? purgeAt?.toMillis() ?? null : null,
+    sameAccount: isOwner && !blocked,
+    // 앱이 차단 안내를 띄울 조건 — 되살릴 수 있는 계정은 여기 안 걸린다.
+    pendingDeletion: blocked,
+    purgeAt: blocked ? purgeAt?.toMillis() ?? null : null,
+    // 로그인하면 복구된다는 걸 앱이 미리 알 수 있게(안내 문구용).
+    restorable,
   };
 });

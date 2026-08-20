@@ -28,7 +28,10 @@ const double _kCardSigma = 9; // 디자인 blur(18px)
 /// - [danger]: 레드 — 되돌릴 수 없는 동작(삭제·로그아웃). 기본값.
 /// - [neutral]: 취소와 같은 글래스 톤 — 강조할 필요 없는 확인.
 /// - [primary]: 퍼플 — 권유하는 동작(업데이트 등). 취소보다 눈에 띄어야 할 때.
-enum VybeConfirmTone { danger, neutral, primary }
+/// - [dangerQuiet]: 붉은 아웃라인 — 되돌릴 수 없지만 **권하지 않는** 동작.
+///   회원 탈퇴처럼 취소 쪽(계속 쓰기)이 주 동작이어야 할 때, 확인 버튼을
+///   채우면 그쪽이 더 눌러야 할 버튼처럼 보인다.
+enum VybeConfirmTone { danger, neutral, primary, dangerQuiet }
 
 class VybeConfirmDialog extends StatelessWidget {
   final String title;
@@ -43,6 +46,12 @@ class VybeConfirmDialog extends StatelessWidget {
   /// 확인 버튼 톤. 기본은 위험(레드) — 이 다이얼로그의 원래 용도.
   final VybeConfirmTone tone;
 
+  /// 취소 버튼 톤. 기본은 글래스. 취소가 **권하는 쪽**일 때만 바꾼다.
+  final VybeConfirmTone cancelTone;
+
+  /// 제목 위에 놓을 아이콘 타일. null이면 제목부터 시작한다.
+  final Widget? icon;
+
   const VybeConfirmDialog({
     super.key,
     required this.title,
@@ -50,6 +59,8 @@ class VybeConfirmDialog extends StatelessWidget {
     required this.confirmLabel,
     this.cancelLabel = '취소',
     this.tone = VybeConfirmTone.danger,
+    this.cancelTone = VybeConfirmTone.neutral,
+    this.icon,
   });
 
   /// 다이얼로그를 띄우고 결과를 돌려준다 — 확인이면 true, 취소·바깥 탭·뒤로가기면 false.
@@ -68,6 +79,8 @@ class VybeConfirmDialog extends StatelessWidget {
     required String confirmLabel,
     String cancelLabel = '취소',
     VybeConfirmTone tone = VybeConfirmTone.danger,
+    VybeConfirmTone cancelTone = VybeConfirmTone.neutral,
+    Widget? icon,
     bool useRootNavigator = true,
   }) async {
     final result = await showGeneralDialog<bool>(
@@ -85,6 +98,8 @@ class VybeConfirmDialog extends StatelessWidget {
         confirmLabel: confirmLabel,
         cancelLabel: cancelLabel,
         tone: tone,
+        cancelTone: cancelTone,
+        icon: icon,
       ),
       transitionBuilder: (context, animation, _, child) {
         // 디자인 dialogIn: opacity 0→1 + scale .92→1, cubic-bezier(.2,.9,.3,1).
@@ -183,6 +198,10 @@ class VybeConfirmDialog extends StatelessWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      if (icon != null) ...[
+                        icon!,
+                        SizedBox(height: 16.h),
+                      ],
                       Text(
                         title,
                         textAlign: TextAlign.center,
@@ -205,6 +224,7 @@ class VybeConfirmDialog extends StatelessWidget {
                           Expanded(
                             child: _DialogButton(
                               label: cancelLabel,
+                              tone: cancelTone,
                               onTap: () => Navigator.of(context).pop(false),
                             ),
                           ),
@@ -267,6 +287,23 @@ class _DialogButtonState extends State<_DialogButton> {
         _pressed ? VybeColors.mainPurple700 : VybeColors.mainPurple500,
       VybeConfirmTone.neutral =>
         Colors.white.withValues(alpha: _pressed ? 0.12 : 0.07),
+      VybeConfirmTone.dangerQuiet => VybeColors.accentRed500.withValues(
+        alpha: _pressed ? 0.22 : 0.12,
+      ),
+    };
+
+    // 아웃라인 톤은 글자까지 붉어야 '위험한 쪽'으로 읽힌다.
+    final foreground = widget.tone == VybeConfirmTone.dangerQuiet
+        ? VybeColors.accentRed500
+        : Colors.white;
+
+    // 채운 버튼(레드·퍼플)엔 테두리를 두지 않는다 — 경계가 필요한 건
+    // 글래스·아웃라인 톤뿐.
+    final borderColor = switch (widget.tone) {
+      VybeConfirmTone.neutral => Colors.white.withValues(alpha: 0.12),
+      VybeConfirmTone.dangerQuiet =>
+        VybeColors.accentRed500.withValues(alpha: 0.40),
+      _ => null,
     };
 
     return VybeLiquidPress(
@@ -281,10 +318,7 @@ class _DialogButtonState extends State<_DialogButton> {
         decoration: BoxDecoration(
           color: fill,
           borderRadius: BorderRadius.circular(12.r),
-          // 채운 버튼(레드·퍼플)엔 테두리를 두지 않는다 — 글래스 톤만 경계가 필요.
-          border: widget.tone == VybeConfirmTone.neutral
-              ? Border.all(color: Colors.white.withValues(alpha: 0.12))
-              : null,
+          border: borderColor == null ? null : Border.all(color: borderColor),
         ),
         child: Text(
           widget.label,
@@ -294,7 +328,7 @@ class _DialogButtonState extends State<_DialogButton> {
             fontSize: 18.sp,
             height: 1,
             letterSpacing: 18 * -0.025,
-            color: Colors.white,
+            color: foreground,
           ),
         ),
       ),

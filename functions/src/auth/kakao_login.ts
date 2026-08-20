@@ -1,7 +1,7 @@
 import { https, logger } from "firebase-functions/v1";
 import * as admin from "firebase-admin";
 import axios from "axios";
-import { assertNotPendingDeletion } from "../account/account_common";
+import { restorePendingDeletionOnLogin } from "../account/restore_account";
 
 export const kakaoLogin = https.onCall(async (data) => {
   const accessToken: string | undefined = data?.accessToken;
@@ -41,9 +41,10 @@ export const kakaoLogin = https.onCall(async (data) => {
 
   const uid = `kakao:${kakaoId}`;
 
-  // 탈퇴 대기 계정이면 여기서 막는다. Auth 가 disabled 라 토큰을 줘도 어차피
-  // 로그인이 안 되지만, 그러면 앱이 이유(재가입 가능일)를 알 수 없다.
-  await assertNotPendingDeletion(uid);
+  // 탈퇴 대기 계정이면 보관 기간 안에 한해 여기서 되살린다. Auth 가 disabled
+  // 인 채로 토큰을 주면 앱의 signInWithCustomToken 이 거부되므로 발급 전에
+  // 풀어야 한다. 파기 시점이 지났으면 failed-precondition 으로 막힌다.
+  const restored = await restorePendingDeletionOnLogin(uid);
 
   let isNewUser = false;
   try {
@@ -56,7 +57,9 @@ export const kakaoLogin = https.onCall(async (data) => {
     provider: "kakao",
   });
 
-  logger.info(`kakaoLogin: uid=${uid}, isNewUser=${isNewUser}`);
+  logger.info(
+    `kakaoLogin: uid=${uid}, isNewUser=${isNewUser}, restored=${restored}`
+  );
 
-  return {customToken, isNewUser};
+  return {customToken, isNewUser, restored};
 });

@@ -23,13 +23,11 @@ class AuthRepositoryImpl implements AuthRepository {
   String? get currentUid => _dataSource.currentUser?.uid;
 
   @override
-  Future<({String customToken, bool isNewUser})> kakaoLogin(
-          String accessToken) =>
+  Future<LoginTokenResult> kakaoLogin(String accessToken) =>
       _dataSource.kakaoLogin(accessToken);
 
   @override
-  Future<({String customToken, bool isNewUser})> naverLogin(
-          String accessToken) =>
+  Future<LoginTokenResult> naverLogin(String accessToken) =>
       _dataSource.naverLogin(accessToken);
 
   @override
@@ -48,7 +46,7 @@ class AuthRepositoryImpl implements AuthRepository {
       _dataSource.verifyIdentity(impUid);
 
   @override
-  Future<({String customToken, bool isNewUser})> phoneLogin(String phone) =>
+  Future<LoginTokenResult> phoneLogin(String phone) =>
       _dataSource.phoneLogin(phone);
 
   /// Firebase 세션과 소셜 SDK 세션을 **함께** 정리한다.

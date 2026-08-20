@@ -241,24 +241,122 @@ flutter test</code></pre>
   </div>
 </div>
 
-<!-- ================= 4. 출시 전 챙길 것 ================= -->
-<h2><span class="num">4</span>출시 전 챙길 것 <span class="sev later">다음</span></h2>
+<!-- ================= 4. 약관·처리방침 ================= -->
+<h2><span class="num">4</span>약관 · 개인정보처리방침 <span class="sev block">블로커</span></h2>
+<p class="lede">2026-08-20 초안 4종 완성. <strong>읽어보고 빈칸을 채워야</strong> 스토어에 올릴 수 있다. 처리방침 미공개는 과태료 5천만원.</p>
 
-<div class="task" data-id="privacy">
+<h3>초안 — 눌러서 확인</h3>
+<table>
+  <tr><th>문서</th><th>동의</th><th>왜 필요한가</th></tr>
+  <tr><td><a href="legal/terms.html">서비스 이용약관</a></td><td>필수</td><td>약관규제법. <u>업소 정보가 틀렸을 때</u>·<u>회원과 업소 사이 분쟁</u>에 대한 책임 제한이 제9조·제19조에 있다</td></tr>
+  <tr><td><a href="legal/privacy.html">개인정보처리방침</a></td><td>필수</td><td>개인정보보호법 §30. <strong>미공개 = 과태료 5천만원.</strong> 30일 보관·복구, 국외 이전(Google·Algolia)까지 반영</td></tr>
+  <tr><td><a href="legal/location.html">위치기반서비스 이용약관</a></td><td>필수</td><td>위치정보법 §18. GPS 를 쓰면 처리방침과 <strong>별개 문서</strong>가 있어야 한다</td></tr>
+  <tr><td><a href="legal/marketing.html">마케팅 정보 수신 동의</a></td><td>선택</td><td>정보통신망법 §50. 지금 안 보내도 미리 넣어 뒀다</td></tr>
+</table>
+<div class="note"><p><strong>같은 내용이 두 군데 있다.</strong> 웹은 <code>legal/*.html</code>, 앱은 <code>lib/presentation/auth/terms/legal_documents.dart</code>. 한쪽만 고치면 <u>앱에 보이는 약관과 스토어에 낸 약관이 달라진다</u> — 반드시 같이 고칠 것.</p></div>
+
+<div class="task" data-id="legal-blanks">
   <div class="top">
     <input type="checkbox">
-    <div class="ttl">4-1. 개인정보처리방침에 '30일 보관' 문구</div>
+    <div class="ttl">4-1. 사업자 정보 빈칸 채우기 <span style="color:var(--amber)">— 노란 표시된 자리</span></div>
     <span class="who me">사람만</span>
   </div>
   <div class="body">
-    <p>회원 탈퇴가 즉시 삭제가 아니라 <strong>30일 보관 후 파기</strong>다. 방침에 그 내용이 없으면 실제 동작과 고지가 어긋난다. 법무 확인 필요.</p>
+    <p>사업자 등록이 안 돼 있어 <code>[회사명 — 사업자 등록 후 기재]</code> 처럼 <strong>노랗게 표시해 비워 뒀다</strong>. 등록 끝나면 채울 것 — 회사명 · 사업장 주소 · 사업자등록번호 3개.</p>
+    <p>고칠 파일 — <code>legal/privacy.html</code> · <code>legal/terms.html</code> · <code>legal/location.html</code> · <code>legal/marketing.html</code> · <code>lib/presentation/auth/terms/legal_documents.dart</code>(상단 <code>_kCompany</code> · <code>_kAddress</code> 두 상수만 고치면 세 문서에 반영된다).</p>
+    <p class="cmt">개인정보 보호책임자(최윤성 / 대표이사 / 010-5909-1595 / choiys.vybe@gmail.com)는 이미 들어가 있다.</p>
   </div>
 </div>
+
+<div class="task" data-id="lbs-report">
+  <div class="top">
+    <input type="checkbox">
+    <div class="ttl">4-2. 위치기반서비스사업 신고 <span style="color:var(--red)">— 법정 의무</span></div>
+    <span class="who me">사람만</span>
+  </div>
+  <div class="body">
+    <p>GPS 로 주변 클럽을 찾아주므로 <strong>위치기반서비스사업자</strong>에 해당한다. 「위치정보법」상 <u>방송통신위원회 신고</u> 대상이고, 신고 없이 영업하면 처벌 대상이다.</p>
+    <p>개인위치정보를 <strong>저장하지 않고</strong> 실시간으로만 쓰는 구조라 '위치정보사업'(수집·보관) 허가가 아닌 <u>신고</u>로 갈 가능성이 크지만, <strong>이건 변호사에게 확인할 것</strong>.</p>
+    <p>신고번호가 나오면 <code>legal/location.html</code> 제14조와 <code>legal_documents.dart</code> 의 <code>[방송통신위원회 신고 후 기재]</code> 자리에 넣는다.</p>
+  </div>
+</div>
+
+<div class="task" data-id="lbs-log">
+  <div class="top">
+    <input type="checkbox">
+    <div class="ttl">4-3. 위치정보 이용·제공사실 확인자료 6개월 보관 구현 <span style="color:var(--red)">— 약관과 코드 불일치</span></div>
+    <span class="who claude">Claude</span>
+  </div>
+  <div class="body">
+    <p><strong>약관에는 쓰여 있는데 코드에 없다.</strong> 위치기반 약관 제8조가 「위치정보법」 §16② 에 따라 <u>확인자료를 자동 기록하고 6개월 보관</u>한다고 밝히고 있는데, 지금 <code>device_location_datasource.dart</code> 는 좌표를 읽고 버릴 뿐 아무 기록도 남기지 않는다.</p>
+    <p>출시 전에 <strong>둘 중 하나</strong>를 해야 한다 — ① 확인자료 기록을 실제로 구현한다(권장) ② 약관 문구를 실제 동작에 맞게 고친다. 다만 ②는 법정 의무를 안 지키는 것이라 ①이 맞다.</p>
+    <p class="cmt">기록할 내용은 '언제 · 어느 이용자가 · 무슨 목적으로 위치를 이용했는지' 정도이고 좌표 자체는 안 남겨도 된다.</p>
+  </div>
+</div>
+
+<div class="task" data-id="consent-log">
+  <div class="top">
+    <input type="checkbox">
+    <div class="ttl">4-4. 동의 기록이 저장되지 않는다</div>
+    <span class="who claude">Claude</span>
+  </div>
+  <div class="body">
+    <p>가입 동의 시트(<code>terms_agreement_sheet.dart</code>)에서 체크한 값이 <strong>어디에도 안 남는다</strong> — <code>users</code> 문서에 마케팅·위치·약관 동의 필드가 없고, 코드에 <code>marketing</code> 을 쓰는 곳이 0건이다.</p>
+    <p>문제가 되는 지점 — ① 마케팅 문자를 보내려면 「정보통신망법」 §50 상 <u>동의 시점·내용의 증빙</u>이 있어야 한다 ② 나중에 "동의한 적 없다"는 분쟁이 나면 반박할 근거가 없다 ③ 약관을 개정하면 <u>누가 어느 버전에 동의했는지</u> 모른다.</p>
+    <p>할 일 — <code>users</code> 에 동의 항목별 <code>{동의여부, 동의시각, 문서버전}</code> 을 저장하고, 알림 설정 화면에서 마케팅 동의를 껐다 켤 수 있게 연결한다.</p>
+  </div>
+</div>
+
+<div class="task" data-id="legal-deploy">
+  <div class="top">
+    <input type="checkbox">
+    <div class="ttl">4-5. 처리방침 웹 배포 — 스토어 심사에 URL 이 필요하다</div>
+    <span class="who term">터미널</span>
+  </div>
+  <div class="body">
+    <p>앱스토어·플레이스토어 둘 다 개인정보처리방침의 <strong>공개 URL</strong> 을 요구한다. <code>firebase.json</code> 에 hosting 을 붙여 뒀으니 아래 한 줄이면 올라간다.</p>
+    <pre><code>firebase deploy --only hosting</code></pre>
+    <p>배포되면 이 주소로 열린다.</p>
+    <pre><code>https://vybe-bata-c07aa.web.app/privacy   <span class="cmt">← 스토어에 낼 주소</span>
+https://vybe-bata-c07aa.web.app/terms
+https://vybe-bata-c07aa.web.app/location
+https://vybe-bata-c07aa.web.app/marketing</code></pre>
+    <p class="cmt">도메인이 정해지면 Firebase Hosting 에 커스텀 도메인을 연결하고 문서 안의 주소도 같이 바꾼다.</p>
+  </div>
+</div>
+
+<div class="task" data-id="legal-review">
+  <div class="top">
+    <input type="checkbox">
+    <div class="ttl">4-6. 변호사 검토</div>
+    <span class="who me">사람만</span>
+  </div>
+  <div class="body">
+    <p>초안은 법령·작성지침에 맞춰 썼지만 <strong>법률 자문이 아니다</strong>. 특히 아래 셋은 판단이 갈릴 수 있어 확인이 필요하다.</p>
+    <p>① 위치기반서비스 <u>신고 대상인지 허가 대상인지</u> ② 클럽 정보 오류·업소와의 분쟁에 대한 <u>책임 제한 조항이 약관규제법상 유효한지</u> ③ 만 19세 제한을 본인확인으로만 거르는 것이 <u>충분한지</u>.</p>
+    <p class="cmt">2026.9.11 시행 개정법에서 과징금이 매출액 3% → 최대 10% 로 올라간다. 지금 잡아 두는 게 싸다.</p>
+  </div>
+</div>
+
+<div class="task" data-id="age-gate">
+  <div class="top">
+    <input type="checkbox">
+    <div class="ttl">4-7. 만 19세 검증이 3-1(문자 인증)에 걸려 있다</div>
+    <span class="who claude">Claude</span>
+  </div>
+  <div class="body">
+    <p>약관·처리방침에 <strong>"본인확인 절차로 만 19세 이상을 확인한다"</strong> 고 명시했다. 그런데 <strong>3-1</strong> 에서 보듯 인증번호가 <code>'123456'</code> 하드코딩이라, 지금은 <u>아무 생년월일이나 넣으면 통과</u>한다.</p>
+    <p>문자 인증을 실제로 붙이기 전까지는 문서에 쓴 내용과 동작이 어긋난다. <strong>3-1 이 끝나야 4-7 도 끝난다.</strong></p>
+  </div>
+</div>
+
+<!-- ================= 5. 출시 전 챙길 것 ================= -->
+<h2><span class="num">5</span>출시 전 챙길 것 <span class="sev later">다음</span></h2>
 
 <div class="task" data-id="deploy-app">
   <div class="top">
     <input type="checkbox">
-    <div class="ttl">4-2. 회원 탈퇴 앱 배포 + 실계정 종단 테스트</div>
+    <div class="ttl">5-1. 회원 탈퇴 앱 배포 + 실계정 종단 테스트</div>
     <span class="who me">사람만</span>
   </div>
   <div class="body">
@@ -269,7 +367,7 @@ flutter test</code></pre>
 <div class="task" data-id="storage-rules">
   <div class="top">
     <input type="checkbox">
-    <div class="ttl">4-3. Storage Rules 배포 검증</div>
+    <div class="ttl">5-2. Storage Rules 배포 검증</div>
     <span class="who term">터미널</span>
   </div>
   <div class="body">
@@ -282,7 +380,7 @@ flutter test</code></pre>
 <div class="task" data-id="location-chip">
   <div class="top">
     <input type="checkbox">
-    <div class="ttl">4-4. 입장비 무료 · 서비스 음료 화면 위치 연동</div>
+    <div class="ttl">5-3. 입장비 무료 · 서비스 음료 화면 위치 연동</div>
     <span class="who claude">Claude</span>
   </div>
   <div class="body">
@@ -291,8 +389,8 @@ flutter test</code></pre>
   </div>
 </div>
 
-<!-- ================= 5. 어드민 페이지 ================= -->
-<h2><span class="num">5</span>어드민 페이지 (별도 프로젝트) <span class="sev later">나중</span></h2>
+<!-- ================= 6. 어드민 페이지 ================= -->
+<h2><span class="num">6</span>어드민 페이지 (별도 프로젝트) <span class="sev later">나중</span></h2>
 <p class="lede">지금은 전부 <code>scripts/*.js</code> 를 직접 돌려서 처리 중. 웹 어드민이 생기면 여기 모아 붙일 것.</p>
 <table>
   <tr><th>기능</th><th>왜 필요한가</th></tr>
@@ -303,12 +401,12 @@ flutter test</code></pre>
   <tr><td>편의시설 실제 데이터 입력</td><td>현재 <code>info.facilities</code> 도 clubId 해시로 만든 샘플</td></tr>
 </table>
 
-<!-- ================= 6. 문서 ================= -->
-<h2><span class="num">6</span>문서 정리 <span class="sev later">나중</span></h2>
+<!-- ================= 7. 문서 ================= -->
+<h2><span class="num">7</span>문서 정리 <span class="sev later">나중</span></h2>
 <div class="task" data-id="doc-fix">
   <div class="top">
     <input type="checkbox">
-    <div class="ttl">6-1. <code>CLAUDE.md</code> '미구현' 목록 정리</div>
+    <div class="ttl">7-1. <code>CLAUDE.md</code> '미구현' 목록 정리</div>
     <span class="who claude">Claude</span>
   </div>
   <div class="body">

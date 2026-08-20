@@ -7,6 +7,9 @@ import 'package:vybe/presentation/common/renew/renew_glass.dart';
 
 /// 홈 섹션 머리 — 제목(+ 보조 문구) 왼쪽, `전체보기 ›` 오른쪽.
 ///
+/// '전체보기' 표기는 `home_nearby_clubs.dart` 의 것과 맞춰 둔다
+/// (caption · gray400). 한쪽만 바꾸면 홈에서 같은 버튼이 두 모양이 된다.
+///
 /// 디자인 `home.jsx > SecHead`. 보조 문구가 제목 **아래** 줄에 오는 형태라
 /// 제목 옆에 붙는 [RenewSectionHead]와는 배치가 다르다 — 그래서 홈 전용으로 둔다.
 /// (세 번째 화면이 같은 배치를 쓰게 되면 common/widgets로 승격)
@@ -63,11 +66,13 @@ class HomeSectionHead extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // '주변 클럽' 섹션(home_nearby_clubs.dart)과 같은 표기 —
+                  // 홈 안에서 같은 동작의 버튼이 섹션마다 다른 색·크기로
+                  // 보이면 안 된다.
                   Text(
                     '전체보기',
-                    style: VybeTypography.button2.copyWith(
-                      fontSize: 13.sp,
-                      color: RenewGlass.lavender,
+                    style: VybeTypography.caption.copyWith(
+                      color: VybeColors.gray400,
                     ),
                   ),
                   SizedBox(width: 4.w),
@@ -76,7 +81,7 @@ class HomeSectionHead extends StatelessWidget {
                     width: 4.w,
                     height: 8.h,
                     colorFilter: const ColorFilter.mode(
-                      RenewGlass.lavender,
+                      VybeColors.gray400,
                       BlendMode.srcIn,
                     ),
                   ),

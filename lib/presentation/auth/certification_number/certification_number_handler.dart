@@ -137,6 +137,12 @@ mixin _CertificationNumberHandlerMixin on _CertificationNumberLogicMixin {
       await vm.finalizeLogin();
       if (!mounted) return;
 
+      // 탈퇴 대기 계정이 이 로그인으로 되살아났으면 알린다.
+      // 토스트는 루트 오버레이에 얹히므로 이어지는 화면 전환에도 살아남는다.
+      if (vm.accountRestored) {
+        VybeToast.show(context, message: kAccountRestoredMessage);
+      }
+
       if (widget.isLogin) {
         // 로그인은 프로필을 건드리지 않는다 — 쓸 게 없다.
         // isLogin은 '이 번호의 주인이 나'일 때만 켜지고, users에 phone을 쓰는

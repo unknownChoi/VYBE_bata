@@ -15,8 +15,14 @@ Stream<String?> authState(Ref ref) {
 @Riverpod(keepAlive: true)
 class AuthViewModel extends _$AuthViewModel {
   String? _pendingCustomToken;
+  bool _accountRestored = false;
 
   bool get hasPendingToken => _pendingCustomToken != null;
+
+  /// 직전 로그인이 **탈퇴 대기 계정을 되살린** 로그인이었는지.
+  /// 화면이 "계정이 복구되었어요" 안내를 띄우는 데만 쓴다.
+  /// 다음 로그인 시도 때 초기화된다.
+  bool get accountRestored => _accountRestored;
 
   /// 지금 Firebase 세션이 있는지. 본인인증 화면이 '새 가입'인지 '이어서 가입'인지
   /// 가르는 데 쓴다 — 이미 로그인된 uid가 있으면 새 uid를 만들면 안 된다.
@@ -27,9 +33,12 @@ class AuthViewModel extends _$AuthViewModel {
 
   Future<bool> kakaoLogin(String accessToken) async {
     state = const AsyncLoading();
+    _accountRestored = false;
     try {
       final repo = ref.read(authRepositoryProvider);
-      final (:customToken, :isNewUser) = await repo.kakaoLogin(accessToken);
+      final (:customToken, :isNewUser, :restored) =
+          await repo.kakaoLogin(accessToken);
+      _accountRestored = restored;
       if (isNewUser) {
         _pendingCustomToken = customToken;
       } else {
@@ -45,9 +54,11 @@ class AuthViewModel extends _$AuthViewModel {
 
   Future<bool> phoneLogin(String phone) async {
     state = const AsyncLoading();
+    _accountRestored = false;
     try {
       final repo = ref.read(authRepositoryProvider);
-      final (:customToken, :isNewUser) = await repo.phoneLogin(phone);
+      final (:customToken, :isNewUser, :restored) = await repo.phoneLogin(phone);
+      _accountRestored = restored;
       _pendingCustomToken = customToken;
       state = const AsyncData(null);
       return isNewUser;
@@ -59,9 +70,12 @@ class AuthViewModel extends _$AuthViewModel {
 
   Future<bool> naverLogin(String accessToken) async {
     state = const AsyncLoading();
+    _accountRestored = false;
     try {
       final repo = ref.read(authRepositoryProvider);
-      final (:customToken, :isNewUser) = await repo.naverLogin(accessToken);
+      final (:customToken, :isNewUser, :restored) =
+          await repo.naverLogin(accessToken);
+      _accountRestored = restored;
       if (isNewUser) {
         _pendingCustomToken = customToken;
       } else {
@@ -120,16 +134,26 @@ class AuthViewModel extends _$AuthViewModel {
         .read(authRepositoryProvider)
         .checkPhoneAccount(phone, method.key);
     if (!r.isDuplicate) {
-      return (status: PhoneAccountStatus.available, purgeAt: null);
+      return (
+        status: PhoneAccountStatus.available,
+        purgeAt: null,
+        restorable: false,
+      );
     }
     if (r.pendingDeletion) {
-      return (status: PhoneAccountStatus.pendingDeletion, purgeAt: r.purgeAt);
+      return (
+        status: PhoneAccountStatus.pendingDeletion,
+        purgeAt: r.purgeAt,
+        restorable: false,
+      );
     }
     return (
       status: r.sameAccount
           ? PhoneAccountStatus.ownAccount
           : PhoneAccountStatus.takenByOther,
       purgeAt: null,
+      // 탈퇴 대기지만 파기 전이라 로그인하면 되살아나는 내 계정.
+      restorable: r.restorable,
     );
   }
 
@@ -141,6 +165,7 @@ class AuthViewModel extends _$AuthViewModel {
   /// 앱에 들어가 버린다 ("계정 생성도 하면 안 된다"가 깨진다).
   Future<void> abortSignup() async {
     _pendingCustomToken = null;
+    _accountRestored = false;
     if (ref.read(authRepositoryProvider).currentUid == null) return;
     await signOut();
   }

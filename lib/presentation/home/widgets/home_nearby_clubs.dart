@@ -20,7 +20,7 @@ class HomeNearbyClubs extends ConsumerWidget {
     final clubsAsync = ref.watch(homeNearbyClubsProvider);
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(0, 8.h, 0, 8.h),
+      padding: EdgeInsets.fromLTRB(0, 8.h, 0, 20.h),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -118,13 +118,10 @@ class _ClubCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final grad =
-        gradientForKey(_fallbackGradients, club.clubId);
+    final grad = gradientForKey(_fallbackGradients, club.clubId);
 
     return GestureDetector(
       onTap: () => openClubDetail(context, club.clubId),
-      // ClipRRect로 감싸지 않고 Container 자체 클립 사용 —
-      // 바깥 클립이 코너 호에서 1px 테두리를 깎아 모서리가 안 보이던 문제 방지.
       child: Container(
         width: 250.w,
         height: 156.h,
@@ -135,7 +132,14 @@ class _ClubCard extends StatelessWidget {
             end: Alignment.bottomRight,
             colors: grad,
           ),
-          // 카드 하단이 배경색과 거의 같아 라운딩이 안 보여 테두리를 한 단계 밝게.
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        // ⚠ 테두리는 **자식 위**(foregroundDecoration)에 그린다. decoration 쪽에
+        // 두면 자식이 바깥 라운드렉트로 클립되면서 코너 호에서 선을 덮어 버린다 —
+        // 직선부만 남고 모서리가 끊긴 것처럼 보인다(직선부는 decoration.padding 이
+        // 자식을 테두리 두께만큼 들여보내 살아남는다).
+        // 카드 하단이 배경색과 거의 같아 라운딩이 안 보여 색은 한 단계 밝게.
+        foregroundDecoration: BoxDecoration(
           border: Border.all(color: VybeColors.gray700),
           borderRadius: BorderRadius.circular(16.r),
         ),

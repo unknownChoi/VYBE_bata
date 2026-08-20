@@ -77,8 +77,8 @@ class FreeEntryWindow {
     return crossesMidnight ? 1440 - _startMin + _endMin : _endMin - _startMin;
   }
 
-  int get _startMin => _toMinutes(start);
-  int get _endMin => _toMinutes(end);
+  int get _startMin => hhmmToMinutes(start);
+  int get _endMin => hhmmToMinutes(end);
 
   /// 시작 시각이 [day] 인 실제 구간. 길이가 0 이하인 창은 null(잘못된 데이터).
   ///
@@ -140,7 +140,7 @@ class FreeEntryWindow {
 /// 범위 검사를 빠뜨리면 `"22:99"`·`"25:00"` 같은 값이 그럴듯한 분 수로 통과해
 /// 창이 엉뚱하게 길어진다 — 무료 시간이 늘어나는 쪽으로 틀리므로 반드시 막는다.
 /// `"24:00"`(= 자정)만 예외로 허용한다.
-int _toMinutes(String hhmm) {
+int hhmmToMinutes(String hhmm) {
   final parts = hhmm.split(':');
   if (parts.length != 2) return -1;
   final h = int.tryParse(parts[0]);

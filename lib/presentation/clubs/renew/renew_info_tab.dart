@@ -9,11 +9,12 @@ import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_facilities.dart';
+import 'package:vybe/presentation/clubs/renew/widgets/renew_free_entry.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_hours_table.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_map_card.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
 import 'package:vybe/presentation/clubs/widgets/club_glass.dart'
-    show SubwayStationLine, formatEntryFee, subwayLabel;
+    show SubwayStationLine, subwayLabel;
 import 'package:vybe/presentation/common/renew/renew_glass.dart';
 import 'package:vybe/presentation/common/widgets/vybe_fade_in_up.dart';
 import 'package:vybe/presentation/common/widgets/vybe_spinner.dart';
@@ -219,22 +220,7 @@ class RenewInfoTab extends ConsumerWidget {
               ),
               RenewInfoRow(
                 icon: Icons.confirmation_number_outlined,
-                child: Row(
-                  children: [
-                    Text('입장료 ', style: RenewGlass.body(lineHeight: 20)),
-                    Text(
-                      formatEntryFee(
-                        min: club.entryFeeMin,
-                        max: club.entryFeeMax,
-                      ),
-                      style: RenewGlass.body(
-                        color: RenewGlass.t1,
-                        lineHeight: 20,
-                        weight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
+                child: RenewFeeRow(club: club),
               ),
               RenewInfoRow(
                 icon: Icons.phone_rounded,

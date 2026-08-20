@@ -107,6 +107,10 @@ class _HotPodiumCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: club.bg),
         borderRadius: BorderRadius.circular(16.r),
+      ),
+      // 테두리는 자식 위에 — decoration 에 두면 코너 호에서 선이 덮인다.
+      foregroundDecoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16.r),
         border: Border.all(color: VybeColors.gray800),
       ),
       child: Stack(

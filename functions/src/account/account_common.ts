@@ -18,26 +18,22 @@ export function isPendingDeletion(
 }
 
 /**
- * users/{uid} 를 읽어 탈퇴 대기 상태면 `failed-precondition` 으로 막는다.
+ * 탈퇴 대기 계정의 로그인을 거부할 때 던지는 에러.
  *
- * 로그인 함수(kakao/naver/phone)가 Custom Token을 발급하기 **전에** 호출한다.
- * Auth 계정이 disabled 라 어차피 signInWithCustomToken 이 거부되지만,
- * 여기서 막아야 앱이 "왜 안 되는지"(재가입 가능일)를 사용자에게 보여줄 수 있다.
+ * `details.purgeAt` 을 실어 앱이 "언제부터 다시 가입할 수 있는지"를 보여줄 수
+ * 있게 한다 (앱: `AccountPendingDeletionException`).
+ *
+ * 보관 기간이 **남아 있으면** 거부가 아니라 복구다 —
+ * `restorePendingDeletionOnLogin` 참고. 이 에러는 파기 시점이 이미 지나
+ * 되살릴 수 없는 경우에만 쓴다.
  */
-export async function assertNotPendingDeletion(uid: string): Promise<void> {
-  const snap = await admin.firestore().collection("users").doc(uid).get();
-  if (!snap.exists) return;
-
-  const data = snap.data();
-  if (!isPendingDeletion(data)) return;
-
-  const purgeAt = data?.purgeAt as admin.firestore.Timestamp | undefined;
-
-  // details 에 purgeAt 을 실어 앱이 "언제부터 재가입 가능한지"를 보여줄 수 있게 한다.
-  throw new https.HttpsError(
+export function pendingDeletionError(
+  purgeAtMillis: number | null
+): https.HttpsError {
+  return new https.HttpsError(
     "failed-precondition",
     "탈퇴 처리 중인 계정입니다.",
-    {purgeAt: purgeAt?.toMillis() ?? null}
+    {purgeAt: purgeAtMillis}
   );
 }
 
@@ -71,4 +67,49 @@ export async function deleteStorageFolder(prefix: string): Promise<void> {
     // 파일이 없거나 권한 문제 — 로그만 남기고 진행
     console.warn(`deleteStorageFolder failed: ${prefix}`, e);
   }
+}
+
+/**
+ * clubs/{clubId} 의 ratingSum·reviewCount 를 델타만큼 옮기고 rating 재계산.
+ *
+ * 탈퇴 숨김(감산)과 복구(가산)가 같은 함수를 부호만 바꿔 쓴다 —
+ * 두 경로가 어긋나면 평점이 영구히 틀어진다.
+ */
+export async function applyRatingDelta(
+  clubId: string,
+  sumDelta: number,
+  countDelta: number
+): Promise<void> {
+  const clubRef = admin.firestore().collection("clubs").doc(clubId);
+
+  await admin.firestore().runTransaction(async (tx) => {
+    const snap = await tx.get(clubRef);
+    if (!snap.exists) return;
+
+    const club = snap.data() ?? {};
+    const newSum = Math.max(0, (club.ratingSum ?? 0) + sumDelta);
+    const newCount = Math.max(0, (club.reviewCount ?? 0) + countDelta);
+
+    tx.update(clubRef, {
+      ratingSum: newSum,
+      reviewCount: newCount,
+      rating: newCount > 0 ? Math.round((newSum / newCount) * 10) / 10 : 0,
+    });
+  });
+}
+
+/** clubs/{clubId} 의 favoriteCount 를 델타만큼 옮긴다 (0 미만 방지). */
+export async function applyFavoriteDelta(
+  clubId: string,
+  delta: number
+): Promise<void> {
+  const clubRef = admin.firestore().collection("clubs").doc(clubId);
+
+  await admin.firestore().runTransaction(async (tx) => {
+    const snap = await tx.get(clubRef);
+    if (!snap.exists) return;
+
+    const current: number = snap.data()?.favoriteCount ?? 0;
+    tx.update(clubRef, {favoriteCount: Math.max(0, current + delta)});
+  });
 }

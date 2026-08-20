@@ -65,6 +65,10 @@ class _ClubDetailRenewScreenState extends ConsumerState<ClubDetailRenewScreen>
   /// 흘려보낸다 — setState로 돌리면 탭 콘텐츠까지 매 프레임 다시 그린다.
   final ValueNotifier<double> _scrollY = ValueNotifier(0);
 
+  /// 히어로 캐러셀 인덱스 — 그림(RenewHero)과 조작 레이어(RenewHeroOverlay)가
+  /// 스택의 서로 다른 층에 있어 상태를 밖에서 들고 있는다.
+  final RenewHeroController _hero = RenewHeroController();
+
   int _activeIndex = 0;
 
   @override
@@ -85,6 +89,7 @@ class _ClubDetailRenewScreenState extends ConsumerState<ClubDetailRenewScreen>
     _tabController.dispose();
     _outer.dispose();
     _scrollY.dispose();
+    _hero.dispose();
     super.dispose();
   }
 
@@ -127,6 +132,7 @@ class _ClubDetailRenewScreenState extends ConsumerState<ClubDetailRenewScreen>
                   Transform.translate(offset: Offset(0, -y), child: child),
               child: RenewHero(
                 imageUrls: club?.heroImageUrls ?? const [],
+                controller: _hero,
                 loading: clubAsync.isLoading,
               ),
             ),
@@ -160,6 +166,23 @@ class _ClubDetailRenewScreenState extends ConsumerState<ClubDetailRenewScreen>
                   ),
                   Expanded(child: _tabViews(tabPadding)),
                 ],
+              ),
+            ),
+          ),
+          // 히어로 조작 레이어 — 스크롤 뷰 **위**에 올려야 스와이프·도트 탭이
+          // 산다(아래에 두면 스크롤 뷰가 히어로 영역 포인터를 전부 먹는다).
+          // 히어로와 같은 만큼 밀어 위치를 맞춘다.
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: ValueListenableBuilder<double>(
+              valueListenable: _scrollY,
+              builder: (_, y, child) =>
+                  Transform.translate(offset: Offset(0, -y), child: child),
+              child: RenewHeroOverlay(
+                controller: _hero,
+                total: club?.heroImageUrls.length ?? 0,
               ),
             ),
           ),

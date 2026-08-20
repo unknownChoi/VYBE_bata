@@ -32,19 +32,13 @@ class HomeGnb extends StatelessWidget {
         filter: scrolled
             ? ImageFilter.blur(sigmaX: 18, sigmaY: 18)
             : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+        child: Padding(
+          // 배경색·구분선 없음 — 스크롤 시 블러만으로 본문과 나눈다.
           padding: EdgeInsets.fromLTRB(
             kHomeGnbHPadding.w,
             top + kHomeGnbTopGap.h,
             kHomeGnbHPadding.w,
             10.h,
-          ),
-          decoration: BoxDecoration(
-            // 구분선 없음 — 블러 + 배경 농도만으로 본문과 나눈다.
-            color: scrolled
-                ? VybeColors.background.withValues(alpha: 0.82)
-                : Colors.transparent,
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,

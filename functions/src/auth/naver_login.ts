@@ -1,7 +1,7 @@
 import { https, logger } from "firebase-functions/v1";
 import * as admin from "firebase-admin";
 import axios from "axios";
-import { assertNotPendingDeletion } from "../account/account_common";
+import { restorePendingDeletionOnLogin } from "../account/restore_account";
 
 export const naverLogin = https.onCall(async (data) => {
   const accessToken: string | undefined = data?.accessToken;
@@ -41,8 +41,9 @@ export const naverLogin = https.onCall(async (data) => {
 
   const uid = `naver:${naverId}`;
 
-  // 탈퇴 대기 계정이면 여기서 막는다 (앱에 재가입 가능일을 알려주기 위해).
-  await assertNotPendingDeletion(uid);
+  // 탈퇴 대기 계정이면 보관 기간 안에 한해 여기서 되살린다
+  // (파기 시점이 지났으면 failed-precondition + 재가입 가능일).
+  const restored = await restorePendingDeletionOnLogin(uid);
 
   let isNewUser = false;
   try {
@@ -55,7 +56,9 @@ export const naverLogin = https.onCall(async (data) => {
     provider: "naver",
   });
 
-  logger.info(`naverLogin: uid=${uid}, isNewUser=${isNewUser}`);
+  logger.info(
+    `naverLogin: uid=${uid}, isNewUser=${isNewUser}, restored=${restored}`
+  );
 
-  return {customToken, isNewUser};
+  return {customToken, isNewUser, restored};
 });

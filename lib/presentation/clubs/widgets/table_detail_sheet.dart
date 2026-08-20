@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
+import 'package:vybe/presentation/clubs/widgets/club_glass.dart';
 import 'package:vybe/presentation/clubs/widgets/table_pricing_data.dart';
 
 // 선택한 테이블 상세 — 등급·수용 인원·가격.
@@ -13,14 +14,10 @@ class ClubTableDetail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tier = kTableTiers[table.tierKey]!;
-    return Container(
+    return GlassCard(
       margin: EdgeInsets.only(top: 14.h),
-      padding: EdgeInsets.all(16.r),
-      decoration: BoxDecoration(
-        color: VybeColors.gray900,
-        borderRadius: BorderRadius.circular(14.r),
-        border: Border.all(color: VybeColors.gray800),
-      ),
+      padding: 16,
+      radius: 18,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -89,45 +86,8 @@ class ClubTableDetail extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: 16.h),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '최소 주문 금액',
-                style: TextStyle(
-                  fontFamily: 'Pretendard',
-                  fontSize: 12.sp,
-                  height: 15 / 12,
-                  color: VybeColors.gray500,
-                ),
-              ),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    table.minSpend,
-                    style: TextStyle(
-                      fontFamily: 'Pretendard',
-                      fontSize: 24.sp,
-                      height: 26 / 24,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                    ),
-                  ),
-                  Text(
-                    '~',
-                    style: TextStyle(
-                      fontFamily: 'Pretendard',
-                      fontSize: 12.sp,
-                      color: VybeColors.gray500,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+          SizedBox(height: 14.h),
+          _minSpendPanel(tier),
           SizedBox(height: 14.h),
           Container(
             padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 11.h),
@@ -187,13 +147,113 @@ class ClubTableDetail extends StatelessWidget {
     );
   }
 
+  /// 최소 주문 금액 — 리퀴드 글래스 패널.
+  ///
+  /// 부모 [GlassCard]가 이미 BackdropFilter를 걸어 뒤를 흐려 놨으므로 여기선
+  /// 블러를 겹치지 않는다(중첩 BackdropFilter는 비용만 늘고 그림은 같다).
+  /// 대신 채움 + 좌상단 하이라이트 + 상단 1px 광택으로 같은 유리 톤을 만든다.
+  Widget _minSpendPanel(TableTier tier) {
+    final r = BorderRadius.circular(14.r);
+    return Container(
+      decoration: BoxDecoration(borderRadius: r),
+      // 테두리는 하이라이트 위에 그려야 선이 죽지 않는다 (GlassCard와 같은 규칙).
+      foregroundDecoration: BoxDecoration(
+        borderRadius: r,
+        border: Border.all(color: ClubGlass.tileBorder),
+      ),
+      child: ClipRRect(
+        borderRadius: r,
+        child: ColoredBox(
+          color: ClubGlass.tileFill,
+          child: Stack(
+            fit: StackFit.passthrough,
+            children: [
+              // 등급 색이 우측 금액 쪽에서 옅게 번진다.
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.centerRight,
+                      end: Alignment.centerLeft,
+                      colors: [tier.soft, tier.soft.withValues(alpha: 0)],
+                    ),
+                  ),
+                ),
+              ),
+              const Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: RadialGradient(
+                      center: Alignment(-0.8, -1),
+                      radius: 1.1,
+                      colors: [Color(0x14FFFFFF), Color(0x00FFFFFF)],
+                      stops: [0.0, 0.6],
+                    ),
+                  ),
+                ),
+              ),
+              const Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 1,
+                child: ColoredBox(color: Color(0x29FFFFFF)),
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '최소 주문 금액',
+                      style: TextStyle(
+                        fontFamily: 'Pretendard',
+                        fontSize: 12.sp,
+                        height: 15 / 12,
+                        color: ClubGlass.t3,
+                      ),
+                    ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          table.minSpend,
+                          style: TextStyle(
+                            fontFamily: 'Pretendard',
+                            fontSize: 24.sp,
+                            height: 26 / 24,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
+                        ),
+                        Text(
+                          '~',
+                          style: TextStyle(
+                            fontFamily: 'Pretendard',
+                            fontSize: 12.sp,
+                            color: ClubGlass.t4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _reqStat(IconData icon, String label, String value, Color iconColor) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
       decoration: BoxDecoration(
-        color: const Color(0x0AFFFFFF),
-        borderRadius: BorderRadius.circular(10.r),
-        border: Border.all(color: VybeColors.gray800),
+        color: ClubGlass.tileFill,
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: ClubGlass.tileBorder),
       ),
       child: Row(
         children: [

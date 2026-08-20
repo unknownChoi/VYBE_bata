@@ -284,6 +284,10 @@ class _Photo extends StatelessWidget {
       decoration: BoxDecoration(
         color: RenewGlass.tileFill,
         borderRadius: BorderRadius.circular(12.r),
+      ),
+      // 테두리는 자식(사진) 위에 — decoration 에 두면 코너 호에서 선이 덮인다.
+      foregroundDecoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12.r),
         border: Border.all(color: RenewGlass.quietBorder),
       ),
       child: Image.network(

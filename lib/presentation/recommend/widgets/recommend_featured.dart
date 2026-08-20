@@ -32,6 +32,11 @@ class RecommendFeatured extends StatelessWidget {
         decoration: BoxDecoration(
           color: VybeColors.gray900,
           borderRadius: BorderRadius.circular(20.r),
+        ),
+        // 테두리는 자식 위에 그린다 — decoration 에 두면 클립된 자식이 코너 호에서
+        // 선을 덮어 직선부만 남고 모서리가 끊긴 것처럼 보인다.
+        foregroundDecoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20.r),
           border: Border.all(color: VybeColors.gray800),
         ),
         child: Column(

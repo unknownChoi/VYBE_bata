@@ -48,11 +48,26 @@ enum PhoneAccountStatus {
   /// 다른 방식으로 이미 가입된 번호 — 막는다. 계정도 만들지 않는다.
   takenByOther,
 
-  /// 탈퇴 대기 중 — 파기(30일) 전까지는 로그인도 재가입도 안 된다.
+  /// 탈퇴 대기인데 **되살릴 수 없는** 경우 — 남의 계정이거나 파기 시각이
+  /// 이미 지났다. 보관 기간 안에 본인이 돌아온 경우는 [ownAccount] 로 온다
+  /// (로그인하면 서버가 복구한다).
   pendingDeletion,
 }
 
-typedef PhoneAccountCheck = ({PhoneAccountStatus status, DateTime? purgeAt});
+typedef PhoneAccountCheck = ({
+  PhoneAccountStatus status,
+  DateTime? purgeAt,
+
+  /// 탈퇴 대기 계정인데 파기 전이라 **로그인하면 복구**되는 상태.
+  /// [PhoneAccountStatus.ownAccount] 일 때만 true 가 될 수 있다.
+  bool restorable,
+});
+
+/// 탈퇴 대기 계정이 복구될 예정일 때, 인증 화면으로 넘어가기 전 안내 문구.
+const kAccountRestoreNotice = '탈퇴 대기 중인 계정이에요. 인증하면 계정이 복구됩니다';
+
+/// 복구가 끝난 뒤 보여줄 문구.
+const kAccountRestoredMessage = '계정이 복구되었어요. 다시 만나서 반가워요!';
 
 /// 막힌 번호일 때 보여줄 문구.
 ///
@@ -64,7 +79,10 @@ String phoneBlockedMessage(PhoneAccountCheck check) {
     return '이미 존재하는 계정입니다.';
   }
   final purgeAt = check.purgeAt;
-  if (purgeAt == null) return '탈퇴 처리 중인 계정입니다.';
+  // purgeAt 이 없으면 파기가 임박·진행 중이라 복구도 재가입도 지금은 안 된다.
+  if (purgeAt == null) {
+    return '탈퇴 처리 중인 계정입니다. 잠시 후 다시 시도해주세요.';
+  }
   final m = purgeAt.month.toString().padLeft(2, '0');
   final d = purgeAt.day.toString().padLeft(2, '0');
   return '탈퇴 처리 중인 계정입니다. ${purgeAt.year}.$m.$d부터 다시 가입할 수 있어요';

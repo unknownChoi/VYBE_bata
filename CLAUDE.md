@@ -196,7 +196,9 @@ ALGOLIA_SEARCH_API_KEY=your_key_here   # 반드시 Search-Only 키 (Admin/Write 
 ```
 
 > main.dart 초기화 순서: `dotenv.load` → `Firebase.initializeApp` → `KakaoSdk.init` → 네이버 지도(`NAVER_MAP_CLIENT_ID`).
-> 네이버 **로그인** secret(`NAVER_CLIENT_ID`/`NAVER_CLIENT_SECRET`)은 Cloud Functions(`functions/.env`)에서만 사용.
+> ⚠ 네이버 **로그인** clientId/clientSecret 은 dotenv 가 아니라 **네이티브 설정**에 있다 —
+> `android/app/src/main/AndroidManifest.xml` 의 `com.naver.sdk.*` 메타데이터와 `ios/Runner/Info.plist`.
+> 서버(Cloud Functions)는 클라가 넘긴 accessToken 만 검증하므로 이 값들이 필요 없다.
 
 사용법:
 ```dart
@@ -210,14 +212,21 @@ final kakaoKey = dotenv.env['KAKAO_NATIVE_APP_KEY']!;
 ```
 
 ### Cloud Functions (`dotenv`)
-파일 위치: `functions/.env`
+파일 위치: `functions/.env` (템플릿 `functions/.env.example` 은 커밋)
 
 ```
-# functions/.env (git 제외)
-KAKAO_ADMIN_KEY=your_key_here
-NAVER_CLIENT_ID=your_id_here
-NAVER_CLIENT_SECRET=your_secret_here
+# functions/.env (git 제외) — 서버가 실제로 읽는 키는 이 둘뿐이다
+PORTONE_IMP_KEY=your_key_here        # verifyIdentity — 포트원 토큰 발급
+PORTONE_IMP_SECRET=your_secret_here  # verifyIdentity — 포트원 토큰 발급
 ```
+
+> ⚠ **현재 배포본에 이 키가 안 실려 있다 (2026.08.20 확인)** — `verifyIdentity` 의 런타임
+> 환경변수에 `PORTONE_*` 가 없어 호출하면 `internal`("포트원 API 키가 설정되지 않았습니다")로
+> 실패한다. 앱이 아직 이 함수를 부르지 않아 드러나지 않았을 뿐(문자 인증이 `'123456'` 하드코딩).
+> 값을 채운 뒤 `firebase deploy --only functions:verifyIdentity` 로 반영할 것.
+>
+> `firebase deploy` 는 `functions/.env` 를 읽어 **런타임 환경변수로 올린다** — 파일이 없으면
+> 조용히 없는 채로 배포된다(경고 없음). 로그인 3종은 서버 시크릿을 안 써서 영향 없다.
 
 ## 클럽 검색 (Algolia)
 
@@ -255,7 +264,7 @@ clubs 쓰기 → Firebase Extension(firestore-algolia-search) → Algolia `clubs
 ### .gitignore 규칙
 - `.env` — Flutter 키
 - `functions/.env` — Cloud Functions 키
-- `.env.example` 파일은 커밋 (실제 값 없이 키 이름만 포함)
+- `.env.example` · `functions/.env.example` 은 커밋 (실제 값 없이 키 이름만 포함)
 
 ---
 
@@ -302,6 +311,54 @@ ElevatedButton(onPressed: () {}, child: Text('로그인'))
 ```
 
 > 새 UI 작업 전 반드시 `VybeColors`, `VybeTypography`, `common/widgets/` 먼저 확인할 것
+
+### ⚠ 라운드 카드에 테두리를 그릴 때 (2026.08.20)
+
+클립되는 카드의 **테두리는 `decoration`이 아니라 `foregroundDecoration`에 둔다.**
+
+```dart
+Container(
+  clipBehavior: Clip.antiAlias,
+  decoration: BoxDecoration(gradient: ..., borderRadius: r),      // 채움만
+  foregroundDecoration: BoxDecoration(border: ..., borderRadius: r), // 테두리는 자식 위
+  child: ...,
+)
+```
+
+`decoration`에 `border`를 넣으면 **직선부만 남고 코너 호에서 선이 사라진다** —
+카드 모서리가 잘려 나간 것처럼 보인다. Flutter가 `Container`를
+`DecoratedBox(decoration) > ClipPath(바깥 라운드렉트) > Padding(테두리 두께) > child`
+로 짜기 때문 —
+① decoration(채움 + 테두리)을 먼저 그리고 ② 자식을 **바깥** 라운드렉트로 클립해 그 위에 얹는다.
+직선부는 `decoration.padding`(= 테두리 두께)이 자식을 1px 들여보내 선이 살아남지만,
+그 균일한 1px 인셋은 **코너 곡선을 따라가지 않아** 호 구간에서 자식이 선을 덮는다.
+바깥 `ClipRRect`로 감싸도 결과는 같다(둘 다 실측 확인 — 직선부 밝기 83 대 호 14~25,
+`foregroundDecoration`은 호 76~83).
+
+카드 하단이 배경색과 비슷한 화면(홈 주변 클럽 카드 등)에서 특히 티가 난다 —
+호에 선이 없으면 대비가 0이라 아래 모서리가 통째로 안 보인다.
+**바깥 `ClipRRect`로 감싸는 것도 같은 결과**라 `ClipRRect > Container(border)` 형태는
+`Container(clipBehavior: Clip.antiAlias)` + `foregroundDecoration` 으로 바꿔야 한다
+(`ClipRRect`를 남긴 채 `foregroundDecoration`만 쓰면 바깥 클립이 다시 호를 깎는다).
+
+적용된 곳 — 사진/불투명 카드 14곳:
+`home_nearby_clubs` · `home_free_time_clubs` · `home_banner` · `search/club_list_item` ·
+`free_entry_screen` · `service_drinks_screen` · `hip_hop_poster_card` · `saved_thumb` ·
+`recommend_featured` · `my_review_card` · `hot_places_podium` · `hot_places_list_row` ·
+`table_floor_map` · `renew_free_entry`(입장비 도형 칸).
+`RenewGlassCard`(`common/renew/renew_glass.dart`)는 처음부터 이 방식이다.
+
+⚠ **아직 안 고친 곳** — 글래스 pill·시트·바 계열(`vybe_toast` · `vybe_glass_surface` ·
+`vybe_confirm_dialog` · `nearby_gnb` · `nearby_glass` · `club_pin_card` ·
+`club_nearby_list_item`의 pill · `notification_header` · `search_bar` · `renew_chrome` ·
+`home_category_grid` · `home_gnb`). 같은 버그지만 `BackdropFilter`가 끼어 있어
+테두리를 자식 위로 올리면 글래스 질감이 달라질 수 있다 — 화면별로 눈으로 보고 옮길 것.
+찾는 법은 아래 스캔:
+
+```bash
+# 클립 안 decoration 에 테두리가 있는 곳 (괄호 매칭)
+grep -rn "border: Border.all" lib/presentation/   # 후보 추린 뒤 ClipRRect/clipBehavior 포함 여부 확인
+```
 
 ---
 
@@ -361,7 +418,8 @@ ElevatedButton(onPressed: () {}, child: Text('로그인'))
 - **클럽 상세 — club_detail_glass.html(리퀴드 글래스) 리뉴얼 완료**
   (오로라 배경 + 히어로 320 + 히어로를 -34 덮는 아이덴티티 글래스 카드 +
   퀵 액션 4칸(전화·길찾기·공유·저장) + sticky 글래스 세그먼트 탭 5개)
-  - 홈: 매장정보(주소·영업시간 확장) / 오늘의 라인업 / 테이블 요약 / 메뉴3 / 사진6 / 주변 클럽
+  - 홈: 시간대별 무료입장(정책 있는 클럽만) / 매장정보(주소·영업시간 확장) / 오늘의 라인업 /
+    테이블 요약 / 메뉴3 / 사진6 / 주변 클럽
   - 메뉴: 메뉴판 이미지 + sticky 카테고리 칩(섹션 스크롤) + 카테고리별 섹션
   - 사진: sticky 필터 칩(개수) + 2열 매스너리 + 12장씩 더 보기
   - 리뷰: 평점 요약(분포 바) + 작성 버튼 + 정렬 칩 + 5개씩 더 보기
@@ -490,31 +548,96 @@ ElevatedButton(onPressed: () {}, child: Text('로그인'))
   - ⚠ **쓰기 경로도 `isHidden: false`를 같이 써야 한다** — `ReviewModel.toFirestore()`와
     `firebase_favorite_datasource.addFavorite`에 들어 있다. 빠뜨리면 목록 쿼리
     (`where isHidden == false`)가 못 잡아 새 리뷰가 조용히 사라진다
-  - 앱: 마이페이지 계정 → '회원 탈퇴' → `my_page/account_delete_screen.dart`
-    (삭제 항목·30일 보관·재가입 제한 고지 + 사유 칩 + 동의 체크 + 확인 다이얼로그).
+  - 앱: 설정 하단 '탈퇴하기' → `my_page/account_delete_screen.dart` —
+    **account_delete.html(만류 화면) 디자인 적용 (2026.08.20)**.
+    내 찜/리뷰/사진 개수 카드 + 놓치게 되는 것 6줄 + 탈퇴→보관→파기 3단계 타임라인 +
+    사유 칩(고르면 대안 카드) + 동의 체크 + 주 버튼은 '계속 이용하기'(탈퇴는 밑줄 링크)
+    + 확인 다이얼로그. 조각은 `my_page/widgets/account_delete_parts.dart`
+    - ⚠ **디자인 시안의 '30일 안에는 재가입할 수 있어요'는 서버와 반대라 안 쓴다** —
+      보관 기간엔 로그인·재가입 둘 다 막히고(`checkPhoneDuplicate` → pendingDeletion)
+      파기일이 지나야 다시 가입할 수 있다. 화면 문구는 이 기준으로 통일
+    - ⚠ **완료 안내는 라우트가 아니라 오버레이**(`LeaveDoneOverlay`) — 탈퇴 직후
+      `AuthGate`가 루트 위 라우트를 전부 걷어내 화면으로 push하면 뜨자마자 사라진다.
+      `OverlayState`는 `await` 전에 잡아 둘 것. 재가입 가능일은 서버가 준 `purgeAt` 사용
+    - 확인 다이얼로그는 공용 `VybeConfirmDialog`에 `icon`·`cancelTone`·
+      `VybeConfirmTone.dangerQuiet`(붉은 아웃라인)를 더해 만들었다 — 취소('더 써볼게요')가
+      채운 버튼이어야 탈퇴 쪽이 주 동작으로 보이지 않는다
+    - 사유 칩 라벨 = 서버 `deletionReason` 값. **문구를 바꾸면 저장값도 바뀐다**
+    - 대안 카드 CTA는 실제로 갈 곳이 있는 것만 단다(알림 설정·개인정보 처리방침).
+      클럽 제보·의견 보내기는 창구가 없어 버튼 없이 문구만
     탈퇴 성공 시 repository가 이어서 `signOut()` → `AuthGate`가 루트를 Welcome으로 교체
-  - **탈퇴 철회(복구)는 범위 밖** — 필요해지면 역연산(`isHidden=false` + 집계 가산 +
-    `disabled=false`)을 `cancelAccountDeletion`으로 추가하면 되게 전 단계를 되돌릴 수 있게 짰다
+  - **보관 기간 내 재로그인 = 자동 복구 (2026.08.20)** — 별도 '철회' 버튼이 아니라
+    **로그인이 곧 복구**다. 서버 `restorePendingDeletionOnLogin()`
+    (`functions/src/account/restore_account.ts`)이 로그인 3종에서 Custom Token 발급 **전에**
+    돌아 역연산을 한다 — 리뷰·사진·찜 `isHidden=false` + 집계 **가산** + Auth `disabled=false` +
+    `status='active'`·`deletedAt`·`purgeAt`·`deletionReason` 삭제
+    - ⚠ **`purgeAt`이 지났으면 되살리지 않는다** — 살려 놔도 그날 새벽 `purgeDeletedUsers`가
+      데이터를 지운다. 이때는 예전처럼 `failed-precondition`으로 막되 `purgeAt`은 **null로**
+      보낸다(이미 지난 날짜를 '그날부터 가입 가능'이라 안내하면 거짓말)
+    - ⚠ 상태 필드(`status` 등)는 **맨 마지막에** 지운다. 중간에 실패하면 `pendingDeletion`이
+      남아 다음 로그인이 처음부터 다시 시도한다. 각 단계가 `isHidden==true`인 문서만 손대므로
+      재실행해도 **이중 가산 없음**(숨김 쪽과 대칭)
+    - ⚠ 집계 가산 주체도 이 함수 하나 — `isHidden` false 전이는 `onReviewUpdated`가
+      가드로 건너뛴다(이미 양방향 전이를 모두 무시하게 돼 있다)
+    - `checkPhoneDuplicate`도 같이 바뀜 — 본인 + 파기 전이면 `sameAccount=true`·
+      `pendingDeletion=false`·`restorable=true`로 통과시킨다. 안 그러면 본인인증 경로가
+      로그인 화면 앞에서 먼저 막혀 복구까지 도달을 못 한다
+    - 앱: 복구되면 토스트 `kAccountRestoredMessage`(소셜은 Welcome, 본인인증은 인증번호 화면),
+      본인인증 경로는 넘어가기 전에 `kAccountRestoreNotice`로 예고. 문구 상수는 `signup_flow.dart`
+    - 탈퇴 화면 타임라인·완료 오버레이 문구도 '보관 기간엔 로그인도 막힌다' → '다시 로그인하면
+      복구된다'로 수정 (**새 가입은 여전히 파기일 이후**)
   - 배포 순서·주의는 아래 '미구현' 항목 참고. 상세 설계는 `firebase_structure.html#account-deletion`
 
 ### 미구현 / 진행 중 ✗
-- **시간대별 무료입장 — 홈 섹션까지 완료, 나머지 화면 미적용 (2026.08.19)**
+- **시간대별 무료입장 — 홈 · 클럽 상세 완료, 목록/검색 화면 미적용 (2026.08.20)**
   Firestore `clubs`에 `freeEntry`·`isFreeEntry` 배정 완료(164개, timed 47).
   **완료** — `data/models/free_entry_policy.dart`(순수 함수 `statusAt()` +
   `test/free_entry_policy_test.dart` 25건), `ClubModel.freeEntry`·`isFreeEntry`,
-  `getTimedFreeEntryClubs()`, 홈 '이 시간에만 무료입장' 섹션(`home/widgets/home_free_time_clubs.dart`).
+  `getTimedFreeEntryClubs()`, 홈 '이 시간에만 무료입장' 섹션(`home/widgets/home_free_time_clubs.dart`),
+  **클럽 상세 '시간대별 무료입장' 섹션 (2026.08.20 — club_detail_renew.html 디자인 이식)**.
   남은 것은 **순서대로**:
   ① Algolia Extension Indexable Fields에 `freeEntry`·`isFreeEntry` 추가 → `node scripts/reindex_clubs.js`
   ② 앱 `AlgoliaClubSearchDataSource._requiredFields`에 두 필드 추가 (①보다 먼저 하면 **모든 검색 hit이
   `complete=false`** → `getClub` 조인 폴백으로 read 부활). 그때까지 검색 hit의 `freeEntry`는 `none`
   ③ 나머지 화면 — 입장비 무료 페이지(`getFreeEntryClubs()`를 `isFreeEntry==true`로 교체 + timed 표기),
-  `ClubFilter.freeEntry`, 클럽 상세 `formatEntryFee` 계열 표기
+  `ClubFilter.freeEntry`
   ④ 어드민 편집 UI (요일·시간 입력 + `isFreeEntry` 동시 쓰기)
+  - **클럽 상세 (2026.08.20)** — 홈 탭 **첫 섹션** `clubs/renew/widgets/renew_free_entry.dart`.
+    남은 시간 카운트다운(실시각 1초) + 시간대별 입장비 도형 + 조건 한 줄 + 요일별 무료입장 시간(접힘).
+    매장 정보·상세 정보 탭의 **입장료 행**도 `RenewFeeRow`로 바뀌어 '지금 무료' pill + 무료 시간대가 붙는다
+    - ⚠ **`freeEntry.type == 'timed'` 클럽에서, 무료 시작 1시간 전부터만 그려진다** —
+      판정은 `RenewFreeEntrySection.maybeBuild()` 한 곳, null이면 호출부가 목록에서 뺀다.
+      미표시 조건 넷 — `none`(무료 없음) · `always`(**상시 무료 — 나눌 시간대가 없어 도형이
+      한 칸, 카운트다운도 없다. '무료'는 입장료 행이 이미 알린다**) · timed인데 쓸 수 있는 창이
+      하나도 없을 때 · **다음 무료 시작이 `RenewFreeEntrySection.leadTime`(1시간)보다 멀 때**
+      (무료가 여섯 시간 뒤인데 카운트다운이 홈 탭 첫 자리를 종일 차지하면 안 된다).
+      무료가 **진행 중**이면 남은 시간이 곧 알맹이라 무조건 표시
+    - ⚠ **표시 판정은 화면을 만드는 시점 한 번**이다 — 이미 떠 있는 섹션은 무료 시간이 끝나도
+      그대로 두고 헤드만 '다음 무료입장'으로 바뀐다. 보고 있는 화면에서 섹션이 통째로 사라지면
+      스크롤이 튀고 방금 본 정보를 다시 찾게 된다. 다시 숨기는 건 다음 진입 때
+    - ⚠ **Firestore에 시간대별 요금표는 없다** — 도형은 `operatingHours`(회차) × `freeEntry.windows`
+      × `entryFeeMin`을 겹쳐 만든다(`data/models/free_entry_timeline.dart` ·
+      `test/free_entry_timeline_test.dart` 17건). 없는 요금 구간을 지어내지 않는다
+    - 도형이 그리는 **회차(오픈~마감)**는 앵커로 고른다 — 무료 중이면 지금 회차,
+      아니면 다음 무료 창의 시작 시각이 든 회차. 앵커 회차에 무료 구간이 없으면 도형을 뺀다
+      (다른 날로 몰래 건너뛰면 헤드 문구와 다른 날을 그리게 된다)
+    - 칸 너비는 길이 비례지만 **최소 폭 52**를 보장하고 모자란 만큼 넓은 칸에서 뗀다.
+      현재 시각 마커도 **같은 너비 배열**로 계산해야 칸 경계와 안 어긋난다
+    - 디자인의 **'무료 시간 시작 전 알림 받기' 버튼은 뺐다** — 푸시 알림 경로가 없어 눌러도 아무 일이 없다.
+      '만석 시 조기 마감'·'신분증 지참' 두 줄도 대응 필드가 없어 뺐다(조건은 `freeEntry.condition` 하나)
+    - ⚠ **영업 여부는 판정과 같은 시각으로 물어야 한다** — `OperatingHours.dayAt(now).isOpenAt(now)`.
+      `today.isCurrentlyOpen`은 **벽시계**를 읽어, 시각을 주입하는 판정과 섞으면
+      "무료 창 안인데 영업 종료" 같은 어긋난 답이 나온다(홈 카드 `toHomeFreeTimeClub`도 같이 고침)
   - Rules·인덱스·Cloud Functions 변경 **없음** (집계 아님 · clubs 쓰기는 어드민 전용 · 등호 2개라 복합 인덱스 불필요)
   - 구버전 앱은 `entryFeeMin==0`만 보므로 timed 클럽이 무료 목록에서 **안 보일 뿐**(누락) 오표기는 아니다
     → 강제 업데이트 사안 아님. 상세 설계는 `firebase_structure.html#feature-free-entry`
 - 회원 탈퇴 잔여 작업 — **서버는 2026.08.17 전부 배포 완료**
   (백필 4865건 · 인덱스 · Rules · Functions 15개 · 스케줄 잡 ENABLED).
+  ⚠ **단, 보관 기간 내 재로그인 복구(2026.08.20)는 아직 미배포** —
+  `firebase deploy --only functions:kakaoLogin,functions:naverLogin,functions:phoneLogin,functions:checkPhoneDuplicate`.
+  앱을 먼저 내보내도 안전하다(구서버는 `restored`·`restorable`을 안 주고 앱은 false로 폴백 →
+  예전처럼 차단될 뿐). 반대로 **서버만 먼저 내보내도** 안전하다(구앱은 필드를 무시하고
+  복구된 계정으로 그냥 로그인된다 — 안내 토스트만 없다)
   남은 것 ① **앱 빌드·배포** (`isHidden` 쿼리 필터와 탈퇴 화면이 여기 들어 있다)
   ② 개인정보처리방침에 '30일 보관' 문구 추가(법무 확인)
   ③ 어드민 페이지에 `pendingDeletion` 조회·즉시 파기 기능
@@ -577,6 +700,7 @@ ElevatedButton(onPressed: () {}, child: Text('로그인'))
 3. 패스·지갑 탭 실제 구현 (탭 슬롯 재배치 포함)
         ↓
 4. Security Rules·인덱스 배포 검증(reviews collectionGroup 포함) + 본인인증(verifyIdentity) 실연동 점검
+   (⚠ 선행: `functions/.env` 에 `PORTONE_IMP_KEY`·`PORTONE_IMP_SECRET` 채우고 재배포)
         ↓
 5. Apple 로그인 (이후)
 ```
@@ -642,7 +766,8 @@ ElevatedButton(onPressed: () {}, child: Text('로그인'))
 | 처음 보는 번호 | 약관 동의 → 문자 인증 → **가입** |
 | 가입할 때와 **같은 방식**의 내 계정 | 약관 생략 → 문자 인증 → **로그인** (홈 직행. 가입완료 화면·프로필 저장 없음 = Firestore 쓰기 0) |
 | **다른 방식**으로 가입된 번호 | 차단 — `이미 존재하는 계정입니다.` + 계정 생성 안 함 |
-| 탈퇴 대기(30일) 계정 | 차단 — 본인이어도 파기 전까진 못 쓴다 (재가입 가능일 안내) |
+| 탈퇴 대기(30일) 계정 — **본인** | 통과 → 로그인하는 순간 **계정 복구** (`restorePendingDeletionOnLogin`) |
+| 탈퇴 대기(30일) 계정 — 남 / 파기일 지남 | 차단 (재가입 가능일 안내) |
 
 - 판정은 서버(`checkPhoneDuplicate`) 한 곳. **시도 중인 uid를 클라가 정하지 않는다** —
   세션이 있으면 `context.auth.uid`, 없고 본인인증 경로면 `phone:{phone}`,
@@ -761,6 +886,8 @@ provider        : string    // "naver" | "apple"
 isVerified      : boolean   // 본인인증 완료 여부 (초기값: false)
 status          : string    // "active" | "pendingDeletion" — 탈퇴 대기 여부.
                             //   필드가 없으면 active로 간주(기존 문서)
+                            //   보관 기간 안에 다시 로그인하면 서버가 active로 되돌리고
+                            //   deletedAt·purgeAt·deletionReason 을 지운다(복구)
 deletedAt       : timestamp?// 탈퇴 요청 시각
 purgeAt         : timestamp?// deletedAt + 30일 = 완전 파기 예정 시각(재가입 가능 시점)
 deletionReason  : string?   // 탈퇴 사유(선택 설문). 안 고르면 빈 문자열
@@ -1201,7 +1328,7 @@ createdAt      : timestamp
 ### Cloud Functions 목록
 
 총 **15개** 함수 (`functions/src/index.ts` export 기준). Firebase 관련 서버 로직은 모두 Cloud Functions으로 처리.
-구조: `functions/src/auth/` (6) · `account/` (2 + 공용 `account_common.ts`) · `favorites/` (2) ·
+구조: `functions/src/auth/` (6) · `account/` (2 + 공용 `account_common.ts` · `restore_account.ts`) · `favorites/` (2) ·
 `reviews/` (3) · `performances/` (1) · `search/` (1) + `index.ts`.
 (구 `search/onClubWritten`은 Algolia 전환으로 삭제 — 2026.07.19)
 
@@ -1209,16 +1336,17 @@ createdAt      : timestamp
 
 | 함수명 | 입력 | 출력 | 역할 |
 |--------|------|------|------|
-| `naverLogin` | `{ accessToken }` | `{ customToken, isNewUser }` | 네이버 accessToken → Custom Token (`naver:{naverId}`) |
-| `kakaoLogin` | `{ accessToken }` | `{ customToken, isNewUser }` | 카카오 accessToken → Custom Token (`kakao:{kakaoId}`) |
-| `phoneLogin` | `{ phone }` | `{ customToken, isNewUser }` | 전화번호 기반 Custom Token (`phone:{phone}`) |
-| `checkPhoneDuplicate` | `{ phone, method }` | `{ isDuplicate, sameAccount, pendingDeletion, purgeAt }` | 이 번호의 **주인이 지금 시도 중인 그 계정인지** 판정. `sameAccount=true`면 재로그인이라 통과, false면 다른 방식 가입이라 차단. 탈퇴 대기 계정은 본인이어도 차단 |
+| `naverLogin` | `{ accessToken }` | `{ customToken, isNewUser, restored }` | 네이버 accessToken → Custom Token (`naver:{naverId}`) |
+| `kakaoLogin` | `{ accessToken }` | `{ customToken, isNewUser, restored }` | 카카오 accessToken → Custom Token (`kakao:{kakaoId}`) |
+| `phoneLogin` | `{ phone }` | `{ customToken, isNewUser, restored }` | 전화번호 기반 Custom Token (`phone:{phone}`) |
+| `checkPhoneDuplicate` | `{ phone, method }` | `{ isDuplicate, sameAccount, pendingDeletion, purgeAt, restorable }` | 이 번호의 **주인이 지금 시도 중인 그 계정인지** 판정. `sameAccount=true`면 재로그인이라 통과, false면 다른 방식 가입이라 차단. 탈퇴 대기 계정은 **본인 + 파기 전**이면 통과(`restorable`), 그 외엔 차단 |
 | `verifyIdentity` | `{ impUid }` | `{ verified }` | 본인인증 결과 검증 → phone/birthDate Firestore 저장 |
 | `requestAccountDeletion` | `{ reason? }` | `{ purgeAt }` | 회원 탈퇴 — 리뷰·사진·찜 `isHidden=true` + 집계 감산 + Auth `disabled`. 삭제는 30일 뒤 |
 
 > 로그인 3종(`naverLogin`·`kakaoLogin`·`phoneLogin`)은 Custom Token 발급 **전에**
-> `assertNotPendingDeletion(uid)`로 탈퇴 대기 계정을 `failed-precondition`(+`details.purgeAt`)으로 막는다.
-> Auth가 `disabled`라 토큰을 줘도 로그인은 안 되지만, 그러면 앱이 **이유(재가입 가능일)를 알 수 없다**.
+> `restorePendingDeletionOnLogin(uid)`를 부른다 — 보관 기간(30일)이 **남아 있으면 계정을 되살리고**
+> `restored: true`를 실어 보내고, 파기 시각이 이미 지났으면 `failed-precondition`(+`details.purgeAt: null`)로 막는다.
+> Auth가 `disabled`인 채 토큰을 주면 앱의 `signInWithCustomToken`이 거부되므로 **발급 전에** 풀어야 한다.
 
 #### 자동 트리거 함수
 

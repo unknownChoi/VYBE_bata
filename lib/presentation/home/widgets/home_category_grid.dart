@@ -95,11 +95,18 @@ class HomeCategoryGrid extends StatelessWidget {
     final isFree = item.label == '입장료 무료';
     final isHiphop = item.label == '힙합';
 
-    final radius = BorderRadius.circular(isVybe ? 16.5.r : 18.r);
+    final radius = BorderRadius.circular(18.r);
 
-    // 리퀴드 글래스 — 배경을 블러로 통과시키고 흰색 틴트만 얹는다.
+    final icon = SvgPicture.asset(
+      item.icon,
+      width: 34.r,
+      height: 34.r,
+      colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+    );
+
+    // 나머지 타일 — 리퀴드 글래스. 배경을 블러로 통과시키고 흰색 틴트만 얹는다.
     // 보라 글로우(배경 RadialGradient · 아이콘 상단 스팟)는 제거 — 색이 도는 대신 투명.
-    final iconInner = ClipRRect(
+    final glassTile = ClipRRect(
       borderRadius: radius,
       child: BackdropFilter(
         filter: ui.ImageFilter.blur(
@@ -114,34 +121,27 @@ class HomeCategoryGrid extends StatelessWidget {
               colors: [Color(0x1FFFFFFF), Color(0x0AFFFFFF)],
             ),
             borderRadius: radius,
-            border: isVybe
-                ? null
-                : Border.all(color: RenewGlass.tileBorder, width: 1),
+            border: Border.all(color: RenewGlass.tileBorder, width: 1),
           ),
           alignment: Alignment.center,
-          child: SvgPicture.asset(
-            item.icon,
-            width: 34.r,
-            height: 34.r,
-            colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
-          ),
+          child: icon,
         ),
       ),
+    );
+
+    // VYBE 추천 타일 — 그라데이션으로 꽉 채우고 아이콘만 얹는다.
+    // 안쪽 글래스 판(블러 + 흰색 틴트)은 제거해서 그라데이션이 테두리가 아니라
+    // 타일 전체가 된다.
+    final gradientTile = Container(
+      decoration: BoxDecoration(gradient: _borderGradient, borderRadius: radius),
+      alignment: Alignment.center,
+      child: icon,
     );
 
     final iconBox = SizedBox(
       width: 62.w,
       height: 62.h,
-      child: isVybe
-          ? Container(
-              decoration: BoxDecoration(
-                gradient: _borderGradient,
-                borderRadius: BorderRadius.circular(18.r),
-              ),
-              padding: const EdgeInsets.all(1.5),
-              child: iconInner,
-            )
-          : iconInner,
+      child: isVybe ? gradientTile : glassTile,
     );
 
     return GestureDetector(

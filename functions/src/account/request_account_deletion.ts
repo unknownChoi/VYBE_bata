@@ -3,6 +3,8 @@ import * as admin from "firebase-admin";
 import {
   RETENTION_DAYS,
   STATUS_PENDING_DELETION,
+  applyFavoriteDelta,
+  applyRatingDelta,
   commitInChunks,
   isPendingDeletion,
 } from "./account_common";
@@ -178,44 +180,4 @@ async function hideFavorites(uid: string): Promise<number> {
   }
 
   return targets.length;
-}
-
-/** clubs/{clubId} 의 ratingSum·reviewCount 를 델타만큼 옮기고 rating 재계산. */
-export async function applyRatingDelta(
-  clubId: string,
-  sumDelta: number,
-  countDelta: number
-): Promise<void> {
-  const clubRef = admin.firestore().collection("clubs").doc(clubId);
-
-  await admin.firestore().runTransaction(async (tx) => {
-    const snap = await tx.get(clubRef);
-    if (!snap.exists) return;
-
-    const club = snap.data() ?? {};
-    const newSum = Math.max(0, (club.ratingSum ?? 0) + sumDelta);
-    const newCount = Math.max(0, (club.reviewCount ?? 0) + countDelta);
-
-    tx.update(clubRef, {
-      ratingSum: newSum,
-      reviewCount: newCount,
-      rating: newCount > 0 ? Math.round((newSum / newCount) * 10) / 10 : 0,
-    });
-  });
-}
-
-/** clubs/{clubId} 의 favoriteCount 를 델타만큼 옮긴다 (0 미만 방지). */
-export async function applyFavoriteDelta(
-  clubId: string,
-  delta: number
-): Promise<void> {
-  const clubRef = admin.firestore().collection("clubs").doc(clubId);
-
-  await admin.firestore().runTransaction(async (tx) => {
-    const snap = await tx.get(clubRef);
-    if (!snap.exists) return;
-
-    const current: number = snap.data()?.favoriteCount ?? 0;
-    tx.update(clubRef, {favoriteCount: Math.max(0, current + delta)});
-  });
 }

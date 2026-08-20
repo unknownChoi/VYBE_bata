@@ -131,58 +131,62 @@ class _BannerCard extends ConsumerWidget {
   }
 
   Widget _card() {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20.r),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: VybeColors.surface,
-          borderRadius: BorderRadius.circular(20.r),
-          border: Border.all(color: VybeColors.gray800),
-        ),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Image.network(
-              banner.imageUrl,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) =>
-                  const ColoredBox(color: VybeColors.surface),
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: VybeColors.surface,
+        borderRadius: BorderRadius.circular(20.r),
+      ),
+      // ⚠ 테두리는 자식 위(foregroundDecoration)에. decoration 에 두면 자식이
+      // 바깥 라운드렉트로 클립되면서 코너 호에서 선을 덮는다.
+      // (CLAUDE.md '라운드 카드에 테두리' 참고)
+      foregroundDecoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(color: VybeColors.gray800),
+      ),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.network(
+            banner.imageUrl,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) =>
+                const ColoredBox(color: VybeColors.surface),
+          ),
+          // 하단 가독성 그라데이션
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Colors.transparent, Color(0xC708080C)],
+                stops: [0.45, 1.0],
+              ),
             ),
-            // 하단 가독성 그라데이션
-            const DecoratedBox(
+          ),
+          // 카운터
+          Positioned(
+            right: 14.w,
+            bottom: 14.h,
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 11.w, vertical: 4.h),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Color(0xC708080C)],
-                  stops: [0.45, 1.0],
+                color: Colors.black.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(999.r),
+              ),
+              child: Text(
+                '${index + 1} / $total',
+                style: TextStyle(
+                  fontFamily: 'Pretendard',
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                  letterSpacing: 12 * -0.025,
                 ),
               ),
             ),
-            // 카운터
-            Positioned(
-              right: 14.w,
-              bottom: 14.h,
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 11.w, vertical: 4.h),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(999.r),
-                ),
-                child: Text(
-                  '${index + 1} / $total',
-                  style: TextStyle(
-                    fontFamily: 'Pretendard',
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                    letterSpacing: 12 * -0.025,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
