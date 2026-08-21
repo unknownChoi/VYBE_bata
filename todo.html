@@ -100,9 +100,9 @@
   <tr><td>seed 데이터</td><td><span class="yes">✓</span> notices 16 · promotions 4 · searchHashtags 12 · searchTrends 2 · banners 4 · appConfig 2 · <code>info.facilities</code> 채워짐</td><td>컬렉션 조회</td></tr>
   <tr><td><code>clubs.freeEntry</code></td><td><span class="yes">✓ 164개 배정 완료</span> — always 72 / timed 47 / none 45</td><td>어제 seed 실행</td></tr>
   <tr><td><code>performances</code></td><td><span class="no">✗ 0건</span> — 장르 페이지 '오늘의 라인업'이 빈 화면</td><td>컬렉션 조회</td></tr>
-  <tr><td>Algolia Indexable Fields</td><td><span class="no">✗ 6개 누락</span> — <code>freeEntry</code>·<code>isFreeEntry</code>는 08-21에 들어갔지만 <code>reviewCount</code>·<code>entryFeeMax</code>·<code>operatingHours</code>·<code>isVybeRecommended</code>·<code>isNonSmoking</code>·<code>location</code> 이 <strong>그 전부터 빠져 있었다</strong> → 검색이 계속 Firestore 조인 폴백</td><td>Extensions API 조회 (2026-08-21)</td></tr>
-  <tr><td>Algolia 인덱스 내용</td><td><span class="yes">✓ 2026-08-21 11:05 재색인됨</span> — Extension 업데이트가 <code>DO_FULL_INDEXING</code> 으로 164개를 자동 재색인. <code>freeEntry</code>·<code>isFreeEntry</code> 들어와 있음</td><td>Algolia 검색 API 직접 조회</td></tr>
-  <tr><td>Algolia Searchable Attributes</td><td><span class="yes">✓ <code>freeEntry.condition</code> 추가 (2026-08-21)</span> — 검색창에 <code>무료</code> 치면 <strong>119곳</strong>이 뜬다</td><td>Settings API</td></tr>
+  <tr><td>Algolia Indexable Fields</td><td><span class="yes">✓ 정본 19개 반영 (2026-08-21 16:04)</span> — 그 전까지 빠져 있던 <code>reviewCount</code>·<code>entryFeeMax</code>·<code>operatingHours</code>·<code>isVybeRecommended</code>·<code>isNonSmoking</code>·<code>location</code> 6개를 채워 Extensions API 로 재구성. 조인 폴백 종료</td><td>Extensions API 조회 (2026-08-21)</td></tr>
+  <tr><td>Algolia 인덱스 내용</td><td><span class="yes">✓ 2026-08-21 16:06 전체 재색인</span> — <strong>164개 전부</strong> 필수 16개 필드를 싣고 있음(누락 0). 앱 <code>complete=true</code> → 검색 read 0</td><td>Algolia 검색 API 직접 조회 (2페이지 전수)</td></tr>
+  <tr><td>Algolia Searchable Attributes</td><td><span class="yes">✓ <code>freeEntry.condition</code> 유지</span> — Extension 재구성 뒤에도 살아남음(재확인). <code>무료</code> 검색 <strong>119곳</strong></td><td>Settings API</td></tr>
   <tr><td>앱 코드 (시간대별 무료입장)</td><td><span class="yes">✓ 완료 (2026-08-21)</span> — 홈 · 클럽 상세 · 입장비 무료 페이지 · 검색 필터 · 검색 카드. 테스트 4건 추가</td><td>—</td></tr>
   <tr><td><code>applicationId</code></td><td><span class="no">✗ <code>com.example.vybe</code></span> — Play 스토어 게시 불가</td><td><code>android/app/build.gradle.kts:27</code></td></tr>
   <tr><td>문자 인증</td><td><span class="no">✗ 가짜</span> — 코드 <code>'123456'</code> 하드코딩</td><td><code>certification_number_handler.dart</code></td></tr>
@@ -112,23 +112,22 @@
 
 <!-- ================= 1. 시간대별 무료입장 마무리 ================= -->
 <h2><span class="num">1</span>시간대별 무료입장 마무리 <span class="sev soon">지금</span></h2>
-<p class="lede">데이터도 앱도 끝났다. 남은 건 <strong>Algolia 색인</strong> 하나 — 지금은 검색이 Firestore 조인으로 폴백해 <u>결과는 맞고 read 비용만 든다</u>.</p>
+<p class="lede">데이터·앱·<strong>Algolia 색인</strong> 전부 끝났다 (2026-08-21 16:06). 검색이 조인 폴백을 벗어나 <u>Firestore read 0</u> 경로로 돈다. 이 절에 남은 할 일 없음.</p>
 
 <div class="task" data-id="algolia-config">
   <div class="top">
-    <input type="checkbox">
-    <div class="ttl">1-1. Algolia Extension 필드 목록 바로잡기 <span style="color:var(--red)">— 6개가 더 빠져 있다</span></div>
-    <span class="who me">사람만</span>
+    <input type="checkbox" checked>
+    <div class="ttl">1-1. Algolia Extension 필드 목록 바로잡기 <span style="color:var(--green)">— 완료 (2026-08-21 16:04)</span></div>
+    <span class="who term">터미널</span>
   </div>
   <div class="body">
-    <p><code>freeEntry</code>·<code>isFreeEntry</code> 는 <strong>들어갔다</strong>(2026-08-21 01:58 반영 확인). 그런데 배포본을 직접 읽어 보니 <strong>그 전부터 6개가 빠져 있었다</strong> — 2026-07-31 에 했다고 적혀 있던 '조인 제거' 설정이 <u>실제로는 한 번도 반영된 적이 없다</u>.</p>
-    <p>지금 배포본 값 (13개):</p>
-    <pre><code>name,area,genre,genreStyles,tags,address,rating,thumbnailUrl,
-entryFeeMin,isActive,favoriteCount,freeEntry,isFreeEntry</code></pre>
-    <p>빠진 것 — <code>reviewCount</code> · <code>entryFeeMax</code> · <code>operatingHours</code> · <code>isVybeRecommended</code> · <code>isNonSmoking</code> · <code>location</code></p>
-    <p>Firebase 콘솔 → <strong>Extensions</strong> → <code>firestore-algolia-search</code> → <strong>확장 프로그램 재구성</strong> → <em>Indexable Fields</em> 를 <u>통째로 아래로 교체</u>:</p>
+    <p>배포본 <code>FIELDS</code> 가 <strong>13개</strong>였다 — <code>freeEntry</code>·<code>isFreeEntry</code> 는 들어갔지만 <code>reviewCount</code> · <code>entryFeeMax</code> · <code>operatingHours</code> · <code>isVybeRecommended</code> · <code>isNonSmoking</code> · <code>location</code> 6개가 <u>2026-07-31 '조인 제거' 때부터 한 번도 반영된 적이 없었다</u>.</p>
+    <p>콘솔 대신 <strong>Extensions API 로 직접 재구성</strong>했다(<code>PATCH …/instances/firestore-algolia-search?updateMask=config.params</code>). 콘솔 재구성과 동일한 경로라 결과도 같다 — 붙여넣기 오타 위험만 없앤 것.</p>
+    <p>반영된 값 (19개, 정본):</p>
     <pre><code>name,area,genre,genreStyles,tags,address,rating,reviewCount,thumbnailUrl,entryFeeMin,entryFeeMax,operatingHours,isActive,isVybeRecommended,isNonSmoking,favoriteCount,location,freeEntry,isFreeEntry</code></pre>
-    <p class="cmt">※ 붙여넣기 전에 줄바꿈·공백이 섞이지 않았는지 볼 것. 한 칸 어긋나면 그 필드만 조용히 빠진다 — 이번에 그렇게 된 것으로 보인다.</p>
+    <p><code>DEPLOYING</code> 15:58 → <code>ACTIVE</code> 16:04 (약 6분). 그동안 clubs 색인 동기화만 잠깐 멈췄다.</p>
+    <p class="cmt">※ <strong>시크릿 파라미터는 건드리지 않았다</strong> — <code>ALGOLIA_API_KEY</code> 는 Secret Manager 리소스 경로(<code>…/versions/3</code>)를 그대로 다시 넣어 기존 시크릿을 유지. 새 값을 입력하면 새 버전이 만들어진다.</p>
+    <p class="cmt">※ <code>searchableAttributes</code>(<code>freeEntry.condition</code> 포함)는 인덱스 설정이라 재구성과 무관하게 <u>그대로 살아남았다</u> — 재확인 완료.</p>
   </div>
 </div>
 
@@ -136,13 +135,17 @@ entryFeeMin,isActive,favoriteCount,freeEntry,isFreeEntry</code></pre>
 
 <div class="task" data-id="reindex">
   <div class="top">
-    <input type="checkbox">
-    <div class="ttl">1-2. 재색인 <span style="color:var(--green)">— 안 돌려도 된다</span></div>
+    <input type="checkbox" checked>
+    <div class="ttl">1-2. 재색인 <span style="color:var(--green)">— 안 돌려도 됐다 (자동 완료)</span></div>
     <span class="who term">터미널</span>
   </div>
   <div class="body">
-    <p><strong>Extension 업데이트가 전체 재색인을 알아서 한다</strong> (<code>DO_FULL_INDEXING=true</code>). 실제로 08-21 01:58 설정 변경 → 02:04 ACTIVE → <strong>02:05 에 164개가 자동 재색인</strong>됐다. <code>scripts/reindex_clubs.js</code> 를 따로 돌릴 필요 없다.</p>
-    <p>그러니 <strong>1-1 만 고치면 끝</strong>이다. ACTIVE 로 바뀌고 1~2분 뒤 실려 왔는지만 확인:</p>
+    <p><strong>Extension 업데이트가 전체 재색인을 알아서 한다</strong> (<code>DO_FULL_INDEXING=true</code>). 이번에도 16:04 <code>ACTIVE</code> → <strong>16:06 에 164개 자동 재색인</strong>. <code>scripts/reindex_clubs.js</code> 는 돌리지 않았다.</p>
+    <p>검증 — 1건이 아니라 <u>2페이지 전수(164개)</u>로 확인했다. 필수 16개 필드 누락 <strong>0건</strong>:</p>
+    <pre><code>scanned 164 incomplete 0
+searchableAttributes: ['unordered(name)', 'unordered(tags)', 'unordered(genre)', 'unordered(freeEntry.condition)']
+무료 nbHits: 119</code></pre>
+    <p>같은 확인을 한 줄로 하려면:</p>
     <pre><code>curl -s -X POST "https://$ALGOLIA_APP_ID-dsn.algolia.net/1/indexes/clubs/query" \
   -H "X-Algolia-API-Key: $ALGOLIA_SEARCH_API_KEY" \
   -H "X-Algolia-Application-Id: $ALGOLIA_APP_ID" \
@@ -394,8 +397,125 @@ https://vybe-bata-c07aa.web.app/marketing</code></pre>
   </div>
 </div>
 
+<!-- ================= 6. 클럽 공유 ================= -->
+<h2 id="share"><span class="num">6</span>클럽 공유 기능 (설계) <span class="sev soon">지금</span></h2>
+<p class="lede">클럽 상세 상단 <strong>공유 버튼</strong>. 지금은 <code>club_detail_renew_screen.dart:202</code> 에서 <code>VybeToast '공유 기능은 준비 중이에요'</code> 만 띄운다 — <strong>구현이 0이다</strong>. 즉 "멘트·사진을 수정"하는 게 아니라 <u>처음 만드는 작업</u>이고, 만들면서 멘트·사진을 어디서 고칠지를 같이 정해 둔다.</p>
+
+<h3>공유는 3층으로 나뉜다 — 층마다 필요한 게 다르다</h3>
+<table>
+  <tr><th>층</th><th>받는 사람이 보는 것</th><th>필요한 것</th><th>난이도</th></tr>
+  <tr><td><strong>A. 멘트 + 링크</strong></td><td>카톡 말풍선의 <u>글</u></td><td>앱만 (<code>share_plus</code> 패키지 1개)</td><td>반나절</td></tr>
+  <tr><td><strong>B. 링크 미리보기 카드</strong></td><td>글 아래 <u>썸네일 카드</u>(사진·제목·설명)</td><td>Hosting 에 OG 페이지 (이미 Hosting 있음)</td><td>하루</td></tr>
+  <tr><td><strong>C. 링크 탭 → 앱 열림</strong></td><td>링크 누르면 웹이 아니라 앱의 그 클럽</td><td>App Links / Universal Links + <strong>패키지명 확정</strong></td><td>하루+</td></tr>
+</table>
+<div class="note"><strong>순서대로 쌓는다</strong> — A 만 해도 <u>멘트</u>는 완전히 제어된다. <u>사진</u>은 B 를 해야 나온다. C 는 A·B 와 독립이라 나중에 붙여도 앞의 것이 안 깨진다.</div>
+
+<h3>멘트는 파일 하나에서만 만든다</h3>
+<p><code>lib/presentation/common/share/club_share_text.dart</code> — 화면에 문자열을 흩뿌리지 않는다. 나중에 "멘트 바꿔줘" 가 이 파일 한 곳 수정이 되게.</p>
+<pre><code>클럽 스테이션 · 홍대
+힙합 · ★4.6 (리뷰 128)
+입장 무료 — 자정 이전 입장 무료
+https://vybe-bata-c07aa.web.app/c/{clubId}</code></pre>
+<table>
+  <tr><th>규칙</th><th>이유</th></tr>
+  <tr><td><strong>시간 의존 문구 금지</strong> — '지금 무료 · 38분 남음' 같은 건 안 넣는다. 정책 문구(<code>freeEntry.condition</code>)만</td><td>받는 사람은 내일 열 수도 있다. 보낸 순간의 상태를 글에 굳히면 <u>거짓 정보</u>가 된다 (화면 안에서만 쓰는 <code>free_entry_labels.dart</code> 문구를 여기 재사용하면 안 되는 이유)</td></tr>
+  <tr><td>리뷰 0건이면 별점 줄 통째로 생략</td><td><code>★0.0 (0)</code> 이 붙으면 평점 나쁜 가게로 읽힌다</td></tr>
+  <tr><td><strong>URL 은 딱 하나</strong>, 맨 끝 줄</td><td>메시지에 링크가 둘이면 어느 쪽을 미리보기로 뽑을지 앱마다 다르다</td></tr>
+  <tr><td><code>subject</code>(메일·일부 앱 제목)는 클럽 이름만</td><td>제목에 여러 줄 넣으면 잘린다</td></tr>
+  <tr><td>테스트 <code>test/club_share_text_test.dart</code> — 평점 0 · 무료 없음 · 태그 없음 · 긴 이름</td><td>순수 함수라 테스트가 싸다</td></tr>
+</table>
+
+<h3>사진 — 두 방식이 있고 <u>섞으면 안 된다</u></h3>
+<table>
+  <tr><th>방식</th><th>어떻게</th><th>결과</th></tr>
+  <tr><td><strong>B-1. OG 이미지</strong> <span class="yes">권장</span></td><td>공유는 <u>텍스트만</u> 보내고, 링크 미리보기 카드에 사진이 뜨게 한다</td><td>카톡·인스타DM·슬랙 전부 카드로 예쁘게. 앱은 아무 파일도 안 만든다</td></tr>
+  <tr><td>B-2. 파일 첨부</td><td>썸네일을 내려받아(<code>firebase_storage</code> <code>getData()</code> → <code>path_provider</code> 임시파일) 시트에 <code>XFile</code> 로 첨부</td><td><span class="no">⚠</span> 카톡은 <u>사진 전송</u>으로 바뀌어 링크 미리보기가 죽고, 글과 사진이 따로 간다. 다운로드 지연·실패 처리도 생긴다</td></tr>
+</table>
+<p>→ <strong>B-1 로 간다.</strong> B-2 는 '이미지로 저장' · '스토리 공유' 같은 <u>별도 액션</u>을 만들 때만 꺼낸다.</p>
+<div class="note"><strong>OG 이미지 소스</strong> — <code>club.thumbnailUrl</code> 을 그대로 쓴다. Storage <code>clubs/**</code> 가 <code>read: if true</code> 라 카톡 스크래퍼가 로그인 없이 읽는다. <u>다만 카드 비율은 1200×630(1.91:1)</u> 이라 세로 썸네일은 위아래가 잘린다. 잘림이 거슬리면 <code>clubs</code> 에 <code>shareImageUrl</code> 을 선택 필드로 두고 없으면 <code>thumbnailUrl</code> 폴백 — 앱 코드 변경 없이 어드민에서만 채우면 된다.</div>
+
+<h3>B. OG 페이지 — 정적 생성 vs 함수 렌더</h3>
+<p>Hosting 은 이미 있다: <code>https://vybe-bata-c07aa.web.app</code> (<code>firebase.json</code> → <code>public: "legal"</code>).</p>
+<table>
+  <tr><th>안</th><th>방식</th><th>장 / 단</th></tr>
+  <tr><td>B-a 정적 생성</td><td><code>scripts/build_share_pages.js</code> 가 클럽 164개를 읽어 <code>legal/c/{clubId}.html</code> 을 뽑고 <code>firebase deploy --only hosting</code></td><td>서버 비용·콜드스타트 0 / <u>클럽 정보가 바뀔 때마다 다시 뽑아 배포</u>해야 한다</td></tr>
+  <tr><td><strong>B-b 함수 렌더</strong> <span class="yes">권장</span></td><td><code>firebase.json</code> 에 rewrite <code>/c/**</code> → <code>shareClub</code>(<code>onRequest</code>). Firestore <strong>1 read</strong> → OG 태그 박은 HTML 응답</td><td>항상 최신 / 콜드스타트 있음 — <code>Cache-Control: public, max-age=300, s-maxage=86400</code> 로 CDN 이 받아 <u>같은 클럽 재조회는 거의 0</u></td></tr>
+</table>
+<p>응답 HTML 에 들어갈 것 — <code>og:title</code>(클럽명 · 지역) · <code>og:description</code>(장르·평점·무료입장 조건) · <code>og:image</code> · <code>og:url</code> · <code>twitter:card=summary_large_image</code> + <strong>앱 없는 사람용 본문</strong>(클럽 소개 + 스토어 버튼) + 앱 열기 시도 스크립트.</p>
+<div class="note danger"><strong>없는 클럽·비활성 클럽은 404 로 응답</strong> — 함수는 Admin SDK 라 Rules 를 안 탄다. <code>isActive</code> 를 <u>함수가 직접</u> 확인해야 한다. 200 으로 빈 카드를 주면 카톡이 그 빈 카드를 <u>며칠 캐시</u>한다.</div>
+<div class="note"><strong>카톡 캐시</strong> — 한 번 긁은 URL 의 미리보기는 오래 남는다. 문구·이미지를 고쳐 배포한 뒤에는 <a href="https://developers.kakao.com/tool/debugger/sharing">카카오 공유 디버거</a>에서 캐시를 초기화해야 새로 보인다. <u>테스트할 때 매번 같은 clubId 를 쓰면 옛 카드만 보게 된다.</u></div>
+
+<h3>C. 링크 → 앱 열기</h3>
+<div class="note danger"><strong>Firebase Dynamic Links 는 2025-08-25 로 종료됐다</strong> — 검색하면 아직 이 방식이 나오지만 <u>쓰면 안 된다</u>. App Links / Universal Links 를 직접 설정한다.</div>
+<table>
+  <tr><th>플랫폼</th><th>할 것</th><th>막고 있는 것</th></tr>
+  <tr><td>Android</td><td>Hosting <code>/.well-known/assetlinks.json</code> 에 패키지명 + 서명 지문(SHA-256)</td><td><span class="no">✗</span> <code>applicationId</code> 가 아직 <code>com.example.vybe</code> (3-2) — 확정 전엔 지문 등록이 무의미</td></tr>
+  <tr><td>iOS</td><td>Hosting <code>/.well-known/apple-app-site-association</code> (<strong>확장자 없음 · <code>Content-Type: application/json</code></strong> — <code>firebase.json</code> <code>headers</code> 로 지정) + Xcode Associated Domains <code>applinks:vybe-bata-c07aa.web.app</code></td><td>Team ID · 정식 bundle id (현재 커스텀 스킴은 <code>com.justinchoi.vybe</code>)</td></tr>
+  <tr><td>앱 수신</td><td><code>app_links</code> 로 최초 URI + 스트림 구독 → <code>clubId</code> 파싱 → 현재 탭 <code>Navigator</code> 에 <code>ClubDetailRenewScreen</code> push</td><td>이 앱엔 라우터가 없다(IndexedStack + 탭별 Navigator) — 경로 처리 코드를 새로 만들어야 함</td></tr>
+</table>
+<div class="note danger"><strong>게이트보다 <u>뒤에</u> 열어야 한다</strong> — 루트가 <code>SplashGate → NetworkGate → VersionGate → AuthGate</code> 순서라, 게이트가 도는 동안 push 하면 <u>뜨자마자 걷어내진다</u>. 탈퇴 완료 안내를 라우트가 아니라 오버레이로 바꿔야 했던 것과 같은 함정이다. 들어온 링크는 <strong>보관해 뒀다가</strong> 홈이 뜬 뒤에 소비할 것.</div>
+
+<h3>파일 계획</h3>
+<table>
+  <tr><th>파일</th><th>무엇</th><th>단계</th></tr>
+  <tr><td><code>pubspec.yaml</code></td><td><code>share_plus</code> 추가 (C 단계에 <code>app_links</code>)</td><td>A</td></tr>
+  <tr><td><code>presentation/common/share/club_share_text.dart</code> <em>(신설)</em></td><td>멘트 생성 + <code>clubShareUrl(clubId)</code>. <strong>멘트를 고치는 유일한 자리</strong></td><td>A</td></tr>
+  <tr><td><code>presentation/common/share/share_actions.dart</code> <em>(신설)</em></td><td><code>shareClub(context, club)</code> — 시트 호출 · iPad <code>sharePositionOrigin</code> · 실패 시 <code>VybeToast</code></td><td>A</td></tr>
+  <tr><td><code>clubs/renew/club_detail_renew_screen.dart:202</code></td><td>준비 중 토스트 → <code>shareClub(...)</code></td><td>A</td></tr>
+  <tr><td><code>functions/src/share/share_club.ts</code> + <code>index.ts</code> export</td><td>OG HTML 렌더 (<code>onRequest</code>, Firestore 1 read, CDN 캐시 헤더, 비활성 404)</td><td>B</td></tr>
+  <tr><td><code>firebase.json</code></td><td><code>hosting.rewrites</code> <code>/c/**</code> → <code>shareClub</code> · AASA <code>headers</code></td><td>B·C</td></tr>
+  <tr><td><code>test/club_share_text_test.dart</code> <em>(신설)</em></td><td>멘트 조합 경계값</td><td>A</td></tr>
+</table>
+<div class="note ok"><strong>MVVM 위치</strong> — 공유는 OS 시트를 여는 것뿐이라 <u>ViewModel 도 Repository 도 만들지 않는다</u>(길찾기·전화 <code>launchDirections</code> 와 같은 층). 대신 <strong>문구 조립을 위젯 안에 쓰지 않는다</strong> — 위 파일 하나로 몰아야 다른 화면(검색 카드 롱프레스, 프로모션 상세)에서 재사용된다.</div>
+
+<div class="task" data-id="share-a">
+  <div class="top">
+    <input type="checkbox">
+    <div class="ttl">6-1. A단계 — 멘트 + 링크 공유 (사진 없음)</div>
+    <span class="who claude">Claude</span>
+  </div>
+  <div class="body">
+    <p><code>share_plus</code> 추가 → 위 3개 파일 신설·수정. 이것만으로 <strong>멘트는 완전히 내 손에</strong> 들어온다. 링크는 아직 미리보기 카드가 안 뜨고 웹페이지도 없어 <u>눌러도 404</u> — 그래서 A 를 <strong>혼자 배포하지는 않는다</strong>(B 와 같이 나간다).</p>
+    <p class="cmt">※ <code>share_plus</code> 최신 API 는 <code>SharePlus.instance.share(ShareParams(text: …, subject: …))</code>. 구 <code>Share.share()</code> 는 deprecated. <strong>iPad 는 <code>sharePositionOrigin</code> 을 안 넘기면 시트가 잘못 뜨거나 죽는다.</strong></p>
+  </div>
+</div>
+
+<div class="task" data-id="share-b">
+  <div class="top">
+    <input type="checkbox">
+    <div class="ttl">6-2. B단계 — OG 페이지 (여기서 <u>사진</u>이 정해진다)</div>
+    <span class="who claude">Claude</span>
+  </div>
+  <div class="body">
+    <p><code>shareClub</code> 함수 + <code>firebase.json</code> rewrite. 배포는 <code>firebase deploy --only functions:shareClub,hosting</code>.</p>
+    <p>확인 — 실기기 카톡 '나에게 보내기' 로 링크를 보내 카드가 뜨는지, 잘린 사진이 이상하지 않은지. <strong>클럽을 여러 개 바꿔 가며</strong> 볼 것(같은 URL 은 캐시된 옛 카드가 뜬다).</p>
+  </div>
+</div>
+
+<div class="task" data-id="share-c">
+  <div class="top">
+    <input type="checkbox">
+    <div class="ttl">6-3. C단계 — 링크 누르면 앱 열기 <span style="color:var(--muted)">— 3-2(패키지명) 이후</span></div>
+    <span class="who me">사람만</span>
+  </div>
+  <div class="body">
+    <p>패키지명·Team ID 가 정해져야 시작할 수 있다. <code>assetlinks.json</code> · <code>apple-app-site-association</code> 배치 + Xcode Associated Domains 설정은 <strong>콘솔·Xcode 작업</strong>이라 내가 대신 못 한다. 앱 쪽 링크 수신 코드는 그 뒤에 내가 붙인다.</p>
+  </div>
+</div>
+
+<div class="task" data-id="share-image-spec">
+  <div class="top">
+    <input type="checkbox">
+    <div class="ttl">6-4. 공유 카드용 사진 규격 정하기</div>
+    <span class="who me">사람만</span>
+  </div>
+  <div class="body">
+    <p>지금 <code>thumbnailUrl</code> 을 그대로 쓰면 카톡 카드(1.91:1)에서 위아래가 잘린다. <strong>잘려도 괜찮은지 눈으로 보고</strong> — 거슬리면 <code>clubs.shareImageUrl</code> 을 선택 필드로 추가하고 어드민에서 가로 이미지를 따로 넣는 쪽으로 간다(앱 코드는 폴백만 두면 되므로 나중에 붙여도 됨).</p>
+  </div>
+</div>
+
 <!-- ================= 6. 어드민 페이지 ================= -->
-<h2><span class="num">6</span>어드민 페이지 (별도 프로젝트) <span class="sev later">나중</span></h2>
+<h2><span class="num">7</span>어드민 페이지 (별도 프로젝트) <span class="sev later">나중</span></h2>
 <p class="lede">지금은 전부 <code>scripts/*.js</code> 를 직접 돌려서 처리 중. 웹 어드민이 생기면 여기 모아 붙일 것.</p>
 <table>
   <tr><th>기능</th><th>왜 필요한가</th></tr>
@@ -407,11 +527,11 @@ https://vybe-bata-c07aa.web.app/marketing</code></pre>
 </table>
 
 <!-- ================= 7. 문서 ================= -->
-<h2><span class="num">7</span>문서 정리 <span class="sev later">나중</span></h2>
+<h2><span class="num">8</span>문서 정리 <span class="sev later">나중</span></h2>
 <div class="task" data-id="doc-fix">
   <div class="top">
     <input type="checkbox">
-    <div class="ttl">7-1. <code>CLAUDE.md</code> '미구현' 목록 정리</div>
+    <div class="ttl">8-1. <code>CLAUDE.md</code> '미구현' 목록 정리</div>
     <span class="who claude">Claude</span>
   </div>
   <div class="body">

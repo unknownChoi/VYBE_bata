@@ -27,12 +27,15 @@ class SearchSuggestionViewModel extends _$SearchSuggestionViewModel {
       state = const AsyncData([]);
       return;
     }
-    state = await AsyncValue.guard(() async {
+    final result = await AsyncValue.guard(() async {
       final page = await ref
           .read(clubRepositoryProvider)
           .searchClubsPage(q, pageSize: 8);
       return page.clubs;
     });
+    // 응답 전에 화면을 떠나면 autoDispose로 provider가 이미 버려진다 → 결과 폐기.
+    if (!ref.mounted) return;
+    state = result;
   }
 
   void clear() => state = const AsyncData([]);
@@ -99,7 +102,7 @@ class SearchViewModel extends _$SearchViewModel {
       return;
     }
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
+    final result = await AsyncValue.guard(() async {
       final page = await ref
           .read(clubRepositoryProvider)
           .searchClubsPage(_keyword, pageSize: _pageSize);
@@ -111,9 +114,12 @@ class SearchViewModel extends _$SearchViewModel {
         totalCount: page.totalCount,
       );
     });
+    // 응답 전에 화면을 떠나면 autoDispose로 VM이 이미 버려진다 → 결과 폐기.
+    if (!ref.mounted) return;
+    state = result;
 
     // 검색 기록 저장은 부가기능 — 실패해도 검색 결과를 막지 않음.
-    if (userId != null && state.hasValue) {
+    if (userId != null && result.hasValue) {
       try {
         await ref
             .read(searchHistoryRepositoryProvider)
@@ -122,7 +128,10 @@ class SearchViewModel extends _$SearchViewModel {
       } catch (e) {
         debugPrint('[Search] 검색기록 저장 실패(무시): $e');
       }
-      logSearch(userId: userId, keyword: _keyword, source: source);
+      // logSearch도 ref를 쓴다 — 버려진 뒤면 호출 자체가 던진다.
+      if (ref.mounted) {
+        logSearch(userId: userId, keyword: _keyword, source: source);
+      }
     }
   }
 
@@ -155,6 +164,7 @@ class SearchViewModel extends _$SearchViewModel {
             cursor: cur.cursor,
             pageSize: _pageSize,
           );
+      if (!ref.mounted) return;
       state = AsyncData(cur.copyWith(
         clubs: [...cur.clubs, ...page.clubs],
         cursor: page.cursor,
@@ -163,6 +173,7 @@ class SearchViewModel extends _$SearchViewModel {
         totalCount: page.totalCount,
       ));
     } catch (_) {
+      if (!ref.mounted) return;
       state = AsyncData(cur.copyWith(loadingMore: false));
     }
   }

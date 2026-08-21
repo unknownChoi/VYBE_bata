@@ -1,8 +1,12 @@
 // clubs/{id} 전체를 "touch"해서 Algolia Extension 재색인을 유발한다.
 //
-// Extension(firestore-algolia-search)은 문서 write 이벤트에만 반응하므로,
-// Indexable Fields를 바꿔도 기존 문서는 인덱스에 반영되지 않는다.
+// Extension(firestore-algolia-search)은 문서 write 이벤트에만 반응한다.
 // 같은 값을 그대로 다시 써서(데이터 무변경) onWrite만 발생시킨다.
+//
+// ⚠ Indexable Fields를 바꾼 뒤라면 이 스크립트는 보통 필요 없다 —
+//   Extension 재구성이 끝나면(ACTIVE) DO_FULL_INDEXING=true 가 전체를 자동 재색인한다
+//   (2026.08.21 실측: 16:04 ACTIVE → 16:06 에 164개 자동 반영).
+//   이 스크립트는 설정을 안 건드리고 문서만 다시 밀고 싶을 때 쓴다.
 //
 // 사전 조건: Extension 설정의 Indexable Fields에 아래 19개가 모두 포함돼 있어야 함
 //   name, area, genre, genreStyles, tags, address, rating, reviewCount,
