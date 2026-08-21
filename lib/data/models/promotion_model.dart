@@ -97,10 +97,10 @@ abstract class PromotionModel with _$PromotionModel {
   static String _two(int v) => v.toString().padLeft(2, '0');
 
   static PromotionCtaType _parseCtaType(String? raw) => switch (raw) {
-        'club' => PromotionCtaType.club,
-        'url' => PromotionCtaType.url,
-        _ => PromotionCtaType.none,
-      };
+    'club' => PromotionCtaType.club,
+    'url' => PromotionCtaType.url,
+    _ => PromotionCtaType.none,
+  };
 
   factory PromotionModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
@@ -114,7 +114,7 @@ abstract class PromotionModel with _$PromotionModel {
       content: data['content'] as String? ?? '',
       imageUrls:
           (data['imageUrls'] as List?)?.map((e) => e.toString()).toList() ??
-              const [],
+          const [],
       ctaType: _parseCtaType(data['ctaType'] as String?),
       ctaValue: data['ctaValue'] as String? ?? '',
       ctaLabel: data['ctaLabel'] as String? ?? '',

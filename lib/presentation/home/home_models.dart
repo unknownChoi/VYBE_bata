@@ -5,6 +5,7 @@ import 'package:vybe/core/utils/number_format.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/data/models/free_entry_policy.dart';
 import 'package:vybe/design_system/colors.dart';
+import 'package:vybe/presentation/common/free_entry_labels.dart';
 
 /// 홈 '이 시간에만 무료입장' 카드 표시 모델.
 ///
@@ -106,8 +107,12 @@ HomeFreeTimeClub? toHomeFreeTimeClub(
     normalFee: club.entryFeeMin,
     freeNow: freeNow,
     windowLabel: window.rangeLabel,
-    remainingLabel: freeNow ? _remainingLabel(status.remainingFrom(now)) : null,
-    startsLabel: freeNow ? null : _startsLabel(status.nextStartsAt, now),
+    remainingLabel: freeNow
+        ? freeEntryRemainingLabel(status.remainingFrom(now))
+        : null,
+    startsLabel: freeNow
+        ? null
+        : freeEntryStartsLabel(status.nextStartsAt, now),
     sortAt: freeNow ? status.activeEndsAt : status.nextStartsAt,
   );
 }
@@ -122,32 +127,3 @@ int compareHomeFreeTime(HomeFreeTimeClub a, HomeFreeTimeClub b) {
   if (at != null && bt != null && at != bt) return at.compareTo(bt);
   return a.distanceKm.compareTo(b.distanceKm);
 }
-
-String? _remainingLabel(Duration? left) {
-  if (left == null) return null;
-  final minutes = left.inMinutes;
-  if (minutes < 1) return '곧 종료';
-  if (minutes < 60) return '$minutes분 남음';
-  final h = minutes ~/ 60;
-  final m = minutes % 60;
-  return m == 0 ? '$h시간 남음' : '$h시간 $m분 남음';
-}
-
-/// `22:00부터` — 오늘이 아니면 요일을 앞에 붙인다(`금 22:00부터`).
-///
-/// 디자인 원본은 `22:00 오픈`이지만 '오픈'은 **영업 시작**으로 읽혀
-/// 무료 시작 시각과 혼동된다 → `…부터`로 바꿨다.
-String? _startsLabel(DateTime? startsAt, DateTime now) {
-  if (startsAt == null) return null;
-  final hhmm =
-      '${startsAt.hour.toString().padLeft(2, '0')}:'
-      '${startsAt.minute.toString().padLeft(2, '0')}';
-  final today = DateTime(now.year, now.month, now.day);
-  final day = DateTime(startsAt.year, startsAt.month, startsAt.day);
-  if (day == today) return '$hhmm부터';
-  return '${_weekdayLabel(startsAt.weekday)} $hhmm부터';
-}
-
-const _kWeekdayLabels = ['월', '화', '수', '목', '금', '토', '일'];
-
-String _weekdayLabel(int weekday) => _kWeekdayLabels[(weekday - 1) % 7];

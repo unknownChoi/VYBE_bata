@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:vybe/core/utils/firebase_logger.dart';
+import 'package:vybe/data/datasources/remote/firestore_paths.dart';
 
 class FirebaseStorageDataSource {
   final FirebaseStorage _storage;
@@ -15,7 +16,7 @@ class FirebaseStorageDataSource {
       service: 'Storage(users/$uid/profile.jpg)',
       purpose: '프로필 이미지 업로드',
     );
-    final ref = _storage.ref('users/$uid/profile.jpg');
+    final ref = _storage.ref(StoragePaths.profileImage(uid));
     await ref.putFile(imageFile);
     return ref.getDownloadURL();
   }
@@ -33,7 +34,9 @@ class FirebaseStorageDataSource {
       service: 'Storage(reviews/$clubId/$reviewId/$fileName)',
       purpose: '리뷰 첨부 이미지 업로드',
     );
-    final ref = _storage.ref('reviews/$clubId/$reviewId/$fileName');
+    final ref = _storage.ref(
+      StoragePaths.reviewImage(clubId, reviewId, fileName),
+    );
     await ref.putFile(imageFile);
     return ref.getDownloadURL();
   }

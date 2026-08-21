@@ -22,9 +22,9 @@ class _VerifySheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFF1C1C20),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1C1C20),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
       ),
       padding: EdgeInsets.only(
         top: 12.h,
@@ -199,10 +199,7 @@ class _IDIcon extends StatelessWidget {
                 ],
                 stops: const [0.0, 0.7],
               ),
-              border: Border.all(
-                color: VybeColors.mainLime500,
-                width: 1.5,
-              ),
+              border: Border.all(color: VybeColors.mainLime500, width: 1.5),
               boxShadow: [
                 BoxShadow(
                   color: VybeColors.mainLime500.withValues(alpha: 0.18),

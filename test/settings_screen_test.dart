@@ -64,7 +64,10 @@ void main() {
     expect(find.text('한국어'), findsOneWidget);
     expect(find.text('48.2MB 사용 중'), findsOneWidget);
     expect(find.text('삭제'), findsOneWidget);
-    expect(find.text('약관 및 개인정보 처리방침'), findsOneWidget);
+    // 법적 고지는 문서마다 별개 행이다 (어느 문서에 동의했는지 확인 가능해야 함).
+    expect(find.text('서비스 이용약관'), findsOneWidget);
+    expect(find.text('개인정보처리방침'), findsOneWidget);
+    expect(find.text('위치기반서비스 이용약관'), findsOneWidget);
     expect(find.text('로그아웃'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

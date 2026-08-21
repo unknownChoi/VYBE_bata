@@ -98,33 +98,33 @@ class _BirthInputState extends State<BirthInput> {
   /// Figma 기준 자간: tracking-[10.56px] → 각 자리가 최대한 벌어지도록
   /// VybeTypography에 24sp Medium이 없으므로 하드코딩
   TextStyle get _frontInputStyle => TextStyle(
-        fontFamily: 'Pretendard',
-        fontWeight: FontWeight.w500,
-        fontSize: 24.sp,
-        height: 26 / 24,
-        letterSpacing: 10.56.sp,
-        color: _textColor,
-      );
+    fontFamily: 'Pretendard',
+    fontWeight: FontWeight.w500,
+    fontSize: 24.sp,
+    height: 26 / 24,
+    letterSpacing: 10.56.sp,
+    color: _textColor,
+  );
 
   /// 뒷 자리(성별 코드) 텍스트 스타일 — 일반 자간 유지
   TextStyle get _backInputStyle => TextStyle(
-        fontFamily: 'Pretendard',
-        fontWeight: FontWeight.w500,
-        fontSize: 24.sp,
-        height: 26 / 24,
-        letterSpacing: 24 * -0.025,
-        color: _textColor,
-      );
+    fontFamily: 'Pretendard',
+    fontWeight: FontWeight.w500,
+    fontSize: 24.sp,
+    height: 26 / 24,
+    letterSpacing: 24 * -0.025,
+    color: _textColor,
+  );
 
   /// hint 텍스트 스타일
   TextStyle get _hintStyle => TextStyle(
-        fontFamily: 'Pretendard',
-        fontWeight: FontWeight.w500,
-        fontSize: 24.sp,
-        height: 26 / 24,
-        letterSpacing: 24 * -0.025,
-        color: VybeColors.gray600,
-      );
+    fontFamily: 'Pretendard',
+    fontWeight: FontWeight.w500,
+    fontSize: 24.sp,
+    height: 26 / 24,
+    letterSpacing: 24 * -0.025,
+    color: VybeColors.gray600,
+  );
 
   /// 나머지 6자리 자리표시 점 — 에러일 때만 붉게 물든다(디자인 `SVBirth`).
   Color get _dotColor => widget.isError
@@ -137,72 +137,24 @@ class _BirthInputState extends State<BirthInput> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-      Padding(
-      padding: EdgeInsets.fromLTRB(0, 4.h, 0, 9.h),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // ── 앞 6자리 (YYMMDD, 자간 최대화) ──
-          Expanded(
-            child: TextField(
-              controller: widget.frontCtrl,
-              focusNode: widget.frontFocus,
-              readOnly: widget.readOnly,
-              onTap: widget.onTap,
-              keyboardType: TextInputType.number,
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-                LengthLimitingTextInputFormatter(6),
-              ],
-              style: _frontInputStyle,
-              cursorColor: VybeColors.mainPurple500,
-              cursorHeight: 26.h,
-              cursorWidth: 2.w,
-              showCursor: !widget.readOnly,
-              contextMenuBuilder: (context, editableTextState) =>
-                  AdaptiveTextSelectionToolbar(
-                    anchors: editableTextState.contextMenuAnchors,
-                    children:
-                        AdaptiveTextSelectionToolbar.getAdaptiveButtons(
-                      context,
-                      editableTextState.contextMenuButtonItems,
-                    ).toList(),
-                  ),
-              decoration: InputDecoration(
-                hintText: '생년월일 6자리',
-                hintStyle: _hintStyle,
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.zero,
-              ),
-            ),
-          ),
-
-          // ── 구분선 ──
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 12.w),
-            child: Text('—', style: _hintStyle),
-          ),
-
-          // ── 뒷 자리 (성별 코드 1자리 + 고정 점 6개) ──
-          Row(
+        Padding(
+          padding: EdgeInsets.fromLTRB(0, 4.h, 0, 9.h),
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // 성별 코드: 실제 입력 영역
-              SizedBox(
-                width: 20.w,
+              // ── 앞 6자리 (YYMMDD, 자간 최대화) ──
+              Expanded(
                 child: TextField(
-                  controller: widget.backCtrl,
-                  focusNode: widget.backFocus,
+                  controller: widget.frontCtrl,
+                  focusNode: widget.frontFocus,
                   readOnly: widget.readOnly,
                   onTap: widget.onTap,
                   keyboardType: TextInputType.number,
-                  obscureText: false,
                   inputFormatters: [
                     FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(1),
+                    LengthLimitingTextInputFormatter(6),
                   ],
-                  style: _backInputStyle,
+                  style: _frontInputStyle,
                   cursorColor: VybeColors.mainPurple500,
                   cursorHeight: 26.h,
                   cursorWidth: 2.w,
@@ -212,11 +164,13 @@ class _BirthInputState extends State<BirthInput> {
                         anchors: editableTextState.contextMenuAnchors,
                         children:
                             AdaptiveTextSelectionToolbar.getAdaptiveButtons(
-                          context,
-                          editableTextState.contextMenuButtonItems,
-                        ).toList(),
+                              context,
+                              editableTextState.contextMenuButtonItems,
+                            ).toList(),
                       ),
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
+                    hintText: '생년월일 6자리',
+                    hintStyle: _hintStyle,
                     border: InputBorder.none,
                     isDense: true,
                     contentPadding: EdgeInsets.zero,
@@ -224,53 +178,99 @@ class _BirthInputState extends State<BirthInput> {
                 ),
               ),
 
-              // 나머지 6자리를 나타내는 고정 점
-              ...List.generate(
-                6,
-                (_) => Padding(
-                  padding: EdgeInsets.only(left: 6.w),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
-                    width: 8.r,
-                    height: 8.r,
-                    decoration: BoxDecoration(
-                      color: _dotColor,
-                      shape: BoxShape.circle,
+              // ── 구분선 ──
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12.w),
+                child: Text('—', style: _hintStyle),
+              ),
+
+              // ── 뒷 자리 (성별 코드 1자리 + 고정 점 6개) ──
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // 성별 코드: 실제 입력 영역
+                  SizedBox(
+                    width: 20.w,
+                    child: TextField(
+                      controller: widget.backCtrl,
+                      focusNode: widget.backFocus,
+                      readOnly: widget.readOnly,
+                      onTap: widget.onTap,
+                      keyboardType: TextInputType.number,
+                      obscureText: false,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(1),
+                      ],
+                      style: _backInputStyle,
+                      cursorColor: VybeColors.mainPurple500,
+                      cursorHeight: 26.h,
+                      cursorWidth: 2.w,
+                      showCursor: !widget.readOnly,
+                      contextMenuBuilder: (context, editableTextState) =>
+                          AdaptiveTextSelectionToolbar(
+                            anchors: editableTextState.contextMenuAnchors,
+                            children:
+                                AdaptiveTextSelectionToolbar.getAdaptiveButtons(
+                                  context,
+                                  editableTextState.contextMenuButtonItems,
+                                ).toList(),
+                          ),
+                      decoration: const InputDecoration(
+                        border: InputBorder.none,
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                  ),
+
+                  // 나머지 6자리를 나타내는 고정 점
+                  ...List.generate(
+                    6,
+                    (_) => Padding(
+                      padding: EdgeInsets.only(left: 6.w),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        width: 8.r,
+                        height: 8.r,
+                        decoration: BoxDecoration(
+                          color: _dotColor,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              // ── 전체 삭제 버튼 (한 글자라도 입력 시 표시) ──
+              if (!widget.readOnly &&
+                  (widget.frontCtrl.text.isNotEmpty ||
+                      widget.backCtrl.text.isNotEmpty)) ...[
+                SizedBox(width: 8.w),
+                GestureDetector(
+                  onTap: () {
+                    widget.frontCtrl.clear();
+                    widget.backCtrl.clear();
+                  },
+                  child: SizedBox(
+                    width: 20.r,
+                    height: 20.r,
+                    child: SvgPicture.asset(
+                      'assets/icons/auth/delete_all_text.svg',
+                      width: 18.r,
+                      height: 18.r,
                     ),
                   ),
                 ),
-              ),
+              ],
             ],
           ),
-
-          // ── 전체 삭제 버튼 (한 글자라도 입력 시 표시) ──
-          if (!widget.readOnly &&
-              (widget.frontCtrl.text.isNotEmpty ||
-                  widget.backCtrl.text.isNotEmpty)) ...[
-            SizedBox(width: 8.w),
-            GestureDetector(
-              onTap: () {
-                widget.frontCtrl.clear();
-                widget.backCtrl.clear();
-              },
-              child: SizedBox(
-                width: 20.r,
-                height: 20.r,
-                child: SvgPicture.asset(
-                  'assets/icons/auth/delete_all_text.svg',
-                  width: 18.r,
-                  height: 18.r,
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-      ),
-      VybeUnderline(
-        color: _lineColor,
-        glow: !widget.readOnly && _isFocused && !widget.isError,
-      ),
+        ),
+        VybeUnderline(
+          color: _lineColor,
+          glow: !widget.readOnly && _isFocused && !widget.isError,
+        ),
       ],
     );
   }

@@ -97,6 +97,9 @@ class HomeSectionHead extends StatelessWidget {
 /// 섹션 로딩·오류 자리를 같은 높이로 채우는 회색 안내.
 class HomeSectionMessage extends StatelessWidget {
   final String text;
+
+  /// **설계 단위**(393x852 기준) 높이 — 내부에서 `.h`로 환산한다.
+  /// 호출부가 `.h`를 붙여 넘기면 두 번 환산되니 붙이지 말 것.
   final double height;
 
   const HomeSectionMessage({
@@ -108,7 +111,7 @@ class HomeSectionMessage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: height,
+      height: height.h,
       child: Center(
         child: Text(
           text,

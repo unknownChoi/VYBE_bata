@@ -211,10 +211,7 @@ mixin _CertificationNumberBuildersMixin
               ]
             : null,
       ),
-      child: VybeButton(
-        label: '확인',
-        onTap: _canConfirm ? _onConfirm : null,
-      ),
+      child: VybeButton(label: '확인', onTap: _canConfirm ? _onConfirm : null),
     ),
   );
 }

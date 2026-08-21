@@ -19,9 +19,9 @@ class SocialAuthDataSource {
   /// 어떤 경우에도 실패하면 안 된다. 두 SDK는 서로 무관하므로 동시에 호출해
   /// 로그아웃 대기 시간이 합산되지 않게 한다.
   Future<void> signOutAll() => Future.wait([
-        _ignoreErrors('kakao', () => UserApi.instance.logout()),
-        _ignoreErrors('naver', FlutterNaverLogin.logOut),
-      ]);
+    _ignoreErrors('kakao', () => UserApi.instance.logout()),
+    _ignoreErrors('naver', FlutterNaverLogin.logOut),
+  ]);
 
   Future<void> _ignoreErrors(
     String label,

@@ -10,10 +10,8 @@ import 'package:vybe/domain/repositories/club_repository.dart';
 part 'club_repository_impl.g.dart';
 
 @riverpod
-ClubRepository clubRepository(Ref ref) => ClubRepositoryImpl(
-      FirebaseClubDataSource(),
-      AlgoliaClubSearchDataSource(),
-    );
+ClubRepository clubRepository(Ref ref) =>
+    ClubRepositoryImpl(FirebaseClubDataSource(), AlgoliaClubSearchDataSource());
 
 class ClubRepositoryImpl implements ClubRepository {
   final FirebaseClubDataSource _dataSource;
@@ -63,8 +61,10 @@ class ClubRepositoryImpl implements ClubRepository {
 
   @override
   Future<List<ClubModel>> getClubsNearby(
-          double lat, double lng, double radiusKm) =>
-      _dataSource.getClubsNearby(lat, lng, radiusKm);
+    double lat,
+    double lng,
+    double radiusKm,
+  ) => _dataSource.getClubsNearby(lat, lng, radiusKm);
 
   @override
   Future<ClubSearchPage> searchClubsPage(
@@ -89,9 +89,9 @@ class ClubRepositoryImpl implements ClubRepository {
     // 예전처럼 clubId로 조인해 화면이 깨지지 않게 한다. (조인 시 pageSize만큼 read)
     final clubs = result.complete
         ? result.clubs
-        : (await Future.wait(result.ids.map(_dataSource.getClub)))
-            .whereType<ClubModel>()
-            .toList();
+        : (await Future.wait(
+            result.ids.map(_dataSource.getClub),
+          )).whereType<ClubModel>().toList();
 
     // Algolia 관련도 순서를 유지하고, 동기화 지연으로 삭제/비활성된 문서는 제외.
     final visible = clubs.where((c) => c.isActive).toList();

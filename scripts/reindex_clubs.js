@@ -4,11 +4,14 @@
 // Indexable Fields를 바꿔도 기존 문서는 인덱스에 반영되지 않는다.
 // 같은 값을 그대로 다시 써서(데이터 무변경) onWrite만 발생시킨다.
 //
-// 사전 조건: Extension 설정의 Indexable Fields에 아래가 모두 포함돼 있어야 함
+// 사전 조건: Extension 설정의 Indexable Fields에 아래 19개가 모두 포함돼 있어야 함
 //   name, area, genre, genreStyles, tags, address, rating, reviewCount,
 //   thumbnailUrl, entryFeeMin, entryFeeMax, operatingHours, isActive,
-//   isVybeRecommended, isNonSmoking, favoriteCount, location
-// (하나라도 빠지면 앱이 complete=false로 판단해 Firestore 조인으로 폴백)
+//   isVybeRecommended, isNonSmoking, favoriteCount, location,
+//   freeEntry, isFreeEntry
+// (하나라도 빠지면 앱이 complete=false로 판단해 Firestore 조인으로 폴백 —
+//  화면은 멀쩡하고 read 비용만 조용히 되살아나므로 눈으로는 못 잡는다.
+//  돌리기 전에 배포된 설정을 실물로 확인할 것. CLAUDE.md '클럽 검색(Algolia)' 참고)
 //
 // 실행: gcloud 로그인 상태에서  node scripts/reindex_clubs.js
 //   --dry : 쓰지 않고 대상만 출력

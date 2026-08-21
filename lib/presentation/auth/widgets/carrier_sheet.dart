@@ -130,8 +130,9 @@ class _CarrierRowState extends State<_CarrierRow> {
                   // VybeTypography.body2: Regular 18sp ✓ (선택 시 SemiBold)
                   style: VybeTypography.body2.copyWith(
                     color: labelColor,
-                    fontWeight:
-                        widget.selected ? FontWeight.w600 : FontWeight.w400,
+                    fontWeight: widget.selected
+                        ? FontWeight.w600
+                        : FontWeight.w400,
                   ),
                   child: Text(widget.label),
                 ),

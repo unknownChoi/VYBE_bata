@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:vybe/core/utils/firebase_logger.dart';
+import 'package:vybe/data/datasources/remote/firestore_paths.dart';
 import 'package:vybe/data/models/favorite_model.dart';
 
 class FirebaseFavoriteDataSource {
@@ -14,7 +15,7 @@ class FirebaseFavoriteDataSource {
       purpose: '사용자 찜 목록 실시간 구독',
     );
     return _firestore
-        .collection('favorites')
+        .collection(FirestorePaths.favorites)
         .where('userId', isEqualTo: userId)
         .snapshots()
         .map((s) => s.docs.map(FavoriteModel.fromFirestore).toList());
@@ -27,7 +28,7 @@ class FirebaseFavoriteDataSource {
       purpose: '찜 여부 확인',
     );
     final snapshot = await _firestore
-        .collection('favorites')
+        .collection(FirestorePaths.favorites)
         .where('userId', isEqualTo: userId)
         .where('clubId', isEqualTo: clubId)
         .limit(1)
@@ -41,7 +42,7 @@ class FirebaseFavoriteDataSource {
       service: 'Firestore(favorites)',
       purpose: '찜 추가 (userId=$userId, clubId=$clubId)',
     );
-    await _firestore.collection('favorites').add({
+    await _firestore.collection(FirestorePaths.favorites).add({
       'userId': userId,
       'clubId': clubId,
       // 탈퇴 시 서버가 true로 바꾼다. 찜 목록은 이 값으로 거르지 않지만,
@@ -59,7 +60,7 @@ class FirebaseFavoriteDataSource {
       purpose: '찜 삭제 (중복 포함 전체)',
     );
     final snapshot = await _firestore
-        .collection('favorites')
+        .collection(FirestorePaths.favorites)
         .where('userId', isEqualTo: userId)
         .where('clubId', isEqualTo: clubId)
         .get();

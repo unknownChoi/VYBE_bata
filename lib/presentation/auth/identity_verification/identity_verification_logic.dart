@@ -8,7 +8,8 @@ part of 'identity_verification_screen.dart';
 ///
 /// 필드는 직접 소유하지 않고 abstract getter로 선언.
 /// 구체 구현은 [_IdentityVerificationScreenState] 필드가 충족한다.
-mixin _IdentityVerificationLogicMixin on ConsumerState<IdentityVerificationScreen> {
+mixin _IdentityVerificationLogicMixin
+    on ConsumerState<IdentityVerificationScreen> {
   // ── 의존 필드 (abstract) ──
   _Step get _activeStep;
   TextEditingController get _nameCtrl;
@@ -22,15 +23,16 @@ mixin _IdentityVerificationLogicMixin on ConsumerState<IdentityVerificationScree
   /// 현재 활성 단계에서 '확인' 버튼 활성화 여부
   // ignore: unused_element
   bool get _canProceed => switch (_activeStep) {
-        _Step.name    => _nameCtrl.text.trim().isNotEmpty,
-        _Step.birth   => _birthFrontCtrl.text.length == 6 &&
-                         _birthBackCtrl.text.length == 1 &&
-                         !_isMinor &&
-                         !_isForeigner &&
-                         !_isInvalidBirth,
-        _Step.phone   => _phoneCtrl.text.replaceAll('-', '').length == 11,
-        _Step.carrier => _carrier != null,
-      };
+    _Step.name => _nameCtrl.text.trim().isNotEmpty,
+    _Step.birth =>
+      _birthFrontCtrl.text.length == 6 &&
+          _birthBackCtrl.text.length == 1 &&
+          !_isMinor &&
+          !_isForeigner &&
+          !_isInvalidBirth,
+    _Step.phone => _phoneCtrl.text.replaceAll('-', '').length == 11,
+    _Step.carrier => _carrier != null,
+  };
 
   /// 뒷자리 성별코드 (1~8)
   String get _genderCode => _birthBackCtrl.text;

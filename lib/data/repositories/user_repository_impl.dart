@@ -9,10 +9,8 @@ import 'package:vybe/domain/repositories/user_repository.dart';
 part 'user_repository_impl.g.dart';
 
 @riverpod
-UserRepository userRepository(Ref ref) => UserRepositoryImpl(
-      FirebaseUserDataSource(),
-      FirebaseStorageDataSource(),
-    );
+UserRepository userRepository(Ref ref) =>
+    UserRepositoryImpl(FirebaseUserDataSource(), FirebaseStorageDataSource());
 
 class UserRepositoryImpl implements UserRepository {
   final FirebaseUserDataSource _userDataSource;
@@ -38,15 +36,14 @@ class UserRepositoryImpl implements UserRepository {
     required String birthDate,
     required String provider,
     String? gender,
-  }) =>
-      _userDataSource.setUserProfile(
-        uid: uid,
-        name: name,
-        phone: phone,
-        birthDate: birthDate,
-        provider: provider,
-        gender: gender,
-      );
+  }) => _userDataSource.setUserProfile(
+    uid: uid,
+    name: name,
+    phone: phone,
+    birthDate: birthDate,
+    provider: provider,
+    gender: gender,
+  );
 
   @override
   Future<bool> isPhoneDuplicate(String phone) =>

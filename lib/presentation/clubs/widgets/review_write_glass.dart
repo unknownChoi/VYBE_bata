@@ -9,7 +9,6 @@ const kReviewGlassFill = Color(0x29787880); // rgba(120,120,128,0.16)
 
 const kReviewGlassBorder = Color(0x1AFFFFFF); // rgba(255,255,255,0.10)
 
-
 const kReviewInk = Color(0xFF0E0D12);
 
 /// 리퀴드 글래스 카드 (디자인 RG_GLASS + 좌상단 하이라이트).
@@ -18,7 +17,12 @@ class ReviewGlassCard extends StatelessWidget {
   final double padding;
   final double radius;
 
-  const ReviewGlassCard({super.key, required this.child, this.padding = 18, this.radius = 20});
+  const ReviewGlassCard({
+    super.key,
+    required this.child,
+    this.padding = 18,
+    this.radius = 20,
+  });
 
   @override
   Widget build(BuildContext context) {

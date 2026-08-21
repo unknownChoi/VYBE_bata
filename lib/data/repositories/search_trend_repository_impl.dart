@@ -28,10 +28,5 @@ class _SearchTrendRepositoryImpl implements SearchTrendRepository {
     required String userId,
     required String keyword,
     required SearchSource source,
-  }) =>
-      _dataSource.logSearch(
-        userId: userId,
-        keyword: keyword,
-        source: source,
-      );
+  }) => _dataSource.logSearch(userId: userId, keyword: keyword, source: source);
 }

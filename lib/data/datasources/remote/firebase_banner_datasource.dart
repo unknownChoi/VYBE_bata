@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:vybe/core/utils/firebase_logger.dart';
+import 'package:vybe/data/datasources/remote/firestore_paths.dart';
 import 'package:vybe/data/models/banner_model.dart';
 
 class FirebaseBannerDataSource {
@@ -15,7 +16,7 @@ class FirebaseBannerDataSource {
     );
     final now = DateTime.now();
     final snapshot = await _firestore
-        .collection('banners')
+        .collection(FirestorePaths.banners)
         .where('isActive', isEqualTo: true)
         .get();
     final banners = snapshot.docs

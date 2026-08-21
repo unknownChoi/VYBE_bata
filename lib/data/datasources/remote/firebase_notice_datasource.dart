@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:vybe/core/utils/firebase_logger.dart';
+import 'package:vybe/data/datasources/remote/firestore_paths.dart';
 import 'package:vybe/data/models/notice_model.dart';
 
 class FirebaseNoticeDataSource {
@@ -22,7 +23,7 @@ class FirebaseNoticeDataSource {
       purpose: '마이페이지 공지사항 목록 조회 (게시 기간 내 공지만)',
     );
     final snapshot = await _firestore
-        .collection('notices')
+        .collection(FirestorePaths.notices)
         .where('isActive', isEqualTo: true)
         .where('publishedAt', isLessThanOrEqualTo: Timestamp.fromDate(now))
         .orderBy('publishedAt', descending: true)
@@ -52,7 +53,10 @@ class FirebaseNoticeDataSource {
       service: 'Firestore(notices/$noticeId)',
       purpose: '공지사항 상세 조회',
     );
-    final doc = await _firestore.collection('notices').doc(noticeId).get();
+    final doc = await _firestore
+        .collection(FirestorePaths.notices)
+        .doc(noticeId)
+        .get();
     if (!doc.exists) return null;
     final notice = NoticeModel.fromFirestore(doc);
     return notice.isVisible ? notice : null;

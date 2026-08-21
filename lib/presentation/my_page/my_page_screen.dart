@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/core/providers/auth_providers.dart';
-import 'package:vybe/design_system/colors.dart';
-import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/auth/viewmodels/auth_viewmodel.dart';
-import 'package:vybe/presentation/auth/welcome/welcome_screen.dart';
 import 'package:vybe/presentation/common/renew/renew_glass.dart';
 import 'package:vybe/presentation/common/renew/renew_icons.dart';
 import 'package:vybe/presentation/common/widgets/vybe_aurora.dart';
@@ -20,6 +16,9 @@ import 'package:vybe/presentation/my_page/profile_edit_screen.dart';
 import 'package:vybe/presentation/my_page/settings_screen.dart';
 import 'package:vybe/presentation/my_page/viewmodels/my_page_viewmodel.dart';
 import 'package:vybe/presentation/my_page/widgets/my_page_common.dart';
+import 'package:vybe/presentation/my_page/widgets/my_page_logged_out.dart';
+import 'package:vybe/presentation/my_page/widgets/my_page_profile.dart';
+import 'package:vybe/presentation/my_page/widgets/my_page_stats.dart';
 import 'package:vybe/presentation/profile/viewmodels/user_viewmodel.dart';
 import 'package:vybe/presentation/saved/viewmodels/saved_viewmodel.dart';
 
@@ -49,54 +48,7 @@ class MyPageScreen extends ConsumerWidget {
       body: Stack(
         children: [
           const Positioned.fill(child: VybeAurora()),
-          uid == null ? const _LoggedOutView() : _LoggedInView(uid: uid),
-        ],
-      ),
-    );
-  }
-}
-
-// ============ 비로그인 ============
-
-class _LoggedOutView extends StatelessWidget {
-  const _LoggedOutView();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const MyGlassTile(icon: RenewIcons.user, size: 72, radius: 22),
-          SizedBox(height: 18.h),
-          Text('로그인이 필요해요', style: RenewGlass.title()),
-          SizedBox(height: 8.h),
-          Text(
-            '로그인하고 리뷰·찜 목록을 관리해 보세요',
-            style: RenewGlass.body(color: RenewGlass.t4),
-          ),
-          SizedBox(height: 24.h),
-          GestureDetector(
-            onTap: () => Navigator.of(context, rootNavigator: true).push(
-              SwipeBackPageRoute(builder: (_) => const WelcomeScreen()),
-            ),
-            child: Container(
-              height: 48.h,
-              padding: EdgeInsets.symmetric(horizontal: 34.w),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: VybeColors.mainPurple500,
-                borderRadius: BorderRadius.circular(999.r),
-              ),
-              child: Text(
-                '로그인하기',
-                style: VybeTypography.button1.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
+          uid == null ? const MyPageLoggedOutView() : _LoggedInView(uid: uid),
         ],
       ),
     );
@@ -144,7 +96,7 @@ class _LoggedInView extends ConsumerWidget {
         children: [
           MyFadeUp(
             index: 0,
-            child: _Profile(
+            child: MyPageProfile(
               name: user?.name ?? '',
               imageUrl: user?.profileImageUrl ?? '',
               subtitle: _providerLabels[user?.provider] ?? '',
@@ -157,7 +109,7 @@ class _LoggedInView extends ConsumerWidget {
 
           MyFadeUp(
             index: 1,
-            child: _Stats(
+            child: MyPageStats(
               reviewCount: reviewCount,
               savedCount: savedCount,
               onReviews: () => _push(context, const MyReviewsScreen()),
@@ -245,170 +197,5 @@ class _LoggedInView extends ConsumerWidget {
     // 로그아웃하면 AuthGate가 루트를 WelcomeScreen으로 교체하고
     // 그 위에 쌓인 라우트를 전부 정리한다.
     await ref.read(authViewModelProvider.notifier).signOut();
-  }
-}
-
-// ============ 프로필 행 (MRProfile) ============
-
-class _Profile extends StatelessWidget {
-  final String name;
-  final String imageUrl;
-
-  /// 디자인의 `@handle` 자리 — 스키마에 없어 가입 방식으로 대체.
-  final String subtitle;
-
-  final VoidCallback? onEdit;
-
-  const _Profile({
-    required this.name,
-    required this.imageUrl,
-    required this.subtitle,
-    required this.onEdit,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        MyAvatar(name: name, imageUrl: imageUrl),
-        SizedBox(width: 16.w),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                name.isEmpty ? ' ' : name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: VybeTypography.heading4.copyWith(
-                  fontSize: 21.sp,
-                  color: RenewGlass.t1,
-                ),
-              ),
-              if (subtitle.isNotEmpty) ...[
-                SizedBox(height: 4.h),
-                Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: RenewGlass.body(color: RenewGlass.t4),
-                ),
-              ],
-              SizedBox(height: 12.h),
-              _EditPill(onTap: onEdit),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _EditPill extends StatelessWidget {
-  final VoidCallback? onTap;
-
-  const _EditPill({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          height: 32.h,
-          padding: EdgeInsets.symmetric(horizontal: 14.w),
-          decoration: BoxDecoration(
-            color: RenewGlass.tileFill,
-            borderRadius: BorderRadius.circular(999.r),
-            border: Border.all(color: RenewGlass.tileBorder),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '프로필 수정',
-                style: VybeTypography.button2.copyWith(color: RenewGlass.t1),
-              ),
-              SizedBox(width: 5.w),
-              const RenewChevron(
-                dir: RenewChevronDir.right,
-                size: 13,
-                color: RenewGlass.t1,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ============ 통계 카드 (MRStats) ============
-
-class _Stats extends StatelessWidget {
-  final int? reviewCount;
-  final int? savedCount;
-  final VoidCallback onReviews;
-  final VoidCallback onSaved;
-
-  const _Stats({
-    required this.reviewCount,
-    required this.savedCount,
-    required this.onReviews,
-    required this.onSaved,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return RenewGlassCard(
-      quiet: true,
-      padding: 0,
-      child: IntrinsicHeight(
-        child: Row(
-          children: [
-            _cell('리뷰', reviewCount, onReviews),
-            // 구분선은 위아래 12씩 띄워 카드 모서리까지 닿지 않게 한다.
-            Padding(
-              padding: EdgeInsets.symmetric(vertical: 12.h),
-              child: const VerticalDivider(
-                width: 1,
-                thickness: 1,
-                color: RenewGlass.hair,
-              ),
-            ),
-            _cell('찜', savedCount, onSaved),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _cell(String label, int? value, VoidCallback onTap) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 16.h),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                value?.toString() ?? '-',
-                style: VybeTypography.heading4.copyWith(
-                  fontSize: 22.sp,
-                  color: RenewGlass.t1,
-                ),
-              ),
-              SizedBox(height: 6.h),
-              Text(label, style: RenewGlass.caption(lineHeight: 14)),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }

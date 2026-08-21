@@ -241,16 +241,52 @@ clubs 쓰기 → Firebase Extension(firestore-algolia-search) → Algolia `clubs
 ```
 
 - Extension 설정: Collection Path `clubs`, Index `clubs`, objectID = doc.id(= clubId),
-  Indexable Fields: name,area,genre,genreStyles,tags,address,rating,reviewCount,
-  thumbnailUrl,entryFeeMin,entryFeeMax,operatingHours,isActive,isVybeRecommended,
-  isNonSmoking,favoriteCount,location
-  (⚠ `freeEntry`·`isFreeEntry`는 **아직 미추가** — 시간대별 무료입장 앱 구현 전에 추가 + 재색인 필요)
-- **Firestore 조인 제거 (2026.07.31)** — 목록 카드·필터·정렬·지도 핀에 필요한 필드를
+  Indexable Fields (**19개 — 이 목록이 정본**):
+  ```
+  name,area,genre,genreStyles,tags,address,rating,reviewCount,thumbnailUrl,entryFeeMin,entryFeeMax,operatingHours,isActive,isVybeRecommended,isNonSmoking,favoriteCount,location,freeEntry,isFreeEntry
+  ```
+  ⚠ **배포된 설정이 문서와 달라져 있던 적이 있다 (2026.08.21 발견)** — 배포본 `FIELDS`에
+  `reviewCount`·`entryFeeMax`·`operatingHours`·`isVybeRecommended`·`isNonSmoking`·`location`
+  6개가 빠져 있었고(= 2026.07.31 '조인 제거' 설정이 실제로는 반영된 적이 없음), 그동안 검색은
+  내내 `complete=false` → `getClub` 조인 폴백으로 돌고 있었다. **화면이 멀쩡해서 티가 안 난다**
+  — 조용히 read 비용만 낸다. 설정을 만졌으면 반드시 실물로 확인할 것:
+  ```bash
+  TOKEN=$(gcloud auth print-access-token)
+  curl -s -H "Authorization: Bearer $TOKEN" \
+    "https://firebaseextensions.googleapis.com/v1beta/projects/vybe-bata-c07aa/instances/firestore-algolia-search" \
+    | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['state']); print(d['config']['params']['FIELDS'])"
+  # 그 다음 hit에 실제로 실려 오는지 (앱과 같은 Search-Only 키)
+  curl -s -X POST "https://$ALGOLIA_APP_ID-dsn.algolia.net/1/indexes/clubs/query" \
+    -H "X-Algolia-API-Key: $ALGOLIA_SEARCH_API_KEY" -H "X-Algolia-Application-Id: $ALGOLIA_APP_ID" \
+    -d '{"query":"","hitsPerPage":1}' | python3 -c "import json,sys; print(sorted(json.load(sys.stdin)['hits'][0].keys()))"
+  ```
+- **Firestore 조인 제거 (2026.07.31 설계 · 2026.08.21 현재 미가동)** — 목록 카드·필터·정렬·지도 핀에 필요한 필드를
   전부 인덱싱해 검색 시 Firestore 문서 read가 0이 됨. 필요 필드 목록은
   `AlgoliaClubSearchDataSource._requiredFields` (단일 소스).
   hit에 하나라도 빠지면 `complete=false` → 예전 `getClub` 조인으로 자동 폴백(화면 안 깨짐).
   ⚠ Indexable Fields를 바꾸면 기존 문서는 자동 반영 안 됨 → `node scripts/reindex_clubs.js`로
   전체 touch 필요. `_requiredFields`에 필드를 추가할 때도 Extension 설정 + 재색인 동반 필수.
+- **Searchable Attributes (Algolia 인덱스 설정 — Extension 설정과 별개)**:
+  ```
+  unordered(name), unordered(tags), unordered(genre), unordered(freeEntry.condition)
+  ```
+  순서 = 우선순위. `freeEntry.condition`은 **맨 뒤**라 이름 매치를 밀어내지 않는다.
+  ⚠ **인덱싱된 필드 ≠ 검색되는 필드다** — Extension의 Indexable Fields는 "인덱스에 실어 보낼
+  필드", searchableAttributes는 "그중 검색어로 찾을 필드". 여기 없으면 값이 실려 있어도 0건이다.
+  - `freeEntry.condition` 추가 (2026.08.21) — 검색창에 **`무료`를 치면 무료입장 클럽 119곳**이
+    뜨게 하려고. 조건 문구 80종이 전부 '무료'를 포함한다(always 71 + timed 48, `none` 45곳만 빈 값).
+    ⚠ **`입장료`로는 안 걸린다** — 문구가 전부 '입장 무료'·'무료입장'이라 '입장료'라는 단어가
+    데이터에 없다(필터 칩 라벨은 '입장료 무료'라 헷갈릴 수 있음).
+    부수 효과로 `여성`(8곳)·`오픈런`(6곳) 같은 조건 단어로도 찾아진다 — 의도한 것.
+  - 한국어는 **부분 일치**가 된다(실측: `테이션` → `클럽 스테이션`). 접두사만이 아니라 중간·끝
+    조각도 잡히므로 `무료`가 `무료입장`·`무료`를 모두 건진다.
+  - ⚠ **이 설정은 리포에 없다** — Algolia 대시보드(또는 Settings API)에만 산다. Extension을
+    재구성한 뒤에는 살아남았는지 확인할 것:
+    `GET https://{APP_ID}-dsn.algolia.net/1/indexes/clubs/settings`
+- ⚠ **Extension 업데이트는 전체 재색인을 동반한다** (`DO_FULL_INDEXING=true`) — 2026.08.21
+  설정 변경 후 ACTIVE로 바뀌자 164개가 자동으로 다시 색인됐다. 즉 Indexable Fields만 고치면
+  `scripts/reindex_clubs.js`를 따로 돌릴 필요가 없다(수동 touch는 설정을 안 건드리고 다시 밀
+  때만 쓴다). 반영은 상태가 DEPLOYING → ACTIVE로 바뀐 뒤 1~2분.
 - 진입점은 `ClubRepositoryImpl.searchClubsPage` 하나 — viewmodel/화면은 엔진 무관.
   cursor = Algolia 페이지 번호(int, 0부터).
 - 결과 개수는 `ClubSearchPage.totalCount`(= Algolia `nbHits`, 검색어 전체 매칭 수).
@@ -589,19 +625,33 @@ grep -rn "border: Border.all" lib/presentation/   # 후보 추린 뒤 ClipRRect/
   - 배포 순서·주의는 아래 '미구현' 항목 참고. 상세 설계는 `firebase_structure.html#account-deletion`
 
 ### 미구현 / 진행 중 ✗
-- **시간대별 무료입장 — 홈 · 클럽 상세 완료, 목록/검색 화면 미적용 (2026.08.20)**
+- **시간대별 무료입장 — 앱 전 화면 완료, Algolia 색인만 남음 (2026.08.21)**
   Firestore `clubs`에 `freeEntry`·`isFreeEntry` 배정 완료(164개, timed 47).
   **완료** — `data/models/free_entry_policy.dart`(순수 함수 `statusAt()` +
   `test/free_entry_policy_test.dart` 25건), `ClubModel.freeEntry`·`isFreeEntry`,
   `getTimedFreeEntryClubs()`, 홈 '이 시간에만 무료입장' 섹션(`home/widgets/home_free_time_clubs.dart`),
-  **클럽 상세 '시간대별 무료입장' 섹션 (2026.08.20 — club_detail_renew.html 디자인 이식)**.
-  남은 것은 **순서대로**:
-  ① Algolia Extension Indexable Fields에 `freeEntry`·`isFreeEntry` 추가 → `node scripts/reindex_clubs.js`
-  ② 앱 `AlgoliaClubSearchDataSource._requiredFields`에 두 필드 추가 (①보다 먼저 하면 **모든 검색 hit이
-  `complete=false`** → `getClub` 조인 폴백으로 read 부활). 그때까지 검색 hit의 `freeEntry`는 `none`
-  ③ 나머지 화면 — 입장비 무료 페이지(`getFreeEntryClubs()`를 `isFreeEntry==true`로 교체 + timed 표기),
-  `ClubFilter.freeEntry`
-  ④ 어드민 편집 UI (요일·시간 입력 + `isFreeEntry` 동시 쓰기)
+  **클럽 상세 '시간대별 무료입장' 섹션 (2026.08.20 — club_detail_renew.html 디자인 이식)**,
+  **입장비 무료 페이지 · 검색 필터 · 검색 카드 (2026.08.21)**:
+  - `getFreeEntryClubs()` 기준을 `entryFeeMin==0` → `isFreeEntry==true`로 교체
+    (**상시 72 → 상시+시간대 119곳**). `entryFeeMin==0`은 timed 클럽을 영영 못 잡는다 —
+    timed는 무료가 끝났을 때 보여 줄 요금이 필요해 `entryFeeMin > 0`으로 두기 때문
+  - `free_entry_screen.dart` — 리본 3상태(지금 무료 · 시간대 무료 · 입장비 무료), 화면 전용
+    정렬 `'지금 무료순'`(기본값), 인트로 pill이 **지금 무료인 곳 수**를 센다.
+    ⚠ **무료가 지금 유효할 때만 요금에 취소선**을 긋는다 — 아닐 때 그으면 지금 공짜로
+    들어갈 수 있다는 거짓말이 된다(그때는 `22:00부터 무료`로 바꿔 쓴다)
+  - `ClubFilter.freeEntry` → `c.isFreeEntry`, 검색 카드 입장료 칩은 timed 진행 중이면 '지금 무료입장'
+  - 시각 표기 문구(`38분 남음`·`금 22:00부터`)는 홈과 공유 — `presentation/common/free_entry_labels.dart`.
+    두 화면이 같은 클럽을 다르게 말하면 안 되므로 한 곳에 둔다
+  - 판정 시각은 **화면당 한 번** 읽어 목록 전체에 넘긴다. 카드마다 `DateTime.now()`를 다시 읽으면
+    같은 목록 안에서 기준이 어긋나 정렬과 표기가 따로 논다
+  - 테스트 `test/free_entry_screen_test.dart` 4건 — 시각을 주입할 수 없어 창을 **지금 기준 상대
+    시각**으로 만들어 실행 시각과 무관하게 같은 결과가 나오게 짰다
+  남은 것:
+  ① **Algolia Extension Indexable Fields를 정본 19개로 맞추기** → `node scripts/reindex_clubs.js`
+  (2026.08.21 현재 `freeEntry`·`isFreeEntry`는 들어갔지만 그 전부터 6개가 빠져 있다 —
+  위 '클럽 검색(Algolia)' 항목의 ⚠ 참고). 그때까지 검색 hit은 `complete=false` → `getClub` 조인 폴백이라
+  **값은 맞고 read만 든다**(앱 코드는 이미 두 필드를 `_requiredFields`에 넣어 뒀다)
+  ② 어드민 편집 UI (요일·시간 입력 + `isFreeEntry` 동시 쓰기)
   - **클럽 상세 (2026.08.20)** — 홈 탭 **첫 섹션** `clubs/renew/widgets/renew_free_entry.dart`.
     남은 시간 카운트다운(실시각 1초) + 시간대별 입장비 도형 + 조건 한 줄 + 요일별 무료입장 시간(접힘).
     매장 정보·상세 정보 탭의 **입장료 행**도 `RenewFeeRow`로 바뀌어 '지금 무료' pill + 무료 시간대가 붙는다

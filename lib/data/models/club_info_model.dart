@@ -27,8 +27,7 @@ abstract class ClubInfoModel with _$ClubInfoModel {
       openChatUrl: data['openChatUrl'] as String? ?? '',
       cautions: List<String>.from(data['cautions'] as List? ?? []),
       facilities: List<String>.from(data['facilities'] as List? ?? []),
-      updatedAt:
-          (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
 }

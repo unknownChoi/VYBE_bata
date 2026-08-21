@@ -12,6 +12,7 @@ abstract class UserModel with _$UserModel {
     required String name,
     required String phone,
     required String birthDate,
+
     /// 'male' | 'female' — 미입력이면 빈 문자열
     required String gender,
     required String profileImageUrl,
@@ -38,14 +39,14 @@ abstract class UserModel with _$UserModel {
   }
 
   Map<String, dynamic> toFirestore() => {
-        'uid': uid,
-        'name': name,
-        'phone': phone,
-        'birthDate': birthDate,
-        'gender': gender,
-        'profileImageUrl': profileImageUrl,
-        'provider': provider,
-        'isVerified': isVerified,
-        'updatedAt': FieldValue.serverTimestamp(),
-      };
+    'uid': uid,
+    'name': name,
+    'phone': phone,
+    'birthDate': birthDate,
+    'gender': gender,
+    'profileImageUrl': profileImageUrl,
+    'provider': provider,
+    'isVerified': isVerified,
+    'updatedAt': FieldValue.serverTimestamp(),
+  };
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/common/renew/renew_button.dart';
 import 'package:vybe/presentation/common/renew/renew_glass.dart';
 import 'package:vybe/presentation/common/renew/renew_icons.dart';
 import 'package:vybe/presentation/common/widgets/vybe_aurora.dart';
@@ -115,10 +116,7 @@ class LeaveSection extends StatelessWidget {
       children: [
         Text(title, style: RenewGlass.title()),
         SizedBox(height: 6.h),
-        Text(
-          sub,
-          style: RenewGlass.body(color: RenewGlass.t4, lineHeight: 20),
-        ),
+        Text(sub, style: RenewGlass.body(color: RenewGlass.t4, lineHeight: 20)),
         SizedBox(height: 13.h),
         child,
       ],
@@ -174,11 +172,8 @@ class LeaveStatCard extends StatelessWidget {
     );
   }
 
-  Widget _divider() => const VerticalDivider(
-    width: 1,
-    thickness: 1,
-    color: RenewGlass.hair,
-  );
+  Widget _divider() =>
+      const VerticalDivider(width: 1, thickness: 1, color: RenewGlass.hair);
 
   Widget _cell(String icon, int? n, String unit, String label) {
     return Expanded(
@@ -387,10 +382,7 @@ class LeaveBenefitRow extends StatelessWidget {
                     ),
                   ),
                   SizedBox(height: 3.h),
-                  Text(
-                    benefit.desc,
-                    style: RenewGlass.caption(lineHeight: 18),
-                  ),
+                  Text(benefit.desc, style: RenewGlass.caption(lineHeight: 18)),
                 ],
               ),
             ),
@@ -435,14 +427,16 @@ class LeaveTimelineCard extends StatelessWidget {
       (
         when: '~ ${leaveShortDate(purgeDate)}',
         title: '$kLeaveRetentionDays일 보관 기간',
-        desc: '계정과 데이터가 보관돼요. 이 기간에 같은 계정으로 '
+        desc:
+            '계정과 데이터가 보관돼요. 이 기간에 같은 계정으로 '
             '다시 로그인하면 계정이 복구돼요. 새로 가입하는 건 안 돼요.',
         color: RenewGlass.lavender,
       ),
       (
         when: '${leaveDateLabel(purgeDate)} 이후',
         title: '계정 정보 완전 삭제',
-        desc: '보관된 데이터가 완전히 파기돼요. 복구 경로는 없고, '
+        desc:
+            '보관된 데이터가 완전히 파기돼요. 복구 경로는 없고, '
             '이날부터 같은 번호로 새로 가입할 수 있어요.',
         color: VybeColors.gray600,
       ),
@@ -584,7 +578,8 @@ const List<LeaveReason> kLeaveReasons = [
     key: '이용 빈도가 낮아서',
     icon: RenewIcons.bell,
     title: '알림만 꺼도 괜찮아요',
-    desc: '계정은 그대로 두고 알림만 끄면 앱이 조용해져요. '
+    desc:
+        '계정은 그대로 두고 알림만 끄면 앱이 조용해져요. '
         '필요할 때 찜·리뷰는 그대로 남아 있어요.',
     cta: LeaveReasonCta.settings,
     ctaLabel: '알림 설정 열기',
@@ -593,21 +588,24 @@ const List<LeaveReason> kLeaveReasons = [
     key: '원하는 클럽 정보가 없어서',
     icon: LeaveIcons.search,
     title: '클럽은 계속 늘어나고 있어요',
-    desc: '지금 검색에 없는 곳도 순차로 올라와요. '
+    desc:
+        '지금 검색에 없는 곳도 순차로 올라와요. '
         '어떤 클럽을 찾으셨는지 아래 사유와 함께 남겨 주시면 확인해요.',
   ),
   LeaveReason(
     key: '앱 사용이 불편해서',
     icon: LeaveIcons.msg,
     title: '어떤 점이 불편했는지 알려 주세요',
-    desc: '선택하신 이유는 탈퇴 요청과 함께 운영팀에 전달돼요. '
+    desc:
+        '선택하신 이유는 탈퇴 요청과 함께 운영팀에 전달돼요. '
         '다음 업데이트에 반영할게요.',
   ),
   LeaveReason(
     key: '개인정보가 걱정돼서',
     icon: LeaveIcons.shield,
     title: '저장되는 정보는 이것뿐이에요',
-    desc: '휴대폰 번호, 이름, 생년월일과 찜·리뷰 기록만 저장해요. '
+    desc:
+        '휴대폰 번호, 이름, 생년월일과 찜·리뷰 기록만 저장해요. '
         '위치는 앱을 쓰는 동안에만 쓰고 남기지 않아요.',
     cta: LeaveReasonCta.privacy,
     ctaLabel: '개인정보 처리방침',
@@ -651,10 +649,7 @@ class LeaveReasonPicker extends StatelessWidget {
               _chip(reason, on: reason.key == selected),
           ],
         ),
-        if (current != null) ...[
-          SizedBox(height: 12.h),
-          _alternative(current),
-        ],
+        if (current != null) ...[SizedBox(height: 12.h), _alternative(current)],
       ],
     );
   }
@@ -858,9 +853,7 @@ class _LeaveAgreeRowState extends State<LeaveAgreeRow>
           duration: const Duration(milliseconds: 160),
           padding: EdgeInsets.all(15.r),
           decoration: BoxDecoration(
-            color: on
-                ? kMyDanger.withValues(alpha: 0.08)
-                : RenewGlass.tileFill,
+            color: on ? kMyDanger.withValues(alpha: 0.08) : RenewGlass.tileFill,
             borderRadius: BorderRadius.circular(14.r),
             border: Border.all(
               color: on
@@ -1078,6 +1071,162 @@ class _LeaveDoneViewState extends State<_LeaveDoneView> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// 화면 맨 위 문구 — `정말 떠나시겠어요?` + 이름·가입일을 넣은 설명.
+///
+/// [joined]가 null이면 가입일을 빼고 말한다. 오늘 가입한 계정에 '오늘부터
+/// 쌓은 기록'이라고 하면 어색하고, 오래된 계정에 날짜가 없으면 정보가 준다.
+class LeaveHeadline extends StatelessWidget {
+  final String name;
+  final DateTime? joined;
+
+  const LeaveHeadline({super.key, required this.name, required this.joined});
+
+  @override
+  Widget build(BuildContext context) {
+    final since = joined == null ? '' : '${leaveDateLabel(joined!)}부터 ';
+
+    return Padding(
+      padding: EdgeInsets.only(top: 26.h, bottom: 20.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '정말 떠나시겠어요?',
+            style: VybeTypography.heading2.copyWith(
+              height: 36 / 28,
+              color: RenewGlass.t1,
+            ),
+          ),
+          SizedBox(height: 12.h),
+          Text.rich(
+            TextSpan(
+              children: [
+                if (name.isEmpty)
+                  TextSpan(text: '지금까지 $since쌓은 기록과 ')
+                else ...[
+                  TextSpan(
+                    text: name,
+                    style: const TextStyle(
+                      color: VybeColors.mainLime500,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  TextSpan(text: ' 님이 $since쌓은 기록과 '),
+                ],
+                const TextSpan(text: '지금 쓰고 있는 정보들이 어떻게 되는지 먼저 확인해 주세요.'),
+              ],
+            ),
+            style: VybeTypography.body3.copyWith(
+              height: 24 / 16,
+              color: RenewGlass.t3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 하단 액션 — 주 버튼은 '계속 이용하기', 탈퇴는 그 아래 밑줄 링크로 한 단 낮춘다
+/// (디자인 의도 — 되돌릴 수 없는 쪽이 더 눌리기 쉬우면 안 된다).
+class LeaveActions extends StatelessWidget {
+  /// 동의 체크 여부 — 안 했으면 탈퇴 링크가 흐리고 안내가 뜬다.
+  final bool agreed;
+
+  /// 서버 요청 진행 중.
+  final bool submitting;
+
+  /// 동의 없이 탈퇴를 눌러 안내를 붉게 강조하는 중.
+  final bool nudging;
+
+  final VoidCallback onStay;
+  final VoidCallback onLeave;
+
+  const LeaveActions({
+    super.key,
+    required this.agreed,
+    required this.submitting,
+    required this.nudging,
+    required this.onStay,
+    required this.onLeave,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final linkColor = agreed ? RenewGlass.t2 : RenewGlass.t4;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        RenewButton(label: '계속 이용하기', onTap: submitting ? null : onStay),
+        SizedBox(height: 14.h),
+        Center(
+          child: GestureDetector(
+            onTap: onLeave,
+            behavior: HitTestBehavior.opaque,
+            child: Container(
+              height: 44.h,
+              alignment: Alignment.center,
+              padding: EdgeInsets.symmetric(horizontal: 20.w),
+              child: Text(
+                submitting ? '탈퇴 처리 중…' : '탈퇴하기',
+                style: TextStyle(
+                  fontFamily: 'Pretendard',
+                  fontWeight: FontWeight.w400,
+                  fontSize: 13.sp,
+                  height: 16 / 13,
+                  letterSpacing: 13 * -0.025,
+                  color: linkColor,
+                  decoration: TextDecoration.underline,
+                  decorationColor: linkColor,
+                ),
+              ),
+            ),
+          ),
+        ),
+        SizedBox(height: 14.h),
+        // 자리는 항상 잡아 둔다 — 체크할 때 아래 여백이 튀지 않게.
+        SizedBox(
+          height: 16.h,
+          child: AnimatedOpacity(
+            opacity: agreed ? 0 : 1,
+            duration: const Duration(milliseconds: 200),
+            child: Text(
+              '확인 체크 후 진행할 수 있어요',
+              textAlign: TextAlign.center,
+              style: RenewGlass.caption(
+                color: nudging ? kMyDanger : RenewGlass.t4,
+                lineHeight: 16,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 탈퇴하면 놓치게 되는 것들 — 한 줄씩 순차로 나타난다.
+class LeaveBenefitList extends StatelessWidget {
+  const LeaveBenefitList({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var i = 0; i < kLeaveBenefits.length; i++) ...[
+          if (i > 0) SizedBox(height: 8.h),
+          MyFadeUp(
+            index: i,
+            child: LeaveBenefitRow(benefit: kLeaveBenefits[i]),
+          ),
+        ],
+      ],
     );
   }
 }

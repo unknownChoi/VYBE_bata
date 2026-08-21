@@ -34,13 +34,13 @@ class CarrierDropdownField extends StatelessWidget {
   ///
   /// VybeTypography에 24sp Medium이 없으므로 하드코딩
   static TextStyle _textStyle(Color color) => TextStyle(
-        fontFamily: 'Pretendard',
-        fontWeight: FontWeight.w500,
-        fontSize: 24.sp,
-        height: 26 / 24,
-        letterSpacing: 24 * -0.025,
-        color: color,
-      );
+    fontFamily: 'Pretendard',
+    fontWeight: FontWeight.w500,
+    fontSize: 24.sp,
+    height: 26 / 24,
+    letterSpacing: 24 * -0.025,
+    color: color,
+  );
 
   @override
   Widget build(BuildContext context) {

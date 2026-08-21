@@ -17,8 +17,7 @@ class CacheManager extends _$CacheManager {
     final dir = await getTemporaryDirectory();
     var total = 0;
     if (!await dir.exists()) return 0;
-    await for (final entity
-        in dir.list(recursive: true, followLinks: false)) {
+    await for (final entity in dir.list(recursive: true, followLinks: false)) {
       if (entity is File) {
         try {
           total += await entity.length();

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:vybe/core/utils/firebase_logger.dart';
+import 'package:vybe/data/datasources/remote/firestore_paths.dart';
 import 'package:vybe/data/models/search_history_model.dart';
 
 class FirebaseSearchHistoryDataSource {
@@ -14,9 +15,9 @@ class FirebaseSearchHistoryDataSource {
       purpose: '최근 검색어 목록 표시',
     );
     final snapshot = await _firestore
-        .collection('users')
+        .collection(FirestorePaths.users)
         .doc(userId)
-        .collection('searchHistory')
+        .collection(FirestorePaths.searchHistory)
         .orderBy('createdAt', descending: true)
         .limit(20)
         .get();
@@ -30,11 +31,12 @@ class FirebaseSearchHistoryDataSource {
       purpose: '검색어 "$keyword" 저장 (중복 제거 후 추가)',
     );
     final collection = _firestore
-        .collection('users')
+        .collection(FirestorePaths.users)
         .doc(userId)
-        .collection('searchHistory');
-    final existing =
-        await collection.where('keyword', isEqualTo: keyword).get();
+        .collection(FirestorePaths.searchHistory);
+    final existing = await collection
+        .where('keyword', isEqualTo: keyword)
+        .get();
 
     // 중복 제거 + 신규 추가를 단일 batch로 (순차 await 제거).
     final batch = _firestore.batch();
@@ -56,9 +58,9 @@ class FirebaseSearchHistoryDataSource {
       purpose: '최근 검색어 개별 삭제',
     );
     await _firestore
-        .collection('users')
+        .collection(FirestorePaths.users)
         .doc(userId)
-        .collection('searchHistory')
+        .collection(FirestorePaths.searchHistory)
         .doc(historyId)
         .delete();
   }
@@ -70,9 +72,9 @@ class FirebaseSearchHistoryDataSource {
       purpose: '최근 검색어 전체 삭제',
     );
     final snapshot = await _firestore
-        .collection('users')
+        .collection(FirestorePaths.users)
         .doc(userId)
-        .collection('searchHistory')
+        .collection(FirestorePaths.searchHistory)
         .get();
     if (snapshot.docs.isEmpty) return;
 

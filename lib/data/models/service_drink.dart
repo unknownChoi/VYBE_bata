@@ -30,10 +30,10 @@ class ServiceDrink {
   }
 
   Map<String, dynamic> toMap() => {
-        'isOffered': isOffered,
-        'comment': comment,
-        'drinks': drinks,
-      };
+    'isOffered': isOffered,
+    'comment': comment,
+    'drinks': drinks,
+  };
 
   @override
   bool operator ==(Object other) =>

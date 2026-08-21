@@ -48,10 +48,10 @@ abstract class PhotoModel with _$PhotoModel {
 
   /// 사진 업로드용 (추후 사용자 업로드 기능에서 사용)
   Map<String, dynamic> toFirestore() => {
-        'clubId': clubId,
-        'userId': userId,
-        'url': url,
-        'category': category.name,
-        'createdAt': FieldValue.serverTimestamp(),
-      };
+    'clubId': clubId,
+    'userId': userId,
+    'url': url,
+    'category': category.name,
+    'createdAt': FieldValue.serverTimestamp(),
+  };
 }

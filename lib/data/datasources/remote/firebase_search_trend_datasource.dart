@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:vybe/core/utils/firebase_logger.dart';
+import 'package:vybe/data/datasources/remote/firestore_paths.dart';
 import 'package:vybe/data/models/search_hashtag_model.dart';
 import 'package:vybe/data/models/search_trend_model.dart';
 
@@ -22,8 +23,10 @@ class FirebaseSearchTrendDataSource {
       service: 'Firestore(searchTrends/current)',
       purpose: '실시간 인기 검색어 순위 표시',
     );
-    final doc =
-        await _firestore.collection('searchTrends').doc('current').get();
+    final doc = await _firestore
+        .collection(FirestorePaths.searchTrends)
+        .doc(FirestorePaths.trendsCurrentDoc)
+        .get();
     if (!doc.exists) return SearchTrendSnapshot.empty;
     return SearchTrendSnapshot.fromFirestore(doc);
   }
@@ -36,7 +39,7 @@ class FirebaseSearchTrendDataSource {
       purpose: '검색 화면 인기 해시태그 표시',
     );
     final snapshot = await _firestore
-        .collection('searchHashtags')
+        .collection(FirestorePaths.searchHashtags)
         .where('isActive', isEqualTo: true)
         .get();
 
@@ -70,7 +73,7 @@ class FirebaseSearchTrendDataSource {
       service: 'Firestore(searchLogs)',
       purpose: '검색어 "$normalized" 로그 기록 (인기 검색어 집계용)',
     );
-    await _firestore.collection('searchLogs').add({
+    await _firestore.collection(FirestorePaths.searchLogs).add({
       'keyword': normalized,
       'userId': userId,
       'source': source.name,
@@ -85,8 +88,10 @@ class FirebaseSearchTrendDataSource {
 /// 대소문자는 보존한다 ('EDM'을 'edm'으로 기록하지 않음) — 소문자 병합은
 /// 서버 집계 단계에서 처리한다.
 String? normalizeSearchKeyword(String raw) {
-  final trimmed =
-      raw.replaceAll(RegExp(r'^#+'), '').replaceAll(RegExp(r'\s+'), ' ').trim();
+  final trimmed = raw
+      .replaceAll(RegExp(r'^#+'), '')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
   if (trimmed.length < 2 || trimmed.length > 30) return null;
   if (!RegExp(r'[a-zA-Z가-힣ㄱ-ㆎ]').hasMatch(trimmed)) return null;
   return trimmed;

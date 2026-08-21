@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:vybe/core/utils/firebase_logger.dart';
+import 'package:vybe/data/datasources/remote/firestore_paths.dart';
 import 'package:vybe/data/models/promotion_model.dart';
 
 class FirebasePromotionDataSource {
@@ -18,8 +19,10 @@ class FirebasePromotionDataSource {
       service: 'Firestore(promotions/$promotionId)',
       purpose: '홈 배너 → 프로모션 상세 조회',
     );
-    final doc =
-        await _firestore.collection('promotions').doc(promotionId).get();
+    final doc = await _firestore
+        .collection(FirestorePaths.promotions)
+        .doc(promotionId)
+        .get();
     if (!doc.exists) return null;
     final promotion = PromotionModel.fromFirestore(doc);
     return promotion.isActive ? promotion : null;

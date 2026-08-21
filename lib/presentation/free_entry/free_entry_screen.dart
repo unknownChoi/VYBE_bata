@@ -11,6 +11,7 @@ import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/clubs/club_detail_route.dart';
 import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
 import 'package:vybe/presentation/common/club_list_sorting.dart';
+import 'package:vybe/presentation/common/free_entry_labels.dart';
 import 'package:vybe/presentation/common/location_flip_mixin.dart';
 import 'package:vybe/presentation/common/widgets/vybe_aurora.dart';
 import 'package:vybe/presentation/common/widgets/vybe_footer_note.dart';
@@ -23,12 +24,21 @@ import 'package:vybe/presentation/common/widgets/vybe_save_button.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 import 'package:vybe/presentation/free_entry/viewmodels/free_entry_viewmodel.dart';
 
-// 입장비 무료(entryFeeMin=0) 클럽 모음 — clubs Firestore 실데이터.
-// 무료입장 조건 코멘트는 clubs.freeEntryCondition 필드(seed_free_entry.js로 배정).
+// 무료입장 클럽 모음 — clubs Firestore 실데이터(isFreeEntry=true).
+// 상시 무료(always)와 시간대 무료(timed)를 한 목록에 담고, '지금 무료'인지는
+// FreeEntryPolicy.statusAt 으로 화면에서 판정한다(서버는 요일×시:분을 못 가른다).
+// 조건 코멘트는 clubs.freeEntry.condition — 비어 있으면 레거시 freeEntryCondition.
 const _entry = Color(0xFFFF4D8D); // 무료입장 액센트 (hot pink)
 const _entryInk = Color(0xFF2A0712); // pink 위 어두운 텍스트
 
 const _regions = [kFilterAll, '홍대', '강남', '이태원', '압구정', '건대'];
+
+/// 이 화면 전용 정렬 옵션 — 기본은 '지금 무료순'.
+///
+/// 공용 [kClubSorts] 에 넣지 않는 이유: 무료 시간대가 없는 화면(서비스 음료 등)에서는
+/// 고를 수 없는 값이 된다.
+const _sorts = [_kSortFreeNow, ...kClubSorts];
+const _kSortFreeNow = '지금 무료순';
 
 class _EntryClub implements ClubSortable {
   final String id;
@@ -40,13 +50,37 @@ class _EntryClub implements ClubSortable {
   final double dist;
   @override
   final double rating;
-  final int cover; // 평소 입장료 (entryFeeMax, 0이면 표시 안 함)
-  final String cond; // 무료입장 조건 (freeEntryCondition)
+
+  /// 무료가 아닐 때 내는 값. 0이면 표시 안 함.
+  /// 시간대 무료는 `entryFeeMin`, 상시 무료는 min이 0이라 `entryFeeMax`.
+  final int cover;
+
+  /// 무료입장 조건 (`freeEntry.condition`, 없으면 레거시 `freeEntryCondition`).
+  final String cond;
   @override
   final bool open;
   final String thumbnailUrl;
   final List<Color> gradient;
   final bool vybe; // isVybeRecommended — VYBE 추천 뱃지 노출
+
+  /// 시간대 무료(`freeEntry.type == 'timed'`)인지. false면 상시 무료.
+  final bool timed;
+
+  /// 지금 무료인지 — **영업 중일 때만** true.
+  /// 문 닫은 클럽의 '지금 무료'는 거짓 정보다(홈 카드와 같은 규칙).
+  final bool freeNow;
+
+  /// `22:00 – 01:00`. 지금 무료면 진행 중인 창, 아니면 다음 창. 상시 무료면 빈 값.
+  final String windowLabel;
+
+  /// 지금 무료일 때 `38분 남음`. 아니면 null.
+  final String? remainingLabel;
+
+  /// 지금 무료가 아닐 때 `22:00부터` / `금 22:00부터`. 다음 창이 없으면 null.
+  final String? startsLabel;
+
+  /// '지금 무료순' 정렬 키 — 지금 무료면 끝나는 시각, 아니면 시작 시각.
+  final DateTime? sortAt;
 
   const _EntryClub({
     required this.id,
@@ -61,6 +95,12 @@ class _EntryClub implements ClubSortable {
     required this.thumbnailUrl,
     required this.gradient,
     required this.vybe,
+    required this.timed,
+    required this.freeNow,
+    required this.windowLabel,
+    this.remainingLabel,
+    this.startsLabel,
+    this.sortAt,
   });
 
   _EntryClub copyWithDist(double d) => _EntryClub(
@@ -76,7 +116,26 @@ class _EntryClub implements ClubSortable {
     thumbnailUrl: thumbnailUrl,
     gradient: gradient,
     vybe: vybe,
+    timed: timed,
+    freeNow: freeNow,
+    windowLabel: windowLabel,
+    remainingLabel: remainingLabel,
+    startsLabel: startsLabel,
+    sortAt: sortAt,
   );
+}
+
+/// '지금 무료순' — ① 지금 무료 먼저 ② 시각(끝나는/시작하는) 이른 순 ③ 가까운 순.
+///
+/// 지금 무료인 카드끼리는 **곧 끝나는 것**을 앞에 둔다(놓치면 안 되는 순서).
+/// 상시 무료는 [_EntryClub.sortAt] 이 null이라 같은 freeNow 그룹 안에서 거리순이 된다.
+int _compareFreeNow(_EntryClub a, _EntryClub b) {
+  if (a.freeNow != b.freeNow) return a.freeNow ? -1 : 1;
+  final at = a.sortAt;
+  final bt = b.sortAt;
+  if (at != null && bt != null && at != bt) return at.compareTo(bt);
+  if ((at == null) != (bt == null)) return at == null ? -1 : 1;
+  return a.dist.compareTo(b.dist);
 }
 
 // 썸네일 없을 때 clubId 해시 기반 일관 그라데이션 fallback.
@@ -92,8 +151,24 @@ const _fallbackGradients = <List<Color>>[
 ];
 
 // ClubModel → 카드 뷰모델. dist는 화면에서 _loc 기준으로 재계산.
-_EntryClub _fromClub(ClubModel c) {
+//
+// [now] 는 목록 전체가 같은 값을 쓴다 — 카드마다 DateTime.now()를 다시 읽으면
+// 같은 목록 안에서 기준 시각이 어긋나 정렬과 표기가 따로 논다.
+_EntryClub _fromClub(ClubModel c, DateTime now) {
   final grad = gradientForKey(_fallbackGradients, c.clubId);
+  final status = c.freeEntry.statusAt(now);
+  final timed = c.freeEntry.isTimed;
+
+  // 무료 창 판정과 **같은 now** 로 영업 여부를 묻는다. today.isCurrentlyOpen 은
+  // 벽시계를 다시 읽어, 주입한 시각과 섞이면 '무료 창인데 영업 종료' 같은
+  // 어긋난 답이 나온다.
+  final openNow = c.operatingHours.dayAt(now).isOpenAt(now);
+
+  final window = status.active ?? status.next;
+  final cond = c.freeEntry.condition.isNotEmpty
+      ? c.freeEntry.condition
+      : (c.freeEntryCondition.isNotEmpty ? c.freeEntryCondition : '입장비 무료');
+
   return _EntryClub(
     id: c.clubId,
     name: c.name,
@@ -101,12 +176,24 @@ _EntryClub _fromClub(ClubModel c) {
     genre: c.genre,
     dist: 0,
     rating: c.rating,
-    cover: c.entryFeeMax,
-    cond: c.freeEntryCondition.isNotEmpty ? c.freeEntryCondition : '입장비 무료',
-    open: c.operatingHours.today.isCurrentlyOpen,
+    // 시간대 무료는 무료가 끝나면 평상시 최소 요금을 받는다. 상시 무료는 min이
+    // 0이라 비교값이 없어 entryFeeMax(상한)를 대신 쓴다 — 기존 표기 그대로.
+    cover: c.entryFeeMin > 0 ? c.entryFeeMin : c.entryFeeMax,
+    cond: cond,
+    open: openNow,
     thumbnailUrl: c.thumbnailUrl,
     gradient: grad,
     vybe: c.isVybeRecommended,
+    timed: timed,
+    freeNow: status.isFreeNow && openNow,
+    windowLabel: timed ? (window?.rangeLabel ?? '') : '',
+    remainingLabel: status.isFreeNow && openNow
+        ? freeEntryRemainingLabel(status.remainingFrom(now))
+        : null,
+    startsLabel: status.isFreeNow
+        ? null
+        : freeEntryStartsLabel(status.nextStartsAt, now),
+    sortAt: status.isFreeNow ? status.activeEndsAt : status.nextStartsAt,
   );
 }
 
@@ -121,7 +208,8 @@ class _FreeEntryScreenState extends ConsumerState<FreeEntryScreen>
     with SingleTickerProviderStateMixin, LocationFlipMixin {
   String _region = kFilterAll;
   String _loc = AppGeo.hongdaeLabel;
-  String _sort = kClubSorts.first;
+  // 기본은 '지금 무료순' — 이 화면에 온 이유가 "지금 들어갈 수 있는 곳"이라서.
+  String _sort = _sorts.first;
 
   // 위치 칩 탭 → 칩 원형 축소 후 핀 플립 → 내 위치 인식 (서비스 음료와 동일 패턴).
   void _onLocationTap() {
@@ -133,21 +221,32 @@ class _FreeEntryScreenState extends ConsumerState<FreeEntryScreen>
   }
 
   // source(실데이터) → 내 위치 기준 거리 재계산 → 지역 필터 → 정렬.
-  List<_EntryClub> _filtered(List<_EntryClub> source) => buildClubList(
-    source,
-    loc: _loc,
-    sort: _sort,
-    withDist: (c, d) => c.copyWithDist(d),
-    keep: (c) => _region == kFilterAll || c.area == _region,
-  );
+  //
+  // '지금 무료순'은 공용 compareClubs가 모르는 값이라 여기서 다시 정렬한다.
+  // (buildClubList에 넘기면 알 수 없는 값 → 거리순으로 조용히 떨어진다)
+  List<_EntryClub> _filtered(List<_EntryClub> source) {
+    final list = buildClubList(
+      source,
+      loc: _loc,
+      sort: _sort,
+      withDist: (c, d) => c.copyWithDist(d),
+      keep: (c) => _region == kFilterAll || c.area == _region,
+    );
+    if (_sort == _kSortFreeNow) list.sort(_compareFreeNow);
+    return list;
+  }
 
   @override
   Widget build(BuildContext context) {
     final top = MediaQuery.paddingOf(context).top;
     final bottomPad = MediaQuery.paddingOf(context).bottom + 100.h;
     final clubsAsync = ref.watch(freeEntryViewModelProvider);
-    final source = clubsAsync.asData?.value.map(_fromClub).toList() ?? [];
+    // 목록 전체가 같은 시각으로 판정·정렬된다(카드마다 now를 다시 읽지 않는다).
+    final now = DateTime.now();
+    final source =
+        clubsAsync.asData?.value.map((c) => _fromClub(c, now)).toList() ?? [];
     final list = _filtered(source);
+    final freeNowCount = list.where((c) => c.freeNow).length;
 
     final uid = ref.watch(currentUidProvider);
     final favoritedIds = ref.watch(mergedFavoriteIdsProvider);
@@ -167,11 +266,15 @@ class _FreeEntryScreenState extends ConsumerState<FreeEntryScreen>
                   padding: EdgeInsets.only(top: top + 52.h),
                   sliver: SliverList.list(
                     children: [
-                      _Intro(count: list.length, region: _region),
+                      _Intro(
+                        count: list.length,
+                        freeNowCount: freeNowCount,
+                        region: _region,
+                      ),
                       VybeLocationSortBar(
                         loc: _loc,
                         sort: _sort,
-                        sorts: kClubSorts,
+                        sorts: _sorts,
                         locLoading: locLoading,
                         flip: flip,
                         onLocTap: _onLocationTap,
@@ -287,9 +390,17 @@ class _Backdrop extends StatelessWidget {
 // ── 인트로 ──
 class _Intro extends StatelessWidget {
   final int count;
+
+  /// 이 중 지금 무료인 곳. 0이면 pill 문구를 '무료입장 정책'으로 낮춘다 —
+  /// 한 곳도 무료가 아닌데 '지금 무료입장'이라 쓰면 거짓 정보다.
+  final int freeNowCount;
   // 헤드라인 접두사. '전체' → '내 주변', 그 외 → 지역명(예: '홍대').
   final String region;
-  const _Intro({required this.count, required this.region});
+  const _Intro({
+    required this.count,
+    required this.freeNowCount,
+    required this.region,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -351,14 +462,14 @@ class _Intro extends StatelessWidget {
                     Container(
                       width: 7.r,
                       height: 7.r,
-                      decoration: const BoxDecoration(
-                        color: _entry,
+                      decoration: BoxDecoration(
+                        color: freeNowCount > 0 ? _entry : VybeColors.gray500,
                         shape: BoxShape.circle,
                       ),
                     ),
                     SizedBox(width: 5.w),
                     Text(
-                      '지금 무료입장',
+                      freeNowCount > 0 ? '지금 무료 $freeNowCount곳' : '무료입장 정책',
                       style: VybeTypography.caption.copyWith(
                         height: 14 / 12,
                         fontWeight: FontWeight.w700,
@@ -445,6 +556,110 @@ class _RegionFilter extends StatelessWidget {
   }
 }
 
+// ── 무료입장 리본 ──
+//
+// 상태 셋 — ① 지금 무료(영업 중 + 무료 창 안) ② 시간대 무료인데 지금은 아님
+// ③ 상시 무료. ②만 톤을 낮춘다(채운 핑크는 "지금 들어가면 공짜"라는 뜻으로 읽혀서).
+class _FreeRibbon extends StatelessWidget {
+  final _EntryClub club;
+  const _FreeRibbon({required this.club});
+
+  @override
+  Widget build(BuildContext context) {
+    final freeNow = club.freeNow;
+    final pending = club.timed && !freeNow;
+
+    // 상시 무료도 '지금 무료'이긴 하나 그렇게 쓰면 시간 제한이 있는 것처럼 읽힌다
+    // → 종류(timed)를 먼저 보고 문구를 고른다.
+    final label = switch ((club.timed, freeNow)) {
+      (false, _) => '입장비 무료',
+      (true, true) =>
+        club.remainingLabel == null
+            ? '지금 무료'
+            : '지금 무료 · ${club.remainingLabel}',
+      // 창을 못 읽은 데이터(빈 windows)는 시각 대신 종류만 말한다.
+      (true, false) =>
+        club.windowLabel.isEmpty ? '시간대 무료' : '${club.windowLabel} 무료',
+    };
+
+    return Container(
+      height: 32.r,
+      alignment: Alignment.center,
+      padding: EdgeInsets.symmetric(horizontal: 11.w),
+      decoration: BoxDecoration(
+        color: pending ? const Color(0xCC141018) : _entry,
+        borderRadius: BorderRadius.circular(12.r),
+        border: pending
+            ? Border.all(color: _entry.withValues(alpha: 0.5))
+            : null,
+        boxShadow: pending
+            ? null
+            : [
+                BoxShadow(
+                  color: _entry.withValues(alpha: 0.34),
+                  blurRadius: 18,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            pending
+                ? Icons.schedule_rounded
+                : Icons.confirmation_number_rounded,
+            size: 15.r,
+            color: pending ? _entry : _entryInk,
+          ),
+          SizedBox(width: 6.w),
+          Text(
+            label,
+            style: VybeTypography.button2.copyWith(
+              fontWeight: FontWeight.w800,
+              color: pending ? _entry : _entryInk,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 카드 하단 요금 표기.
+///
+/// 무료가 **지금 유효할 때만** 취소선을 긋는다 — 무료 시간이 아닌 클럽에 취소선을
+/// 그으면 지금 공짜로 들어갈 수 있다는 거짓말이 된다. 그때는 평상시 요금을
+/// 그대로 보여 주고 언제부터 무료인지를 덧붙인다.
+List<Widget> _feeTail(_EntryClub club) {
+  // 상시 무료는 영업 여부와 무관하게 정책 자체가 무료 → 취소선 유지.
+  final struck = !club.timed || club.freeNow;
+  final fee = club.cover > 0 ? '${formatThousands(club.cover)}원' : '';
+
+  return [
+    if (fee.isNotEmpty)
+      Text(
+        fee,
+        style: VybeTypography.caption.copyWith(
+          fontSize: 11.sp,
+          color: VybeColors.gray500,
+          decoration: struck ? TextDecoration.lineThrough : null,
+        ),
+      ),
+    if (fee.isNotEmpty) SizedBox(width: 5.w),
+    Text(
+      struck
+          ? '무료'
+          : (club.startsLabel == null ? '무료 시간 종료' : '${club.startsLabel} 무료'),
+      style: VybeTypography.caption.copyWith(
+        fontSize: 11.sp,
+        fontWeight: FontWeight.w800,
+        color: struck ? Colors.white : VybeColors.gray300,
+      ),
+    ),
+  ];
+}
+
 // ── 클럽 카드 ──
 class _EntryCard extends StatelessWidget {
   final _EntryClub club;
@@ -507,44 +722,11 @@ class _EntryCard extends StatelessWidget {
                 ),
               ),
             ),
-            // 무료입장 리본.
+            // 무료입장 리본 — 지금 무료 / 시간대 무료 / 상시 무료.
             Positioned(
               top: 12.h,
               left: 12.w,
-              child: Container(
-                height: 32.r,
-                alignment: Alignment.center,
-                padding: EdgeInsets.symmetric(horizontal: 11.w),
-                decoration: BoxDecoration(
-                  color: _entry,
-                  borderRadius: BorderRadius.circular(12.r),
-                  boxShadow: [
-                    BoxShadow(
-                      color: _entry.withValues(alpha: 0.34),
-                      blurRadius: 18,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.confirmation_number_rounded,
-                      size: 15.r,
-                      color: _entryInk,
-                    ),
-                    SizedBox(width: 6.w),
-                    Text(
-                      '입장비 무료',
-                      style: VybeTypography.button2.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: _entryInk,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              child: _FreeRibbon(club: club),
             ),
             // 영업 상태 pill.
             Positioned(
@@ -675,23 +857,7 @@ class _EntryCard extends StatelessWidget {
                         ),
                       ),
                       SizedBox(width: 8.w),
-                      Text(
-                        '${formatThousands(club.cover)}원',
-                        style: VybeTypography.caption.copyWith(
-                          fontSize: 11.sp,
-                          color: VybeColors.gray500,
-                          decoration: TextDecoration.lineThrough,
-                        ),
-                      ),
-                      SizedBox(width: 5.w),
-                      Text(
-                        '무료',
-                        style: VybeTypography.caption.copyWith(
-                          fontSize: 11.sp,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                        ),
-                      ),
+                      ..._feeTail(club),
                     ],
                   ),
                 ],

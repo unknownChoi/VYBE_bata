@@ -25,8 +25,8 @@ abstract class FavoriteModel with _$FavoriteModel {
   }
 
   Map<String, dynamic> toFirestore() => {
-        'userId': userId,
-        'clubId': clubId,
-        'createdAt': FieldValue.serverTimestamp(),
-      };
+    'userId': userId,
+    'clubId': clubId,
+    'createdAt': FieldValue.serverTimestamp(),
+  };
 }

@@ -38,8 +38,10 @@ class ReviewRepositoryImpl implements ReviewRepository {
 
   @override
   Future<void> updateReview(
-          String clubId, String reviewId, ReviewModel review) =>
-      _dataSource.updateReview(clubId, reviewId, review);
+    String clubId,
+    String reviewId,
+    ReviewModel review,
+  ) => _dataSource.updateReview(clubId, reviewId, review);
 
   @override
   Future<void> deleteReview(String clubId, String reviewId) =>

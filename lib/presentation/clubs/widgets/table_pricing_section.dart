@@ -132,7 +132,9 @@ class TableTierSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final keys = kTableTiers.keys.where((k) => kClubFloorTables.any((t) => t.tierKey == k));
+    final keys = kTableTiers.keys.where(
+      (k) => kClubFloorTables.any((t) => t.tierKey == k),
+    );
 
     return Column(
       children: [
@@ -140,7 +142,9 @@ class TableTierSummary extends StatelessWidget {
           Builder(
             builder: (_) {
               final tier = kTableTiers[key]!;
-              final rows = kClubFloorTables.where((t) => t.tierKey == key).toList();
+              final rows = kClubFloorTables
+                  .where((t) => t.tierKey == key)
+                  .toList();
               return Container(
                 padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
                 decoration: BoxDecoration(

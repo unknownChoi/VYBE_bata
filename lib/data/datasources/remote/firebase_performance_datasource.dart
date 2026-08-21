@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:vybe/core/utils/firebase_logger.dart';
+import 'package:vybe/data/datasources/remote/firestore_paths.dart';
 import 'package:vybe/data/models/performance_model.dart';
 
 class FirebasePerformanceDataSource {
@@ -24,7 +25,7 @@ class FirebasePerformanceDataSource {
     // 인덱스 (genre, date, startAt) 사용. isActive는 클라에서 필터
     // (3개 equality + orderBy 동시 사용 시 추가 인덱스 필요 → 회피).
     final snapshot = await _firestore
-        .collection('performances')
+        .collection(FirestorePaths.performances)
         .where('genre', isEqualTo: genre)
         .where('date', isEqualTo: bucket)
         .orderBy('startAt')
@@ -49,7 +50,7 @@ class FirebasePerformanceDataSource {
       purpose: '클럽 상세 공연 일정 조회',
     );
     final snapshot = await _firestore
-        .collection('performances')
+        .collection(FirestorePaths.performances)
         .where('clubId', isEqualTo: clubId)
         .orderBy('startAt')
         .get();

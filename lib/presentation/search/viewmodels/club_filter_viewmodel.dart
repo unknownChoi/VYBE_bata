@@ -73,8 +73,14 @@ List<ClubModel> sortClubs(
       });
     case ClubSort.distance:
       if (refLat != null && refLng != null) {
-        list.sort((a, b) => GeohashUtils.haversineKm(refLat, refLng, a.lat, a.lng)
-            .compareTo(GeohashUtils.haversineKm(refLat, refLng, b.lat, b.lng)));
+        list.sort(
+          (a, b) => GeohashUtils.haversineKm(
+            refLat,
+            refLng,
+            a.lat,
+            a.lng,
+          ).compareTo(GeohashUtils.haversineKm(refLat, refLng, b.lat, b.lng)),
+        );
       }
     case ClubSort.rating:
       list.sort((a, b) {
@@ -111,7 +117,10 @@ bool _matchesFilter(ClubModel c, ClubFilter f, Set<String> favoritedIds) {
     case ClubFilter.serviceDrink:
       return c.tags.any((t) => t.contains('서비스 음료') || t.contains('서비스음료'));
     case ClubFilter.freeEntry:
-      return c.entryFeeMin == 0;
+      // 무료입장 '정책'이 있으면 통과 — 상시 무료(entryFeeMin=0)뿐 아니라
+      // 시간대 무료도 포함한다. 시간대 무료 클럽은 평상시 요금이 살아 있어
+      // entryFeeMin == 0 으로는 영영 안 걸린다.
+      return c.isFreeEntry;
     case ClubFilter.hiphop:
       return _genreOrTag(c, ['힙합', '힙합', 'hiphop', 'hip-hop']);
     case ClubFilter.edm:

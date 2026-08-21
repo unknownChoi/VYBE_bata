@@ -39,11 +39,11 @@ abstract class AppVersionConfigModel with _$AppVersionConfigModel {
   /// 현재 설치 버전에 대한 게이트 동작.
   /// 판정 규칙 자체는 [decideVersionAction] 한 곳에만 있다.
   VersionAction actionFor(String currentVersion) => decideVersionAction(
-        currentVersion: currentVersion,
-        minVersion: minVersion,
-        latestVersion: latestVersion,
-        isMaintenance: isMaintenance,
-      );
+    currentVersion: currentVersion,
+    minVersion: minVersion,
+    latestVersion: latestVersion,
+    isMaintenance: isMaintenance,
+  );
 
   factory AppVersionConfigModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>? ?? const {};

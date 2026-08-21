@@ -120,8 +120,9 @@ void main() {
     expect(find.text('알 수 없는 클럽'), findsOneWidget);
     expect(find.text('4.5'), findsOneWidget);
     expect(find.text('2026.07.12'), findsOneWidget);
-    expect(find.text('수정'), findsOneWidget);
-    expect(find.text('삭제'), findsOneWidget);
+    // 수정·삭제는 아이콘만 있는 원형 버튼 — 텍스트가 아니라 시맨틱 라벨로 찾는다.
+    expect(find.bySemanticsLabel('수정'), findsOneWidget);
+    expect(find.bySemanticsLabel('삭제'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

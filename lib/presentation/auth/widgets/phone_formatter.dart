@@ -9,7 +9,9 @@ import 'package:flutter/services.dart';
 class PhoneFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
-      TextEditingValue oldValue, TextEditingValue newValue) {
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
     // 숫자만 추출 후 11자리 제한
     final digits = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
     final limited = digits.substring(0, min(digits.length, 11));

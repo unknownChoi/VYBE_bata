@@ -36,8 +36,9 @@ class AuthViewModel extends _$AuthViewModel {
     _accountRestored = false;
     try {
       final repo = ref.read(authRepositoryProvider);
-      final (:customToken, :isNewUser, :restored) =
-          await repo.kakaoLogin(accessToken);
+      final (:customToken, :isNewUser, :restored) = await repo.kakaoLogin(
+        accessToken,
+      );
       _accountRestored = restored;
       if (isNewUser) {
         _pendingCustomToken = customToken;
@@ -57,7 +58,9 @@ class AuthViewModel extends _$AuthViewModel {
     _accountRestored = false;
     try {
       final repo = ref.read(authRepositoryProvider);
-      final (:customToken, :isNewUser, :restored) = await repo.phoneLogin(phone);
+      final (:customToken, :isNewUser, :restored) = await repo.phoneLogin(
+        phone,
+      );
       _accountRestored = restored;
       _pendingCustomToken = customToken;
       state = const AsyncData(null);
@@ -73,8 +76,9 @@ class AuthViewModel extends _$AuthViewModel {
     _accountRestored = false;
     try {
       final repo = ref.read(authRepositoryProvider);
-      final (:customToken, :isNewUser, :restored) =
-          await repo.naverLogin(accessToken);
+      final (:customToken, :isNewUser, :restored) = await repo.naverLogin(
+        accessToken,
+      );
       _accountRestored = restored;
       if (isNewUser) {
         _pendingCustomToken = customToken;
@@ -112,7 +116,9 @@ class AuthViewModel extends _$AuthViewModel {
     } else {
       provider = 'apple';
     }
-    await ref.read(userRepositoryProvider).setUserProfile(
+    await ref
+        .read(userRepositoryProvider)
+        .setUserProfile(
           uid: uid,
           name: name,
           phone: phone,
@@ -235,8 +241,9 @@ class AuthViewModel extends _$AuthViewModel {
   Future<DateTime> deleteAccount(String reason) async {
     state = const AsyncLoading();
     try {
-      final purgeAt =
-          await ref.read(authRepositoryProvider).requestAccountDeletion(reason);
+      final purgeAt = await ref
+          .read(authRepositoryProvider)
+          .requestAccountDeletion(reason);
       state = const AsyncData(null);
       return purgeAt;
     } catch (e, st) {

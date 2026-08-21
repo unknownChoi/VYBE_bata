@@ -100,8 +100,10 @@
   <tr><td>seed 데이터</td><td><span class="yes">✓</span> notices 16 · promotions 4 · searchHashtags 12 · searchTrends 2 · banners 4 · appConfig 2 · <code>info.facilities</code> 채워짐</td><td>컬렉션 조회</td></tr>
   <tr><td><code>clubs.freeEntry</code></td><td><span class="yes">✓ 164개 배정 완료</span> — always 72 / timed 47 / none 45</td><td>어제 seed 실행</td></tr>
   <tr><td><code>performances</code></td><td><span class="no">✗ 0건</span> — 장르 페이지 '오늘의 라인업'이 빈 화면</td><td>컬렉션 조회</td></tr>
-  <tr><td>Algolia Indexable Fields</td><td><span class="no">✗ <code>freeEntry</code>·<code>isFreeEntry</code> 미포함</span></td><td>—</td></tr>
-  <tr><td>앱 코드</td><td><span class="no">✗ 시간대별 무료입장 미구현</span> — DB에만 데이터가 있고 앱은 안 읽는다</td><td>—</td></tr>
+  <tr><td>Algolia Indexable Fields</td><td><span class="no">✗ 6개 누락</span> — <code>freeEntry</code>·<code>isFreeEntry</code>는 08-21에 들어갔지만 <code>reviewCount</code>·<code>entryFeeMax</code>·<code>operatingHours</code>·<code>isVybeRecommended</code>·<code>isNonSmoking</code>·<code>location</code> 이 <strong>그 전부터 빠져 있었다</strong> → 검색이 계속 Firestore 조인 폴백</td><td>Extensions API 조회 (2026-08-21)</td></tr>
+  <tr><td>Algolia 인덱스 내용</td><td><span class="yes">✓ 2026-08-21 11:05 재색인됨</span> — Extension 업데이트가 <code>DO_FULL_INDEXING</code> 으로 164개를 자동 재색인. <code>freeEntry</code>·<code>isFreeEntry</code> 들어와 있음</td><td>Algolia 검색 API 직접 조회</td></tr>
+  <tr><td>Algolia Searchable Attributes</td><td><span class="yes">✓ <code>freeEntry.condition</code> 추가 (2026-08-21)</span> — 검색창에 <code>무료</code> 치면 <strong>119곳</strong>이 뜬다</td><td>Settings API</td></tr>
+  <tr><td>앱 코드 (시간대별 무료입장)</td><td><span class="yes">✓ 완료 (2026-08-21)</span> — 홈 · 클럽 상세 · 입장비 무료 페이지 · 검색 필터 · 검색 카드. 테스트 4건 추가</td><td>—</td></tr>
   <tr><td><code>applicationId</code></td><td><span class="no">✗ <code>com.example.vybe</code></span> — Play 스토어 게시 불가</td><td><code>android/app/build.gradle.kts:27</code></td></tr>
   <tr><td>문자 인증</td><td><span class="no">✗ 가짜</span> — 코드 <code>'123456'</code> 하드코딩</td><td><code>certification_number_handler.dart</code></td></tr>
 </table>
@@ -110,65 +112,68 @@
 
 <!-- ================= 1. 시간대별 무료입장 마무리 ================= -->
 <h2><span class="num">1</span>시간대별 무료입장 마무리 <span class="sev soon">지금</span></h2>
-<p class="lede">데이터는 어제 다 넣었다. 앱이 그걸 읽게 만드는 일만 남았다. <strong>순서가 중요</strong> — 뒤집으면 검색 비용이 튄다.</p>
+<p class="lede">데이터도 앱도 끝났다. 남은 건 <strong>Algolia 색인</strong> 하나 — 지금은 검색이 Firestore 조인으로 폴백해 <u>결과는 맞고 read 비용만 든다</u>.</p>
 
 <div class="task" data-id="algolia-config">
   <div class="top">
     <input type="checkbox">
-    <div class="ttl">1-1. Algolia Extension 에 필드 2개 추가</div>
+    <div class="ttl">1-1. Algolia Extension 필드 목록 바로잡기 <span style="color:var(--red)">— 6개가 더 빠져 있다</span></div>
     <span class="who me">사람만</span>
   </div>
   <div class="body">
-    <p>Firebase 콘솔 → <strong>Extensions</strong> → <code>firestore-algolia-search</code> → <strong>확장 프로그램 재구성</strong> → <em>Indexable Fields</em> 맨 뒤에 추가:</p>
-    <pre><code>freeEntry,isFreeEntry</code></pre>
-    <p>기존 목록은 지우지 말고 <strong>뒤에 붙이기만</strong> 할 것. 현재 값:</p>
-    <pre><code>name,area,genre,genreStyles,tags,address,rating,reviewCount,thumbnailUrl,
-entryFeeMin,entryFeeMax,operatingHours,isActive,isVybeRecommended,
-isNonSmoking,favoriteCount,location</code></pre>
+    <p><code>freeEntry</code>·<code>isFreeEntry</code> 는 <strong>들어갔다</strong>(2026-08-21 01:58 반영 확인). 그런데 배포본을 직접 읽어 보니 <strong>그 전부터 6개가 빠져 있었다</strong> — 2026-07-31 에 했다고 적혀 있던 '조인 제거' 설정이 <u>실제로는 한 번도 반영된 적이 없다</u>.</p>
+    <p>지금 배포본 값 (13개):</p>
+    <pre><code>name,area,genre,genreStyles,tags,address,rating,thumbnailUrl,
+entryFeeMin,isActive,favoriteCount,freeEntry,isFreeEntry</code></pre>
+    <p>빠진 것 — <code>reviewCount</code> · <code>entryFeeMax</code> · <code>operatingHours</code> · <code>isVybeRecommended</code> · <code>isNonSmoking</code> · <code>location</code></p>
+    <p>Firebase 콘솔 → <strong>Extensions</strong> → <code>firestore-algolia-search</code> → <strong>확장 프로그램 재구성</strong> → <em>Indexable Fields</em> 를 <u>통째로 아래로 교체</u>:</p>
+    <pre><code>name,area,genre,genreStyles,tags,address,rating,reviewCount,thumbnailUrl,entryFeeMin,entryFeeMax,operatingHours,isActive,isVybeRecommended,isNonSmoking,favoriteCount,location,freeEntry,isFreeEntry</code></pre>
+    <p class="cmt">※ 붙여넣기 전에 줄바꿈·공백이 섞이지 않았는지 볼 것. 한 칸 어긋나면 그 필드만 조용히 빠진다 — 이번에 그렇게 된 것으로 보인다.</p>
   </div>
 </div>
+
+<div class="note danger"><strong>왜 눈에 안 띄었나</strong> — 필드가 빠지면 앱이 <code>complete=false</code> 로 판단해 예전 <code>getClub</code> 조인으로 <u>자동 폴백</u>한다. <strong>화면은 멀쩡하고 검색 결과도 맞다.</strong> 다만 검색 한 페이지마다 Firestore read 가 10건씩 되살아난다 — 요금서에만 나타나는 종류의 버그다.</div>
 
 <div class="task" data-id="reindex">
   <div class="top">
     <input type="checkbox">
-    <div class="ttl">1-2. 전체 재색인</div>
+    <div class="ttl">1-2. 재색인 <span style="color:var(--green)">— 안 돌려도 된다</span></div>
     <span class="who term">터미널</span>
   </div>
   <div class="body">
-    <pre><code>node scripts/reindex_clubs.js</code></pre>
-    <p><strong>1-1 을 한 뒤에</strong> 돌려야 한다. Indexable Fields 를 바꿔도 <u>기존 문서는 자동 반영되지 않는다</u> — 이 스크립트가 164개 문서를 전부 touch 해서 다시 밀어 넣는다.</p>
+    <p><strong>Extension 업데이트가 전체 재색인을 알아서 한다</strong> (<code>DO_FULL_INDEXING=true</code>). 실제로 08-21 01:58 설정 변경 → 02:04 ACTIVE → <strong>02:05 에 164개가 자동 재색인</strong>됐다. <code>scripts/reindex_clubs.js</code> 를 따로 돌릴 필요 없다.</p>
+    <p>그러니 <strong>1-1 만 고치면 끝</strong>이다. ACTIVE 로 바뀌고 1~2분 뒤 실려 왔는지만 확인:</p>
+    <pre><code>curl -s -X POST "https://$ALGOLIA_APP_ID-dsn.algolia.net/1/indexes/clubs/query" \
+  -H "X-Algolia-API-Key: $ALGOLIA_SEARCH_API_KEY" \
+  -H "X-Algolia-Application-Id: $ALGOLIA_APP_ID" \
+  -d '{"query":"","hitsPerPage":1}' | python3 -c \
+  "import json,sys; print(sorted(json.load(sys.stdin)['hits'][0].keys()))"</code></pre>
+    <p class="cmt">※ 스크립트는 <u>설정을 안 건드리고 문서만 다시 밀고 싶을 때</u> 쓰는 용도로 남겨 둔다.</p>
   </div>
 </div>
 
 <div class="task" data-id="app-impl">
   <div class="top">
     <input type="checkbox">
-    <div class="ttl">1-3. 앱 구현 <span style="color:var(--green)">— 홈 섹션까지 완료</span></div>
+    <div class="ttl">1-3. 앱 구현 <span style="color:var(--green)">— 완료 (2026-08-21)</span></div>
     <span class="who claude">Claude</span>
   </div>
   <div class="body">
-    <p><strong>2026-08-19 완료</strong> — 판정 함수 · 모델 · timed 쿼리 · 홈 '타임 무료입장' 섹션 + 공지사항 섹션. 테스트 36건 통과.<br>
-    <strong>남은 것</strong> — 입장비 무료 페이지 · 검색 '무료입장' 필터 · 클럽 상세 입장료 표기에 정책 반영. 나한테 이어서 시키면 된다.</p>
+    <p><code>flutter analyze</code> 경고 0 · <code>flutter test</code> 전부 통과(무료입장 화면 테스트 4건 추가).</p>
     <table>
-      <tr><th>파일</th><th>할 일</th></tr>
-      <tr><td><code>data/models/free_entry_policy.dart</code></td><td><span class="yes">✓</span> 순수 함수 <code>statusAt(now)</code></td></tr>
-      <tr><td><code>test/free_entry_policy_test.dart</code></td><td><span class="yes">✓</span> 25건 — 자정 넘김 · 어제 창 · 경계 · 깨진 데이터</td></tr>
-      <tr><td><code>data/models/club_model.dart</code></td><td><span class="yes">✓</span> 필드 2개 + 재생성 완료</td></tr>
-      <tr><td><code>remote/firebase_club_datasource.dart</code></td><td><span class="yes">✓</span> <code>getTimedFreeEntryClubs()</code> 신설 / <span class="no">✗</span> <code>getFreeEntryClubs()</code> 교체는 남음</td></tr>
-      <tr><td><code>remote/algolia_club_search_datasource.dart</code></td><td><span class="no">✗</span> <code>_requiredFields</code> — <strong>1-1·1-2 뒤에</strong></td></tr>
-      <tr><td><code>home/widgets/home_free_time_clubs.dart</code></td><td><span class="yes">✓</span> 홈 '타임 무료입장' + 공지사항 섹션</td></tr>
-      <tr><td><code>free_entry/free_entry_screen.dart</code></td><td><span class="no">✗</span> '지금 무료' 뱃지 + 정렬</td></tr>
-      <tr><td><code>search/viewmodels/club_filter_viewmodel.dart</code></td><td><span class="no">✗</span> <code>ClubFilter.freeEntry</code> 교체</td></tr>
-      <tr><td><code>clubs/widgets/club_glass.dart</code> 외 5곳</td><td><span class="no">✗</span> 상세 입장료 표기</td></tr>
+      <tr><th>파일</th><th>한 일</th></tr>
+      <tr><td><code>data/models/free_entry_policy.dart</code></td><td><span class="yes">✓</span> 순수 함수 <code>statusAt(now)</code> (테스트 25건)</td></tr>
+      <tr><td><code>remote/firebase_club_datasource.dart</code></td><td><span class="yes">✓</span> <code>getFreeEntryClubs()</code> 기준을 <code>entryFeeMin==0</code> → <code>isFreeEntry==true</code> 로 교체 — 목록이 <strong>72 → 119곳</strong></td></tr>
+      <tr><td><code>remote/algolia_club_search_datasource.dart</code></td><td><span class="yes">✓</span> <code>_requiredFields</code> 에 두 필드 추가</td></tr>
+      <tr><td><code>free_entry/free_entry_screen.dart</code></td><td><span class="yes">✓</span> 리본 3상태 · <code>'지금 무료순'</code> 정렬(기본값) · pill 이 지금 무료인 곳 수를 셈 · <strong>무료가 지금 유효할 때만 취소선</strong></td></tr>
+      <tr><td><code>search/viewmodels/club_filter_viewmodel.dart</code></td><td><span class="yes">✓</span> <code>ClubFilter.freeEntry</code> → <code>c.isFreeEntry</code></td></tr>
+      <tr><td><code>search/widgets/club_list_item.dart</code></td><td><span class="yes">✓</span> 시간대 무료 진행 중이면 입장료 칩이 '지금 무료입장'</td></tr>
+      <tr><td><code>presentation/common/free_entry_labels.dart</code></td><td><span class="yes">✓</span> 신설 — 시각 문구를 홈과 공유(두 화면이 같은 클럽을 다르게 말하지 않게)</td></tr>
+      <tr><td><code>clubs/renew/widgets/renew_free_entry.dart</code></td><td><span class="yes">✓</span> 클럽 상세는 08-20 완료</td></tr>
     </table>
-    <p>끝나면:</p>
-    <pre><code>flutter pub run build_runner build --delete-conflicting-outputs
-flutter analyze   <span class="cmt"># 경고 0 유지</span>
-flutter test</code></pre>
+    <p class="cmt">※ <strong>1-1·1-2 보다 먼저 나갔지만 안전하다</strong> — 이미 <code>complete=false</code> 라 조인 폴백 중이었고, 필드가 실리면 그때 자동으로 read 0 경로로 돌아간다.</p>
   </div>
 </div>
-
-<div class="note danger"><strong>순서를 뒤집으면</strong> — 1-3 의 <code>_requiredFields</code> 변경을 1-1·1-2 보다 먼저 내보내면 <u>모든 검색 결과가 <code>complete=false</code></u> 가 되어 예전 <code>getClub</code> 조인 폴백으로 떨어진다. 화면은 멀쩡한데 <strong>검색 한 번마다 Firestore read 가 10건씩 되살아난다</strong>.</div>
 
 <div class="task" data-id="verify-free">
   <div class="top">
@@ -178,7 +183,7 @@ flutter test</code></pre>
   </div>
   <div class="body">
     <p>클럽이 전부 <strong>목·금·토 22:00~06:00</strong> 만 영업이라, 무료 뱃지는 그 시간에만 보인다. 낮에 확인하려면 기기 시각을 <strong>금요일 밤 23:30</strong> 쯤으로 바꾸고 볼 것 (판정이 기기 로컬 시간 기준).</p>
-    <p>볼 것 — 입장비 무료 페이지 <strong>119개</strong>(상시 72 + 시간대 47) · '지금 무료' 뱃지 · 창 밖일 때 <strong>평상시 요금</strong>으로 돌아오는지.</p>
+    <p>볼 것 — 입장비 무료 페이지 <strong>119곳</strong>(상시 72 + 시간대 47) · 리본이 '지금 무료 · N분 남음' / '22:00 – 01:00 무료' / '입장비 무료' 로 갈리는지 · 창 밖일 때 <strong>취소선이 사라지고</strong> 평상시 요금 + '22:00부터 무료' 로 바뀌는지 · 검색 '무료입장' 필터에 시간대 무료 클럽이 걸리는지.</p>
   </div>
 </div>
 

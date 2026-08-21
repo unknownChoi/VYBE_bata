@@ -15,7 +15,11 @@ class ReviewHalfStarRating extends StatelessWidget {
   final double rating;
   final ValueChanged<double> onChanged;
 
-  const ReviewHalfStarRating({super.key, required this.rating, required this.onChanged});
+  const ReviewHalfStarRating({
+    super.key,
+    required this.rating,
+    required this.onChanged,
+  });
 
   static const _count = 5;
 

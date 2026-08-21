@@ -27,6 +27,8 @@ class ClubSearchPage {
 abstract class ClubRepository {
   Future<List<ClubModel>> getActiveClubs();
   Future<List<ClubModel>> getServiceDrinkClubs();
+
+  /// 무료입장 정책이 있는 클럽(isFreeEntry=true — 상시 + 시간대). 입장비 무료 페이지.
   Future<List<ClubModel>> getFreeEntryClubs();
 
   /// 시간대 무료입장(freeEntry.type='timed') 클럽. 홈 '이 시간에만 무료입장' 섹션.
@@ -38,7 +40,11 @@ abstract class ClubRepository {
   Future<List<MenuModel>> getMenus(String clubId);
   Future<List<PhotoModel>> getPhotos(String clubId);
   Future<List<ClubModel>> getClubsByArea(String area);
-  Future<List<ClubModel>> getClubsNearby(double lat, double lng, double radiusKm);
+  Future<List<ClubModel>> getClubsNearby(
+    double lat,
+    double lng,
+    double radiusKm,
+  );
 
   /// 평점순(desc) 검색. [cursor]로 다음 페이지(서버 페이지네이션).
   Future<ClubSearchPage> searchClubsPage(

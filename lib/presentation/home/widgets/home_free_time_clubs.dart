@@ -25,7 +25,9 @@ class HomeFreeTimeClubs extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final clubsAsync = ref.watch(homeFreeTimeClubsProvider);
-    final cardHeight = 156.h;
+    // 설계 단위. 실제 박스에는 `.h`를 붙이고, HomeSectionMessage에는
+    // 그대로 넘긴다(그 위젯이 내부에서 환산한다).
+    const cardHeight = 156.0;
 
     return Padding(
       padding: EdgeInsets.fromLTRB(0, 20.h, 0, 20.h),
@@ -41,7 +43,7 @@ class HomeFreeTimeClubs extends ConsumerWidget {
           ),
           clubsAsync.when(
             data: (clubs) => clubs.isEmpty
-                ? HomeSectionMessage(
+                ? const HomeSectionMessage(
                     text: '지금 예정된 무료입장 시간이 없어요',
                     height: cardHeight,
                   )
@@ -73,14 +75,14 @@ class HomeFreeTimeClubs extends ConsumerWidget {
                     padding: EdgeInsets.only(right: i == 0 ? 12.w : 0),
                     child: VybeSkel(
                       width: 250.w,
-                      height: cardHeight,
+                      height: cardHeight.h,
                       radius: 16,
                     ),
                   ),
                 ),
               ),
             ),
-            error: (_, __) => HomeSectionMessage(
+            error: (_, __) => const HomeSectionMessage(
               text: '무료입장 정보를 불러오지 못했어요',
               height: cardHeight,
             ),

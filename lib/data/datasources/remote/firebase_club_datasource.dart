@@ -43,17 +43,25 @@ class FirebaseClubDataSource {
     return snapshot.docs.map(ClubModel.fromFirestore).toList();
   }
 
-  /// 입장비 무료(entryFeeMin=0) 클럽 목록. 입장비 무료 페이지 데이터 소스.
+  /// 무료입장 정책이 있는 클럽 목록(상시 + 시간대). 입장비 무료 페이지 데이터 소스.
+  ///
+  /// 기준은 `isFreeEntry`(= `freeEntry.type != 'none'`) — 예전 `entryFeeMin == 0`
+  /// 은 **상시 무료만** 잡아 시간대 무료 클럽이 통째로 빠졌다. 시간대 무료 클럽은
+  /// 무료 시간이 끝났을 때 보여 줄 요금이 필요해 `entryFeeMin > 0` 으로 두기 때문.
+  ///
+  /// 지금 무료인지는 서버가 못 가른다(요일 × 시:분 × 자정 넘김) —
+  /// 화면이 `FreeEntryPolicy.statusAt` 으로 판정한다.
+  /// 등호 2개라 복합 인덱스 없이 단일 필드 인덱스로 처리된다.
   Future<List<ClubModel>> getFreeEntryClubs() async {
     logFirebaseAccess(
       file: 'firebase_club_datasource.dart',
-      service: 'Firestore(clubs) [where isActive=true, entryFeeMin=0]',
-      purpose: '입장비 무료 클럽 목록 조회',
+      service: 'Firestore(clubs) [where isActive=true, isFreeEntry=true]',
+      purpose: '무료입장 클럽 목록 조회(상시 + 시간대)',
     );
     final snapshot = await _firestore
         .collection('clubs')
         .where('isActive', isEqualTo: true)
-        .where('entryFeeMin', isEqualTo: 0)
+        .where('isFreeEntry', isEqualTo: true)
         .get();
     return snapshot.docs.map(ClubModel.fromFirestore).toList();
   }
@@ -203,7 +211,10 @@ class FirebaseClubDataSource {
   }
 
   Future<List<ClubModel>> getClubsNearby(
-      double lat, double lng, double radiusKm) async {
+    double lat,
+    double lng,
+    double radiusKm,
+  ) async {
     logFirebaseAccess(
       file: 'firebase_club_datasource.dart',
       service: 'Firestore(clubs) [geohash range query, radius: ${radiusKm}km]',
@@ -215,19 +226,23 @@ class FirebaseClubDataSource {
 
     // 릴리즈에선 문자열 조립까지 통째로 제거되도록 kDebugMode로 감싼다.
     if (kDebugMode) {
-      debugPrint('[NearbySearch] query center=($lat, $lng) '
-          'radius=${radiusKm.toStringAsFixed(3)}km '
-          'precision=$precision '
-          'prefixes(${prefixes.length})=$prefixes');
+      debugPrint(
+        '[NearbySearch] query center=($lat, $lng) '
+        'radius=${radiusKm.toStringAsFixed(3)}km '
+        'precision=$precision '
+        'prefixes(${prefixes.length})=$prefixes',
+      );
     }
 
     final snapshots = await Future.wait(
-      prefixes.map((prefix) => _firestore
-          .collection('clubs')
-          .where('isActive', isEqualTo: true)
-          .where('location.geohash', isGreaterThanOrEqualTo: prefix)
-          .where('location.geohash', isLessThan: '$prefix{')
-          .get()),
+      prefixes.map(
+        (prefix) => _firestore
+            .collection('clubs')
+            .where('isActive', isEqualTo: true)
+            .where('location.geohash', isGreaterThanOrEqualTo: prefix)
+            .where('location.geohash', isLessThan: '$prefix{')
+            .get(),
+      ),
     );
 
     final seen = <String>{};
@@ -236,16 +251,18 @@ class FirebaseClubDataSource {
         .where((doc) => seen.add(doc.id))
         .map(ClubModel.fromFirestore)
         .where((c) => c.lat != 0 && c.lng != 0)
-        .where((c) =>
-            GeohashUtils.haversineKm(lat, lng, c.lat, c.lng) <= radiusKm)
+        .where(
+          (c) => GeohashUtils.haversineKm(lat, lng, c.lat, c.lng) <= radiusKm,
+        )
         .toList();
 
     if (kDebugMode) {
-      debugPrint('[NearbySearch] result count=${result.length} '
-          'clubs=${result.map((c) => '${c.name}@(${c.lat},${c.lng},${c.geohash})').toList()}');
+      debugPrint(
+        '[NearbySearch] result count=${result.length} '
+        'clubs=${result.map((c) => '${c.name}@(${c.lat},${c.lng},${c.geohash})').toList()}',
+      );
     }
 
     return result;
   }
-
 }

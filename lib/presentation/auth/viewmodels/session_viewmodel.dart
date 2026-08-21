@@ -69,8 +69,10 @@ class SessionCheck extends _$SessionCheck {
 
     // 프로필 조회와 토큰 검증은 서로 무관 — 동시에 돌려 대기 시간이
     // 합산되지 않게 한다(앱 첫 화면을 붙잡는 구간이다).
-    final (profile, sessionValid) =
-        await (_loadProfile(uid), _sessionStillValid()).wait;
+    final (profile, sessionValid) = await (
+      _loadProfile(uid),
+      _sessionStillValid(),
+    ).wait;
 
     final action = decideSessionAction(
       uid: uid,

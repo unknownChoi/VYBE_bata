@@ -74,12 +74,17 @@ class MyReviewCard extends StatelessWidget {
           ),
         ),
         SizedBox(width: 12.w),
-        _RoundIconButton(icon: RenewIcons.pencil, onTap: onEdit),
+        _RoundIconButton(
+          icon: RenewIcons.pencil,
+          onTap: onEdit,
+          semanticLabel: '수정',
+        ),
         SizedBox(width: 6.w),
         _RoundIconButton(
           icon: RenewIcons.trash,
           onTap: onDelete,
           danger: true,
+          semanticLabel: '삭제',
         ),
       ],
     );
@@ -112,7 +117,16 @@ class MyReviewCard extends StatelessWidget {
           ),
         ],
         _dot(),
-        Text(entry.dateLabel, style: RenewGlass.caption(lineHeight: 14)),
+        // 지역을 0까지 줄여도 모자라면(큰 글꼴 설정 등) 작성일도 줄인다 —
+        // 잘린 날짜가 오버플로 줄무늬보다는 읽을 게 남는다.
+        Flexible(
+          child: Text(
+            entry.dateLabel,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: RenewGlass.caption(lineHeight: 14),
+          ),
+        ),
       ],
     );
   }
@@ -140,10 +154,7 @@ class MyReviewCard extends StatelessWidget {
                 '#$tag',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: RenewGlass.caption(
-                  color: RenewGlass.t3,
-                  lineHeight: 14,
-                ),
+                style: RenewGlass.caption(color: RenewGlass.t3, lineHeight: 14),
               ),
             ),
             _dot(),
@@ -204,9 +215,7 @@ class _ReviewTextState extends State<_ReviewText> {
             Text(
               widget.text,
               maxLines: _expanded ? null : _collapsedLines,
-              overflow: _expanded
-                  ? TextOverflow.clip
-                  : TextOverflow.ellipsis,
+              overflow: _expanded ? TextOverflow.clip : TextOverflow.ellipsis,
               style: style,
             ),
             if (overflows)
@@ -251,10 +260,7 @@ class _PhotoStrip extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final gap = _gap.w;
-        final side = math.min(
-          _maxSide.r,
-          (constraints.maxWidth - gap * 3) / 4,
-        );
+        final side = math.min(_maxSide.r, (constraints.maxWidth - gap * 3) / 4);
 
         return Row(
           children: [
@@ -309,37 +315,46 @@ class _RoundIconButton extends StatelessWidget {
   final VoidCallback onTap;
   final bool danger;
 
+  /// 스크린리더가 읽을 이름. 아이콘만 있는 버튼이라 이게 없으면
+  /// '버튼'이라고만 읽혀 수정인지 삭제인지 구분되지 않는다.
+  final String semanticLabel;
+
   const _RoundIconButton({
     required this.icon,
     required this.onTap,
+    required this.semanticLabel,
     this.danger = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        width: 32.r,
-        height: 32.r,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: danger
-              ? kMyDanger.withValues(alpha: 0.10)
-              : RenewGlass.tileFill,
-          border: Border.all(
+    return Semantics(
+      label: semanticLabel,
+      button: true,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          width: 32.r,
+          height: 32.r,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
             color: danger
-                ? kMyDanger.withValues(alpha: 0.26)
-                : RenewGlass.tileBorder,
+                ? kMyDanger.withValues(alpha: 0.10)
+                : RenewGlass.tileFill,
+            border: Border.all(
+              color: danger
+                  ? kMyDanger.withValues(alpha: 0.26)
+                  : RenewGlass.tileBorder,
+            ),
           ),
-        ),
-        child: RenewIcon(
-          path: icon,
-          size: 14,
-          color: danger ? kMyDanger : RenewGlass.t2,
-          strokeWidth: 1.9,
+          child: RenewIcon(
+            path: icon,
+            size: 14,
+            color: danger ? kMyDanger : RenewGlass.t2,
+            strokeWidth: 1.9,
+          ),
         ),
       ),
     );

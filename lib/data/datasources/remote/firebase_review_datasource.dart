@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:vybe/core/utils/firebase_logger.dart';
+import 'package:vybe/data/datasources/remote/firestore_paths.dart';
 import 'package:vybe/data/models/review_model.dart';
 
 class FirebaseReviewDataSource {
@@ -14,9 +15,9 @@ class FirebaseReviewDataSource {
       purpose: '클럽 리뷰 목록 조회',
     );
     final snapshot = await _firestore
-        .collection('clubs')
+        .collection(FirestorePaths.clubs)
         .doc(clubId)
-        .collection('reviews')
+        .collection(FirestorePaths.reviews)
         .where('isHidden', isEqualTo: false)
         .orderBy('createdAt', descending: true)
         .get();
@@ -30,9 +31,9 @@ class FirebaseReviewDataSource {
       purpose: '클럽 리뷰 실시간 구독',
     );
     return _firestore
-        .collection('clubs')
+        .collection(FirestorePaths.clubs)
         .doc(clubId)
-        .collection('reviews')
+        .collection(FirestorePaths.reviews)
         .where('isHidden', isEqualTo: false)
         .orderBy('createdAt', descending: true)
         .snapshots()
@@ -53,7 +54,7 @@ class FirebaseReviewDataSource {
       purpose: '내가 작성한 리뷰 목록 실시간 구독 (마이페이지)',
     );
     return _firestore
-        .collectionGroup('reviews')
+        .collectionGroup(FirestorePaths.reviews)
         .where('userId', isEqualTo: userId)
         .orderBy('createdAt', descending: true)
         .snapshots()
@@ -65,9 +66,9 @@ class FirebaseReviewDataSource {
   /// 첨부 이미지 Storage 경로가 `reviews/{clubId}/{reviewId}/...` 라서
   /// 문서를 쓰기 전에 reviewId가 필요하다 → 업로드 → imageUrls 채워서 set.
   String newReviewId(String clubId) => _firestore
-      .collection('clubs')
+      .collection(FirestorePaths.clubs)
       .doc(clubId)
-      .collection('reviews')
+      .collection(FirestorePaths.reviews)
       .doc()
       .id;
 
@@ -79,9 +80,9 @@ class FirebaseReviewDataSource {
       purpose: '리뷰 작성',
     );
     final collection = _firestore
-        .collection('clubs')
+        .collection(FirestorePaths.clubs)
         .doc(clubId)
-        .collection('reviews');
+        .collection(FirestorePaths.reviews);
     if (review.reviewId.isEmpty) {
       await collection.add(review.toFirestore());
     } else {
@@ -90,24 +91,27 @@ class FirebaseReviewDataSource {
   }
 
   Future<void> updateReview(
-      String clubId, String reviewId, ReviewModel review) async {
+    String clubId,
+    String reviewId,
+    ReviewModel review,
+  ) async {
     logFirebaseAccess(
       file: 'firebase_review_datasource.dart',
       service: 'Firestore(clubs/$clubId/reviews/$reviewId)',
       purpose: '리뷰 수정',
     );
     await _firestore
-        .collection('clubs')
+        .collection(FirestorePaths.clubs)
         .doc(clubId)
-        .collection('reviews')
+        .collection(FirestorePaths.reviews)
         .doc(reviewId)
         .update({
-      'rating': review.rating,
-      'content': review.content,
-      'imageUrls': review.imageUrls,
-      'tags': review.tags,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+          'rating': review.rating,
+          'content': review.content,
+          'imageUrls': review.imageUrls,
+          'tags': review.tags,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
   }
 
   Future<void> deleteReview(String clubId, String reviewId) async {
@@ -117,9 +121,9 @@ class FirebaseReviewDataSource {
       purpose: '리뷰 삭제',
     );
     await _firestore
-        .collection('clubs')
+        .collection(FirestorePaths.clubs)
         .doc(clubId)
-        .collection('reviews')
+        .collection(FirestorePaths.reviews)
         .doc(reviewId)
         .delete();
   }

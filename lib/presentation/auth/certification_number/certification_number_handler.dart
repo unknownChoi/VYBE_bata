@@ -108,7 +108,10 @@ mixin _CertificationNumberHandlerMixin on _CertificationNumberLogicMixin {
     try {
       // 앞 화면에서 이미 봤지만 다시 본다 — 그 사이 다른 기기·다른 방식으로
       // 같은 번호가 가입됐을 수 있고, 계정을 만드는 건 여기부터다.
-      final check = await vm.checkPhoneAccount(widget.phoneNumber, widget.method);
+      final check = await vm.checkPhoneAccount(
+        widget.phoneNumber,
+        widget.method,
+      );
       if (!mounted) return;
       if (check.status == PhoneAccountStatus.takenByOther ||
           check.status == PhoneAccountStatus.pendingDeletion) {
@@ -167,9 +170,9 @@ mixin _CertificationNumberHandlerMixin on _CertificationNumberLogicMixin {
       if (!mounted) return;
 
       // 루트(AuthGate) 라우트는 남겨둔다 — 제거하면 로그인 상태 감시가 끊긴다.
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const SignupSuccessScreen()),
-      );
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const SignupSuccessScreen()));
     } catch (e, st) {
       debugPrint('[CertificationNumber] 로그인/가입 실패 — step: $step');
       debugPrint('[CertificationNumber] error(${e.runtimeType}): $e');

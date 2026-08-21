@@ -58,9 +58,12 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
   @override
   Widget build(BuildContext context) {
     final savedAsync = ref.watch(savedClubsProvider);
-    final media = MediaQuery.of(context);
+    // MediaQuery 전체가 아니라 쓰는 값만 구독한다 — 키보드가 올라오는 것 같은
+    // 무관한 변화에 화면 전체가 다시 빌드되지 않게.
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
+    final screenSize = MediaQuery.sizeOf(context);
     // 하단 floating nav(64.h + safe inset + 12.h) 아래로 콘텐츠가 숨지 않게.
-    final bottomPad = media.padding.bottom + 96.h;
+    final bottomPad = bottomInset + 96.h;
 
     return Scaffold(
       backgroundColor: ClubGlass.ink,
@@ -72,7 +75,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
           Positioned.fill(
             child: SafeArea(
               bottom: false,
-              child: _buildContent(savedAsync, bottomPad, media.size),
+              child: _buildContent(savedAsync, bottomPad, screenSize),
             ),
           ),
         ],

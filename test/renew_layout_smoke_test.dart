@@ -220,12 +220,25 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
+    final hero = RenewHeroController();
+    addTearDown(hero.dispose);
+
     await tester.pumpWidget(
       ScreenUtilInit(
         designSize: const Size(393, 852),
         builder: (_, __) => MaterialApp(
           home: Scaffold(
-            body: RenewHero(imageUrls: _club.imageUrls.take(3).toList()),
+            body: Stack(
+              children: [
+                RenewHero(
+                  imageUrls: _club.imageUrls.take(3).toList(),
+                  controller: hero,
+                ),
+                // 카운터·도트는 히어로가 아니라 이 조작 레이어에 있다
+                // (히어로는 스크롤 뷰 아래에 깔려 포인터가 안 닿는다).
+                RenewHeroOverlay(controller: hero, total: 3),
+              ],
+            ),
           ),
         ),
       ),

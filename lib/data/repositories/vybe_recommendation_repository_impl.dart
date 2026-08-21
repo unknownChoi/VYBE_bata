@@ -24,8 +24,9 @@ class _VybeRecommendationRepositoryImpl
     final recs = await _recDataSource.getActiveRecommendations();
     if (recs.isEmpty) return [];
 
-    final clubs =
-        await _clubDataSource.getClubsByIds(recs.map((r) => r.clubId).toList());
+    final clubs = await _clubDataSource.getClubsByIds(
+      recs.map((r) => r.clubId).toList(),
+    );
     final byId = {for (final c in clubs) c.clubId: c};
 
     // rank 순서 유지. 클럽이 없거나 비활성이면 제외.

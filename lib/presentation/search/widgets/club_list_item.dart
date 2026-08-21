@@ -158,7 +158,15 @@ class ClubListItem extends StatelessWidget {
 
   // 하단 유체 글래스 바 — 블러 + 그라데이션, 상단 페이드로 사진과 자연 연결.
   Widget _buildGlassBar() {
-    final free = club.entryFeeMin == 0;
+    // 무료입장 정책은 두 갈래 — 상시 무료(entryFeeMin=0)와 시간대 무료.
+    // 시간대 무료는 '지금'이 창 안이고 **영업 중일 때만** 무료라고 말한다
+    // (문 닫은 클럽의 '지금 무료'는 거짓 정보).
+    final now = DateTime.now();
+    final timedFreeNow =
+        club.freeEntry.isTimed &&
+        club.freeEntry.statusAt(now).isFreeNow &&
+        club.operatingHours.dayAt(now).isOpenAt(now);
+    final free = club.entryFeeMin == 0 || timedFreeNow;
     return Positioned(
       left: 0,
       right: 0,
@@ -281,7 +289,7 @@ class ClubListItem extends StatelessWidget {
                   ),
                   SizedBox(height: 8.h),
                   // 입장료 칩 (무료면 라임).
-                  _buildFeeChip(free),
+                  _buildFeeChip(free, timedFreeNow),
                 ],
               ),
             ),
@@ -291,8 +299,12 @@ class ClubListItem extends StatelessWidget {
     );
   }
 
-  Widget _buildFeeChip(bool free) {
-    final label = free
+  Widget _buildFeeChip(bool free, bool timedFreeNow) {
+    // 시간대 무료가 진행 중이면 평상시 요금 대신 '지금 무료'를 앞세운다 —
+    // 무료 시간이 끝나면 다시 원래 요금 표기로 돌아간다.
+    final label = timedFreeNow
+        ? '지금 무료입장'
+        : free
         ? (club.entryFeeMax == 0
               ? '입장료 무료'
               : '입장료 0 ~ ${_formatPrice(club.entryFeeMax)}원')

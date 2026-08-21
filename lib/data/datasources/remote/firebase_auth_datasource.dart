@@ -3,6 +3,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:vybe/core/utils/firebase_logger.dart';
 import 'package:vybe/core/utils/session_utils.dart';
+import 'package:vybe/data/datasources/remote/firestore_paths.dart';
 import 'package:vybe/domain/exceptions/account_exceptions.dart';
 import 'package:vybe/domain/repositories/auth_repository.dart';
 
@@ -12,9 +13,9 @@ class FirebaseAuthDataSource {
   final FirebaseFunctions _functions;
 
   FirebaseAuthDataSource()
-      : _auth = FirebaseAuth.instance,
-        _firestore = FirebaseFirestore.instance,
-        _functions = FirebaseFunctions.instance;
+    : _auth = FirebaseAuth.instance,
+      _firestore = FirebaseFirestore.instance,
+      _functions = FirebaseFunctions.instance;
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
   User? get currentUser => _auth.currentUser;
@@ -70,7 +71,10 @@ class FirebaseAuthDataSource {
       service: 'Firestore(users/$uid)',
       purpose: '신규/기존 유저 여부 확인',
     );
-    final doc = await _firestore.collection('users').doc(uid).get();
+    final doc = await _firestore
+        .collection(FirestorePaths.users)
+        .doc(uid)
+        .get();
     return doc.exists;
   }
 

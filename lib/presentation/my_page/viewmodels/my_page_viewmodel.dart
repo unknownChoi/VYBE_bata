@@ -37,11 +37,11 @@ Stream<List<MyReviewEntry>> myReviews(Ref ref) {
 
   return reviewRepo.watchUserReviews(uid).asyncMap((reviews) async {
     final ids = reviews.map((r) => r.clubId).toSet();
-    await Future.wait(ids.where((id) => !clubCache.containsKey(id)).map(
-      (id) async {
+    await Future.wait(
+      ids.where((id) => !clubCache.containsKey(id)).map((id) async {
         clubCache[id] = await clubRepo.getClub(id);
-      },
-    ));
+      }),
+    );
     return reviews
         .map((r) => MyReviewEntry(review: r, club: clubCache[r.clubId]))
         .toList();
@@ -120,8 +120,7 @@ class MyReviewFilterController extends _$MyReviewFilterController {
 
   void setSort(MyReviewSort sort) => state = state.copyWith(sort: sort);
 
-  void togglePhotoOnly() =>
-      state = state.copyWith(photoOnly: !state.photoOnly);
+  void togglePhotoOnly() => state = state.copyWith(photoOnly: !state.photoOnly);
 }
 
 /// 화면에 실제로 그릴 목록 — 원본 스트림에 정렬·필터를 얹은 것.

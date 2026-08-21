@@ -25,8 +25,8 @@ abstract class SearchHistoryModel with _$SearchHistoryModel {
   }
 
   Map<String, dynamic> toFirestore() => {
-        'userId': userId,
-        'keyword': keyword,
-        'createdAt': FieldValue.serverTimestamp(),
-      };
+    'userId': userId,
+    'keyword': keyword,
+    'createdAt': FieldValue.serverTimestamp(),
+  };
 }

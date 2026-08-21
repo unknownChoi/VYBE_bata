@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:vybe/core/utils/firebase_logger.dart';
+import 'package:vybe/data/datasources/remote/firestore_paths.dart';
 import 'package:vybe/data/models/user_model.dart';
 
 class FirebaseUserDataSource {
@@ -13,7 +14,10 @@ class FirebaseUserDataSource {
       service: 'Firestore(users/$uid)',
       purpose: '사용자 정보 조회',
     );
-    final doc = await _firestore.collection('users').doc(uid).get();
+    final doc = await _firestore
+        .collection(FirestorePaths.users)
+        .doc(uid)
+        .get();
     if (!doc.exists) return null;
     return UserModel.fromFirestore(doc);
   }
@@ -25,7 +29,7 @@ class FirebaseUserDataSource {
       purpose: '사용자 정보 실시간 구독',
     );
     return _firestore
-        .collection('users')
+        .collection(FirestorePaths.users)
         .doc(uid)
         .snapshots()
         .map((doc) => doc.exists ? UserModel.fromFirestore(doc) : null);
@@ -37,7 +41,7 @@ class FirebaseUserDataSource {
       service: 'Firestore(users/$uid)',
       purpose: '사용자 정보 업데이트',
     );
-    await _firestore.collection('users').doc(uid).update({
+    await _firestore.collection(FirestorePaths.users).doc(uid).update({
       ...data,
       'updatedAt': FieldValue.serverTimestamp(),
     });
@@ -56,7 +60,7 @@ class FirebaseUserDataSource {
       service: 'Firestore(users/$uid)',
       purpose: '본인인증 완료 후 사용자 프로필 저장',
     );
-    final ref = _firestore.collection('users').doc(uid);
+    final ref = _firestore.collection(FirestorePaths.users).doc(uid);
 
     // 가입 시각은 **문서를 처음 만들 때만** 쓸 수 있다.
     //
@@ -93,7 +97,7 @@ class FirebaseUserDataSource {
       purpose: '전화번호 중복 확인',
     );
     final snapshot = await _firestore
-        .collection('users')
+        .collection(FirestorePaths.users)
         .where('phone', isEqualTo: phone)
         .limit(1)
         .get();

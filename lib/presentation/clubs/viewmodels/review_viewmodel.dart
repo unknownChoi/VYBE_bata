@@ -148,7 +148,9 @@ class ReviewViewModel extends _$ReviewViewModel {
       }
     });
     if (result case AsyncError(:final error, :final stackTrace)) {
-      debugPrint('[ReviewViewModel] submitReviewEdit failed: $error\n$stackTrace');
+      debugPrint(
+        '[ReviewViewModel] submitReviewEdit failed: $error\n$stackTrace',
+      );
     }
     if (ref.mounted) state = result;
     return !result.hasError;

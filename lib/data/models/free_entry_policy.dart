@@ -66,7 +66,10 @@ class FreeEntryWindow {
   /// ⚠ `start == end` 를 '24시간'으로 읽지 않는다. 깨진 데이터 한 줄이
   /// 유료 클럽을 **종일 무료**로 만들어 버리기 때문. 상시 무료는 `type: 'always'`.
   bool get isValid =>
-      _startMin >= 0 && _endMin >= 0 && _startMin < 1440 && _startMin != _endMin;
+      _startMin >= 0 &&
+      _endMin >= 0 &&
+      _startMin < 1440 &&
+      _startMin != _endMin;
 
   /// 자정 이후로 이어지는 창인지 (`end < start`).
   bool get crossesMidnight => isValid && _endMin < _startMin;
@@ -210,13 +213,10 @@ class FreeEntryPolicy {
 
         // start 포함 · end 미포함.
         if (!now.isBefore(from) && now.isBefore(to)) {
-          return FreeEntryStatus(
-            isFreeNow: true,
-            active: w,
-            activeEndsAt: to,
-          );
+          return FreeEntryStatus(isFreeNow: true, active: w, activeEndsAt: to);
         }
-        if (from.isAfter(now) && (nextStart == null || from.isBefore(nextStart))) {
+        if (from.isAfter(now) &&
+            (nextStart == null || from.isBefore(nextStart))) {
           nextStart = from;
           nextWindow = w;
         }

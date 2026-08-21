@@ -103,10 +103,7 @@ class _OtpCellState extends State<OtpCell> with SingleTickerProviderStateMixin {
             ),
             // 활성 칸을 감싸는 보라 링 (디자인 0 0 0 3px rgba(119,49,254,0.16))
             if (widget.active)
-              const BoxShadow(
-                color: Color(0x297731FE),
-                spreadRadius: 3,
-              ),
+              const BoxShadow(color: Color(0x297731FE), spreadRadius: 3),
           ],
         ),
         // 테두리는 하이라이트 위에 그린다 — 아래 두면 선이 하이라이트에 먹힌다.
@@ -169,7 +166,10 @@ class _OtpCellState extends State<OtpCell> with SingleTickerProviderStateMixin {
                     duration: const Duration(milliseconds: 220),
                     transitionBuilder: (child, anim) => ScaleTransition(
                       scale: Tween<double>(begin: 0.7, end: 1).animate(
-                        CurvedAnimation(parent: anim, curve: Curves.easeOutBack),
+                        CurvedAnimation(
+                          parent: anim,
+                          curve: Curves.easeOutBack,
+                        ),
                       ),
                       child: FadeTransition(opacity: anim, child: child),
                     ),

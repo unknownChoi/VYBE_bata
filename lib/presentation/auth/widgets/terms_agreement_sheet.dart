@@ -43,23 +43,11 @@ class _TermsAgreementSheetState extends State<TermsAgreementSheet> {
   // 위치기반서비스 동의가 필수인 이유 — 앱이 단말기 GPS 로 주변 클럽을 찾는데,
   // 위치정보법 제18조가 이용약관과 **별도의** 약관·동의를 요구한다.
   final List<_TermsItem> _items = [
-    _TermsItem(
-      title: '개인정보 수집·이용 동의',
-      required: true,
-      doc: LegalDoc.privacy,
-    ),
+    _TermsItem(title: '개인정보 수집·이용 동의', required: true, doc: LegalDoc.privacy),
     _TermsItem(title: '만 19세 이상입니다', required: true),
     _TermsItem(title: '서비스 이용약관 동의', required: true, doc: LegalDoc.terms),
-    _TermsItem(
-      title: '위치기반서비스 이용 동의',
-      required: true,
-      doc: LegalDoc.location,
-    ),
-    _TermsItem(
-      title: '마케팅 정보 수신 동의',
-      required: false,
-      doc: LegalDoc.marketing,
-    ),
+    _TermsItem(title: '위치기반서비스 이용 동의', required: true, doc: LegalDoc.location),
+    _TermsItem(title: '마케팅 정보 수신 동의', required: false, doc: LegalDoc.marketing),
   ];
 
   bool get _allChecked => _items.every((item) => item.checked);

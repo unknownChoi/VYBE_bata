@@ -35,11 +35,11 @@ part 'certification_number_builders.dart';
 
 /// 인증 진행 상태
 enum _CertStatus {
-  initial,      // 최초 진입 (포커스 전)
-  focused,      // 입력 필드 포커스 중
-  requestSent,  // 인증번호 재전송 완료
-  error,        // 인증번호 불일치
-  expired,      // 제한 시간 만료
+  initial, // 최초 진입 (포커스 전)
+  focused, // 입력 필드 포커스 중
+  requestSent, // 인증번호 재전송 완료
+  error, // 인증번호 불일치
+  expired, // 제한 시간 만료
 }
 
 /// 인증번호 입력 화면
@@ -78,12 +78,12 @@ class CertificationNumberScreen extends ConsumerStatefulWidget {
       _CertificationNumberScreenState();
 }
 
-class _CertificationNumberScreenState extends ConsumerState<CertificationNumberScreen>
+class _CertificationNumberScreenState
+    extends ConsumerState<CertificationNumberScreen>
     with
         _CertificationNumberLogicMixin,
         _CertificationNumberHandlerMixin,
         _CertificationNumberBuildersMixin {
-
   // ── 입력 컨트롤러 / 포커스 ──
   @override
   final _controller = TextEditingController();

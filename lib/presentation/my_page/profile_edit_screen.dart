@@ -121,9 +121,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                     ),
                   ),
                   SizedBox(height: 16.h),
-                  const RenewFooterNote(
-                    text: '생년월일·전화번호는 본인인증 정보라 변경할 수 없어요.',
-                  ),
+                  const RenewFooterNote(text: '생년월일·전화번호는 본인인증 정보라 변경할 수 없어요.'),
                 ],
               ),
             ),
@@ -179,8 +177,6 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
     );
   }
 
-  Widget _readOnly(String value) => Text(
-    value,
-    style: VybeTypography.body3.copyWith(color: RenewGlass.t4),
-  );
+  Widget _readOnly(String value) =>
+      Text(value, style: VybeTypography.body3.copyWith(color: RenewGlass.t4));
 }

@@ -37,8 +37,7 @@ class NoticeDetailScreen extends ConsumerWidget {
     final list = ref.watch(noticesProvider).value ?? const <NoticeModel>[];
     final index = list.indexWhere((n) => n.noticeId == notice.noticeId);
     final prev = index > 0 ? list[index - 1] : null;
-    final next =
-        index > -1 && index < list.length - 1 ? list[index + 1] : null;
+    final next = index > -1 && index < list.length - 1 ? list[index + 1] : null;
 
     return Scaffold(
       backgroundColor: ClubGlass.ink,
@@ -93,11 +92,9 @@ class NoticeDetailScreen extends ConsumerWidget {
                       ],
                       // 잠금 안내('운영팀만 등록')는 목록 하단에만 둔다 — 상세에선 중복.
                       SizedBox(height: 30.h),
-                      if (prev != null)
-                        _NavRow(label: '이전 글', notice: prev),
+                      if (prev != null) _NavRow(label: '이전 글', notice: prev),
                       if (prev != null && next != null) SizedBox(height: 8.h),
-                      if (next != null)
-                        _NavRow(label: '다음 글', notice: next),
+                      if (next != null) _NavRow(label: '다음 글', notice: next),
                     ],
                   ),
                 ),
@@ -254,4 +251,3 @@ class _NavRow extends StatelessWidget {
     );
   }
 }
-

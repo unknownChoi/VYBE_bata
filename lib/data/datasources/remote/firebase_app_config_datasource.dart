@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:vybe/core/utils/firebase_logger.dart';
+import 'package:vybe/data/datasources/remote/firestore_paths.dart';
 import 'package:vybe/data/models/app_version_config_model.dart';
 
 /// 앱 전역 설정(`appConfig`) 조회. 현재는 버전 정책 1종.
@@ -21,7 +22,10 @@ class FirebaseAppConfigDataSource {
       service: 'Firestore(appConfig/$platform)',
       purpose: '앱 실행 시 강제/선택 업데이트·점검 여부 확인',
     );
-    final doc = await _firestore.collection('appConfig').doc(platform).get();
+    final doc = await _firestore
+        .collection(FirestorePaths.appConfig)
+        .doc(platform)
+        .get();
     if (!doc.exists) return null;
     return AppVersionConfigModel.fromFirestore(doc);
   }

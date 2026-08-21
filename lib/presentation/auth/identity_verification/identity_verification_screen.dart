@@ -64,7 +64,8 @@ class IdentityVerificationScreen extends ConsumerStatefulWidget {
       _IdentityVerificationScreenState();
 }
 
-class _IdentityVerificationScreenState extends ConsumerState<IdentityVerificationScreen>
+class _IdentityVerificationScreenState
+    extends ConsumerState<IdentityVerificationScreen>
     with
         _IdentityVerificationLogicMixin,
         _IdentityVerificationHandlerMixin,
@@ -149,106 +150,110 @@ class _IdentityVerificationScreenState extends ConsumerState<IdentityVerificatio
     return VybeLoadingOverlay(
       isLoading: _isLoading,
       child: Scaffold(
-      backgroundColor: kVybeInk,
-      body: Stack(
-        children: [
-          // 리뉴얼 배경 — 글이 주인공인 화면이라 quiet(상단 2겹)
-          const Positioned.fill(
-            child: IgnorePointer(child: VybeAurora(variant: VybeAuroraVariant.quiet)),
-          ),
-          Column(
-        children: [
-          // ── 상단 바 + 진행 레일 (총 5단계 = 입력 4 + 인증번호) ──
-          SignupHeader(
-            onBack: () => Navigator.pop(context),
-            step: _activeStep.index,
-            total: signupTotalSteps,
-          ),
-          // ── 입력 영역 (스크롤 가능) ──
-          Expanded(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(24.w, 30.h, 24.w, 24.h),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 타이틀 전환 애니메이션 (fade + 미세한 위→아래 슬라이드)
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 300),
-                    switchInCurve: Curves.easeOut,
-                    switchOutCurve: Curves.easeIn,
-                    transitionBuilder: (child, animation) => FadeTransition(
-                      opacity: animation,
-                      child: SlideTransition(
-                        position: Tween<Offset>(
-                          begin: const Offset(0, -0.08),
-                          end: Offset.zero,
-                        ).animate(animation),
-                        child: child,
-                      ),
-                    ),
-                    child: KeyedSubtree(
-                      // _activeStep + birth 단계의 에러 여부 모두 key에 반영
-                      key: ValueKey(
-                        '${_activeStep.name}'
-                        '_${_activeStep == _Step.birth ? _isMinor : false}',
-                      ),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: _buildTitle(),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 42.h),
-                  // 맨 위 입력창: 항상 _maxStep (최신 단계)
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 280),
-                    switchInCurve: Curves.easeOut,
-                    switchOutCurve: Curves.easeIn,
-                    transitionBuilder: (child, animation) => FadeTransition(
-                      opacity: animation,
-                      child: SlideTransition(
-                        position: Tween<Offset>(
-                          begin: const Offset(0.06, 0),
-                          end: Offset.zero,
-                        ).animate(animation),
-                        child: child,
-                      ),
-                    ),
-                    child: KeyedSubtree(
-                      key: ValueKey(_maxStep),
-                      child: _buildFieldForStep(_maxStep),
-                    ),
-                  ),
-                  // 하단 완료 필드들: _maxStep 미만을 최신순으로
-                  if (_maxStep.index > 0) ...[
-                    SizedBox(height: 26.h),
-                    ..._buildBelowFields(),
-                  ],
-                ],
+        backgroundColor: kVybeInk,
+        body: Stack(
+          children: [
+            // 리뉴얼 배경 — 글이 주인공인 화면이라 quiet(상단 2겹)
+            const Positioned.fill(
+              child: IgnorePointer(
+                child: VybeAurora(variant: VybeAuroraVariant.quiet),
               ),
             ),
-          ),
+            Column(
+              children: [
+                // ── 상단 바 + 진행 레일 (총 5단계 = 입력 4 + 인증번호) ──
+                SignupHeader(
+                  onBack: () => Navigator.pop(context),
+                  step: _activeStep.index,
+                  total: signupTotalSteps,
+                ),
+                // ── 입력 영역 (스크롤 가능) ──
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.fromLTRB(24.w, 30.h, 24.w, 24.h),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 타이틀 전환 애니메이션 (fade + 미세한 위→아래 슬라이드)
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 300),
+                          switchInCurve: Curves.easeOut,
+                          switchOutCurve: Curves.easeIn,
+                          transitionBuilder: (child, animation) =>
+                              FadeTransition(
+                                opacity: animation,
+                                child: SlideTransition(
+                                  position: Tween<Offset>(
+                                    begin: const Offset(0, -0.08),
+                                    end: Offset.zero,
+                                  ).animate(animation),
+                                  child: child,
+                                ),
+                              ),
+                          child: KeyedSubtree(
+                            // _activeStep + birth 단계의 에러 여부 모두 key에 반영
+                            key: ValueKey(
+                              '${_activeStep.name}'
+                              '_${_activeStep == _Step.birth ? _isMinor : false}',
+                            ),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: _buildTitle(),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 42.h),
+                        // 맨 위 입력창: 항상 _maxStep (최신 단계)
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 280),
+                          switchInCurve: Curves.easeOut,
+                          switchOutCurve: Curves.easeIn,
+                          transitionBuilder: (child, animation) =>
+                              FadeTransition(
+                                opacity: animation,
+                                child: SlideTransition(
+                                  position: Tween<Offset>(
+                                    begin: const Offset(0.06, 0),
+                                    end: Offset.zero,
+                                  ).animate(animation),
+                                  child: child,
+                                ),
+                              ),
+                          child: KeyedSubtree(
+                            key: ValueKey(_maxStep),
+                            child: _buildFieldForStep(_maxStep),
+                          ),
+                        ),
+                        // 하단 완료 필드들: _maxStep 미만을 최신순으로
+                        if (_maxStep.index > 0) ...[
+                          SizedBox(height: 26.h),
+                          ..._buildBelowFields(),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
 
-          // ── 확인 버튼 ──
-          if (keyboardVisible)
-            VybeButton(
-              label: '확인',
-              onTap: _canProceed ? _onConfirm : null,
-              variant: VybeButtonVariant.withKeyboard,
-            )
-          else
-            Padding(
-              padding: EdgeInsets.fromLTRB(24.w, 12.h, 24.w, 40.h),
-              child: VybeButton(
-                label: '확인',
-                glow: true,
-                onTap: _canProceed ? _onConfirm : null,
-              ),
+                // ── 확인 버튼 ──
+                if (keyboardVisible)
+                  VybeButton(
+                    label: '확인',
+                    onTap: _canProceed ? _onConfirm : null,
+                    variant: VybeButtonVariant.withKeyboard,
+                  )
+                else
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(24.w, 12.h, 24.w, 40.h),
+                    child: VybeButton(
+                      label: '확인',
+                      glow: true,
+                      onTap: _canProceed ? _onConfirm : null,
+                    ),
+                  ),
+              ],
             ),
-        ],
-      ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
   }

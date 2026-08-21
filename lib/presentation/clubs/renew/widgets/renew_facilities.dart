@@ -85,7 +85,9 @@ class RenewFacilities extends StatelessWidget {
             children: [
               for (var r = 0; r < rows.length; r++)
                 Padding(
-                  padding: EdgeInsets.only(bottom: r == rows.length - 1 ? 0 : 8.h),
+                  padding: EdgeInsets.only(
+                    bottom: r == rows.length - 1 ? 0 : 8.h,
+                  ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

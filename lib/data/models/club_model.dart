@@ -22,7 +22,8 @@ abstract class ClubModel with _$ClubModel {
     required double lng,
     required String geohash,
     required String genre,
-    @Default([]) List<String> genreStyles, // 세부 장르 스타일(트랩/붐뱁 등) — 장르 페이지 포스터 #태그
+    @Default([])
+    List<String> genreStyles, // 세부 장르 스타일(트랩/붐뱁 등) — 장르 페이지 포스터 #태그
     required double rating,
     @Default(0) int reviewCount,
     @Default(OperatingHours()) OperatingHours operatingHours,
@@ -39,8 +40,10 @@ abstract class ClubModel with _$ClubModel {
     @Default(false) bool isNonSmoking,
     @Default(ServiceDrink.none) ServiceDrink serviceDrink,
     @Default('') String freeEntryCondition,
+
     /// 무료입장 정책 — 상시 / 시간대 / 없음. 지금 무료인지는 `freeEntry.statusAt()`.
     @Default(FreeEntryPolicy.none) FreeEntryPolicy freeEntry,
+
     /// `freeEntry.type != none` 파생값. 쿼리·필터 전용 (판정에는 쓰지 않는다).
     @Default(false) bool isFreeEntry,
     required DateTime createdAt,
@@ -49,9 +52,8 @@ abstract class ClubModel with _$ClubModel {
 
   /// 무료입장 조건 문구. 새 필드가 비면 레거시 `freeEntryCondition` 으로 폴백한다
   /// (백필과 앱 배포 사이에 낀 문서가 문구를 잃지 않게).
-  String get freeEntryLabel => freeEntry.condition.isNotEmpty
-      ? freeEntry.condition
-      : freeEntryCondition;
+  String get freeEntryLabel =>
+      freeEntry.condition.isNotEmpty ? freeEntry.condition : freeEntryCondition;
 
   factory ClubModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
@@ -72,25 +74,26 @@ abstract class ClubModel with _$ClubModel {
       rating: (data['rating'] as num?)?.toDouble() ?? 0.0,
       reviewCount: (data['reviewCount'] as num?)?.toInt() ?? 0,
       operatingHours: OperatingHours.fromMap(
-          data['operatingHours'] as Map<String, dynamic>?),
+        data['operatingHours'] as Map<String, dynamic>?,
+      ),
       entryFeeMin: (data['entryFeeMin'] as num?)?.toInt() ?? 0,
       entryFeeMax: (data['entryFeeMax'] as num?)?.toInt() ?? 0,
       imageUrls: List<String>.from(data['imageUrls'] as List? ?? []),
-      heroImageUrls:
-          List<String>.from(data['heroImageUrls'] as List? ?? []),
+      heroImageUrls: List<String>.from(data['heroImageUrls'] as List? ?? []),
       thumbnailUrl: data['thumbnailUrl'] as String? ?? '',
-      menuBoardUrls:
-          List<String>.from(data['menuBoardUrls'] as List? ?? []),
+      menuBoardUrls: List<String>.from(data['menuBoardUrls'] as List? ?? []),
       tags: List<String>.from(data['tags'] as List? ?? []),
       favoriteCount: (data['favoriteCount'] as num?)?.toInt() ?? 0,
       isActive: data['isActive'] as bool? ?? false,
       isVybeRecommended: data['isVybeRecommended'] as bool? ?? false,
       isNonSmoking: data['isNonSmoking'] as bool? ?? false,
       serviceDrink: ServiceDrink.fromMap(
-          data['serviceDrink'] as Map<String, dynamic>?),
+        data['serviceDrink'] as Map<String, dynamic>?,
+      ),
       freeEntryCondition: data['freeEntryCondition'] as String? ?? '',
       freeEntry: FreeEntryPolicy.fromMap(
-          data['freeEntry'] as Map<String, dynamic>?),
+        data['freeEntry'] as Map<String, dynamic>?,
+      ),
       isFreeEntry: data['isFreeEntry'] as bool? ?? false,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
@@ -119,8 +122,9 @@ abstract class ClubModel with _$ClubModel {
       genreStyles: List<String>.from(data['genreStyles'] as List? ?? []),
       rating: (data['rating'] as num?)?.toDouble() ?? 0.0,
       reviewCount: (data['reviewCount'] as num?)?.toInt() ?? 0,
-      operatingHours:
-          OperatingHours.fromMap(_asStringMapOrNull(data['operatingHours'])),
+      operatingHours: OperatingHours.fromMap(
+        _asStringMapOrNull(data['operatingHours']),
+      ),
       entryFeeMin: (data['entryFeeMin'] as num?)?.toInt() ?? 0,
       entryFeeMax: (data['entryFeeMax'] as num?)?.toInt() ?? 0,
       imageUrls: List<String>.from(data['imageUrls'] as List? ?? []),
@@ -132,12 +136,13 @@ abstract class ClubModel with _$ClubModel {
       isActive: data['isActive'] as bool? ?? false,
       isVybeRecommended: data['isVybeRecommended'] as bool? ?? false,
       isNonSmoking: data['isNonSmoking'] as bool? ?? false,
-      serviceDrink:
-          ServiceDrink.fromMap(_asStringMapOrNull(data['serviceDrink'])),
+      serviceDrink: ServiceDrink.fromMap(
+        _asStringMapOrNull(data['serviceDrink']),
+      ),
       freeEntryCondition: data['freeEntryCondition'] as String? ?? '',
-      // ⚠ Algolia Indexable Fields 에 freeEntry/isFreeEntry 가 아직 없다.
-      //   검색 hit 에는 안 실려 오므로 여기선 기본값(none)이 된다 —
-      //   Extension 설정 + 재색인 후에 _requiredFields 에도 추가할 것.
+      // freeEntry/isFreeEntry 는 Extension Indexable Fields 에 포함돼 hit 로 실려 온다.
+      // (빠지면 AlgoliaClubSearchDataSource._requiredFields 검사가 complete=false 로
+      //  떨어뜨려 Firestore 조인 폴백으로 돌아간다 — 값이 조용히 틀리지는 않는다)
       freeEntry: FreeEntryPolicy.fromMap(_asStringMapOrNull(data['freeEntry'])),
       isFreeEntry: data['isFreeEntry'] as bool? ?? false,
       createdAt: _parseSearchDate(data['createdAt']),

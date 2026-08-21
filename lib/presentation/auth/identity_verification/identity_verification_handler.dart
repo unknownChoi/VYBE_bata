@@ -11,7 +11,8 @@ part of 'identity_verification_screen.dart';
 
 /// 이벤트 핸들러 — onConfirm, submitIdentity, activateStep, requestFocus,
 /// onBirthFrontChanged, showTermsSheet, showCarrierSheet
-mixin _IdentityVerificationHandlerMixin on ConsumerState<IdentityVerificationScreen> {
+mixin _IdentityVerificationHandlerMixin
+    on ConsumerState<IdentityVerificationScreen> {
   // ── 의존 필드 (abstract) ──
   _Step get _activeStep;
   set _activeStep(_Step value);
@@ -167,7 +168,7 @@ mixin _IdentityVerificationHandlerMixin on ConsumerState<IdentityVerificationScr
   /// 인증번호 화면으로 이동. [isLogin] 이면 프로필이 이미 있는 계정의 재로그인.
   void _goToCertification(String phone, {required bool isLogin}) {
     final birthFront = _birthFrontCtrl.text; // YYMMDD
-    final genderCode = _birthBackCtrl.text;  // 1~4
+    final genderCode = _birthBackCtrl.text; // 1~4
     final century = (genderCode == '1' || genderCode == '2') ? '19' : '20';
 
     Navigator.push(

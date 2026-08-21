@@ -79,7 +79,11 @@ class _CompletedFieldState extends State<CompletedField> {
                   gradient: LinearGradient(
                     begin: Alignment(-0.7, -1),
                     end: Alignment(0.7, 1),
-                    colors: [Color(0x21FFFFFF), Color(0x0DFFFFFF), Color(0x05FFFFFF)],
+                    colors: [
+                      Color(0x21FFFFFF),
+                      Color(0x0DFFFFFF),
+                      Color(0x05FFFFFF),
+                    ],
                     stops: [0.0, 0.42, 1.0],
                   ),
                 ),

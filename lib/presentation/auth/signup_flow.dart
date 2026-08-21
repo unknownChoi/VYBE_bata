@@ -104,8 +104,10 @@ Future<void> enterHomeAfterAuth(BuildContext context, WidgetRef ref) async {
     await Future.wait(
       banners.map((b) async {
         try {
-          await precacheImage(NetworkImage(b.imageUrl), context)
-              .timeout(const Duration(seconds: 6));
+          await precacheImage(
+            NetworkImage(b.imageUrl),
+            context,
+          ).timeout(const Duration(seconds: 6));
         } catch (_) {}
       }),
     );

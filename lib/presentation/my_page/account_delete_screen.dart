@@ -2,12 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/core/providers/auth_providers.dart';
-import 'package:vybe/design_system/colors.dart';
-import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/auth/terms/legal_documents.dart';
 import 'package:vybe/presentation/auth/terms/terms_detail_screen.dart';
 import 'package:vybe/presentation/auth/viewmodels/auth_viewmodel.dart';
-import 'package:vybe/presentation/common/renew/renew_button.dart';
 import 'package:vybe/presentation/common/renew/renew_glass.dart';
 import 'package:vybe/presentation/common/widgets/vybe_aurora.dart';
 import 'package:vybe/presentation/common/widgets/vybe_confirm_dialog.dart';
@@ -101,17 +98,20 @@ class _AccountDeleteScreenState extends ConsumerState<AccountDeleteScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _headline(user?.name ?? '', _joinedDate(user?.createdAt)),
+                      LeaveHeadline(
+                        name: user?.name ?? '',
+                        joined: _joinedDate(user?.createdAt),
+                      ),
                       LeaveStatCard(
                         savedCount: savedCount,
                         reviewCount: reviews?.length,
                         photoCount: photoCount,
                       ),
                       SizedBox(height: _kSectionGap.h),
-                      LeaveSection(
+                      const LeaveSection(
                         title: '놓치게 되는 것',
                         sub: '탈퇴하면 아래 정보는 더 이상 볼 수 없어요.',
-                        child: _benefits(),
+                        child: LeaveBenefitList(),
                       ),
                       SizedBox(height: _kSectionGap.h),
                       LeaveSection(
@@ -139,7 +139,14 @@ class _AccountDeleteScreenState extends ConsumerState<AccountDeleteScreen> {
                         onTap: () => setState(() => _agreed = !_agreed),
                       ),
                       SizedBox(height: 22.h),
-                      _actions(purgeDate, reviews?.length, savedCount),
+                      LeaveActions(
+                        agreed: _agreed,
+                        submitting: _submitting,
+                        nudging: _nudging,
+                        onStay: () => Navigator.of(context).maybePop(),
+                        onLeave: () =>
+                            _tryLeave(purgeDate, reviews?.length, savedCount),
+                      ),
                     ],
                   ),
                 ),
@@ -165,120 +172,6 @@ class _AccountDeleteScreenState extends ConsumerState<AccountDeleteScreen> {
       return null;
     }
     return createdAt;
-  }
-
-  Widget _headline(String name, DateTime? joined) {
-    final since = joined == null ? '' : '${leaveDateLabel(joined)}부터 ';
-
-    return Padding(
-      padding: EdgeInsets.only(top: 26.h, bottom: 20.h),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '정말 떠나시겠어요?',
-            style: VybeTypography.heading2.copyWith(
-              height: 36 / 28,
-              color: RenewGlass.t1,
-            ),
-          ),
-          SizedBox(height: 12.h),
-          Text.rich(
-            TextSpan(
-              children: [
-                if (name.isEmpty)
-                  TextSpan(text: '지금까지 $since쌓은 기록과 ')
-                else ...[
-                  TextSpan(
-                    text: name,
-                    style: const TextStyle(
-                      color: VybeColors.mainLime500,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  TextSpan(text: ' 님이 $since쌓은 기록과 '),
-                ],
-                const TextSpan(
-                  text: '지금 쓰고 있는 정보들이 어떻게 되는지 먼저 확인해 주세요.',
-                ),
-              ],
-            ),
-            style: VybeTypography.body3.copyWith(
-              height: 24 / 16,
-              color: RenewGlass.t3,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _benefits() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        for (var i = 0; i < kLeaveBenefits.length; i++) ...[
-          if (i > 0) SizedBox(height: 8.h),
-          MyFadeUp(index: i, child: LeaveBenefitRow(benefit: kLeaveBenefits[i])),
-        ],
-      ],
-    );
-  }
-
-  /// 주 버튼은 '계속 이용하기'. 탈퇴는 그 아래 밑줄 링크로 한 단 낮춘다
-  /// (디자인 의도 — 되돌릴 수 없는 쪽이 더 눌리기 쉬우면 안 된다).
-  Widget _actions(DateTime purgeDate, int? reviewCount, int? savedCount) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        RenewButton(
-          label: '계속 이용하기',
-          onTap: _submitting ? null : () => Navigator.of(context).maybePop(),
-        ),
-        SizedBox(height: 14.h),
-        Center(
-          child: GestureDetector(
-            onTap: () => _tryLeave(purgeDate, reviewCount, savedCount),
-            behavior: HitTestBehavior.opaque,
-            child: Container(
-              height: 44.h,
-              alignment: Alignment.center,
-              padding: EdgeInsets.symmetric(horizontal: 20.w),
-              child: Text(
-                _submitting ? '탈퇴 처리 중…' : '탈퇴하기',
-                style: TextStyle(
-                  fontFamily: 'Pretendard',
-                  fontWeight: FontWeight.w400,
-                  fontSize: 13.sp,
-                  height: 16 / 13,
-                  letterSpacing: 13 * -0.025,
-                  color: _agreed ? RenewGlass.t2 : RenewGlass.t4,
-                  decoration: TextDecoration.underline,
-                  decorationColor: _agreed ? RenewGlass.t2 : RenewGlass.t4,
-                ),
-              ),
-            ),
-          ),
-        ),
-        SizedBox(height: 14.h),
-        // 자리는 항상 잡아 둔다 — 체크할 때 아래 여백이 튀지 않게.
-        SizedBox(
-          height: 16.h,
-          child: AnimatedOpacity(
-            opacity: _agreed ? 0 : 1,
-            duration: const Duration(milliseconds: 200),
-            child: Text(
-              '확인 체크 후 진행할 수 있어요',
-              textAlign: TextAlign.center,
-              style: RenewGlass.caption(
-                color: _nudging ? kMyDanger : RenewGlass.t4,
-                lineHeight: 16,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
   }
 
   // ============ 동작 ============
@@ -329,7 +222,8 @@ class _AccountDeleteScreenState extends ConsumerState<AccountDeleteScreen> {
     final confirmed = await VybeConfirmDialog.show(
       context,
       title: '탈퇴를 진행할까요?',
-      message: '$lost\n'
+      message:
+          '$lost\n'
           '${leaveDateLabel(purgeDate)}까지는 같은 번호로\n다시 가입할 수 없어요.',
       icon: const LeaveDialogIcon(),
       // 권하는 쪽은 '더 써볼게요' — 그래서 취소가 채운 버튼이다.

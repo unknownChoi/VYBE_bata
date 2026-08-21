@@ -32,6 +32,8 @@ class AlgoliaClubSearchDataSource {
     'isVybeRecommended', // 추천 리본 + 추천순 정렬
     'isNonSmoking', // 금연 필터
     'location', // 주변 탭 지도 핀 + 거리순 정렬
+    'freeEntry', // 무료입장 정책 — '지금 무료' 판정(FreeEntryPolicy.statusAt)
+    'isFreeEntry', // 무료입장 필터(ClubFilter.freeEntry)
   ];
 
   final SearchClient? _client;
@@ -74,8 +76,9 @@ class AlgoliaClubSearchDataSource {
     );
 
     final hits = response.hits;
-    final complete =
-        hits.every((h) => _requiredFields.every((f) => h.containsKey(f)));
+    final complete = hits.every(
+      (h) => _requiredFields.every((f) => h.containsKey(f)),
+    );
     final nbPages = response.nbPages ?? 0;
 
     return SearchClubsResult(

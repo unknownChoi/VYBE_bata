@@ -34,12 +34,12 @@ abstract class BannerModel with _$BannerModel {
       linkType != BannerLinkType.none && linkValue.isNotEmpty;
 
   static BannerLinkType _parseLinkType(String? raw) => switch (raw) {
-        'promotion' => BannerLinkType.promotion,
-        'club' => BannerLinkType.club,
-        'page' => BannerLinkType.page,
-        'url' => BannerLinkType.url,
-        _ => BannerLinkType.none,
-      };
+    'promotion' => BannerLinkType.promotion,
+    'club' => BannerLinkType.club,
+    'page' => BannerLinkType.page,
+    'url' => BannerLinkType.url,
+    _ => BannerLinkType.none,
+  };
 
   factory BannerModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
