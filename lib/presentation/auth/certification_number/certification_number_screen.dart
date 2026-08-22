@@ -16,6 +16,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:vybe/data/models/terms_agreement.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/auth/signup_flow.dart';
@@ -63,6 +64,10 @@ class CertificationNumberScreen extends ConsumerStatefulWidget {
   /// true면 인증 성공 후 가입 완료 화면 대신 곧장 홈으로 간다.
   final bool isLogin;
 
+  /// 약관 동의 시트에서 고른 항목별 동의 여부. `users.agreements` 로 저장된다.
+  /// 재로그인([isLogin]=true)은 시트를 안 거쳐 null — 기존 기록을 건드리지 않는다.
+  final Map<String, TermsAgreementInput>? agreements;
+
   const CertificationNumberScreen({
     super.key,
     required this.phoneNumber,
@@ -71,6 +76,7 @@ class CertificationNumberScreen extends ConsumerStatefulWidget {
     this.gender,
     this.method = SignupMethod.identity,
     this.isLogin = false,
+    this.agreements,
   });
 
   @override

@@ -130,7 +130,7 @@ final class SearchSuggestionViewModelProvider
 }
 
 String _$searchSuggestionViewModelHash() =>
-    r'fac260fd4c1fc3d83a5afddbd572c7369862bbf3';
+    r'e03c08b2991d43395a491d047cc600f975ce44fd';
 
 /// 입력 중 연관 검색어(클럽 제안). 디바운스는 호출측(화면)에서 처리.
 /// searchClubsPage(평점순 상위 8개)를 재사용 — 추가 인프라 없음.
@@ -191,7 +191,7 @@ final class SearchViewModelProvider
   }
 }
 
-String _$searchViewModelHash() => r'ada5393e1c5263d78d9df1a910937d312bdc8d83';
+String _$searchViewModelHash() => r'94040903836f3f3cf86f5e035ad4f4af092e77e6';
 
 abstract class _$SearchViewModel extends $Notifier<AsyncValue<SearchResults>> {
   AsyncValue<SearchResults> build();

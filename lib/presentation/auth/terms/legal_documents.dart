@@ -7,27 +7,43 @@
 library;
 
 /// 앱에서 보여줄 법적 고지 문서 종류.
+///
+/// ⚠ enum **이름(`terms`·`privacy`·…)이 곧 저장 키다** — `users.agreements` 의
+///   map 키로 `LegalDoc.name` 을 그대로 쓴다. 이름을 바꾸면 이미 저장된
+///   동의 기록과 연결이 끊긴다(마이그레이션 필요).
 enum LegalDoc {
   /// 서비스 이용약관 (필수 동의)
-  terms('서비스 이용약관', _kTermsText),
+  terms('서비스 이용약관', _kTermsText, _kVersion20260820),
 
   /// 개인정보처리방침 (필수 동의)
-  privacy('개인정보처리방침', _kPrivacyText),
+  privacy('개인정보처리방침', _kPrivacyText, _kVersion20260820),
 
   /// 위치기반서비스 이용약관 (필수 동의 — 위치정보법 제18조)
-  location('위치기반서비스 이용약관', _kLocationText),
+  location('위치기반서비스 이용약관', _kLocationText, _kVersion20260820),
 
   /// 마케팅 정보 수신 동의 (선택 동의)
-  marketing('마케팅 정보 수신 동의', _kMarketingText);
+  marketing('마케팅 정보 수신 동의', _kMarketingText, _kVersion20260820);
 
-  const LegalDoc(this.title, this.body);
+  const LegalDoc(this.title, this.body, this.version);
 
   /// 상단바에 그대로 쓰는 문서 제목.
   final String title;
 
   /// 문서 전문.
   final String body;
+
+  /// 이 문서의 시행(개정)일 `YYYY-MM-DD`. 동의 기록에 같이 저장한다 —
+  /// 나중에 약관을 개정했을 때 **누가 어느 판본에 동의했는지** 알아야
+  /// 재동의를 받을 대상을 고를 수 있다.
+  ///
+  /// ⚠ 본문을 고치면 이 값도 **반드시** 같이 올린다. 안 그러면 새 판본에
+  ///   동의한 것으로 기록돼 재동의 대상에서 빠진다.
+  final String version;
 }
+
+/// 지금은 4개 문서가 같은 날 제정돼 값이 같다. 개정은 문서별로 일어나므로
+/// 그때는 해당 항목만 새 상수로 바꾼다(공용 상수를 통째로 올리지 말 것).
+const _kVersion20260820 = '2026-08-20';
 
 /// 사업자 등록 전이라 아직 못 채운 자리.
 /// 등록이 끝나면 이 상수와 `legal/*.html` 의 `[…]` 표기를 같이 바꾼다.

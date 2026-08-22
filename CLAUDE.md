@@ -468,6 +468,31 @@ grep -rn "border: Border.all" lib/presentation/   # 후보 추린 뒤 ClipRRect/
   - **편의시설 (2026.08.15)** — `info.facilities`(영문 키 배열) → 3열 그리드 카드.
     키↔라벨·아이콘 대응은 `clubs/renew/widgets/renew_facilities.dart`의 `ClubFacility` enum 하나.
     등록된 시설이 없으면 섹션 자체를 뺀다. 데이터 없으면 `node scripts/seed_facilities.js`
+- **약관 동의 기록 (2026.08.22)** — 가입 시 약관 시트에서 고른 항목별 동의/비동의를
+  `users/{uid}.agreements` map에 저장. 항목 5개(terms·privacy·location·marketing + age19),
+  각각 `{ agreed, version, agreedAt }`. **비동의도 false로 기록**하고 문서 개정일(`LegalDoc.version`)을
+  같이 남겨 약관 개정 시 재동의 대상을 고를 수 있게 했다.
+  - 저장 위치가 서브컬렉션이 아니라 users 문서 안의 map인 이유 — 항목이 5개 고정이고 프로필과
+    항상 같이 읽힌다. 가입 때 쓰던 `set(merge)` 한 번에 얹으므로 **read·write 추가 0**
+  - Rules·인덱스·Functions 변경 **없음**. 기존 유저는 필드 없음 = 빈 map (백필 안 함 —
+    동의한 판본·시각을 모르는데 지어내면 그게 더 나쁜 기록)
+  - **설정 토글 연결 (2026.08.22)** — 설정 > 알림의 '마케팅 · 홍보 알림'이
+    `agreements.marketing`을 **직접 읽고 쓴다**. 가입 때 동의했으면 켜진 채로 시작하고,
+    끄면 `agreed:false` + 그때의 `version`·`agreedAt`으로 **철회가 기록**된다
+    - 알림 그룹의 나머지 토글은 여전히 화면 상태뿐 — **마케팅만 서버에 산다**.
+      그 값이 표시 설정이 아니라 **수신 동의** 자체라서다. 로컬로 두면 약관·법적 고지가
+      약속한 '설정에서 언제든 해제'가 앱을 껐다 켜면 되살아난다
+    - 쓰기는 `setAgreement()`(datasource → repository) 한 곳. 점 표기
+      `agreements.marketing`이라 다른 항목의 `agreedAt`은 안 건드린다
+    - 토글 키는 `kMarketingToggleKey`(= `LegalDoc.marketing.name`) 하나 —
+      화면 토글 키와 Firestore 키가 갈라지면 동의가 조용히 반영이 안 된다
+    - 실패하면 표시를 되돌리고 토스트를 띄운다. 조용히 넘기면 껐다고 생각한
+      사용자에게 계속 광고가 나간다
+    - 비로그인 상태(알림 화면 → 설정 경로)에서는 '로그인 후 변경할 수 있어요' 토스트
+  - 조각: `data/models/terms_agreement.dart` · `legal_documents.dart`(version) ·
+    `terms_agreement_sheet.dart` · `settings_screen.dart`(마케팅 토글) ·
+    `test/terms_agreement_sheet_test.dart` · `test/settings_screen_test.dart`(3건).
+    상세 설계는 `firebase_structure.html#feature-terms`
 - **찜 탭 (`saved/`) — favorites 실연동** (정렬, 리스트↔그리드 뷰, 찜 해제)
 - **마이페이지 (`my_page/`) — my_renew.html 리뉴얼 완료 (2026.08.15)**
   (오로라 배경 + 가로 프로필 행(아바타 76 · 프로필 수정 pill) + 통계 카드 2칸(리뷰·찜) +
@@ -934,6 +959,27 @@ gender          : string    // "male" | "female" — 주민번호 뒷자리 첫 
 profileImageUrl : string    // Storage 프로필 이미지 URL
 provider        : string    // "naver" | "apple"
 isVerified      : boolean   // 본인인증 완료 여부 (초기값: false)
+agreements      : map       // 약관 동의 기록 — { <key>: { agreed, version, agreedAt } }
+                            //   key: terms|privacy|location|marketing (= LegalDoc.name) + age19
+                            //   agreed  : 동의 여부. **비동의도 false로 남긴다** —
+                            //             키를 빼면 '거부'와 '아직 안 물어봤다'가 구분 안 됨
+                            //   version : 동의한 문서의 개정일 'YYYY-MM-DD' (= LegalDoc.version)
+                            //             약관을 개정하면 재동의 대상을 이 값으로 고른다
+                            //             age19는 읽을 문서가 없어 빈 문자열
+                            //   agreedAt: serverTimestamp. **중첩 map 안의 sentinel** —
+                            //             Firestore가 배열 안에선 거부하므로 list로 바꾸지 말 것
+                            //   ⚠ 가입 때 setUserProfile이 한 번만 쓴다. 재로그인은 null로
+                            //     내려와 기존 기록을 덮지 않는다(재로그인 Firestore 쓰기 0 유지)
+                            //   ⚠ marketing만 예외로 **가입 후에도 바뀐다** — 설정 > 알림의
+                            //     '마케팅 · 홍보 알림' 토글이 곧 이 값이다(2026.08.22).
+                            //     쓰기는 setAgreement()가 점 표기(agreements.marketing)로
+                            //     그 항목만 갈아 끼운다 — map을 통째로 얹으면 손대지 않은
+                            //     필수 약관의 agreedAt까지 오늘로 덮인다
+                            //   ⚠ UserModel.toFirestore()에는 일부러 없다 — 프로필 저장마다
+                            //     map을 다시 쓰면 agreedAt이 프로필 수정 시각으로 덮인다
+                            //   ⚠ 덮어쓰기라 이력이 안 남는다. 철회 이력까지 필요하면
+                            //     users/{uid}/agreementLogs 를 따로 둘 것
+                            //   도입 전(2026.08.22) 가입자는 필드 없음 = 빈 map. 백필 안 함
 status          : string    // "active" | "pendingDeletion" — 탈퇴 대기 여부.
                             //   필드가 없으면 active로 간주(기존 문서)
                             //   보관 기간 안에 다시 로그인하면 서버가 active로 되돌리고
@@ -1137,7 +1183,7 @@ createdAt       : timestamp
 #### banners/{bannerId}
 ```
 bannerId        : string    // PK (= doc.id fallback)
-imageUrl        : string    // 배너 이미지 URL
+imageUrl        : string    // 배너 이미지 URL — 권장 원본 1026 x 600 px (비율 1.71:1, 아래 참고)
 linkType        : string    // "promotion" | "club" | "page" | "url" — 탭 시 이동 방식
                             //   BannerLinkType enum. 알 수 없는 값은 none(이동 없음)으로 폴백
 linkValue       : string    // 링크 대상 값
@@ -1154,6 +1200,28 @@ createdAt       : timestamp
 > 광고 페이지는 전체화면이라 `pushHidingNavBar`로 열어 하단 nav 바를 내린다(돌아오면 복원).
 > **현재 연결된 건 `promotion` 뿐** — club·page·url은 미연결이라 조용히 무시된다
 > (잘못된 곳으로 보내는 것보다 낫다).
+
+##### 배너 이미지 규격 (2026.08.21)
+
+카드 실측은 `home/widgets/home_banner.dart` — 높이 `200.h`, 폭 = 화면폭 × 0.9
+(`PageController(viewportFraction: 0.9)`) − `12.w`(좌우 패딩 6+6), `BoxFit.cover`.
+기준 393×852에서 **342 × 200 logical px = 비율 1.71:1**.
+
+| 항목 | 값 |
+|------|------|
+| 권장 원본 | **1026 × 600 px** (3x). 더 선명히 하려면 1368 × 800 (4x, 같은 비율) |
+| 포맷·용량 | JPEG 또는 WebP, 300KB 이하 |
+| 상하 안전영역 | 위·아래 각 **9%(1026×600 기준 54px) 잘릴 수 있음** — 글자·로고는 그 안쪽에 |
+| 우하단 회피 | `1 / 4` 카운터 pill이 덮는다 — 오른쪽 아래 약 110 × 40px 비울 것 |
+| 하단 45% | 앱이 검정 그라데이션(`0xC708080C`)을 덮는다 → **밝은 글자**를 쓸 것 |
+
+⚠ **기기마다 카드 비율이 달라진다** — `.w`(가로 비)와 `.h`(세로 비)가 따로 스케일돼
+폭과 높이가 다른 계수로 늘어난다. iPhone SE(375×667)에서 **2.08:1**로 가장 납작해지고
+iPhone 15·15 Pro Max는 1.71:1. `cover`라 납작한 기기에서 위아래가 잘리므로
+안전영역 9%는 **SE 기준**이다.
+
+⚠ 이 비율은 **홈 배너 전용** — `promotions.heroImageUrl`(상세 히어로)은 별도 비율이라
+같은 파일을 재사용하지 않는다.
 
 #### promotions/{promotionId}
 ```
@@ -1451,7 +1519,7 @@ createdAt      : timestamp
 #### Firestore Rules 요약
 | 컬렉션 | 읽기 | 쓰기 |
 |--------|------|------|
-| `users/{uid}` | 본인만 | 본인만 (uid / provider / createdAt 수정 불가) |
+| `users/{uid}` | 본인만 | 본인만 (uid / provider / createdAt / status / deletedAt / purgeAt 수정 불가 — `agreements`는 금지 키가 **아니다**: 본인의 동의 여부라 마케팅 수신 철회를 붙이려면 고칠 수 있어야 한다) |
 | `clubs/{clubId}` | 누구나 (isActive=true만) | 어드민만 |
 | `clubs/.../info`, `menus` | 누구나 | 어드민만 |
 | `clubs/.../photos` | 누구나 (`isHidden != true`만) | 생성: 로그인 유저(본인 userId) / 삭제: 본인 또는 어드민 |

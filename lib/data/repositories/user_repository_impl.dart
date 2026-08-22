@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:vybe/data/datasources/remote/firebase_storage_datasource.dart';
 import 'package:vybe/data/datasources/remote/firebase_user_datasource.dart';
+import 'package:vybe/data/models/terms_agreement.dart';
 import 'package:vybe/data/models/user_model.dart';
 import 'package:vybe/domain/repositories/user_repository.dart';
 
@@ -36,6 +37,7 @@ class UserRepositoryImpl implements UserRepository {
     required String birthDate,
     required String provider,
     String? gender,
+    Map<String, TermsAgreementInput>? agreements,
   }) => _userDataSource.setUserProfile(
     uid: uid,
     name: name,
@@ -43,6 +45,20 @@ class UserRepositoryImpl implements UserRepository {
     birthDate: birthDate,
     provider: provider,
     gender: gender,
+    agreements: agreements,
+  );
+
+  @override
+  Future<void> setAgreement({
+    required String uid,
+    required String key,
+    required bool agreed,
+    required String version,
+  }) => _userDataSource.setAgreement(
+    uid: uid,
+    key: key,
+    agreed: agreed,
+    version: version,
   );
 
   @override

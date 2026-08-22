@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vybe/core/navigation/swipe_back_page_route.dart';
+import 'package:vybe/data/models/terms_agreement.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/auth/terms/legal_documents.dart';
@@ -18,20 +19,39 @@ class _TermsItem {
   /// 꺽쇠(전문 보기)를 그리지 않는다.
   final LegalDoc? doc;
 
+  /// 문서가 없는 항목(만 19세 확인)의 저장 키. 문서가 있으면 [doc] 의
+  /// 이름을 쓰므로 null.
+  final String? fallbackKey;
+
   bool checked = false;
 
-  _TermsItem({required this.title, required this.required, this.doc});
+  _TermsItem({
+    required this.title,
+    required this.required,
+    this.doc,
+    this.fallbackKey,
+  }) : assert(doc != null || fallbackKey != null, '저장 키가 없는 항목은 둘 수 없다');
+
+  /// `users.agreements` 의 map 키.
+  String get key => doc?.name ?? fallbackKey!;
+
+  /// 동의한 문서의 개정일. 읽을 문서가 없는 항목은 빈 문자열.
+  String get version => doc?.version ?? '';
 }
 
 /// 약관 동의 바텀시트 (디자인 `SVTermsSheet`)
 ///
-/// 필수 3개 항목이 모두 체크되어야 '확인' 버튼 활성화
+/// 필수 4개 항목이 모두 체크되어야 '확인' 버튼 활성화
 /// '>' 버튼 탭 시 [TermsDetailScreen] 으로 이동
-/// [onConfirmed]: 확인 버튼 탭 후 시트가 닫힌 뒤 호출되는 콜백
+/// [onConfirmed]: 확인 버튼 탭 후 시트가 닫힌 뒤, **항목별 동의 여부**와 함께
+///   호출되는 콜백. 넘기는 map 은 `users.agreements` 에 그대로 저장된다 —
+///   선택 항목을 안 눌렀으면 `agreed: false` 로 **기록까지 한다**(빼면
+///   '거부'와 '안 물어봤다'가 구분되지 않는다).
 ///
 /// Figma node: 2151:7534 / 2151:7542 (전체 동의 완료 상태)
 class TermsAgreementSheet extends StatefulWidget {
-  final Future<void> Function()? onConfirmed;
+  final Future<void> Function(Map<String, TermsAgreementInput> agreements)?
+  onConfirmed;
 
   const TermsAgreementSheet({super.key, this.onConfirmed});
 
@@ -44,7 +64,11 @@ class _TermsAgreementSheetState extends State<TermsAgreementSheet> {
   // 위치정보법 제18조가 이용약관과 **별도의** 약관·동의를 요구한다.
   final List<_TermsItem> _items = [
     _TermsItem(title: '개인정보 수집·이용 동의', required: true, doc: LegalDoc.privacy),
-    _TermsItem(title: '만 19세 이상입니다', required: true),
+    _TermsItem(
+      title: '만 19세 이상입니다',
+      required: true,
+      fallbackKey: kAgreementAge19,
+    ),
     _TermsItem(title: '서비스 이용약관 동의', required: true, doc: LegalDoc.terms),
     _TermsItem(title: '위치기반서비스 이용 동의', required: true, doc: LegalDoc.location),
     _TermsItem(title: '마케팅 정보 수신 동의', required: false, doc: LegalDoc.marketing),
@@ -230,7 +254,13 @@ class _TermsAgreementSheetState extends State<TermsAgreementSheet> {
             onTap: _allRequiredChecked
                 ? () {
                     Navigator.pop(context);
-                    widget.onConfirmed?.call();
+                    widget.onConfirmed?.call({
+                      for (final item in _items)
+                        item.key: (
+                          agreed: item.checked,
+                          version: item.version,
+                        ),
+                    });
                   }
                 : null,
           ),

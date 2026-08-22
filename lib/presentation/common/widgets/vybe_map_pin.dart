@@ -7,16 +7,14 @@ class VybeMapPinPainter extends CustomPainter {
   final Color color;
   const VybeMapPinPainter({this.color = VybeColors.mainPurple700});
 
-  @override
-  void paint(Canvas canvas, Size size) {
+  /// 핀 몸통 경로 (viewBox 24 x 27을 [size]에 맞춰 늘린 것).
+  ///
+  /// VYBE 추천 핀은 같은 몸통에 그라데이션·글로우·왕관만 얹으므로
+  /// 경로를 복사하지 않고 여기서 가져다 쓴다.
+  static Path buildPath(Size size) {
     final sx = size.width / 24;
     final sy = size.height / 27;
-
-    final bodyPaint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-
-    final path = Path()
+    return Path()
       ..moveTo(12 * sx, 0)
       ..cubicTo(16.4183 * sx, 0, 20 * sx, 3.58172 * sy, 20 * sx, 8 * sy)
       ..cubicTo(19.9999 * sx, 10.5544 * sy, 18.8005 * sx, 12.8264 * sy,
@@ -29,16 +27,28 @@ class VybeMapPinPainter extends CustomPainter {
           4 * sx, 8 * sy)
       ..cubicTo(4 * sx, 3.58172 * sy, 7.58172 * sx, 0, 12 * sx, 0)
       ..close();
+  }
 
-    canvas.drawPath(path, bodyPaint);
-
+  /// 핀 머리 가운데 흰 점. 몸통과 함께 그려야 핀으로 읽힌다.
+  static void paintHole(Canvas canvas, Size size) {
     canvas.drawCircle(
-      Offset(12 * sx, 8 * sy),
-      3 * sx,
+      Offset(size.width / 2, 8 * size.height / 27),
+      3 * size.width / 24,
       Paint()
         ..color = const Color(0xFFFFFFFF)
         ..style = PaintingStyle.fill,
     );
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawPath(
+      buildPath(size),
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.fill,
+    );
+    paintHole(canvas, size);
   }
 
   @override

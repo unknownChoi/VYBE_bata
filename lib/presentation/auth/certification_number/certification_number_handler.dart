@@ -166,6 +166,7 @@ mixin _CertificationNumberHandlerMixin on _CertificationNumberLogicMixin {
         phone: widget.phoneNumber,
         birthDate: widget.birthDate,
         gender: widget.gender,
+        agreements: widget.agreements,
       );
       if (!mounted) return;
 

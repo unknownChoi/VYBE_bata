@@ -7,6 +7,11 @@ import 'package:vybe/presentation/my_page/widgets/setting_row.dart';
 
 /// 설정 화면의 그룹 블록들. 화면은 상태만 들고 여기에 값·콜백을 넘긴다.
 
+/// 마케팅 알림 토글 키. 이 토글만 값이 로컬이 아니라 서버
+/// (`users.agreements.marketing`)에 있어서 **동의 기록과 같은 키**를 쓴다 —
+/// 가입 때 받은 마케팅 수신 동의가 그대로 토글 기본값이 된다.
+final String kMarketingToggleKey = LegalDoc.marketing.name;
+
 /// 알림 그룹 — '푸시 알림'이 마스터.
 ///
 /// 마스터를 끄면 하위 4개를 흐리게 하고 잠근다(디자인 opacity .4 +
@@ -78,7 +83,7 @@ class SettingsNotificationGroup extends StatelessWidget {
                 _row(
                   label: '마케팅 · 홍보 알림',
                   sub: '혜택·이벤트 정보 수신',
-                  key: 'marketing',
+                  key: kMarketingToggleKey,
                   last: true,
                 ),
               ],
@@ -90,10 +95,13 @@ class SettingsNotificationGroup extends StatelessWidget {
   }
 }
 
-/// 계정 그룹 — 고객센터 · 법적 고지 3종 · 로그아웃.
+/// 계정 그룹 — 고객센터 · 이용약관 · 로그아웃.
 class SettingsAccountGroup extends StatelessWidget {
   final VoidCallback onSupport;
-  final ValueChanged<LegalDoc> onLegal;
+
+  /// 법적 고지 문서 목록 화면(`LegalScreen`)을 연다.
+  final VoidCallback onLegal;
+
   final VoidCallback onLogout;
 
   const SettingsAccountGroup({
@@ -115,19 +123,16 @@ class SettingsAccountGroup extends StatelessWidget {
           control: const SettingValueChevron(),
           onTap: onSupport,
         ),
-        // 법적 고지는 문서마다 별개다 — 한 화면에 뭉치면 어느 문서에 동의했는지
-        // 확인할 수 없다. 마케팅 동의(선택)는 알림 설정에서 다루므로 여기선 뺀다.
-        for (final doc in const [
-          LegalDoc.terms,
-          LegalDoc.privacy,
-          LegalDoc.location,
-        ])
-          SettingRow(
-            icon: RenewIcons.user,
-            label: doc.title,
-            control: const SettingValueChevron(),
-            onTap: () => onLegal(doc),
-          ),
+        // 법적 고지는 문서가 4종이라 설정 목록에 한 줄씩 늘어놓으면 계정 그룹이
+        // 약관으로 가득 찬다 → '이용약관' 한 줄로 묶고 목록은 그 안에서 본다.
+        // (문서 자체를 합치지는 않는다 — 개정일이 문서마다 다르다)
+        SettingRow(
+          icon: RenewIcons.doc,
+          label: '이용약관',
+          sub: '서비스 이용약관 · 개인정보처리방침 등',
+          control: const SettingValueChevron(),
+          onTap: onLegal,
+        ),
         SettingRow(
           icon: RenewIcons.logout,
           label: '로그아웃',

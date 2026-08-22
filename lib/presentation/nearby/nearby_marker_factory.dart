@@ -41,6 +41,7 @@ class NearbyMarkerFactory {
           rating: club.rating,
           reviewCount: club.reviewCount,
           isOpen: isOpen,
+          isRecommended: club.isVybeRecommended,
         ),
         size: Size(NearbyPin.canvasWidth.r, NearbyPin.canvasHeight.r),
         context: contextOf(),

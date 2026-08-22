@@ -297,6 +297,7 @@
   <a href="#gate-chain" class="sub">앱 시작 게이트 체인</a>
   <a href="#auto-login" class="sub">자동 로그인 / 세션 유지</a>
   <a href="#feature-phone-account" class="sub">전화번호 주인 판정 · 재로그인</a>
+  <a href="#feature-terms" class="sub">약관 동의 기록</a>
   <a href="#account-deletion" class="sub">회원 탈퇴 · 30일 보관</a>
   <a href="#account-restore" class="sub">└ 보관 기간 내 재로그인 복구</a>
   <a href="#feature-version" class="sub">버전 게이트 · 강제 업데이트</a>
@@ -685,7 +686,7 @@ logFirebaseAccess(
     <span class="kw">→</span> 마지막 '확인' 에서 <strong>주인 판정 먼저</strong> (약관 시트보다 앞)<br>
     &nbsp;&nbsp;&nbsp;• 차단 → 토스트 + <code>abortSignup()</code><br>
     &nbsp;&nbsp;&nbsp;• 내 계정 → 약관 생략 <span class="kw">→</span> <code>CertificationNumberScreen(isLogin: true)</code><br>
-    &nbsp;&nbsp;&nbsp;• 신규 → 약관 시트 <span class="kw">→</span> <code>CertificationNumberScreen(isLogin: false)</code><br>
+    &nbsp;&nbsp;&nbsp;• 신규 → 약관 시트 <span class="kw">→</span> <code>CertificationNumberScreen(isLogin: false, agreements:)</code><br>
     <span class="kw">→</span> 인증번호 화면에서 <strong>한 번 더 판정</strong> <span class="kw">→</span> <code>phoneLogin</code>/<code>finalizeLogin</code> <span class="kw">→</span> <code>saveUserProfile</code>
   </div>
 
@@ -716,6 +717,81 @@ logFirebaseAccess(
   지금까지는 "이미 있는 번호는 차단"이 <u>우연히</u> 계정 탈취를 막고 있었는데, 재로그인을 허용하면서 그 방벽이 사라졌다.
   <strong>남의 전화번호 + <code>123456</code> 만으로 그 계정에 로그인된다.</strong>
   <u>Firebase Phone Auth(실제 SMS) 연동 전까지 프로덕션 배포 금지.</u></div>
+</section>
+
+<!-- ========================= TERMS AGREEMENT ========================= -->
+<section id="feature-terms">
+  <h2>약관 동의 기록 <span class="pill pk">2026.08.22</span></h2>
+  <p>가입 시 약관 시트에서 <strong>어떤 항목에 동의/비동의 했는지</strong>를 유저별로 남긴다. 지금까지는 "필수 4개를 다 체크했다"는 사실만 화면에서 확인하고 <u>버리고 있었다</u> — 어느 판본에 언제 동의했는지 증명할 수단이 없었고, 선택 항목(마케팅)의 수신 동의 여부도 저장되지 않았다.</p>
+
+  <h3>저장 위치 — <code>users/{uid}.agreements</code> (서브컬렉션 아님)</h3>
+  <table>
+    <tr><th>키</th><th>항목</th><th>필수</th><th>문서</th></tr>
+    <tr><td><code>privacy</code></td><td>개인정보 수집·이용 동의</td><td class="yes">필수</td><td><code>LegalDoc.privacy</code></td></tr>
+    <tr><td><code>age19</code></td><td>만 19세 이상입니다</td><td class="yes">필수</td><td class="no">없음 (확인 항목)</td></tr>
+    <tr><td><code>terms</code></td><td>서비스 이용약관 동의</td><td class="yes">필수</td><td><code>LegalDoc.terms</code></td></tr>
+    <tr><td><code>location</code></td><td>위치기반서비스 이용 동의</td><td class="yes">필수</td><td><code>LegalDoc.location</code> — 위치정보법 §18 이 이용약관과 <u>별도</u> 동의를 요구</td></tr>
+    <tr><td><code>marketing</code></td><td>마케팅 정보 수신 동의</td><td>선택</td><td><code>LegalDoc.marketing</code></td></tr>
+  </table>
+
+  <div class="tree">users/{uid}
+  agreements : {
+    terms:     { agreed: true,  version: "2026-08-20", agreedAt: &lt;ts&gt; },
+    privacy:   { agreed: true,  version: "2026-08-20", agreedAt: &lt;ts&gt; },
+    location:  { agreed: true,  version: "2026-08-20", agreedAt: &lt;ts&gt; },
+    marketing: { agreed: false, version: "2026-08-20", agreedAt: &lt;ts&gt; },   <span class="cmt">// 안 눌러도 false 로 기록</span>
+    age19:     { agreed: true,  version: "",           agreedAt: &lt;ts&gt; }    <span class="cmt">// 읽을 문서가 없어 version 빈 값</span>
+  }</div>
+
+  <table>
+    <tr><th>결정</th><th>이유</th></tr>
+    <tr><td>서브컬렉션이 아니라 <strong>users 문서 안의 map</strong></td><td>항목이 5개로 고정이고 프로필과 <u>항상 같이</u> 읽힌다. 서브컬렉션이면 동의 현황을 볼 때마다 쿼리가 한 번 더 나간다 — 지금은 <strong>read·write 추가 0</strong> (가입 때 쓰던 <code>set</code> 한 번에 얹는다)</td></tr>
+    <tr><td>비동의도 <code>agreed: false</code> 로 <strong>기록한다</strong></td><td>키를 빼면 '거부했다'와 '아직 안 물어봤다'가 구분되지 않는다. 약관이 늘었을 때 <u>누구에게 추가 동의를 받아야 하는지</u>가 이 차이로 갈린다</td></tr>
+    <tr><td><code>version</code>(문서 개정일)을 같이 쓴다</td><td>약관을 개정하면 <strong>재동의 대상</strong>을 골라야 한다. 동의 여부만 남기면 구판에 동의한 사람과 신판에 동의한 사람이 섞인다. 값은 <code>LegalDoc.version</code></td></tr>
+    <tr><td>키 = <code>LegalDoc.name</code></td><td>라벨(한글 제목)을 키로 쓰면 문구를 다듬을 때마다 전 유저 문서가 어긋난다 — <code>provider</code>·<code>gender</code>·<code>facilities</code> 와 같은 규칙(영문 키만 저장)</td></tr>
+    <tr><td>재로그인 경로는 <strong>안 쓴다</strong></td><td><code>isLogin=true</code> 는 약관 시트를 건너뛰므로 <code>agreements</code> 가 <code>null</code> 로 내려온다 → 이미 저장된 기록을 덮지 않는다. 재로그인의 <u>Firestore 쓰기 0</u> 원칙도 유지</td></tr>
+  </table>
+
+  <div class="note danger"><strong><code>agreedAt</code> 은 중첩 map 안의 <code>serverTimestamp()</code> 다.</strong> Firestore 는 sentinel 을 <u>중첩 map 안에서는 허용하지만 배열 안에서는 거부</u>한다 — 항목을 <code>list</code> 로 바꾸면 쓰기가 통째로 실패한다. 같은 이유로 <code>UserModel.toFirestore()</code> 에서는 <code>agreements</code> 를 <strong>일부러 뺐다</strong>: 프로필을 저장할 때마다 map 을 다시 쓰면 <u>'동의한 시각'이 프로필 수정 시각으로 덮인다</u>.</div>
+
+  <div class="note"><strong>이력은 남지 않는다 (덮어쓰기).</strong> 마케팅 동의를 껐다 켜면 직전 상태는 사라지고 마지막 값만 남는다. 수신동의 <u>철회 이력</u>까지 보관해야 하면 <code>users/{uid}/agreementLogs/{logId}</code> 를 따로 둘 것 — 지금은 동의를 바꾸는 경로 자체가 없어 미룬다.</div>
+
+  <h3>Rules · 인덱스 · Functions</h3>
+  <table>
+    <tr><th>항목</th><th>변경</th></tr>
+    <tr><td>Firestore Rules</td><td><span class="no">없음</span> — <code>agreements</code> 는 <code>users</code> update 금지 키(<code>uid</code>·<code>provider</code>·<code>createdAt</code>·<code>status</code>·<code>deletedAt</code>·<code>purgeAt</code>)에 넣지 <u>않는다</u>. 본인의 동의 여부라 본인이 고칠 수 있어야 마케팅 수신 철회를 붙일 수 있다</td></tr>
+    <tr><td>인덱스</td><td><span class="no">불필요</span> — 문서 안의 map 이고 쿼리 대상이 아니다</td></tr>
+    <tr><td>Cloud Functions</td><td><span class="no">불필요</span> — 집계가 아니고 클라가 직접 쓴다(가입 1회 + 마케팅 토글)</td></tr>
+    <tr><td>기존 유저</td><td>필드 없음 → <code>parseAgreements()</code> 가 빈 map 으로 읽는다. <strong>백필 안 한다</strong> — 동의한 판본·시각을 모르는데 지어내면 그게 더 나쁜 기록이다</td></tr>
+  </table>
+
+  <h3>관련 파일</h3>
+  <table>
+    <tr><th>파일</th><th>역할</th></tr>
+    <tr><td><code>data/models/terms_agreement.dart</code></td><td><code>TermsAgreement</code>(저장값) · <code>TermsAgreementInput</code>(화면 → datasource) · <code>kAgreementAge19</code> · <code>parseAgreements()</code></td></tr>
+    <tr><td><code>presentation/auth/terms/legal_documents.dart</code></td><td>문서 원문 + <code>LegalDoc.version</code>. <strong>본문을 고치면 version 도 같이 올린다</strong> — 안 그러면 새 판본에 동의한 것으로 기록돼 재동의 대상에서 빠진다</td></tr>
+    <tr><td><code>presentation/auth/widgets/terms_agreement_sheet.dart</code></td><td>체크 결과 → <code>Map&lt;String, TermsAgreementInput&gt;</code> 로 <code>onConfirmed</code> 에 실어 보낸다</td></tr>
+    <tr><td><code>identity_verification_handler.dart</code> → <code>CertificationNumberScreen</code></td><td>시트 결과를 인증번호 화면까지 들고 간다 (실제 계정 생성은 거기서)</td></tr>
+    <tr><td><code>firebase_user_datasource.setUserProfile()</code></td><td>가입 <code>set(merge)</code> 한 번에 <code>agreements</code> 를 같이 쓴다</td></tr>
+    <tr><td><code>firebase_user_datasource.setAgreement()</code></td><td>동의 <strong>한 건만</strong> 교체 — 설정 화면의 마케팅 수신 켬/끔. 점 표기 <code>agreements.marketing</code></td></tr>
+    <tr><td><code>my_page/settings_screen.dart</code> · <code>widgets/settings_groups.dart</code></td><td>'마케팅 · 홍보 알림' 토글. 키는 <code>kMarketingToggleKey</code>(= <code>LegalDoc.marketing.name</code>) 하나</td></tr>
+    <tr><td><code>test/terms_agreement_sheet_test.dart</code></td><td>전체 동의 / 선택만 해제 / 필수 미체크 3건</td></tr>
+    <tr><td><code>test/settings_screen_test.dart</code></td><td>동의 시 켜짐 / 비동의 시 꺼짐 / 끄면 철회 기록 3건</td></tr>
+  </table>
+
+  <h3>마케팅 수신 동의 ↔ 설정 토글 <span style="font-size:13px;color:var(--muted);">(2026.08.22)</span></h3>
+  <div class="note">설정 &gt; 알림의 <strong>'마케팅 · 홍보 알림'</strong> 토글이 <code>agreements.marketing</code> 을 <u>직접 읽고 쓴다</u>. 가입 때 동의했으면 <strong>켜진 채로 시작</strong>하고, 끄면 <code>agreed:false</code> + 그때의 <code>version</code>·<code>agreedAt</code> 으로 <strong>철회가 기록</strong>된다.</div>
+  <table>
+    <tr><th>규칙</th><th>이유</th></tr>
+    <tr><td>알림 그룹에서 <strong>마케팅만</strong> 서버에 산다</td><td>나머지는 표시 설정이지만 이건 <u>수신 동의</u> 자체다. 로컬로 두면 약관이 약속한 '설정에서 언제든 해제'가 앱을 껐다 켜면 되살아난다</td></tr>
+    <tr><td>점 표기 <code>agreements.marketing</code> 로만 쓴다</td><td><code>set(merge)</code> 로 map 을 통째로 얹으면 손대지 않은 <strong>필수 약관의 <code>agreedAt</code> 까지 오늘로 덮인다</strong> — 동의 시각은 분쟁 시 근거다</td></tr>
+    <tr><td>키는 <code>kMarketingToggleKey</code> 한 곳</td><td>화면 토글 키와 Firestore 키가 갈라지면 가입 때 받은 동의가 <u>조용히</u> 반영되지 않는다</td></tr>
+    <tr><td>쓰기 실패 = 표시 되돌림 + 토스트</td><td>조용히 넘기면 껐다고 생각한 사용자에게 계속 광고가 나간다</td></tr>
+    <tr><td>비로그인이면 안내 토스트</td><td>알림 화면에서도 설정으로 들어올 수 있어 <code>uid</code> 가 없을 수 있다</td></tr>
+  </table>
+  <div class="note danger">⚠ <strong>이력은 안 남는다</strong> — 같은 자리를 덮어써서 마지막 값만 있다. 수신 동의 <u>철회 이력</u>까지 보관해야 하면 <code>users/{uid}/agreementLogs</code> 를 따로 둘 것.</div>
+
+  <div class="note"><strong>남은 것</strong> — 약관 개정 시 재동의 받는 화면(현재 <code>version</code> 은 쌓아만 둔다).</div>
 </section>
 
 <!-- ========================= ACCOUNT DELETION ========================= -->
@@ -1325,6 +1401,7 @@ photos.userId     COLLECTION + COLLECTION_GROUP                     <span class=
     <tr><td class="field-name">profileImageUrl</td><td class="ftype">string</td><td>Storage 프로필 이미지 URL</td></tr>
     <tr><td class="field-name">provider</td><td class="ftype">string</td><td>"naver" | "apple"</td></tr>
     <tr><td class="field-name">isVerified</td><td class="ftype">boolean</td><td>본인인증 완료 여부 (초기값 false)</td></tr>
+    <tr><td class="field-name">agreements</td><td class="ftype">map</td><td>약관 동의 기록. 키는 <code>terms</code>·<code>privacy</code>·<code>location</code>·<code>marketing</code>(= <code>LegalDoc.name</code>) + <code>age19</code>, 값은 <code>{ agreed: bool, version: string, agreedAt: timestamp }</code>.<br><strong>비동의도 <code>agreed:false</code> 로 남긴다</strong> — 키를 빼면 '거부'와 '안 물어봤다'가 구분되지 않는다. <code>version</code> 은 동의한 문서의 개정일(<code>YYYY-MM-DD</code>) — 약관 개정 시 재동의 대상을 고르는 기준.<br>가입 때 <strong>한 번만</strong> 쓴다(재로그인은 <code>null</code> → 기존 기록 보존). 도입 전 가입자는 필드 없음 = 빈 map.<br>⚠ <code>marketing</code> 만 예외로 <strong>가입 후에도 바뀐다</strong> — 설정 &gt; 알림의 '마케팅 · 홍보 알림' 토글이 곧 이 값이다(<code>setAgreement()</code>, 점 표기로 그 항목만 교체). <a href="#feature-terms">설계</a></td></tr>
     <tr><td class="field-name">status</td><td class="ftype">string</td><td>"active" | "pendingDeletion" — 탈퇴 대기 여부. <strong>필드가 없으면 active</strong>로 본다</td></tr>
     <tr><td class="field-name">deletedAt</td><td class="ftype">timestamp?</td><td>탈퇴 요청 시각</td></tr>
     <tr><td class="field-name">purgeAt</td><td class="ftype">timestamp?</td><td><code>deletedAt + 30일</code> — 완전 파기 예정 시각 = 재가입 가능 시점</td></tr>
@@ -1476,7 +1553,7 @@ photos.userId     COLLECTION + COLLECTION_GROUP                     <span class=
   <table>
     <tr><th>필드</th><th>타입</th><th>설명</th></tr>
     <tr><td class="field-name">bannerId</td><td class="ftype">string</td><td><span class="pill pk">PK</span> (= doc.id fallback)</td></tr>
-    <tr><td class="field-name">imageUrl</td><td class="ftype">string</td><td>배너 이미지 URL</td></tr>
+    <tr><td class="field-name">imageUrl</td><td class="ftype">string</td><td>배너 이미지 URL — 권장 원본 <strong>1026 × 600 px</strong> (비율 1.71:1, 아래 규격 표 참고)</td></tr>
     <tr><td class="field-name">linkType</td><td class="ftype">string</td><td><code>"promotion" | "club" | "page" | "url"</code> — 탭 시 이동 방식. 알 수 없는 값은 <strong>이동 없음</strong>으로 폴백</td></tr>
     <tr><td class="field-name">linkValue</td><td class="ftype">string</td><td>링크 대상 값 — promotion: promotionId / club: clubId / page: 화면 키 / url: URL</td></tr>
     <tr><td class="field-name">order</td><td class="ftype">number</td><td>정렬 순서 (오름차순)</td></tr>
@@ -1487,6 +1564,19 @@ photos.userId     COLLECTION + COLLECTION_GROUP                     <span class=
   </table>
   <div class="note">홈 배너 데이터 소스. <code>getActiveBanners()</code>는 <code>isActive=true</code> 쿼리 후 클라이언트에서 <code>startAt &lt; now &lt; endAt</code> 필터 + <code>order</code> 정렬.</div>
   <div class="note"><strong>탭 라우팅</strong>은 <code>core/navigation/banner_link_handler.dart</code> 한 곳에서 <code>linkType</code> 으로 분기한다. 현재 연결된 것은 <code>promotion</code> 뿐 — club·page·url 은 미연결이라 조용히 무시된다.</div>
+
+  <h3>🖼 배너 이미지 규격 <span style="font-size:13px;color:var(--muted);">(2026.08.21)</span></h3>
+  <div class="note">카드 실측은 <code>home/widgets/home_banner.dart</code> — 높이 <code>200.h</code>, 폭 = 화면폭 × 0.9(<code>PageController(viewportFraction: 0.9)</code>) − <code>12.w</code>(좌우 패딩 6+6), <code>BoxFit.cover</code>. 기준 393×852에서 <strong>342 × 200 logical px = 비율 1.71:1</strong>.</div>
+  <table>
+    <tr><th>항목</th><th>값</th></tr>
+    <tr><td class="field-name">권장 원본</td><td><strong>1026 × 600 px</strong> (3x). 더 선명히 하려면 1368 × 800 (4x, 같은 비율)</td></tr>
+    <tr><td class="field-name">포맷·용량</td><td>JPEG 또는 WebP, 300KB 이하</td></tr>
+    <tr><td class="field-name">상하 안전영역</td><td>위·아래 각 <strong>9%</strong>(1026×600 기준 54px)가 잘릴 수 있다 — 글자·로고는 그 안쪽에</td></tr>
+    <tr><td class="field-name">우하단 회피</td><td><code>1 / 4</code> 카운터 pill 이 덮는다 — 오른쪽 아래 약 110 × 40px 비울 것</td></tr>
+    <tr><td class="field-name">하단 45%</td><td>앱이 검정 그라데이션(<code>0xC708080C</code>)을 덮는다 → <strong>밝은 글자</strong>를 쓸 것</td></tr>
+  </table>
+  <div class="note">⚠ <strong>기기마다 카드 비율이 달라진다</strong> — <code>.w</code>(가로 비)와 <code>.h</code>(세로 비)가 따로 스케일돼 폭·높이가 다른 계수로 늘어난다. iPhone SE(375×667)에서 <strong>2.08:1</strong>로 가장 납작하고, iPhone 15 · 15 Pro Max 는 1.71:1. <code>cover</code> 라 납작한 기기에서 위아래가 잘리므로 안전영역 9% 는 <strong>SE 기준</strong>이다.</div>
+  <div class="note">⚠ 이 비율은 <strong>홈 배너 전용</strong> — <code>promotions.heroImageUrl</code>(상세 히어로)은 별도 비율이라 같은 파일을 재사용하지 않는다.</div>
 </section>
 
 <!-- promotions -->

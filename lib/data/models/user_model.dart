@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:vybe/data/models/terms_agreement.dart';
 
 part 'user_model.freezed.dart';
 
@@ -18,6 +19,10 @@ abstract class UserModel with _$UserModel {
     required String profileImageUrl,
     required String provider,
     required bool isVerified,
+
+    /// 약관 동의 기록. 키는 `LegalDoc.name` + [kAgreementAge19].
+    /// 동의 기록 도입(2026.08.22) 전에 가입한 유저는 빈 map.
+    required Map<String, TermsAgreement> agreements,
     required DateTime createdAt,
     required DateTime updatedAt,
   }) = _UserModel;
@@ -33,6 +38,7 @@ abstract class UserModel with _$UserModel {
       profileImageUrl: data['profileImageUrl'] as String? ?? '',
       provider: data['provider'] as String? ?? '',
       isVerified: data['isVerified'] as bool? ?? false,
+      agreements: parseAgreements(data['agreements']),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
@@ -47,6 +53,9 @@ abstract class UserModel with _$UserModel {
     'profileImageUrl': profileImageUrl,
     'provider': provider,
     'isVerified': isVerified,
+    // agreements 는 일부러 뺐다 — 이 map 을 통째로 다시 쓰면 nested
+    // serverTimestamp 가 매번 새로 찍혀 '동의한 시각'이 프로필 저장 시각으로
+    // 덮인다. 동의 기록은 setUserProfile 이 가입 때 한 번만 쓴다.
     'updatedAt': FieldValue.serverTimestamp(),
   };
 }

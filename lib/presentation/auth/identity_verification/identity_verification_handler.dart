@@ -157,16 +157,23 @@ mixin _IdentityVerificationHandlerMixin
       barrierColor: SignupSheet.barrier,
       isScrollControlled: true,
       builder: (_) => TermsAgreementSheet(
-        onConfirmed: () async {
+        onConfirmed: (agreements) async {
           if (!mounted) return;
-          _goToCertification(phone, isLogin: false);
+          _goToCertification(phone, isLogin: false, agreements: agreements);
         },
       ),
     );
   }
 
   /// 인증번호 화면으로 이동. [isLogin] 이면 프로필이 이미 있는 계정의 재로그인.
-  void _goToCertification(String phone, {required bool isLogin}) {
+  ///
+  /// [agreements] 는 신규 가입일 때만 실린다 — 재로그인은 약관 시트를 건너뛰고
+  /// 이미 저장된 동의 기록을 그대로 둔다.
+  void _goToCertification(
+    String phone, {
+    required bool isLogin,
+    Map<String, TermsAgreementInput>? agreements,
+  }) {
     final birthFront = _birthFrontCtrl.text; // YYMMDD
     final genderCode = _birthBackCtrl.text; // 1~4
     final century = (genderCode == '1' || genderCode == '2') ? '19' : '20';
@@ -183,6 +190,7 @@ mixin _IdentityVerificationHandlerMixin
           gender: genderFromCode(genderCode),
           method: widget.method,
           isLogin: isLogin,
+          agreements: agreements,
         ),
       ),
     );

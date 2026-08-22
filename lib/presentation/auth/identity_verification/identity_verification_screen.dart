@@ -9,6 +9,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vybe/data/models/terms_agreement.dart';
 import 'package:vybe/presentation/auth/certification_number/certification_number_screen.dart';
 import 'package:vybe/presentation/auth/signup_flow.dart';
 import 'package:vybe/presentation/auth/viewmodels/auth_viewmodel.dart';

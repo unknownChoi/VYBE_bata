@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vybe/core/providers/auth_providers.dart';
 import 'package:vybe/core/storage/local_prefs.dart';
+import 'package:vybe/data/repositories/user_repository_impl.dart';
 import 'package:vybe/presentation/auth/terms/legal_documents.dart';
-import 'package:vybe/presentation/auth/terms/terms_detail_screen.dart';
 import 'package:vybe/presentation/auth/viewmodels/auth_viewmodel.dart';
 import 'package:vybe/presentation/common/renew/renew_glass.dart';
 import 'package:vybe/presentation/common/renew/renew_icons.dart';
@@ -12,10 +13,12 @@ import 'package:vybe/presentation/common/widgets/vybe_confirm_dialog.dart';
 import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
 import 'package:vybe/presentation/main_scaffold/nav_bar_hide_route.dart';
 import 'package:vybe/presentation/my_page/account_delete_screen.dart';
+import 'package:vybe/presentation/my_page/legal_screen.dart';
 import 'package:vybe/presentation/my_page/viewmodels/settings_viewmodel.dart';
 import 'package:vybe/presentation/my_page/widgets/my_page_common.dart';
 import 'package:vybe/presentation/my_page/widgets/setting_row.dart';
 import 'package:vybe/presentation/my_page/widgets/settings_groups.dart';
+import 'package:vybe/presentation/profile/viewmodels/user_viewmodel.dart';
 
 // ============================================================
 // 설정 — 리뉴얼 (my_renew.html · MRSettingsScreen)
@@ -26,6 +29,10 @@ import 'package:vybe/presentation/my_page/widgets/settings_groups.dart';
 // 디자인과 다른 점
 // - **알림·위치·사운드 토글은 로컬 상태만** — 베타 범위에 설정 서버 저장도,
 //   푸시 연동도 없다. 저장해 두면 동작하지 않는 설정이 켜져 있는 것처럼 보인다.
+//   ⚠ **'마케팅 · 홍보 알림'만 예외**로 서버(`users.agreements.marketing`)에
+//   저장한다 — 그 값이 곧 가입 때 받은 **수신 동의**라서다. 가입 시 동의했으면
+//   켜진 채로 시작하고, 여기서 끄면 동의 철회로 기록된다. 로컬로만 두면
+//   약관·법적 고지가 약속한 '설정에서 언제든 해제'가 앱을 껐다 켜면 되살아난다.
 // - **자동 로그인 유지**는 디자인에 없지만 실제 동작이 걸린 설정이라 남겼다.
 //   유일하게 기기에 저장된다([LocalPrefs]).
 // - **테마·언어**는 값 + 꺾쇠까지 디자인대로 그리되 고를 것이 하나뿐이라
@@ -44,16 +51,24 @@ class SettingsScreen extends ConsumerStatefulWidget {
 const double _kGroupGap = 26;
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  /// 기기에도 서버에도 저장되지 않는 표시 전용 토글들.
+  /// 마케팅은 서버 값을 쓰므로 여기 없다.
   final Map<String, bool> _toggles = {
     'push': true,
     'showtime': true,
     'saved': true,
     'review': false,
-    'marketing': false,
     'location': true,
     'sound': true,
   };
   bool _clearing = false;
+
+  /// 마케팅 수신 토글을 방금 뒤집었을 때의 임시 표시값.
+  ///
+  /// null 이면 서버(`users.agreements.marketing`) 값을 그대로 보여준다.
+  /// 쓰기가 끝나면(= 스트림이 새 값을 이미 내보낸 뒤) 다시 null 로 돌려
+  /// **다른 기기에서 바뀐 값도 가려지지 않게** 한다.
+  bool? _marketingOverride;
 
   /// 자동 로그인 유지 — 유일하게 기기에 저장되는 설정.
   /// 저장값을 읽어오기 전에는 기본값(켜짐)으로 그린다.
@@ -90,8 +105,50 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void _toggle(String key) =>
       setState(() => _toggles[key] = !(_toggles[key] ?? false));
 
+  /// 마케팅 수신 동의 켬/끔 — 서버에 기록한다(= 동의/철회).
+  ///
+  /// 표시를 먼저 뒤집고 쓰기가 실패하면 되돌린다([_toggleAutoLogin] 과 같은 방식).
+  /// 실패를 조용히 넘기면 껐다고 생각한 사용자에게 계속 광고가 나간다.
+  Future<void> _toggleMarketing(String? uid, bool current) async {
+    if (uid == null) {
+      VybeToast.show(context, message: '로그인 후 변경할 수 있어요');
+      return;
+    }
+    final next = !current;
+    setState(() => _marketingOverride = next);
+    try {
+      await ref
+          .read(userRepositoryProvider)
+          .setAgreement(
+            uid: uid,
+            key: kMarketingToggleKey,
+            agreed: next,
+            version: LegalDoc.marketing.version,
+          );
+      // 스트림이 이미 새 값을 내보낸 뒤라 되돌려도 화면은 그대로다.
+      if (mounted) setState(() => _marketingOverride = null);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _marketingOverride = null); // 서버 값으로 복귀
+      VybeToast.show(context, message: '설정을 저장하지 못했어요');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final uid = ref.watch(currentUidProvider);
+    // 가입 때 마케팅 약관에 동의했으면 켜진 채로 시작한다.
+    // 기록 자체가 없는(동의 기록 도입 전 가입) 유저는 꺼짐.
+    final agreedMarketing = uid == null
+        ? false
+        : ref
+                  .watch(currentUserProvider(uid))
+                  .value
+                  ?.agreements[kMarketingToggleKey]
+                  ?.agreed ??
+              false;
+    final marketingOn = _marketingOverride ?? agreedMarketing;
+
     return Scaffold(
       backgroundColor: RenewGlass.ink,
       body: Stack(
@@ -113,8 +170,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       SettingsNotificationGroup(
-                        toggles: _toggles,
-                        onToggle: _toggle,
+                        // 마케팅만 서버 값을 얹어 넘긴다 — 그룹 위젯은 값이
+                        // 어디서 왔는지 모른 채 키로만 그린다.
+                        toggles: {
+                          ..._toggles,
+                          kMarketingToggleKey: marketingOn,
+                        },
+                        onToggle: (key) => key == kMarketingToggleKey
+                            ? _toggleMarketing(uid, marketingOn)
+                            : _toggle(key),
                       ),
                       SizedBox(height: _kGroupGap.h),
                       _generalGroup(),
@@ -225,8 +289,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  void _openLegal(LegalDoc doc) =>
-      pushHidingNavBar<void>(context, TermsDetailScreen(doc: doc));
+  /// 약관·정책은 '이용약관' 목록 화면 한 곳에서 본다.
+  void _openLegal() => pushHidingNavBar<void>(context, const LegalScreen());
 
   /// 토글 상태를 [_toggles] 에서 읽어오는 설정 행.
   Widget _toggleRow({

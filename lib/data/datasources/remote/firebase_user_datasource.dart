@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:vybe/core/utils/firebase_logger.dart';
 import 'package:vybe/data/datasources/remote/firestore_paths.dart';
+import 'package:vybe/data/models/terms_agreement.dart';
 import 'package:vybe/data/models/user_model.dart';
 
 class FirebaseUserDataSource {
@@ -54,6 +55,7 @@ class FirebaseUserDataSource {
     required String birthDate,
     required String provider,
     String? gender,
+    Map<String, TermsAgreementInput>? agreements,
   }) async {
     logFirebaseAccess(
       file: 'firebase_user_datasource.dart',
@@ -85,9 +87,55 @@ class FirebaseUserDataSource {
       // 알 수 없으면 필드를 아예 쓰지 않는다 (빈 값 = '미입력'과 구분 불가).
       if (gender != null) 'gender': gender,
       'isVerified': true,
+      // 약관 동의 기록 — 가입(신규 프로필 저장) 때만 넘어온다.
+      // 재로그인 경로는 null 이라 이미 저장된 기록을 건드리지 않는다.
+      //
+      // ⚠ agreedAt 은 **중첩 map 안의** serverTimestamp 다. Firestore 는
+      //   중첩 map 안의 sentinel 은 허용하지만 **배열 안은 거부**한다 —
+      //   항목을 list 로 바꾸지 말 것.
+      if (agreements != null)
+        'agreements': {
+          for (final e in agreements.entries)
+            e.key: {
+              'agreed': e.value.agreed,
+              'version': e.value.version,
+              'agreedAt': FieldValue.serverTimestamp(),
+            },
+        },
       if (!exists) 'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
+  }
+
+  /// 약관 동의 기록 **한 건만** 갈아 끼운다 — 설정 화면의 마케팅 수신 켬/끔.
+  ///
+  /// ⚠ 점 표기(`agreements.marketing`)를 쓰는 이유 — [setUserProfile] 처럼
+  ///   `agreements` map 을 통째로 얹으면 손대지 않은 항목의 `agreedAt` 까지
+  ///   새 `serverTimestamp` 로 덮여 '동의한 시각'이 오늘로 밀린다.
+  ///   필수 약관 동의 시각은 분쟁 시 근거라 절대 흔들면 안 된다.
+  ///
+  /// 철회(`agreed: false`)도 같은 자리에 기록한다 — 값만 남고 이력은 안 남는다
+  /// ([TermsAgreement] 주석 참고).
+  Future<void> setAgreement({
+    required String uid,
+    required String key,
+    required bool agreed,
+    required String version,
+  }) async {
+    logFirebaseAccess(
+      file: 'firebase_user_datasource.dart',
+      service: 'Firestore(users/$uid) [agreements.$key]',
+      purpose: '약관 동의 항목 변경(마케팅 수신 동의 켬/끔)',
+    );
+    await _firestore.collection(FirestorePaths.users).doc(uid).update({
+      // 중첩 map 안의 serverTimestamp 는 허용된다(배열 안만 거부).
+      'agreements.$key': {
+        'agreed': agreed,
+        'version': version,
+        'agreedAt': FieldValue.serverTimestamp(),
+      },
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
   }
 
   Future<bool> isPhoneDuplicate(String phone) async {

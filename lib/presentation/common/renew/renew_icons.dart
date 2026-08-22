@@ -118,6 +118,12 @@ class RenewIcons {
       '<rect x="3" y="11" width="18" height="11" rx="2"/>'
       '<path d="M7 11V7a5 5 0 0 1 10 0v4"/>';
 
+  /// 약관·문서 — 접힌 문서.
+  static const String doc =
+      '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>'
+      '<polyline points="14 2 14 8 20 8"/>'
+      '<path d="M8 13h8M8 17h6"/>';
+
   /// 사용자 — 로그인 안내·빈 상태.
   static const String user =
       '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/>';

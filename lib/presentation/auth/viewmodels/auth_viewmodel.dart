@@ -1,4 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:vybe/data/models/terms_agreement.dart';
 import 'package:vybe/data/repositories/auth_repository_impl.dart';
 import 'package:vybe/data/repositories/user_repository_impl.dart';
 import 'package:vybe/presentation/auth/signup_flow.dart';
@@ -99,6 +100,9 @@ class AuthViewModel extends _$AuthViewModel {
     required String phone,
     required String birthDate,
     String? gender,
+
+    /// 약관 동의 시트에서 고른 결과. 재로그인 경로는 시트를 안 거쳐 null.
+    Map<String, TermsAgreementInput>? agreements,
   }) async {
     final uid = ref.read(authRepositoryProvider).currentUid;
     if (uid == null) return;
@@ -125,6 +129,7 @@ class AuthViewModel extends _$AuthViewModel {
           birthDate: birthDate,
           provider: provider,
           gender: gender,
+          agreements: agreements,
         );
   }
 
