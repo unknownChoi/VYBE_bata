@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vybe/core/providers/location_providers.dart';
 import 'package:vybe/data/models/club_info_model.dart';
 import 'package:vybe/data/models/club_model.dart';
+import 'package:vybe/data/models/club_table_layout.dart';
 import 'package:vybe/data/models/menu_model.dart';
 import 'package:vybe/data/models/operating_hours.dart';
 import 'package:vybe/data/models/photo_model.dart';
@@ -120,6 +121,39 @@ const _schedule = [
   ),
 ];
 
+/// 테이블 섹션용 최소 배치도 — VIP 2자리 · 1층.
+final _tableLayout = ClubTableLayout.fromMap({
+  'schemaVersion': 1,
+  'clubId': _clubId,
+  'tiers': [
+    {'key': 'vip', 'name': 'VIP', 'short': 'VIP', 'colorKey': 'blue', 'order': 0},
+  ],
+  'floors': [
+    {
+      'floorId': 'f1',
+      'name': '1F',
+      'order': 0,
+      'cols': 12,
+      'rows': 16,
+      'fixtures': [
+        {'id': 'fx1', 'type': 'stage', 'col': 1, 'row': 0, 'colSpan': 10, 'rowSpan': 2},
+      ],
+      'tables': [
+        {
+          'id': 'V1', 'tierKey': 'vip', 'name': '센터 1', 'desc': '플로어 옆',
+          'col': 0, 'row': 3, 'colSpan': 2, 'rowSpan': 2,
+          'price': 500000, 'minPeople': 6, 'minBottles': 2, 'minSpend': 500000,
+        },
+        {
+          'id': 'V2', 'tierKey': 'vip', 'name': '센터 2', 'desc': '플로어 옆',
+          'col': 10, 'row': 3, 'colSpan': 2, 'rowSpan': 2,
+          'price': 700000, 'minPeople': 8, 'minBottles': 3, 'minSpend': 700000,
+        },
+      ],
+    },
+  ],
+}, _clubId)!;
+
 Widget _app() => ProviderScope(
   overrides: [
     authStateProvider.overrideWith((ref) => Stream.value(null)),
@@ -142,6 +176,7 @@ Widget _app() => ProviderScope(
         updatedAt: DateTime(2026),
       ),
     ),
+    clubTableLayoutProvider(_clubId).overrideWith((ref) async => _tableLayout),
     clubMenusProvider(_clubId).overrideWith((ref) async => _menus),
     clubPhotosProvider(_clubId).overrideWith((ref) async => _photos),
     nearbyClubsProvider(_clubId).overrideWith((ref) async => [_club]),

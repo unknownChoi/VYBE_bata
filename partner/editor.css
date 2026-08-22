@@ -1,0 +1,88 @@
+/* 테이블 배치 편집기 — 로컬 도구(scripts/table_editor.html)와 업주 웹(partner/index.html) 공용. */
+
+:root {
+  --ink: #0e0d12;
+  --panel: #16151b;
+  --panel2: #1c1b22;
+  --line: #2c2b34;
+  --t1: #ffffff;
+  --t2: #d1d1d6;
+  --t3: #9f9fa1;
+  --purple: #7731fe;
+  --lime: #b5ff60;
+  --red: #ff5c5f;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--ink); color: var(--t1);
+  font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
+}
+.ed-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 18px; border-bottom: 1px solid var(--line); background: var(--panel);
+  position: sticky; top: 0; z-index: 10;
+}
+.ed-header h1 { font-size: 15px; margin: 0; font-weight: 700; letter-spacing: .2px; }
+.ed-header .spacer { flex: 1; }
+select, input, button, textarea {
+  font: inherit; color: var(--t1); background: var(--panel2);
+  border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px;
+}
+input[type=number] { width: 72px; }
+button { cursor: pointer; }
+button:hover { border-color: #45444f; }
+button.primary { background: var(--purple); border-color: var(--purple); font-weight: 700; }
+button.danger { color: var(--red); }
+button.on { background: var(--purple); border-color: var(--purple); }
+.muted { color: var(--t3); }
+
+.ed-main { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; padding: 18px; align-items: start; }
+.ed-main > div { min-width: 0; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+.card + .card { margin-top: 14px; }
+.card h2 { font-size: 13px; margin: 0 0 10px; color: var(--t2); font-weight: 700; }
+.row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.row + .row { margin-top: 8px; }
+label.field { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--t3); }
+label.field input, label.field select { width: 100%; }
+
+/* ── 격자 캔버스 ──
+   앱 캔버스(353px)와 비슷한 폭으로 묶는다 — 넓게 펴면 셀이 90px씩 되어 배치 감이 안 잡힌다. */
+.ed-canvas-wrap { position: relative; margin: 0 auto; max-width: 420px; touch-action: none; user-select: none; }
+.ed-canvas {
+  position: relative; width: 100%; border-radius: 14px; overflow: hidden;
+  background: radial-gradient(120% 90% at 50% 0%, #1b1b22 0%, #101014 72%);
+  border: 1px solid #404042;
+}
+.ed-grid { position: absolute; inset: 0; pointer-events: none; }
+.item {
+  position: absolute; border-radius: 9px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; cursor: grab; overflow: hidden;
+  font-size: 11px; line-height: 1.15; text-align: center; padding: 2px;
+}
+.item.sel { outline: 2px solid var(--lime); outline-offset: -1px; z-index: 5; }
+.item .tier { font-size: 9px; font-weight: 800; opacity: .95; }
+.item .price { font-size: 12px; font-weight: 800; color: #fff; }
+.item .fx { font-size: 10px; font-weight: 700; letter-spacing: 1px; }
+.handle {
+  position: absolute; right: 0; bottom: 0; width: 14px; height: 14px;
+  background: var(--lime); border-radius: 3px 0 8px 0; cursor: nwse-resize;
+}
+.legend { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 5px; color: var(--t3); font-size: 11px; }
+.dot { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+
+.list { display: flex; flex-direction: column; gap: 6px; max-height: 340px; overflow: auto; }
+.ed-status { font-size: 12px; }
+.warn { color: #ffd79a; }
+.err { color: var(--red); }
+.ok { color: var(--lime); }
+.hint { font-size: 11px; color: var(--t3); line-height: 1.6; margin-top: 8px; }
+
+/* ── 로그인 화면 (업주 웹 전용) ── */
+.signin-wrap { max-width: 360px; margin: 12vh auto; }
+.signin-wrap h1 { font-size: 18px; margin: 0 0 4px; }
+.signin-wrap p { color: var(--t3); margin: 0 0 18px; line-height: 1.6; }
+.signin-wrap label.field { margin-bottom: 10px; }
+.signin-wrap button { width: 100%; }

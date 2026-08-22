@@ -1,19 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vybe/data/models/club_table_layout.dart';
+import 'package:vybe/data/models/table_layout_palette.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/widgets/club_glass.dart';
-import 'package:vybe/presentation/clubs/widgets/table_pricing_data.dart';
+import 'package:vybe/presentation/common/table_price_format.dart';
 
-// 선택한 테이블 상세 — 등급·수용 인원·가격.
+// 선택한 테이블 상세 — 등급·가격·수용 인원·최소 주문.
 
-// ── 선택 자리 상세 카드 ──
+/// 배치도에서 고른 자리의 상세 카드.
 class ClubTableDetail extends StatelessWidget {
   final ClubTable table;
-  const ClubTableDetail({super.key, required this.table});
+  final TableTierDef tier;
+
+  const ClubTableDetail({super.key, required this.table, required this.tier});
 
   @override
   Widget build(BuildContext context) {
-    final tier = kTableTiers[table.tierKey]!;
+    final style = tierStyleOf(tier.colorKey);
     return GlassCard(
       margin: EdgeInsets.only(top: 14.h),
       padding: 16,
@@ -26,7 +30,7 @@ class ClubTableDetail extends StatelessWidget {
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 9.w, vertical: 3.h),
                 decoration: BoxDecoration(
-                  color: tier.soft,
+                  color: style.fill,
                   borderRadius: BorderRadius.circular(999.r),
                 ),
                 child: Text(
@@ -36,14 +40,16 @@ class ClubTableDetail extends StatelessWidget {
                     fontSize: 11.sp,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 0.33,
-                    color: tier.color,
+                    color: style.text,
                   ),
                 ),
               ),
               SizedBox(width: 8.w),
-              Flexible(
+              Expanded(
                 child: Text(
                   table.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontFamily: 'Pretendard',
                     fontSize: 15.sp,
@@ -52,18 +58,30 @@ class ClubTableDetail extends StatelessWidget {
                   ),
                 ),
               ),
+              SizedBox(width: 8.w),
+              Text(
+                formatWon(table.price),
+                style: TextStyle(
+                  fontFamily: 'Pretendard',
+                  fontSize: 15.sp,
+                  fontWeight: FontWeight.w800,
+                  color: style.text,
+                ),
+              ),
             ],
           ),
-          SizedBox(height: 7.h),
-          Text(
-            table.desc,
-            style: TextStyle(
-              fontFamily: 'Pretendard',
-              fontSize: 12.sp,
-              height: 15 / 12,
-              color: VybeColors.gray500,
+          if (table.desc.isNotEmpty) ...[
+            SizedBox(height: 7.h),
+            Text(
+              table.desc,
+              style: TextStyle(
+                fontFamily: 'Pretendard',
+                fontSize: 12.sp,
+                height: 15 / 12,
+                color: VybeColors.gray500,
+              ),
             ),
-          ),
+          ],
           SizedBox(height: 14.h),
           Row(
             children: [
@@ -72,7 +90,7 @@ class ClubTableDetail extends StatelessWidget {
                   Icons.people_outline_rounded,
                   '최소 인원',
                   '${table.minPeople}인',
-                  tier.color,
+                  style.text,
                 ),
               ),
               SizedBox(width: 8.w),
@@ -81,20 +99,20 @@ class ClubTableDetail extends StatelessWidget {
                   Icons.local_bar_outlined,
                   '최소 보틀',
                   '${table.minBottles}병',
-                  tier.color,
+                  style.text,
                 ),
               ),
             ],
           ),
           SizedBox(height: 14.h),
-          _minSpendPanel(tier),
+          _minSpendPanel(style),
           SizedBox(height: 14.h),
           Container(
             padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 11.h),
             decoration: BoxDecoration(
-              color: tier.soft,
+              color: style.fill,
               borderRadius: BorderRadius.circular(10.r),
-              border: Border.all(color: tier.ring),
+              border: Border.all(color: style.border),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -104,7 +122,7 @@ class ClubTableDetail extends StatelessWidget {
                   child: Icon(
                     Icons.info_outline_rounded,
                     size: 15.r,
-                    color: tier.color,
+                    color: style.text,
                   ),
                 ),
                 SizedBox(width: 8.w),
@@ -123,7 +141,7 @@ class ClubTableDetail extends StatelessWidget {
                           text: '${table.minPeople}인',
                           style: TextStyle(
                             fontWeight: FontWeight.w800,
-                            color: tier.color,
+                            color: style.text,
                           ),
                         ),
                         const TextSpan(text: '부터, 보틀 '),
@@ -131,7 +149,7 @@ class ClubTableDetail extends StatelessWidget {
                           text: '${table.minBottles}병',
                           style: TextStyle(
                             fontWeight: FontWeight.w800,
-                            color: tier.color,
+                            color: style.text,
                           ),
                         ),
                         const TextSpan(text: ' 이상 주문 시 예약 가능합니다.'),
@@ -142,6 +160,19 @@ class ClubTableDetail extends StatelessWidget {
               ],
             ),
           ),
+          // 업주가 남긴 자유 문구 — 있을 때만.
+          if (table.note.isNotEmpty) ...[
+            SizedBox(height: 10.h),
+            Text(
+              table.note,
+              style: TextStyle(
+                fontFamily: 'Pretendard',
+                fontSize: 12.sp,
+                height: 17 / 12,
+                color: VybeColors.gray400,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -152,7 +183,7 @@ class ClubTableDetail extends StatelessWidget {
   /// 부모 [GlassCard]가 이미 BackdropFilter를 걸어 뒤를 흐려 놨으므로 여기선
   /// 블러를 겹치지 않는다(중첩 BackdropFilter는 비용만 늘고 그림은 같다).
   /// 대신 채움 + 좌상단 하이라이트 + 상단 1px 광택으로 같은 유리 톤을 만든다.
-  Widget _minSpendPanel(TableTier tier) {
+  Widget _minSpendPanel(TableTierStyle style) {
     final r = BorderRadius.circular(14.r);
     return Container(
       decoration: BoxDecoration(borderRadius: r),
@@ -175,7 +206,7 @@ class ClubTableDetail extends StatelessWidget {
                     gradient: LinearGradient(
                       begin: Alignment.centerRight,
                       end: Alignment.centerLeft,
-                      colors: [tier.soft, tier.soft.withValues(alpha: 0)],
+                      colors: [style.fill, style.fill.withValues(alpha: 0)],
                     ),
                   ),
                 ),
@@ -203,7 +234,6 @@ class ClubTableDetail extends StatelessWidget {
                 padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       '최소 주문 금액',
@@ -214,28 +244,38 @@ class ClubTableDetail extends StatelessWidget {
                         color: ClubGlass.t3,
                       ),
                     ),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          table.minSpend,
-                          style: TextStyle(
-                            fontFamily: 'Pretendard',
-                            fontSize: 24.sp,
-                            height: 26 / 24,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                          ),
+                    SizedBox(width: 10.w),
+                    // 금액은 업주가 넣는 값이라 자릿수를 앱이 정할 수 없다 —
+                    // 1,000,000원이 24sp 로는 좁은 기기에서 넘친다. 남는 폭에 맞춰 줄인다.
+                    Expanded(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              formatWon(table.minSpend),
+                              style: TextStyle(
+                                fontFamily: 'Pretendard',
+                                fontSize: 24.sp,
+                                height: 26 / 24,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                              ),
+                            ),
+                            if (table.minSpend > 0)
+                              Text(
+                                '~',
+                                style: TextStyle(
+                                  fontFamily: 'Pretendard',
+                                  fontSize: 12.sp,
+                                  color: ClubGlass.t4,
+                                ),
+                              ),
+                          ],
                         ),
-                        Text(
-                          '~',
-                          style: TextStyle(
-                            fontFamily: 'Pretendard',
-                            fontSize: 12.sp,
-                            color: ClubGlass.t4,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ],
                 ),
@@ -289,7 +329,3 @@ class ClubTableDetail extends StatelessWidget {
     );
   }
 }
-
-// ============================================================================
-// 티어 요약 (클럽 상세 홈 탭)
-// ============================================================================

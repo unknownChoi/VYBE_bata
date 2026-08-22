@@ -3,6 +3,7 @@ import 'package:vybe/data/datasources/remote/algolia_club_search_datasource.dart
 import 'package:vybe/data/datasources/remote/firebase_club_datasource.dart';
 import 'package:vybe/data/models/club_info_model.dart';
 import 'package:vybe/data/models/club_model.dart';
+import 'package:vybe/data/models/club_table_layout.dart';
 import 'package:vybe/data/models/menu_model.dart';
 import 'package:vybe/data/models/photo_model.dart';
 import 'package:vybe/domain/repositories/club_repository.dart';
@@ -46,6 +47,10 @@ class ClubRepositoryImpl implements ClubRepository {
   @override
   Future<ClubInfoModel?> getClubInfo(String clubId) =>
       _dataSource.getClubInfo(clubId);
+
+  @override
+  Future<ClubTableLayout?> getTableLayout(String clubId) =>
+      _dataSource.getTableLayout(clubId);
 
   @override
   Future<List<MenuModel>> getMenus(String clubId) =>

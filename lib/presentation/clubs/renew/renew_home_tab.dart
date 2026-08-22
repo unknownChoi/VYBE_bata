@@ -58,6 +58,7 @@ class RenewHomeTab extends ConsumerWidget {
     final lineup = days.isEmpty || days.first.acts.isEmpty ? null : days.first;
 
     final freeEntry = RenewFreeEntrySection.maybeBuild(club);
+    final tableLayout = ref.watch(clubTableLayoutProvider(clubId)).value;
 
     final sections = <Widget>[
       if (freeEntry != null) freeEntry,
@@ -67,10 +68,16 @@ class RenewHomeTab extends ConsumerWidget {
           day: lineup,
           onViewAll: () => _openSchedule(context, club),
         ),
-      RenewTableSection(
-        onViewPricing: () =>
-            TablePricingScreen.push(context, clubName: club.name),
-      ),
+      // 배치도가 없는 클럽은 섹션 자체를 뺀다 — 빈 카드는 '테이블 없음'과 구분이 안 된다.
+      if (tableLayout != null)
+        RenewTableSection(
+          layout: tableLayout,
+          onViewPricing: () => TablePricingScreen.push(
+            context,
+            clubId: clubId,
+            clubName: club.name,
+          ),
+        ),
       if (menus.isNotEmpty)
         RenewMenuSection(menus: menus, onViewAll: onViewAllMenus),
       if (club.imageUrls.isNotEmpty)

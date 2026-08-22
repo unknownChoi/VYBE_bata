@@ -1,5 +1,6 @@
 import 'package:vybe/data/models/club_info_model.dart';
 import 'package:vybe/data/models/club_model.dart';
+import 'package:vybe/data/models/club_table_layout.dart';
 import 'package:vybe/data/models/menu_model.dart';
 import 'package:vybe/data/models/photo_model.dart';
 
@@ -37,6 +38,9 @@ abstract class ClubRepository {
   Stream<List<ClubModel>> watchActiveClubs();
   Future<ClubModel?> getClub(String clubId);
   Future<ClubInfoModel?> getClubInfo(String clubId);
+
+  /// 테이블 배치도. 없으면 null — 호출부는 테이블 섹션을 통째로 뺀다.
+  Future<ClubTableLayout?> getTableLayout(String clubId);
   Future<List<MenuModel>> getMenus(String clubId);
   Future<List<PhotoModel>> getPhotos(String clubId);
   Future<List<ClubModel>> getClubsByArea(String area);

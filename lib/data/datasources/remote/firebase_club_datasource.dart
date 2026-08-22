@@ -6,6 +6,7 @@ import 'package:vybe/core/utils/firebase_logger.dart';
 import 'package:vybe/core/utils/geohash_utils.dart';
 import 'package:vybe/data/models/club_info_model.dart';
 import 'package:vybe/data/models/club_model.dart';
+import 'package:vybe/data/models/club_table_layout.dart';
 import 'package:vybe/data/models/menu_model.dart';
 import 'package:vybe/data/models/photo_model.dart';
 
@@ -163,6 +164,26 @@ class FirebaseClubDataSource {
         .get();
     if (!doc.exists) return null;
     return ClubInfoModel.fromFirestore(doc);
+  }
+
+  /// 테이블 배치도 — 문서 1건. 없으면 null(호출부가 섹션 자체를 뺀다).
+  ///
+  /// 층·테이블·구조물이 한 문서에 들어 있어 read 1회로 끝난다.
+  /// 업주 웹이 통째로 `set()` 하므로 반쯤 옮겨진 배치도가 읽힐 일이 없다.
+  Future<ClubTableLayout?> getTableLayout(String clubId) async {
+    logFirebaseAccess(
+      file: 'firebase_club_datasource.dart',
+      service: 'Firestore(clubs/$clubId/tableLayout/$clubId)',
+      purpose: '[테이블] 배치도·가격 조회',
+    );
+    final doc = await _firestore
+        .collection('clubs')
+        .doc(clubId)
+        .collection('tableLayout')
+        .doc(clubId)
+        .get();
+    if (!doc.exists) return null;
+    return ClubTableLayout.fromMap(doc.data(), clubId);
   }
 
   Future<List<MenuModel>> getMenus(String clubId) async {

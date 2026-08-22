@@ -158,6 +158,90 @@ final class ClubInfoFamily extends $Family
   String toString() => r'clubInfoProvider';
 }
 
+/// 테이블 배치도. null 이면 홈 탭 테이블 섹션·가격표 화면을 그리지 않는다.
+
+@ProviderFor(clubTableLayout)
+final clubTableLayoutProvider = ClubTableLayoutFamily._();
+
+/// 테이블 배치도. null 이면 홈 탭 테이블 섹션·가격표 화면을 그리지 않는다.
+
+final class ClubTableLayoutProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<ClubTableLayout?>,
+          ClubTableLayout?,
+          FutureOr<ClubTableLayout?>
+        >
+    with $FutureModifier<ClubTableLayout?>, $FutureProvider<ClubTableLayout?> {
+  /// 테이블 배치도. null 이면 홈 탭 테이블 섹션·가격표 화면을 그리지 않는다.
+  ClubTableLayoutProvider._({
+    required ClubTableLayoutFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'clubTableLayoutProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$clubTableLayoutHash();
+
+  @override
+  String toString() {
+    return r'clubTableLayoutProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<ClubTableLayout?> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<ClubTableLayout?> create(Ref ref) {
+    final argument = this.argument as String;
+    return clubTableLayout(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is ClubTableLayoutProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$clubTableLayoutHash() => r'4ab185ba19474fc268b2127c38d0307e28a7ebec';
+
+/// 테이블 배치도. null 이면 홈 탭 테이블 섹션·가격표 화면을 그리지 않는다.
+
+final class ClubTableLayoutFamily extends $Family
+    with $FunctionalFamilyOverride<FutureOr<ClubTableLayout?>, String> {
+  ClubTableLayoutFamily._()
+    : super(
+        retry: null,
+        name: r'clubTableLayoutProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// 테이블 배치도. null 이면 홈 탭 테이블 섹션·가격표 화면을 그리지 않는다.
+
+  ClubTableLayoutProvider call(String clubId) =>
+      ClubTableLayoutProvider._(argument: clubId, from: this);
+
+  @override
+  String toString() => r'clubTableLayoutProvider';
+}
+
 @ProviderFor(clubMenus)
 final clubMenusProvider = ClubMenusFamily._();
 

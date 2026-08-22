@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>VYBE 파트너 · 테이블 배치</title>
+<link rel="stylesheet" href="./editor.css" />
+</head>
+<body>
+
+<div id="root">
+  <div class="signin-wrap card" id="boot">
+    <h1>VYBE 파트너</h1>
+    <p class="muted">확인 중…</p>
+  </div>
+</div>
+
+<script type="module">
+// 업주용 테이블 배치 편집기 — 실서비스 페이지.
+//
+// 로컬 도구(scripts/table_editor_server.js)와 **편집 로직은 같은 파일**(editor.js)을 쓰고
+// 전송 계층만 다르다. 여기서는 Firebase Auth 로 로그인한 업주가 Firestore 에 직접 쓰고,
+// 권한은 Security Rules 가 판정한다 — 로컬 도구처럼 Rules 를 우회하지 않는다.
+//
+// 필요한 것:
+//  1. Firebase 콘솔에서 **이메일/비밀번호 로그인 제공자 활성화**
+//     (2026.08.22 현재 꺼져 있다. 켤 때 '가입 사용 중지'도 같이 켜서 아무나
+//      계정을 만들지 못하게 할 것 — 업주 계정은 운영자가 만들어 준다)
+//  2. 배포 도메인을 Firebase Auth **승인된 도메인**에 추가
+//     (현재: localhost · vybe-bata-c07aa.firebaseapp.com · vybe-bata-c07aa.web.app)
+//  3. 업주 계정에 파트너 클레임 부여:
+//     node scripts/set_partner_claim.js --email=업주@example.com --clubs=clubA,clubB
+
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
+import {
+  getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged,
+} from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
+import {
+  getFirestore, doc, getDoc, setDoc, deleteDoc, serverTimestamp,
+} from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+
+import { mountEditor } from './editor.js';
+
+// lib/firebase_options.dart 의 web 설정과 같은 값.
+const firebaseConfig = {
+  apiKey: 'AIzaSyBvTMA4iLLLpuK6Oedg4xIWqatEvFTKE_4',
+  authDomain: 'vybe-bata-c07aa.firebaseapp.com',
+  projectId: 'vybe-bata-c07aa',
+  storageBucket: 'vybe-bata-c07aa.firebasestorage.app',
+  messagingSenderId: '404505336223',
+  appId: '1:404505336223:web:c68412e52807c926b545aa',
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const root = document.getElementById('root');
+
+// ── 전송 계층 (Rules 를 그대로 통과한다) ──
+
+function makeApi(user, clubIds) {
+  const ref = (clubId) => doc(db, 'clubs', clubId, 'tableLayout', clubId);
+
+  return {
+    // 업주는 **자기 클럽만** 본다. 전체 목록을 훑지 않는다 —
+    // 클레임에 적힌 id 만 골라 이름을 읽어 온다.
+    async listClubs() {
+      const out = [];
+      for (const id of clubIds) {
+        try {
+          const snap = await getDoc(doc(db, 'clubs', id));
+          const d = snap.exists() ? snap.data() : null;
+          out.push({ id, name: d?.name || id, area: d?.area || '' });
+        } catch {
+          // clubs read 는 isActive==true 일 때만 허용된다 —
+          // 비활성 클럽이면 이름을 못 읽지만 배치도 편집은 가능해야 한다.
+          out.push({ id, name: id, area: '' });
+        }
+      }
+      return out;
+    },
+
+    async getLayout(clubId) {
+      const snap = await getDoc(ref(clubId));
+      return snap.exists() ? snap.data() : null;
+    },
+
+    // setDoc(merge 없음) = 문서 전체 교체. 지운 테이블·층이 남지 않고,
+    // 저장이 원자적이라 앱이 반쯤 옮겨진 배치도를 읽는 상태가 없다.
+    async saveLayout(clubId, layout) {
+      await setDoc(ref(clubId), {
+        ...layout,
+        clubId,
+        updatedAt: serverTimestamp(),
+        updatedBy: user.uid,
+      });
+    },
+
+    async deleteLayout(clubId) {
+      await deleteDoc(ref(clubId));
+    },
+  };
+}
+
+// ── 화면 ──
+
+function showSignIn(message) {
+  root.innerHTML = `
+    <div class="signin-wrap card">
+      <h1>VYBE 파트너</h1>
+      <p>테이블 배치·가격을 관리합니다.</p>
+      <label class="field">이메일<input type="email" id="email" autocomplete="username" /></label>
+      <label class="field">비밀번호<input type="password" id="pw" autocomplete="current-password" /></label>
+      <button class="primary" id="go">로그인</button>
+      <p id="msg" class="err" style="margin-top:12px">${message || ''}</p>
+    </div>`;
+
+  const msg = root.querySelector('#msg');
+  const submit = async () => {
+    msg.textContent = '';
+    try {
+      await signInWithEmailAndPassword(
+        auth,
+        root.querySelector('#email').value.trim(),
+        root.querySelector('#pw').value
+      );
+    } catch (e) {
+      msg.textContent = authMessage(e);
+    }
+  };
+  root.querySelector('#go').onclick = submit;
+  root.querySelector('#pw').onkeydown = (e) => { if (e.key === 'Enter') submit(); };
+}
+
+function authMessage(e) {
+  const code = e?.code || '';
+  if (code === 'auth/operation-not-allowed') {
+    return '이메일/비밀번호 로그인이 아직 켜져 있지 않습니다. 운영자에게 문의하세요.';
+  }
+  if (code === 'auth/invalid-credential' || code === 'auth/wrong-password'
+      || code === 'auth/user-not-found') {
+    return '이메일 또는 비밀번호가 맞지 않습니다.';
+  }
+  if (code === 'auth/too-many-requests') {
+    return '시도가 너무 많습니다. 잠시 후 다시 시도하세요.';
+  }
+  return e?.message || String(e);
+}
+
+function showNoClaim(user) {
+  root.innerHTML = `
+    <div class="signin-wrap card">
+      <h1>권한이 없습니다</h1>
+      <p>
+        <b>${user.email || user.uid}</b> 계정에 관리 중인 클럽이 지정돼 있지 않습니다.<br />
+        운영자에게 클럽 권한 부여를 요청하세요.
+      </p>
+      <button id="out">로그아웃</button>
+    </div>`;
+  root.querySelector('#out').onclick = () => signOut(auth);
+}
+
+onAuthStateChanged(auth, async (user) => {
+  if (!user) return showSignIn();
+
+  // 클레임은 ID 토큰에 실려 온다. 방금 권한을 받았다면 토큰을 새로 받아야 보인다.
+  let claims = {};
+  try {
+    claims = (await user.getIdTokenResult(true)).claims || {};
+  } catch (e) {
+    return showSignIn(authMessage(e));
+  }
+
+  const clubIds = Array.isArray(claims.clubIds) ? claims.clubIds : [];
+  // 어드민은 클레임에 clubIds 가 없으므로 ?clubId= 로 지정해 들어온다.
+  const adminTarget = claims.admin === true
+    ? new URLSearchParams(location.search).get('clubId')
+    : null;
+  const ids = clubIds.length ? clubIds : (adminTarget ? [adminTarget] : []);
+
+  if (!ids.length) return showNoClaim(user);
+
+  const out = document.createElement('button');
+  out.textContent = '로그아웃';
+  out.onclick = () => signOut(auth);
+
+  root.innerHTML = '';
+  mountEditor(root, makeApi(user, ids), {
+    title: 'VYBE 파트너 · 테이블 배치',
+    headerExtra: out,
+  });
+});
+</script>
+</body>
+</html>

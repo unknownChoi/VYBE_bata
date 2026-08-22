@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>VYBE 테이블 배치 (로컬)</title>
+<link rel="stylesheet" href="./editor.css" />
+</head>
+<body>
+
+<div id="root"></div>
+
+<script type="module">
+// 로컬 테스트용 편집기 페이지.
+//
+// 편집 로직은 업주 웹(partner/index.html)과 **같은 파일**(partner/editor.js)을 쓴다 —
+// 복붙으로 나눠 가지면 두 화면이 같은 배치도를 다르게 그리게 되고, 그 순간
+// "웹과 앱의 데이터가 같아야 한다"가 조용히 깨진다.
+//
+// 여기서는 전송을 로컬 서버에 맡긴다. 서버가 gcloud 자격증명으로 Firestore 에 붙으므로
+// **Security Rules 를 거치지 않는다** — 파트너 클레임 없이도 아무 클럽이나 편집된다.
+// 확인용 도구일 뿐이고, 실제 업주는 partner/index.html 로 들어간다.
+
+import { mountEditor } from './editor.js';
+
+async function req(path, opts) {
+  const res = await fetch(path, opts);
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || res.status);
+  return json;
+}
+
+const q = (clubId) => '/api/layout?clubId=' + encodeURIComponent(clubId);
+
+mountEditor(document.getElementById('root'), {
+  listClubs: async () => (await req('/api/clubs')).clubs,
+  getLayout: async (clubId) => (await req(q(clubId))).layout,
+  saveLayout: (clubId, layout) => req(q(clubId), {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(layout),
+  }),
+  deleteLayout: (clubId) => req(q(clubId), { method: 'DELETE' }),
+}, {
+  title: 'VYBE 테이블 배치 (로컬 · Rules 우회)',
+});
+</script>
+</body>
+</html>

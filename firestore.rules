@@ -48,6 +48,26 @@ service cloud.firestore {
           && request.auth.token.admin == true;
       }
 
+      // clubs/{clubId}/tableLayout/{docId} — 테이블 배치도(층·구조물·테이블·가격).
+      // 문서 1건이 배치도 전체다. 앱은 읽기만, 업주(파트너)·어드민만 쓴다.
+      match /tableLayout/{docId} {
+        allow read: if true;
+
+        // ⚠ clubIds 는 get(기본값) 으로 읽는다 — 클레임에 키가 없는 계정에서
+        //   직접 접근하면 Rules 평가가 에러로 떨어져 통째로 거부된다.
+        // ⚠ 셀 좌표·배열 원소는 여기서 검증하지 않는다(Rules 에 반복문이 없다).
+        //   소유권·clubId 일치만 막고 값 검증은 파트너 웹 + 앱 파서가 한다.
+        allow write: if request.auth != null
+          && (request.auth.token.admin == true
+            || (request.auth.token.partner == true
+              && clubId in request.auth.token.get('clubIds', [])))
+          && request.resource.data.clubId == clubId
+          // ⚠ `is int` 로 쓰면 안 된다 — 클라 SDK 가 숫자를 double 로 실어 보내면
+          //   업주의 **모든 저장이 거부**된다. 이건 보안 경계가 아니라 형식 가드일 뿐이라
+          //   number 로 넓게 받고, 실제 판정은 앱 파서가 한다.
+          && request.resource.data.schemaVersion is number;
+      }
+
       // clubs/{clubId}/photos/{photoId}
       match /photos/{photoId} {
         // 작성자가 탈퇴하면 isHidden=true 가 붙어 노출에서 빠진다.

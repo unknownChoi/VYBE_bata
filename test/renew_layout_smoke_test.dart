@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vybe/data/models/club_model.dart';
+import 'package:vybe/data/models/club_table_layout.dart';
 import 'package:vybe/data/models/menu_model.dart';
 import 'package:vybe/data/models/operating_hours.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_chrome.dart';
@@ -12,6 +13,39 @@ import 'package:vybe/presentation/clubs/renew/widgets/renew_menu_rows.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_sticky_bar.dart';
 import 'package:vybe/presentation/common/renew/renew_button.dart';
 import 'package:vybe/presentation/common/renew/renew_glass.dart';
+
+/// 테이블 섹션 스모크용 최소 배치도 — 등급 1종 · 테이블 2자리 · 1층.
+final _tableLayout = ClubTableLayout.fromMap({
+  'schemaVersion': 1,
+  'clubId': 'club_1',
+  'tiers': [
+    {'key': 'vip', 'name': 'VIP', 'short': 'VIP', 'colorKey': 'blue', 'order': 0},
+  ],
+  'floors': [
+    {
+      'floorId': 'f1',
+      'name': '1F',
+      'order': 0,
+      'cols': 12,
+      'rows': 16,
+      'fixtures': [
+        {'id': 'fx1', 'type': 'stage', 'col': 0, 'row': 0, 'colSpan': 12, 'rowSpan': 2},
+      ],
+      'tables': [
+        {
+          'id': 'V1', 'tierKey': 'vip', 'name': '센터 1', 'desc': '플로어 옆',
+          'col': 0, 'row': 3, 'colSpan': 2, 'rowSpan': 2,
+          'price': 500000, 'minPeople': 6, 'minBottles': 2, 'minSpend': 500000,
+        },
+        {
+          'id': 'V2', 'tierKey': 'vip', 'name': '센터 2', 'desc': '플로어 옆',
+          'col': 10, 'row': 3, 'colSpan': 2, 'rowSpan': 2,
+          'price': 500000, 'minPeople': 6, 'minBottles': 2, 'minSpend': 500000,
+        },
+      ],
+    },
+  ],
+}, 'club_1')!;
 
 const _hours = OperatingHours(
   mon: DayHours(isOpen: true, open: '22:00', close: '05:00'),
@@ -108,7 +142,7 @@ void main() {
               RenewMenuRows(
                 menus: [_menu('LEMON DROP', featured: true), _menu('NEGRONI')],
               ),
-              const RenewTableSection(),
+              RenewTableSection(layout: _tableLayout),
               RenewPhotoSection(imageUrls: _club.imageUrls, onOpen: (_) {}),
               const RenewHoursTable(hours: _hours),
               const RenewFooterNote(text: '방문 전 확인해 주세요.'),

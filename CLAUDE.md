@@ -82,6 +82,7 @@ View (Widget) → ViewModel (Notifier) → Repository → DataSource (Firebase)
 │   │   ├── pass_wallet/     # 패스/지갑 (플레이스홀더, 현재 탭에서 미연결)
 │   │   ├── search/          # 검색 (widgets/, viewmodels/)
 │   │   ├── clubs/           # 클럽 상세 (tabs/, widgets/, viewmodels/)
+│   │   │                    #   테이블 배치도는 widgets/table_*.dart (그리드 셀 좌표)
 │   │   ├── hip_hop/         # 장르 페이지 + 오늘의 라인업 (widgets/, *_models.dart)
 │   │   ├── hot_places/      # 핫플레이스 (더미 데이터, widgets/)
 │   │   ├── recommend/       # VYBE 추천 (widgets/, recommend_models.dart)
@@ -93,6 +94,8 @@ View (Widget) → ViewModel (Notifier) → Repository → DataSource (Firebase)
 │   └── main.dart
 │
 ├── functions/           # Cloud Functions (TypeScript, src/auth · account · favorites · reviews)
+├── partner/             # 업주용 웹 — 테이블 배치 편집기 (index.html · editor.js · editor.css)
+│                        #   editor.js 는 scripts/ 로컬 도구와 공용 (편집 로직 단일 소스)
 ├── scripts/             # Firestore/Storage seed·migration 스크립트 (Node.js)
 │
 └── assets/
@@ -493,6 +496,26 @@ grep -rn "border: Border.all" lib/presentation/   # 후보 추린 뒤 ClipRRect/
     `terms_agreement_sheet.dart` · `settings_screen.dart`(마케팅 토글) ·
     `test/terms_agreement_sheet_test.dart` · `test/settings_screen_test.dart`(3건).
     상세 설계는 `firebase_structure.html#feature-terms`
+- **테이블 배치도 · 가격 (2026.08.22)** — 하드코딩 상수(`table_pricing_data.dart`, 테이블 9자리가
+  164개 클럽에 공통)를 걷어내고 `clubs/{clubId}/tableLayout/{clubId}` 문서 1건으로 교체.
+  **위치는 정수 그리드 셀**(층마다 `cols × rows`, 셀 정사각) — 폭이 다른 업주 웹과 앱이 같은 그림을 그린다
+  - 앱: 모델·파서 `data/models/club_table_layout.dart` + 팔레트 `table_layout_palette.dart` +
+    금액 표기 `presentation/common/table_price_format.dart` + 렌더 `widgets/table_floor_map.dart`
+    (층 전환 탭 포함) + `table_pricing_section.dart` · `table_detail_sheet.dart` ·
+    `table_pricing_screen.dart` · `RenewTableSection`. 테스트 `test/club_table_layout_test.dart` 29건
+  - **업주용 편집기 — `partner/`** (실서비스용). Firebase Auth 로그인 → Firestore 직접 쓰기,
+    권한은 **Rules가 판정**한다. 업주는 클레임 `clubIds`에 적힌 클럽만 본다.
+    정적 파일 3개(빌드 없음)라 `vybe.inertent.com/partner/...`에 그대로 얹으면 된다.
+    운영 절차·주의는 `partner/README.md`
+  - **로컬 확인 도구** — `node scripts/table_editor_server.js` → http://127.0.0.1:5599.
+    ⚠ **gcloud 자격증명으로 붙어 Rules를 거치지 않는다**(아무 클럽이나 편집됨). 127.0.0.1 전용
+  - ⚠ **편집 로직은 `partner/editor.js` 하나** — 두 페이지가 같이 쓴다(전송 계층만 다름).
+    복붙으로 나누면 두 화면이 같은 배치도를 다르게 그려 '웹·앱 데이터 일치'가 조용히 깨진다.
+    `editor.js`의 `TIER_STYLE`·`FX_LABEL`은 앱 `table_layout_palette.dart`와 **같은 값이어야 한다**
+  - 권한: 커스텀 클레임 `{ partner: true, clubIds: [...] }` — `node scripts/set_partner_claim.js`
+  - **Rules 배포 완료 (2026.08.22)** — 실측 확인: 비인증 read 200 / 비인증 write 403
+  - 데이터 없는 클럽은 섹션 자체가 안 뜬다. 샘플 `node scripts/seed_table_layout.js`
+  - 상세 설계는 `firebase_structure.html#feature-tables`
 - **찜 탭 (`saved/`) — favorites 실연동** (정렬, 리스트↔그리드 뷰, 찜 해제)
 - **마이페이지 (`my_page/`) — my_renew.html 리뉴얼 완료 (2026.08.15)**
   (오로라 배경 + 가로 프로필 행(아바타 76 · 프로필 수정 pill) + 통계 카드 2칸(리뷰·찜) +
@@ -728,6 +751,16 @@ grep -rn "border: Border.all" lib/presentation/   # 후보 추린 뒤 ClipRRect/
   - ⚠ 순서 주의(이미 지켜짐) — 백필·인덱스가 앱보다 먼저여야 한다. 앱을 먼저 내보내면
     `where isHidden == false`가 필드 없는 문서를 못 잡아 **리뷰 탭·사진 탭이 빈 화면**,
     인덱스가 없으면 `failed-precondition`. 지금은 서버가 다 돼 있어 앱은 아무 때나 내보내도 된다
+- 테이블 잔여 작업 — Rules 배포·편집기·운영 절차는 **완료**. 남은 것:
+  ① **Firebase 콘솔에서 이메일/비밀번호 로그인 제공자 켜기** (지금 꺼져 있어 업주가 로그인 못 함.
+  ⚠ 켤 때 **'가입 사용 중지'도 같이** 켤 것 — 안 그러면 아무나 이 프로젝트에 계정을 만든다.
+  앱 로그인 3종은 Custom Token 경로라 영향 없음)
+  ② Auth **승인된 도메인**에 `vybe.inertent.com` 추가 (현재 localhost·firebaseapp.com·web.app만)
+  ③ `partner/` 3개 파일을 업주 웹 경로에 배포 (빌드 없음)
+  ④ 업주 계정 생성 + `node scripts/set_partner_claim.js --email=… --clubs=…`
+  ⑤ 실 데이터 입력 (현재는 seed 샘플 3곳뿐 — 실제 배치·가격 조사 필요)
+  - 예약 기능은 **범위 밖** — 표시 전용이고 예약은 매장 전화로 안내한다
+  - 절차 상세: `partner/README.md`
 - 패스·지갑 탭 (`pass_wallet_screen.dart` 플레이스홀더 — 현재 탭 슬롯엔 미연결)
 - 주변 페이지 ↔ 상세 페이지 연동 마무리 (최근 커밋 진행 중)
 - 마이페이지 세부 — 프로필 사진 변경(image_picker 설치됨 — 연결만 남음), 알림 화면
@@ -1117,6 +1150,61 @@ isAvailable     : boolean   // 판매 여부
 isFeatured      : boolean   // 대표 메뉴 여부
 createdAt       : timestamp
 ```
+
+#### clubs/{clubId}/tableLayout/{clubId}
+```
+schemaVersion   : number    // 현재 1. 앱이 아는 판보다 크면 렌더 포기(모르는 필드를 억지로 그리면 깨진다)
+clubId          : string    // FK → clubs. Rules가 문서 경로와 일치하는지 검사
+tiers           : array     // 등급 정의 [{ key, name, short, colorKey, order }]
+                            //   등급 구성은 클럽마다 달라 전역 상수로 두지 않는다
+                            //   colorKey: purple|blue|lime|pink|amber|gray — **영문 키만** 저장,
+                            //     실제 색값은 앱(table_layout_palette.dart)이 갖는다. 모르는 키는 gray
+floors          : array     // 층 목록. 1개여도 배열 (아래 구조)
+notice          : string    // 배치도 하단 안내 문구. 비면 미표시
+updatedAt       : timestamp
+updatedBy       : string    // 저장 주체 uid(또는 도구 이름)
+
+floors[] = {
+  floorId   : string  // 층 삭제·재정렬에도 안 바뀌는 키
+  name      : string  // '1F' · '루프탑'
+  order     : number  // 앱이 오름차순 정렬
+  cols      : number  // 격자 열 4~14
+  rows      : number  // 격자 행 4~32.  캔버스 비율 = cols/rows (셀 정사각 → aspectRatio 필드 불필요)
+  fixtures  : array   // 구조물 [{ id, type, label, col, row, colSpan, rowSpan }] — 탭 대상 아님, 최소 1칸
+                      //   type: stage|dancefloor|bar|dj|entrance|restroom|stairs|wall|etc
+                      //   ⚠ 앱이 모르는 type은 조용히 버린다(영문 키 노출 방지 — facilities와 같은 규칙)
+                      //   label 비면 타입별 기본 문구
+  tables    : array   // [{ id, tierKey, name, desc, col, row, colSpan, rowSpan, shape,
+                      //     price, minPeople, minBottles, minSpend, note, isActive }]
+                      //   col·row : 좌상단 셀(0부터) / colSpan·rowSpan : 점유 칸
+                      //   shape   : 'rect' | 'circle' (모르는 값은 rect)
+                      //   price·minSpend : **원 단위 int**. 0이면 '문의'
+                      //     ⚠ 문자열 금지 — '100만원'/'100만'/'1000000'이 섞이면 정렬·비교가 불가능해진다
+                      //     표기(100만 · 1,000,000원)는 presentation/common/table_price_format.dart 한 곳
+                      //   isActive: false면 앱 노출 제외(공사중·시즌)
+}
+```
+> 클럽 상세 '테이블' 섹션 + 테이블 가격표 화면 데이터 소스. **위치는 정수 그리드 셀**이다 —
+> 소수 좌표를 안 쓰는 이유는 웹(업주 편집기)과 앱이 `col * width / cols`로 **반올림 여지 없이
+> 같은 그림**을 그리고, 캔버스 비율이 `cols/rows`로 자동 도출되며(양쪽이 따로 지킬 `aspectRatio`가
+> 없다), 겹침 판정이 셀 비교라 편집기가 원천 차단할 수 있고, 회전 개념이 사라지기 때문.
+> 포기한 것은 비스듬한 홀·대각선 배치(격자를 늘려 근사).
+> - ⚠ **열 최대 14 + 테이블 최소 2×2**가 짝을 이뤄 **탭 타겟 44px 하한**을 보장한다 —
+>   가장 좁은 흔한 기기(iPhone SE 375)에서 섹션 좌우 20.w + 캔버스 안쪽 8.w 를 뺀 격자 폭
+>   ≈321px ÷ 14열 ≈23px/셀 × 2칸 ≈46px. 기준 폭 393에선 48px.
+>   **열을 더 늘리거나 캔버스 여백을 키우면 이 보장이 깨진다**(둘 다 셀 폭을 깎는다)
+> - ⚠ **쓰기는 문서 전체 교체(set)** — 부분 update면 지운 테이블·층이 남는다. 배치도가 한 문서라
+>   저장이 원자적이고 앱이 **반쯤 옮겨진 배치도**를 읽는 상태가 없다. 테이블마다 문서를 두면
+>   앱 read N회 + 저장 비원자성 둘 다 생긴다
+> - ⚠ **쓰기 주체는 업주(파트너) + 어드민** — 커스텀 클레임 `{ partner: true, clubIds: [...] }`.
+>   부여/회수는 `node scripts/set_partner_claim.js`. 앱은 읽기만
+> - 파서(`data/models/club_table_layout.dart`)가 **null을 돌려주면 섹션 자체를 뺀다** —
+>   문서 없음 / 테이블 0자리 / 모르는 `schemaVersion`. 빈 카드는 '테이블 없음'과 구분이 안 된다
+>   (편의시설과 같은 규칙). 테이블 없는 층도 목록에서 뺀다
+> - 쿼리는 단건 get뿐 → **인덱스 불필요**. 집계 필드 없음 → **Cloud Functions 트리거 불필요**
+> - 샘플: `node scripts/seed_table_layout.js` (첫 클럽은 2층 — 층 전환 탭 확인용)
+> - 편집: `node scripts/table_editor_server.js` → http://127.0.0.1:5599 (**로컬 테스트용**)
+> - 상세 설계는 `firebase_structure.html#feature-tables`
 
 #### clubs/{clubId}/photos/{photoId}
 ```
@@ -1522,6 +1610,7 @@ createdAt      : timestamp
 | `users/{uid}` | 본인만 | 본인만 (uid / provider / createdAt / status / deletedAt / purgeAt 수정 불가 — `agreements`는 금지 키가 **아니다**: 본인의 동의 여부라 마케팅 수신 철회를 붙이려면 고칠 수 있어야 한다) |
 | `clubs/{clubId}` | 누구나 (isActive=true만) | 어드민만 |
 | `clubs/.../info`, `menus` | 누구나 | 어드민만 |
+| `clubs/.../tableLayout` | 누구나 | 어드민 또는 **업주**(`partner:true` + `clubId in clubIds` 클레임). `clubId` 일치·`schemaVersion` 타입만 검사 — 셀 좌표는 Rules로 못 훑는다(반복문 없음) |
 | `clubs/.../photos` | 누구나 (`isHidden != true`만) | 생성: 로그인 유저(본인 userId) / 삭제: 본인 또는 어드민 |
 | `clubs/.../reviews` | 누구나 (`isHidden != true`만) | 생성: 로그인 유저 / 수정·삭제: 본인 또는 어드민 (**`isHidden` 수정 불가**) |
 | `{path=**}/reviews` (collectionGroup) | 본인 리뷰만 | 불가 (마이페이지 내 리뷰 조회 전용) |

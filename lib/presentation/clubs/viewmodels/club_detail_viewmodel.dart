@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:vybe/data/models/club_info_model.dart';
 import 'package:vybe/data/models/club_model.dart';
+import 'package:vybe/data/models/club_table_layout.dart';
 import 'package:vybe/data/models/menu_model.dart';
 import 'package:vybe/data/models/photo_model.dart';
 import 'package:vybe/data/repositories/club_repository_impl.dart';
@@ -15,6 +16,12 @@ Future<ClubModel?> clubDetail(Ref ref, String clubId) {
 @riverpod
 Future<ClubInfoModel?> clubInfo(Ref ref, String clubId) {
   return ref.watch(clubRepositoryProvider).getClubInfo(clubId);
+}
+
+/// 테이블 배치도. null 이면 홈 탭 테이블 섹션·가격표 화면을 그리지 않는다.
+@riverpod
+Future<ClubTableLayout?> clubTableLayout(Ref ref, String clubId) {
+  return ref.watch(clubRepositoryProvider).getTableLayout(clubId);
 }
 
 @riverpod

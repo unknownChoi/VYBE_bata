@@ -1,30 +1,58 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vybe/data/models/club_table_layout.dart';
+import 'package:vybe/data/models/table_layout_palette.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/widgets/table_detail_sheet.dart';
 import 'package:vybe/presentation/clubs/widgets/table_floor_map.dart';
-import 'package:vybe/presentation/clubs/widgets/table_pricing_data.dart';
+import 'package:vybe/presentation/common/table_price_format.dart';
 
-// 테이블 가격 섹션 — 클럽 상세 홈 탭.
-// claude.ai/design club_detail.html (tables.jsx) 디자인 기반. 프론트 전용(하드코딩).
-// 자리 선택 → 플로어맵 하이라이트 + 상세 카드 갱신.
+// 테이블 가격 섹션 — 배치도 + 범례 + 선택 자리 상세.
+//
+// 데이터는 `clubs/{clubId}/tableLayout/{clubId}` 문서 하나(업주 웹이 편집).
+// 배치도가 없는 클럽은 호출부가 섹션 자체를 그리지 않는다.
 
 class TablePricingSection extends StatefulWidget {
-  const TablePricingSection({super.key});
+  final ClubTableLayout layout;
+
+  const TablePricingSection({super.key, required this.layout});
 
   @override
   State<TablePricingSection> createState() => _TablePricingSectionState();
 }
 
 class _TablePricingSectionState extends State<TablePricingSection> {
-  String _selId = 'S1';
+  int _floorIndex = 0;
+  String _selId = '';
+
+  ClubTableLayout get _layout => widget.layout;
+
+  TableFloor get _floor => _layout.floors[_floorIndex];
+
+  @override
+  void initState() {
+    super.initState();
+    _selId = _floor.tables.first.id;
+  }
+
+  void _selectFloor(int i) {
+    if (i == _floorIndex) return;
+    setState(() {
+      _floorIndex = i;
+      // 층을 바꾸면 선택도 그 층으로 옮긴다 — 다른 층 테이블의 상세가 남아 있으면
+      // 배치도에는 하이라이트가 없는데 아래 카드만 채워져 있어 어긋나 보인다.
+      _selId = _layout.floors[i].tables.first.id;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final sel = kClubFloorTables.firstWhere(
+    final tables = _floor.tables;
+    final sel = tables.firstWhere(
       (t) => t.id == _selId,
-      orElse: () => kClubFloorTables.first,
+      orElse: () => tables.first,
     );
+    final tiers = _layout.usedTiers();
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
@@ -51,160 +79,96 @@ class _TablePricingSectionState extends State<TablePricingSection> {
             ),
           ),
           SizedBox(height: 14.h),
+          if (_layout.isMultiFloor) ...[
+            FloorTabs(
+              floors: _layout.floors,
+              selectedIndex: _floorIndex,
+              onSelect: _selectFloor,
+            ),
+            SizedBox(height: 12.h),
+          ],
           ClubFloorMap(
-            selId: _selId,
+            layout: _layout,
+            floor: _floor,
+            selId: sel.id,
             onSelect: (id) => setState(() => _selId = id),
           ),
           SizedBox(height: 12.h),
-          _legend(),
-          ClubTableDetail(table: sel),
-          SizedBox(height: 12.h),
-          Text(
-            '가격 및 예약 조건은 요일·이벤트에 따라 변동될 수 있습니다.',
-            style: TextStyle(
-              fontFamily: 'Pretendard',
-              fontSize: 11.sp,
-              height: 16 / 11,
-              color: VybeColors.gray600,
+          _legend(tiers),
+          ClubTableDetail(table: sel, tier: _layout.tierOf(sel.tierKey)),
+          if (_layout.notice.isNotEmpty) ...[
+            SizedBox(height: 12.h),
+            Text(
+              _layout.notice,
+              style: TextStyle(
+                fontFamily: 'Pretendard',
+                fontSize: 11.sp,
+                height: 16 / 11,
+                color: VybeColors.gray600,
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
   }
 
-  // ── 범례 ──
-  Widget _legend() {
-    const items = [('VVIP', '100만'), ('VIP', '50만'), ('STD', '20만')];
+  /// 범례 — 등급별 최저가. 전 층 기준으로 센다(층을 옮겨도 기준이 흔들리지 않게).
+  Widget _legend(List<TableTierDef> tiers) {
     return Padding(
-      padding: EdgeInsets.only(left: 2.w, right: 2.w),
+      padding: EdgeInsets.symmetric(horizontal: 2.w),
       child: Wrap(
         spacing: 16.w,
         runSpacing: 8.h,
         children: [
-          for (final (tierKey, price) in items)
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 9.r,
-                  height: 9.r,
-                  decoration: BoxDecoration(
-                    color: kTableTiers[tierKey]!.dot,
-                    borderRadius: BorderRadius.circular(3.r),
-                  ),
-                ),
-                SizedBox(width: 6.w),
-                Text(
-                  kTableTiers[tierKey]!.name,
-                  style: TextStyle(
-                    fontFamily: 'Pretendard',
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w600,
-                    color: VybeColors.gray400,
-                  ),
-                ),
-                SizedBox(width: 6.w),
-                Text(
-                  '$price~',
-                  style: TextStyle(
-                    fontFamily: 'Pretendard',
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-/// 홈 탭 '테이블' 글래스 카드에 들어가는 티어 3줄 요약.
-///
-/// 디자인 club_glass_tabs.jsx(CGTables) — 플로어맵 없이 티어별
-/// `{n}석 · 최소 {m}인` + 대표 가격만 보여주고, 전체는 가격표 화면으로 넘긴다.
-/// 데이터(kTableTiers·kClubFloorTables)가 이 파일에 있어 여기에 함께 둔다.
-class TableTierSummary extends StatelessWidget {
-  const TableTierSummary({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final keys = kTableTiers.keys.where(
-      (k) => kClubFloorTables.any((t) => t.tierKey == k),
-    );
-
-    return Column(
-      children: [
-        for (final key in keys) ...[
-          Builder(
-            builder: (_) {
-              final tier = kTableTiers[key]!;
-              final rows = kClubFloorTables
-                  .where((t) => t.tierKey == key)
-                  .toList();
-              return Container(
-                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
-                decoration: BoxDecoration(
-                  color: tier.soft,
-                  borderRadius: BorderRadius.circular(14.r),
-                  border: Border.all(color: tier.ring),
-                ),
-                child: Row(
+          for (final tier in tiers)
+            Builder(
+              builder: (_) {
+                final style = tierStyleOf(tier.colorKey);
+                final prices = _layout
+                    .tablesOfTier(tier.key)
+                    .map((t) => t.price)
+                    .toList();
+                final min = prices.isEmpty
+                    ? 0
+                    : prices.reduce((a, b) => a < b ? a : b);
+                return Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
-                      width: 8.r,
-                      height: 8.r,
+                      width: 9.r,
+                      height: 9.r,
                       decoration: BoxDecoration(
-                        color: tier.dot,
-                        shape: BoxShape.circle,
+                        color: style.dot,
+                        borderRadius: BorderRadius.circular(3.r),
                       ),
                     ),
-                    SizedBox(width: 12.w),
-                    SizedBox(
-                      width: 46.w,
-                      child: Text(
-                        tier.short,
-                        style: TextStyle(
-                          fontFamily: 'Pretendard',
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w800,
-                          color: tier.color,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Text(
-                        '${rows.length}석 · 최소 ${rows.first.minPeople}인',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontFamily: 'Pretendard',
-                          fontSize: 12.sp,
-                          height: 14 / 12,
-                          color: const Color(0xADFFFFFF),
-                        ),
-                      ),
-                    ),
+                    SizedBox(width: 6.w),
                     Text(
-                      rows.first.price,
+                      tier.name,
                       style: TextStyle(
                         fontFamily: 'Pretendard',
-                        fontSize: 14.sp,
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w600,
+                        color: VybeColors.gray400,
+                      ),
+                    ),
+                    SizedBox(width: 6.w),
+                    Text(
+                      min > 0 ? '${formatTablePriceShort(min)}~' : '문의',
+                      style: TextStyle(
+                        fontFamily: 'Pretendard',
+                        fontSize: 12.sp,
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
                       ),
                     ),
                   ],
-                ),
-              );
-            },
-          ),
-          SizedBox(height: 8.h),
+                );
+              },
+            ),
         ],
-      ],
+      ),
     );
   }
 }

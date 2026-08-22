@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vybe/data/models/club_model.dart';
+import 'package:vybe/data/models/club_table_layout.dart';
 import 'package:vybe/data/models/menu_model.dart';
+import 'package:vybe/data/models/table_layout_palette.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_menu_rows.dart';
 import 'package:vybe/presentation/clubs/widgets/schedule_shared.dart';
-import 'package:vybe/presentation/clubs/widgets/table_pricing_data.dart';
 import 'package:vybe/presentation/common/renew/renew_glass.dart';
+import 'package:vybe/presentation/common/table_price_format.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 
 // 클럽 상세 리뉴얼 · 홈 탭 섹션들.
@@ -139,15 +141,18 @@ class RenewLineupSection extends StatelessWidget {
 // ============================================================================
 
 class RenewTableSection extends StatelessWidget {
+  final ClubTableLayout layout;
   final VoidCallback? onViewPricing;
 
-  const RenewTableSection({super.key, this.onViewPricing});
+  const RenewTableSection({
+    super.key,
+    required this.layout,
+    this.onViewPricing,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final keys = kTableTiers.keys
-        .where((k) => kClubFloorTables.any((t) => t.tierKey == k))
-        .toList();
+    final tiers = layout.usedTiers();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -158,54 +163,62 @@ class RenewTableSection extends StatelessWidget {
           actionLabel: '가격표',
           onAction: onViewPricing,
         ),
-        for (var i = 0; i < keys.length; i++)
+        for (var i = 0; i < tiers.length; i++)
           Padding(
-            padding: EdgeInsets.only(bottom: i == keys.length - 1 ? 0 : 8.h),
-            child: _tierRow(keys[i]),
+            padding: EdgeInsets.only(bottom: i == tiers.length - 1 ? 0 : 8.h),
+            child: _tierRow(tiers[i]),
           ),
       ],
     );
   }
 
-  Widget _tierRow(String key) {
-    final tier = kTableTiers[key]!;
-    final rows = kClubFloorTables.where((t) => t.tierKey == key).toList();
+  /// 등급 한 줄 — `{n}석 · 최소 {m}인` + 최저가. 전 층 합산이라 층이 여럿이어도
+  /// 이 요약은 한 벌만 나온다(층별 구분은 가격표 화면에서 한다).
+  Widget _tierRow(TableTierDef tier) {
+    final style = tierStyleOf(tier.colorKey);
+    final rows = layout.tablesOfTier(tier.key);
+    final minPeople = rows
+        .map((t) => t.minPeople)
+        .reduce((a, b) => a < b ? a : b);
+    final minPrice = rows.map((t) => t.price).reduce((a, b) => a < b ? a : b);
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
       decoration: BoxDecoration(
-        color: tier.soft,
+        color: style.fill,
         borderRadius: BorderRadius.circular(14.r),
-        border: Border.all(color: tier.ring),
+        border: Border.all(color: style.border),
       ),
       child: Row(
         children: [
           Container(
             width: 8.r,
             height: 8.r,
-            decoration: BoxDecoration(color: tier.dot, shape: BoxShape.circle),
+            decoration: BoxDecoration(color: style.dot, shape: BoxShape.circle),
           ),
           SizedBox(width: 12.w),
           SizedBox(
             width: 46.w,
             child: Text(
               tier.short,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: RenewGlass.body(
-                color: tier.color,
+                color: style.text,
                 weight: FontWeight.w600,
               ),
             ),
           ),
           Expanded(
             child: Text(
-              '${rows.length}석 · 최소 ${rows.first.minPeople}인',
+              '${rows.length}석 · 최소 $minPeople인',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: RenewGlass.caption(),
             ),
           ),
           Text(
-            rows.first.price,
+            formatTablePriceShort(minPrice),
             style: RenewGlass.body(
               color: RenewGlass.t1,
               weight: FontWeight.w600,
