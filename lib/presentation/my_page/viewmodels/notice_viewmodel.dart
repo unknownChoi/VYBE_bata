@@ -9,3 +9,10 @@ part 'notice_viewmodel.g.dart';
 @riverpod
 Future<List<NoticeModel>> notices(Ref ref) =>
     ref.watch(noticeRepositoryProvider).getNotices();
+
+/// 공지 1건. **배너에서 들어오는 경로 전용** — 목록을 거치지 않아 모델이 없고
+/// noticeId만 있다(목록에서 탭한 경우엔 이미 받은 모델을 그대로 쓴다 = 조회 0회).
+/// 게시 기간이 지났거나 게시중단이면 datasource가 null을 준다.
+@riverpod
+Future<NoticeModel?> notice(Ref ref, String noticeId) =>
+    ref.watch(noticeRepositoryProvider).getNotice(noticeId);

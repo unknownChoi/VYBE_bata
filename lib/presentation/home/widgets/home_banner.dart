@@ -7,6 +7,7 @@ import 'package:vybe/core/navigation/banner_link_handler.dart';
 import 'package:vybe/data/models/banner_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/home/viewmodels/banner_viewmodel.dart';
+import 'package:vybe/presentation/home/widgets/home_banner_skeleton.dart';
 
 class HomeBanner extends ConsumerWidget {
   const HomeBanner({super.key});
@@ -15,7 +16,7 @@ class HomeBanner extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final bannersAsync = ref.watch(bannerListProvider);
     return bannersAsync.when(
-      loading: () => _BannerSkeleton(),
+      loading: () => const HomeBannerSkeleton(),
       error: (_, __) => const SizedBox.shrink(),
       data: (banners) {
         if (banners.isEmpty) return const SizedBox.shrink();
@@ -188,27 +189,6 @@ class _BannerCard extends ConsumerWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _BannerSkeleton extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 24.w),
-          child: Container(
-            height: 200.h,
-            decoration: BoxDecoration(
-              color: VybeColors.surface,
-              borderRadius: BorderRadius.circular(20.r),
-            ),
-          ),
-        ),
-        SizedBox(height: 24.h),
-      ],
     );
   }
 }

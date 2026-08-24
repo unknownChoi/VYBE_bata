@@ -176,7 +176,10 @@ class ClubNearbyListItem extends StatelessWidget {
             Positioned(
               left: 10.w,
               bottom: 10.h,
-              child: _GlassPill(
+              child: NearbyGlassPill(
+                fill: const Color(0x800E0D12),
+                border: const Color(0x29FFFFFF),
+                vPadding: 5,
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -309,33 +312,6 @@ class ClubNearbyListItem extends StatelessWidget {
           ],
         ),
       ],
-    );
-  }
-}
-
-/// 이미지 위 작은 글래스 pill (도보 거리).
-class _GlassPill extends StatelessWidget {
-  final Widget child;
-
-  const _GlassPill({required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    final r = BorderRadius.circular(999.r);
-    return ClipRRect(
-      borderRadius: r,
-      child: BackdropFilter(
-        filter: ui.ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-        child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
-          decoration: BoxDecoration(
-            color: const Color(0x800E0D12),
-            borderRadius: r,
-            border: Border.all(color: const Color(0x29FFFFFF)),
-          ),
-          child: child,
-        ),
-      ),
     );
   }
 }

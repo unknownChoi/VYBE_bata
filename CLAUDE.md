@@ -61,7 +61,6 @@ View (Widget) → ViewModel (Notifier) → Repository → DataSource (Firebase)
 │   │   │       ├── firebase_favorite_datasource.dart
 │   │   │       ├── firebase_banner_datasource.dart
 │   │   │       ├── firebase_notice_datasource.dart
-│   │   │       ├── firebase_promotion_datasource.dart
 │   │   │       └── firebase_app_config_datasource.dart
 │   │   ├── models/      # Freezed 모델 (user, club, club_info, menu, photo, review,
 │   │   │                #   favorite, banner, notice, search_history, operating_hours,
@@ -76,7 +75,6 @@ View (Widget) → ViewModel (Notifier) → Repository → DataSource (Firebase)
 │   │   │                    #   + renew/ (리뉴얼 디자인 토큰·글래스 프리미티브 — Renew prefix)
 │   │   ├── main_scaffold/   # 루트 IndexedStack + 하단 탭바
 │   │   ├── home/            # 홈 (widgets/, viewmodels/)
-│   │   ├── promotion/       # 배너 상세 (promotions 콘텐츠 렌더)
 │   │   ├── nearby/          # 내 주변 (지도 기반, widgets/)
 │   │   ├── saved/           # 찜 (favorites, saved_common.dart, widgets/, viewmodels/)
 │   │   ├── pass_wallet/     # 패스/지갑 (플레이스홀더, 현재 탭에서 미연결)
@@ -290,6 +288,20 @@ clubs 쓰기 → Firebase Extension(firestore-algolia-search) → Algolia `clubs
   설정 변경 후 ACTIVE로 바뀌자 164개가 자동으로 다시 색인됐다. 즉 Indexable Fields만 고치면
   `scripts/reindex_clubs.js`를 따로 돌릴 필요가 없다(수동 touch는 설정을 안 건드리고 다시 밀
   때만 쓴다). 반영은 상태가 DEPLOYING → ACTIVE로 바뀐 뒤 1~2분.
+- **한글 조합 중 자모 (2026.08.24)** — 엔진은 **완성형 음절만** 인덱싱한다. 타이핑 중
+  마지막 글자로 남는 단독 자모(`ㅇ` U+3147)를 그대로 던지면 AND 매칭이 결과를 통째로
+  0건으로 만든다 — 실측 `홍대` 57건 · `홍대 어` 4건 → **`홍대 ㅇ` 0건**
+  (`removeWordsIfNoResults: 'none'` 이라 안 지워진다).
+  → `searchClubsPage`가 검색어를 **엔진에 던질 부분 / 초성으로 거를 자모**로 쪼갠다
+  (`core/utils/hangul_search.dart` — 순수 함수, `test/hangul_search_test.dart` 15건).
+  - 자모가 있으면 후보를 `pageSize * 8`(상한 80)만큼 받아 **이름 초성**으로 거르고,
+    초성이 앞쪽에서 걸린 곳을 먼저 정렬한다('홍대 ㅇ' → 어썸레드가 '홍대 클럽 나인'보다 위)
+  - 쌍자음은 홑자음으로 눕힌다(`ㅅ`로도 '썸'이 걸린다). 초성이 못 되는 모음·겹받침 자모는 버린다
+  - ⚠ **처리 위치는 `searchClubsPage` 한 곳** — 검색 3경로(연관 검색어 · 검색 결과 ·
+    주변 지도 `NearbySearchResultNotifier`)가 전부 여기를 지난다. 화면마다 따로 손대면
+    같은 검색어가 화면마다 다르게 걸린다
+  - ⚠ 자모를 걸렀을 땐 `totalCount`에 엔진 `nbHits`(거르기 전 수)를 쓰지 않는다 —
+    화면 '검색결과 N'이 목록보다 큰 숫자를 말하게 된다
 - 진입점은 `ClubRepositoryImpl.searchClubsPage` 하나 — viewmodel/화면은 엔진 무관.
   cursor = Algolia 페이지 번호(int, 0부터).
 - 결과 개수는 `ClubSearchPage.totalCount`(= Algolia `nbHits`, 검색어 전체 매칭 수).
@@ -538,11 +550,17 @@ grep -rn "border: Border.all" lib/presentation/   # 후보 추린 뒤 ClipRRect/
   `searchLogs`(수집) → `aggregateSearchTrends`(집계) → `searchTrends/current`·`searchHashtags`(노출).
   순수 로직은 `functions/src/search/compute_trends.ts`에 분리(Firestore 의존 없음) —
   되먹임 필터·고유유저 집계·증감·fallback·갱신주기 판단 전부 여기 있음
-- **홈 배너 → 프로모션 상세 (2026.08.06)** — `promotions` 컬렉션 + 범용 상세 화면
-  (`presentation/promotion/promotion_detail_screen.dart`). 배너 탭 → `banner_link_handler`가
-  `linkType`으로 분기 → `promotion`이면 promotionId로 문서 1건 조회해 히어로·제목·기간·본문·
-  사진 n장·하단 CTA(클럽 상세 / 외부 URL)를 렌더. **배너마다 다른 광고 페이지를 앱 배포 없이
-  DB만으로 추가** 가능. 배너 카드에 없던 `onTap` 신설(기존엔 링크 필드가 죽어 있었음)
+- **홈 배너 → 공지사항 상세 (2026.08.06 프로모션 상세로 시작 → 2026.08.24 공지로 통합)** —
+  배너 탭 → `banner_link_handler`가 `linkType`으로 분기 → `notice`면
+  `openNoticeDetail(noticeId)`(`my_page/notice_detail_route.dart`)가 문서 1건을 조회해
+  기존 공지 상세 화면을 그대로 띄운다. **배너마다 다른 광고 글을 앱 배포 없이 DB만으로 추가** 가능.
+  - ⚠ **구 `promotions` 컬렉션 + `PromotionDetailScreen`은 삭제됐다 (2026.08.24)** —
+    광고 목적지가 배너 전용 페이지와 공지사항 둘로 갈려 같은 내용을 두 벌 관리해야 했다.
+    공지로 합치면 **배너가 내려간 뒤에도 목록에서 다시 찾을 수 있다**. 지운 것 —
+    `presentation/promotion/`, `promotion_model`·datasource·repository, `notices.promotionId`,
+    `BannerLinkType.promotion`, `scripts/seed_promotions.js`, promotions Rules(Firestore·Storage)
+  - 광고 공지는 `notice_ad_*` id에 배너 이미지를 첨부 사진으로 넣는다 —
+    투입은 로컬 스크립트로 하고, 어드민 작성 UI는 아직 없음
 - **공지사항 (2026.08.03)** — `notices` 컬렉션 + 앱 읽기 전용 화면
   (마이페이지 계정 메뉴 → `my_page/notices_screen.dart` 목록 → `notice_detail_screen.dart` 상세).
   카테고리 배지·고정 공지·NEW(7일) 배지·사진 n장. **작성/수정은 어드민 페이지(별도 구축 예정) 전용**
@@ -772,10 +790,11 @@ grep -rn "border: Border.all" lib/presentation/   # 후보 추린 뒤 ClipRRect/
 - 검색 트렌드 배포 잔여 작업 — ① `firebase deploy --only firestore:rules,functions:aggregateSearchTrends`
   ② `node scripts/seed_search_hashtags.js` (안 돌리면 두 섹션 다 빈 화면)
   ③ 콘솔에서 `searchLogs.expireAt` TTL 정책 추가
-- 홈 배너 링크 잔여 작업 — ① `firebase deploy --only firestore:rules,storage`
-  (promotions 규칙 + Storage `promotions/**`) ② 샘플 데이터 `node scripts/seed_promotions.js`
-  (안 돌리면 기존 배너 4개가 `linkType:'screen'` 플레이스홀더라 탭해도 아무 일 없음)
-  ③ 배너 `linkType`의 club·page·url 분기 연결 (`banner_link_handler.dart`) ④ 어드민 작성 UI
+- 홈 배너 링크 잔여 작업 — ① **`firebase deploy --only firestore:rules,storage`**
+  (2026.08.24 promotions 규칙을 지운 상태 — 배포 전까진 삭제된 컬렉션 규칙이 서버에 남아 있다.
+  기능 영향은 없지만 규칙 파일과 배포본이 어긋난다)
+  ② 배너 `linkType`의 club·page·url 분기 연결 (`banner_link_handler.dart`) ③ 어드민 작성 UI
+  (지금은 광고 공지 문서를 스크립트로 직접 넣는다)
 - 공지사항 배포 잔여 작업 — ① `firebase deploy --only firestore:rules,firestore:indexes,storage`
   (notices 규칙 + `notices(isActive, publishedAt DESC)` 인덱스) ② 샘플 데이터 `node scripts/seed_notices.js`
   ③ 어드민 페이지(작성 UI) 별도 구축
@@ -1170,9 +1189,18 @@ floors[] = {
   order     : number  // 앱이 오름차순 정렬
   cols      : number  // 격자 열 4~14
   rows      : number  // 격자 행 4~32.  캔버스 비율 = cols/rows (셀 정사각 → aspectRatio 필드 불필요)
+  cells     : string  // 방 모양 마스크 — 길이 cols*rows, 행 우선. '1'=방 안 / '0'=방 밖
+                      //   클럽 홀이 직사각형이 아니라서(ㄱ자, 계단 옆이 파인 형태) 격자 안에서
+                      //   실제 바닥만 남긴다. **빈 문자열 = 직사각형 방 전체**(앱이 둥근 카드로 그림)
+                      //   ⚠ 길이가 cols*rows 와 다르면 앱이 **통째로 버린다**(= 전부 방 안).
+                      //     격자를 바꾸면 마스크도 같이 옮겨야 한다 — 편집기가 remap 한다
+                      //   ⚠ 전부 '1'이거나 전부 '0'인 마스크도 버린다(각각 '없는 것'과 같고, 바닥 0은 그릴 게 없음)
+                      //   테이블은 방 안에만 둔다(편집기가 막음). 구조물은 경계에 걸쳐도 된다(벽·계단)
   fixtures  : array   // 구조물 [{ id, type, label, col, row, colSpan, rowSpan }] — 탭 대상 아님, 최소 1칸
                       //   type: stage|dancefloor|bar|dj|entrance|restroom|stairs|wall|etc
                       //   ⚠ 앱이 모르는 type은 조용히 버린다(영문 키 노출 방지 — facilities와 같은 규칙)
+                      //   ⚠ 색·아이콘은 **타입마다 고정**이고 업주가 못 바꾼다(kFixtureStyles).
+                      //     클럽마다 무대 색이 다르면 색으로 알아보는 학습이 무너진다
                       //   label 비면 타입별 기본 문구
   tables    : array   // [{ id, tierKey, name, desc, col, row, colSpan, rowSpan, shape,
                       //     price, minPeople, minBottles, minSpend, note, isActive }]
@@ -1189,6 +1217,12 @@ floors[] = {
 > 같은 그림**을 그리고, 캔버스 비율이 `cols/rows`로 자동 도출되며(양쪽이 따로 지킬 `aspectRatio`가
 > 없다), 겹침 판정이 셀 비교라 편집기가 원천 차단할 수 있고, 회전 개념이 사라지기 때문.
 > 포기한 것은 비스듬한 홀·대각선 배치(격자를 늘려 근사).
+> - **미니맵 비율 = `cols : rows`** — 셀이 정사각이라 칸 수의 비가 곧 배치도 모양이다.
+>   가로로 긴 홀은 세로 칸을 줄여 만든다(편집기에 `3:1`~`1:2` 프리셋). 칸 크기를 정하는 건
+>   **가로 칸뿐**이라(폭 ÷ cols) 상한도 거기에만 걸려 있다
+> - 방 모양은 `cells` 마스크로 격자 안에서 깎는다. 직사각형이면 앱이 예전처럼 **둥근 카드**로,
+>   깎였으면 **경계 변에만 외곽선**을 그어 하나의 방 윤곽으로 그린다(`_FloorPlatePainter`).
+>   셀마다 사각형을 다 그리면 격자무늬로 보인다
 > - ⚠ **열 최대 14 + 테이블 최소 2×2**가 짝을 이뤄 **탭 타겟 44px 하한**을 보장한다 —
 >   가장 좁은 흔한 기기(iPhone SE 375)에서 섹션 좌우 20.w + 캔버스 안쪽 8.w 를 뺀 격자 폭
 >   ≈321px ÷ 14열 ≈23px/셀 × 2칸 ≈46px. 기준 폭 393에선 48px.
@@ -1272,10 +1306,10 @@ createdAt       : timestamp
 ```
 bannerId        : string    // PK (= doc.id fallback)
 imageUrl        : string    // 배너 이미지 URL — 권장 원본 1026 x 600 px (비율 1.71:1, 아래 참고)
-linkType        : string    // "promotion" | "club" | "page" | "url" — 탭 시 이동 방식
+linkType        : string    // "notice" | "club" | "page" | "url" — 탭 시 이동 방식
                             //   BannerLinkType enum. 알 수 없는 값은 none(이동 없음)으로 폴백
 linkValue       : string    // 링크 대상 값
-                            //   promotion: promotionId / club: clubId / page: 화면 키 / url: URL
+                            //   notice: noticeId / club: clubId / page: 화면 키 / url: URL
 order           : number    // 정렬 순서 (오름차순)
 isActive        : boolean   // 노출 여부
 startAt         : timestamp // 노출 시작
@@ -1286,8 +1320,14 @@ createdAt       : timestamp
 > `isActive=true` 쿼리 후 클라이언트에서 `startAt < now < endAt` 필터 + `order` 정렬.
 > 탭 라우팅은 `core/navigation/banner_link_handler.dart` 한 곳에서 `linkType`으로 분기.
 > 광고 페이지는 전체화면이라 `pushHidingNavBar`로 열어 하단 nav 바를 내린다(돌아오면 복원).
-> **현재 연결된 건 `promotion` 뿐** — club·page·url은 미연결이라 조용히 무시된다
+> **연결된 건 `notice` 하나** — club·page·url은 미연결이라 조용히 무시된다
 > (잘못된 곳으로 보내는 것보다 낫다).
+> **현재 운영 배너 5건은 전부 `notice`** (2026.08.24) — 광고 글을 공지사항에 같이 쌓아
+> 배너로 본 광고를 공지 목록에서 다시 찾을 수 있게 목적지를 하나로 합쳤다.
+> 진입점은 `openNoticeDetail()`(`my_page/notice_detail_route.dart`) — 배너는 모델이 없어
+> `noticeProvider(noticeId)`로 문서 1건을 조회한 뒤 `NoticeDetailScreen`을 띄운다
+> (목록에서 탭한 경로는 이미 받은 모델을 그대로 넘겨 **조회 0회**).
+> 구 `promotion` 경로(promotions 컬렉션 + 전용 화면)는 **삭제됐다** — 위 '홈 배너 → 공지사항 상세' 참고.
 
 ##### 배너 이미지 규격 (2026.08.21)
 
@@ -1308,38 +1348,8 @@ createdAt       : timestamp
 iPhone 15·15 Pro Max는 1.71:1. `cover`라 납작한 기기에서 위아래가 잘리므로
 안전영역 9%는 **SE 기준**이다.
 
-⚠ 이 비율은 **홈 배너 전용** — `promotions.heroImageUrl`(상세 히어로)은 별도 비율이라
-같은 파일을 재사용하지 않는다.
-
-#### promotions/{promotionId}
-```
-promotionId  : string     // PK (= doc.id fallback)
-title        : string     // 상세 제목
-subtitle     : string     // 제목 아래 한 줄 요약. 비면 미표시
-heroImageUrl : string     // 상세 상단 히어로 이미지. 비면 히어로 없이 제목부터 시작
-                          //   (배너 imageUrl은 목록용 비율이라 상세에서 재사용 안 함)
-content      : string     // 본문 plain text. \n 줄바꿈 그대로 렌더 (마크다운/HTML 파싱 안 함)
-imageUrls    : array      // 본문 아래 첨부 사진 0~n장 — Storage promotions/{promotionId}/{index}.{ext}
-ctaType      : string     // "none" | "club" | "url" — 하단 고정 버튼 동작
-ctaValue     : string     // club: clubId / url: URL
-ctaLabel     : string     // 버튼 문구. 비면 타입별 기본값('클럽 보러가기' / '자세히 보기')
-isActive     : boolean    // 노출 여부. false면 상세에서 '종료된 이벤트' 표시
-startAt      : timestamp  // 표시용 진행 기간 시작 (선택)
-endAt        : timestamp  // 표시용 진행 기간 종료 (선택) — 둘 다 없으면 기간 pill 미표시
-createdAt    : timestamp
-updatedAt    : timestamp
-```
-> 홈 배너(`linkType: "promotion"`) 탭 시 열리는 상세 콘텐츠. **top-level**(banners와 동급).
-> 화면은 `presentation/promotion/promotion_detail_screen.dart` **하나뿐**이고 내용만 이 문서에서
-> 갈아 끼운다 → 배너별로 사진·본문이 다른 광고 페이지를 **앱 배포 없이** 늘릴 수 있다.
-> **쓰기는 어드민 페이지(별도 구축 예정) 전용 — 앱은 읽기만.**
-> ⚠ **배너 doc에 본문을 넣지 않는 이유** — 홈 진입마다 배너 N개를 읽는데 안 여는 사용자까지
-> 본문·사진 배열을 내려받게 된다. 탭했을 때만 doc 1건 조회(`getPromotion`).
-> 쿼리는 단건 get뿐 → **인덱스 불필요**. 집계 필드 없음 → Cloud Functions 트리거 불필요.
-> ⚠ **Rules에서 `isActive`를 read 조건에 넣지 않는다**(notices와 다른 점) — 단건 get이라
-> 규칙으로 막으면 permission-denied가 되어 앱이 '없음'과 '오류'를 구분할 수 없다.
-> 노출 여부는 datasource에서 필터해 null로 돌린다. seed(샘플): `scripts/seed_promotions.js`
-> (프로모션 4건 생성 + 기존 배너 4개의 linkType/linkValue를 그 문서로 연결).
+⚠ 이 비율은 **홈 배너 전용**이다. 배너 이미지는 광고 공지(`notice_ad_*`)의 첨부 사진으로도
+그대로 쓰이는데, 공지 본문 첨부는 폭에 맞춰 늘리는(`BoxFit.fitWidth`) 자리라 잘리지 않는다.
 
 #### appConfig/{platform}  — 문서 2개 고정 (android · ios)
 ```
@@ -1437,11 +1447,6 @@ imageUrls   : array      // 첨부 사진 URL 0~n장 — Storage notices/{notice
 category    : string     // "notice" | "update" | "event" | "maint" | "ad" — 목록 배지
                          //   배지 색: 공지=흰색 / 업데이트=보라 / 이벤트=라임 / 점검=옐로 / 광고=스카이블루
                          //   알 수 없는 값이면 '공지'로 폴백
-promotionId : string     // 연결된 promotions 문서 id. 비어 있지 않으면 목록/이전·다음에서
-                         //   탭했을 때 공지 상세가 아니라 PromotionDetailScreen으로 직행
-                         //   (광고 공지 = 홈 배너와 같은 목적지 → 같은 내용 두 번 안 보게)
-                         //   category와 분리 — 프로모션 없는 광고 공지도, 광고 아닌 공지의
-                         //   이벤트 페이지 링크도 가능해야 하므로
 isPinned    : boolean    // 상단 고정 (정렬은 클라 메모리에서 처리)
 isActive    : boolean    // 게시 상태 — true: 게시 / false: 게시중단.
                          //   게시중단이면 게시 기간 안이어도 노출 안 됨 (기간보다 우선)
@@ -1455,6 +1460,10 @@ updatedAt   : timestamp
 ```
 > 마이페이지 '계정 → 공지사항' 데이터 소스. **top-level** — 클럽·유저에 종속 안 되는
 > 전역 콘텐츠(banners와 동급). **쓰기는 어드민 페이지(별도 구축 예정) 전용 — 앱은 읽기만.**
+> **홈 배너의 목적지이기도 하다 (2026.08.24)** — `banners.linkType='notice'` 인 배너를 탭하면
+> `openNoticeDetail(noticeId)`가 `getNotice` 1건을 조회해 같은 공지 상세를 띄운다.
+> 광고 글이 공지 목록에도 남아 배너가 내려간 뒤에도 찾아볼 수 있다.
+> 배너용 광고 공지는 `notice_ad_*` id를 쓰고 첨부 사진에 배너 이미지를 그대로 넣는다.
 > 쿼리: `where isActive==true + where publishedAt <= now orderBy publishedAt desc limit 50`.
 > 인덱스: `notices(isActive ASC, publishedAt DESC)` — `publishedAt <= now`는 정렬 키와
 > 같은 필드라 **기존 인덱스로 그대로 처리**된다(추가 인덱스 불필요).
@@ -1617,7 +1626,6 @@ createdAt      : timestamp
 | `favorites` | 본인만 | 생성·삭제: 본인만 |
 | `users/.../searchHistory` | 본인만 | 본인만 |
 | `notices` | 누구나 (isActive=true만 — 게시 기간은 앱에서 필터) | 어드민만 (어드민 페이지 전용) |
-| `promotions` | 누구나 (isActive는 클라 필터) | 어드민만 (어드민 페이지 전용) |
 | `searchLogs` | **불가** (Admin SDK 전용) | 생성만: 로그인 유저(본인 userId, keyword 2~30자, 필드 화이트리스트). 수정·삭제 불가 |
 | `searchTrends`, `searchHashtags` | 누구나 | 어드민만 |
 | `appConfig/{platform}` | 누구나 (**auth 조건 금지** — 로그인 전에 읽는다) | 어드민만 (어드민 페이지 전용) |
@@ -1633,7 +1641,6 @@ createdAt      : timestamp
 | `reviews/**` | 누구나 | 로그인 유저, 10MB 이하, 이미지만 |
 | `users/{uid}/**` | 누구나 | 본인만, 5MB 이하, 이미지만 |
 | `notices/**` | 누구나 | 어드민만, 10MB 이하, 이미지만 |
-| `promotions/**` | 누구나 | 어드민만, 10MB 이하, 이미지만 |
 
 #### 어드민 권한 설정
 ```typescript
@@ -1659,7 +1666,6 @@ clubs/{clubId}/menus/boards/board_{n}.png   // 메뉴판 이미지 (menuBoardUrl
 reviews/{clubId}/{reviewId}/{index}.{ext}   // 리뷰 첨부 이미지 (0~3, 최대 4장)
 users/{uid}/profile.jpg                     // 프로필 이미지 (덮어쓰기)
 notices/{noticeId}/{index}.{ext}            // 공지 첨부 이미지 (어드민 업로드)
-promotions/{promotionId}/{index}.{ext}      // 배너 상세 히어로·본문 이미지 (어드민 업로드)
 ```
 
 > **URL 토큰 차이**: `thumbnail`은 다운로드 토큰(`?alt=media&token=…`) 포함, `gallery`/`menus`는 토큰 없이 `?alt=media`만 → Storage 규칙 `clubs/** read: if true`(공개 읽기)에 의존.

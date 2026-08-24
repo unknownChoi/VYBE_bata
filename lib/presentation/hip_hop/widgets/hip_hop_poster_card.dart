@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/common/widgets/vybe_club_card_parts.dart';
 import 'package:vybe/presentation/common/widgets/vybe_recommend_badge.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 import 'package:vybe/presentation/hip_hop/hip_hop_gradients.dart';
@@ -59,7 +60,16 @@ class HipHopPosterCard extends StatelessWidget {
                 ),
               ),
             const _Sheen(),
-            const _BottomScrim(),
+            const Positioned.fill(
+              child: VybeCardScrim(
+                colors: [
+                  Color(0xF20A090B),
+                  Color(0x330A090B),
+                  Color(0x000A090B),
+                ],
+                stops: [0.16, 0.56, 0.80],
+              ),
+            ),
             Positioned(
               top: 11.h,
               left: 11.w,
@@ -104,28 +114,6 @@ class _Sheen extends StatelessWidget {
   }
 }
 
-/// 하단 가독성 그라데이션 — 사진 위 글자가 읽히도록.
-class _BottomScrim extends StatelessWidget {
-  const _BottomScrim();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Positioned.fill(
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.bottomCenter,
-            end: Alignment.topCenter,
-            colors: [Color(0xF20A090B), Color(0x330A090B), Color(0x000A090B)],
-            stops: [0.16, 0.56, 0.80],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// 영업중 / 영업종료 pill.
 class _OpenPill extends StatelessWidget {
   final bool open;
   const _OpenPill({required this.open});

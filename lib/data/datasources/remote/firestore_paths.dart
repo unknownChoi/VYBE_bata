@@ -15,7 +15,6 @@ class FirestorePaths {
   static const clubs = 'clubs';
   static const favorites = 'favorites';
   static const banners = 'banners';
-  static const promotions = 'promotions';
   static const notices = 'notices';
   static const performances = 'performances';
   static const appConfig = 'appConfig';
@@ -33,6 +32,9 @@ class FirestorePaths {
 
   /// `clubs/{clubId}/photos/{photoId}`
   static const photos = 'photos';
+
+  /// `clubs/{clubId}/tableLayout/{clubId}` — 배치도는 클럽당 문서 1건(문서 id = clubId).
+  static const tableLayout = 'tableLayout';
 
   /// `clubs/{clubId}/reviews/{reviewId}` — 마이페이지는 collectionGroup으로도 읽는다.
   static const reviews = 'reviews';

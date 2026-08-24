@@ -74,8 +74,10 @@ class _RenewMenuTabState extends ConsumerState<RenewMenuTab> {
       return _list(boards, categories, grouped, barKey: null);
     }
     return RenewStickyBarHost(
-      // 고정될 때만 불투명 — 스크롤 안의 원본은 배경 없이 오로라를 통과시킨다.
-      bar: _chipBar(categories, floating: true),
+      // 고정된 칩 줄은 앱 배경(오로라) 조각을 깔아 불투명하게 —
+      // 뒤로 지나가는 메뉴 행이 칩 글자에 겹치지 않는다.
+      auroraBackdrop: true,
+      bar: _chipBar(categories),
       scrollBuilder: (barKey) =>
           _list(boards, categories, grouped, barKey: barKey),
     );
@@ -149,9 +151,8 @@ class _RenewMenuTabState extends ConsumerState<RenewMenuTab> {
     );
   }
 
-  Widget _chipBar(List<String> categories, {bool floating = false}) {
+  Widget _chipBar(List<String> categories) {
     return RenewBar(
-      fill: floating ? RenewGlass.barFill : Colors.transparent,
       padding: EdgeInsets.symmetric(vertical: 10.h),
       child: SizedBox(
         height: 34.h,

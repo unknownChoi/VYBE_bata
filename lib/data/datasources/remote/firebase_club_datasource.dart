@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:vybe/core/utils/firebase_logger.dart';
 import 'package:vybe/core/utils/geohash_utils.dart';
+import 'package:vybe/data/datasources/remote/firestore_paths.dart';
 import 'package:vybe/data/models/club_info_model.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/data/models/club_table_layout.dart';
@@ -22,7 +23,7 @@ class FirebaseClubDataSource {
       purpose: '활성 클럽 목록 조회',
     );
     final snapshot = await _firestore
-        .collection('clubs')
+        .collection(FirestorePaths.clubs)
         .where('isActive', isEqualTo: true)
         .get();
     return snapshot.docs.map(ClubModel.fromFirestore).toList();
@@ -37,7 +38,7 @@ class FirebaseClubDataSource {
       purpose: '서비스 음료 제공 클럽 목록 조회',
     );
     final snapshot = await _firestore
-        .collection('clubs')
+        .collection(FirestorePaths.clubs)
         .where('isActive', isEqualTo: true)
         .where('serviceDrink.isOffered', isEqualTo: true)
         .get();
@@ -60,7 +61,7 @@ class FirebaseClubDataSource {
       purpose: '무료입장 클럽 목록 조회(상시 + 시간대)',
     );
     final snapshot = await _firestore
-        .collection('clubs')
+        .collection(FirestorePaths.clubs)
         .where('isActive', isEqualTo: true)
         .where('isFreeEntry', isEqualTo: true)
         .get();
@@ -82,7 +83,7 @@ class FirebaseClubDataSource {
       purpose: '홈 시간대 무료입장 클럽 목록 조회',
     );
     final snapshot = await _firestore
-        .collection('clubs')
+        .collection(FirestorePaths.clubs)
         .where('isActive', isEqualTo: true)
         .where('freeEntry.type', isEqualTo: 'timed')
         .get();
@@ -98,7 +99,7 @@ class FirebaseClubDataSource {
       purpose: '힙합 장르 클럽 목록 조회',
     );
     final snapshot = await _firestore
-        .collection('clubs')
+        .collection(FirestorePaths.clubs)
         .where('isActive', isEqualTo: true)
         .where('genre', isEqualTo: '힙합')
         .get();
@@ -112,7 +113,7 @@ class FirebaseClubDataSource {
       purpose: '활성 클럽 목록 실시간 구독',
     );
     return _firestore
-        .collection('clubs')
+        .collection(FirestorePaths.clubs)
         .where('isActive', isEqualTo: true)
         .snapshots()
         .map((s) => s.docs.map(ClubModel.fromFirestore).toList());
@@ -124,7 +125,10 @@ class FirebaseClubDataSource {
       service: 'Firestore(clubs/$clubId)',
       purpose: '클럽 상세 정보 조회',
     );
-    final doc = await _firestore.collection('clubs').doc(clubId).get();
+    final doc = await _firestore
+        .collection(FirestorePaths.clubs)
+        .doc(clubId)
+        .get();
     if (!doc.exists) return null;
     return ClubModel.fromFirestore(doc);
   }
@@ -142,7 +146,7 @@ class FirebaseClubDataSource {
     for (var i = 0; i < ids.length; i += 10) {
       final chunk = ids.sublist(i, math.min(i + 10, ids.length));
       final snapshot = await _firestore
-          .collection('clubs')
+          .collection(FirestorePaths.clubs)
           .where(FieldPath.documentId, whereIn: chunk)
           .get();
       result.addAll(snapshot.docs.map(ClubModel.fromFirestore));
@@ -157,9 +161,9 @@ class FirebaseClubDataSource {
       purpose: '클럽 운영 정보 조회',
     );
     final doc = await _firestore
-        .collection('clubs')
+        .collection(FirestorePaths.clubs)
         .doc(clubId)
-        .collection('info')
+        .collection(FirestorePaths.clubInfo)
         .doc(clubId)
         .get();
     if (!doc.exists) return null;
@@ -177,9 +181,9 @@ class FirebaseClubDataSource {
       purpose: '[테이블] 배치도·가격 조회',
     );
     final doc = await _firestore
-        .collection('clubs')
+        .collection(FirestorePaths.clubs)
         .doc(clubId)
-        .collection('tableLayout')
+        .collection(FirestorePaths.tableLayout)
         .doc(clubId)
         .get();
     if (!doc.exists) return null;
@@ -193,9 +197,9 @@ class FirebaseClubDataSource {
       purpose: '[메뉴탭] 전체 메뉴 목록 조회',
     );
     final snapshot = await _firestore
-        .collection('clubs')
+        .collection(FirestorePaths.clubs)
         .doc(clubId)
-        .collection('menus')
+        .collection(FirestorePaths.menus)
         .where('isAvailable', isEqualTo: true)
         .get();
     return snapshot.docs.map(MenuModel.fromFirestore).toList();
@@ -208,9 +212,9 @@ class FirebaseClubDataSource {
       purpose: '[사진탭] 갤러리 사진 목록 조회',
     );
     final snapshot = await _firestore
-        .collection('clubs')
+        .collection(FirestorePaths.clubs)
         .doc(clubId)
-        .collection('photos')
+        .collection(FirestorePaths.photos)
         .where('isHidden', isEqualTo: false)
         .orderBy('createdAt', descending: true)
         .get();
@@ -224,7 +228,7 @@ class FirebaseClubDataSource {
       purpose: '지역별 클럽 목록 조회',
     );
     final snapshot = await _firestore
-        .collection('clubs')
+        .collection(FirestorePaths.clubs)
         .where('isActive', isEqualTo: true)
         .where('area', isEqualTo: area)
         .get();
@@ -258,7 +262,7 @@ class FirebaseClubDataSource {
     final snapshots = await Future.wait(
       prefixes.map(
         (prefix) => _firestore
-            .collection('clubs')
+            .collection(FirestorePaths.clubs)
             .where('isActive', isEqualTo: true)
             .where('location.geohash', isGreaterThanOrEqualTo: prefix)
             .where('location.geohash', isLessThan: '$prefix{')

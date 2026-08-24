@@ -87,21 +87,17 @@ final class SearchHistoryFamily extends $Family
 }
 
 /// 입력 중 연관 검색어(클럽 제안). 디바운스는 호출측(화면)에서 처리.
-/// searchClubsPage(평점순 상위 8개)를 재사용 — 추가 인프라 없음.
+/// searchClubsPage(관련도순 상위 8개)를 재사용 — 추가 인프라 없음.
 
 @ProviderFor(SearchSuggestionViewModel)
 final searchSuggestionViewModelProvider = SearchSuggestionViewModelProvider._();
 
 /// 입력 중 연관 검색어(클럽 제안). 디바운스는 호출측(화면)에서 처리.
-/// searchClubsPage(평점순 상위 8개)를 재사용 — 추가 인프라 없음.
+/// searchClubsPage(관련도순 상위 8개)를 재사용 — 추가 인프라 없음.
 final class SearchSuggestionViewModelProvider
-    extends
-        $NotifierProvider<
-          SearchSuggestionViewModel,
-          AsyncValue<List<ClubModel>>
-        > {
+    extends $NotifierProvider<SearchSuggestionViewModel, SearchSuggestions> {
   /// 입력 중 연관 검색어(클럽 제안). 디바운스는 호출측(화면)에서 처리.
-  /// searchClubsPage(평점순 상위 8개)를 재사용 — 추가 인프라 없음.
+  /// searchClubsPage(관련도순 상위 8개)를 재사용 — 추가 인프라 없음.
   SearchSuggestionViewModelProvider._()
     : super(
         from: null,
@@ -121,37 +117,32 @@ final class SearchSuggestionViewModelProvider
   SearchSuggestionViewModel create() => SearchSuggestionViewModel();
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(AsyncValue<List<ClubModel>> value) {
+  Override overrideWithValue(SearchSuggestions value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<AsyncValue<List<ClubModel>>>(value),
+      providerOverride: $SyncValueProvider<SearchSuggestions>(value),
     );
   }
 }
 
 String _$searchSuggestionViewModelHash() =>
-    r'e03c08b2991d43395a491d047cc600f975ce44fd';
+    r'a11e62447ffabe1483a084745a7db3665d9229cc';
 
 /// 입력 중 연관 검색어(클럽 제안). 디바운스는 호출측(화면)에서 처리.
-/// searchClubsPage(평점순 상위 8개)를 재사용 — 추가 인프라 없음.
+/// searchClubsPage(관련도순 상위 8개)를 재사용 — 추가 인프라 없음.
 
 abstract class _$SearchSuggestionViewModel
-    extends $Notifier<AsyncValue<List<ClubModel>>> {
-  AsyncValue<List<ClubModel>> build();
+    extends $Notifier<SearchSuggestions> {
+  SearchSuggestions build();
   @$mustCallSuper
   @override
   void runBuild() {
-    final ref =
-        this.ref
-            as $Ref<AsyncValue<List<ClubModel>>, AsyncValue<List<ClubModel>>>;
+    final ref = this.ref as $Ref<SearchSuggestions, SearchSuggestions>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<
-                AsyncValue<List<ClubModel>>,
-                AsyncValue<List<ClubModel>>
-              >,
-              AsyncValue<List<ClubModel>>,
+              AnyNotifier<SearchSuggestions, SearchSuggestions>,
+              SearchSuggestions,
               Object?,
               Object?
             >;
@@ -191,7 +182,7 @@ final class SearchViewModelProvider
   }
 }
 
-String _$searchViewModelHash() => r'94040903836f3f3cf86f5e035ad4f4af092e77e6';
+String _$searchViewModelHash() => r'facf74a02e546d988c4b0a3df2e2946b0d311baf';
 
 abstract class _$SearchViewModel extends $Notifier<AsyncValue<SearchResults>> {
   AsyncValue<SearchResults> build();

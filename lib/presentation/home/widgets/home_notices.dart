@@ -11,7 +11,6 @@ import 'package:vybe/presentation/home/viewmodels/home_notices_viewmodel.dart';
 import 'package:vybe/presentation/home/widgets/home_section_head.dart';
 import 'package:vybe/presentation/my_page/notice_detail_screen.dart';
 import 'package:vybe/presentation/my_page/notices_screen.dart';
-import 'package:vybe/presentation/promotion/promotion_detail_screen.dart';
 
 /// 홈 공지사항 — 낮은 톤 글래스 카드 한 장에 상위 3건을 hairline으로 나눠 담는다.
 ///
@@ -70,15 +69,12 @@ class HomeNotices extends ConsumerWidget {
     );
   }
 
-  /// 공지 탭 → 상세. 프로모션이 연결된 공지(광고)는 공지 본문을 거치지 않고
-  /// 배너와 같은 광고 페이지로 바로 보낸다 — 같은 내용을 두 번 보게 하지 않으려고.
+  /// 공지 탭 → 상세. 광고 글도 같은 화면을 쓴다 — 홈 배너가 보내는 곳과 같은 공지 상세다.
   /// (공지 목록 화면 `NoticesScreen._open`과 같은 규칙)
   void _open(BuildContext context, NoticeModel notice) {
     Navigator.of(context).push(
       SwipeBackPageRoute<void>(
-        builder: (_) => notice.opensPromotion
-            ? PromotionDetailScreen(promotionId: notice.promotionId)
-            : NoticeDetailScreen(notice: notice),
+        builder: (_) => NoticeDetailScreen(notice: notice),
       ),
     );
   }

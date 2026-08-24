@@ -33,62 +33,67 @@ Map<String, dynamic> _table(
   'minSpend': price,
 };
 
-ClubTableLayout _layout({bool twoFloors = false, int cols = 12}) =>
-    ClubTableLayout.fromMap({
-      'schemaVersion': 1,
-      'clubId': 'club_1',
-      'tiers': [
+ClubTableLayout _layout({
+  bool twoFloors = false,
+  int cols = 12,
+  int rows = 16,
+  String? cells,
+}) => ClubTableLayout.fromMap({
+  'schemaVersion': 1,
+  'clubId': 'club_1',
+  'tiers': [
+    {
+      'key': 'vvip',
+      'name': 'VVIP',
+      'short': 'VVIP',
+      'colorKey': 'purple',
+      'order': 0,
+    },
+    {
+      'key': 'std',
+      'name': 'STANDARD',
+      'short': 'STD',
+      'colorKey': 'gray',
+      'order': 1,
+    },
+  ],
+  'floors': [
+    {
+      'floorId': 'f1',
+      'name': '1F',
+      'order': 0,
+      'cols': cols,
+      'rows': rows,
+      if (cells != null) 'cells': cells,
+      'fixtures': [
         {
-          'key': 'vvip',
-          'name': 'VVIP',
-          'short': 'VVIP',
-          'colorKey': 'purple',
-          'order': 0,
-        },
-        {
-          'key': 'std',
-          'name': 'STANDARD',
-          'short': 'STD',
-          'colorKey': 'gray',
-          'order': 1,
+          'id': 'fx1',
+          'type': 'stage',
+          'label': 'DJ BOOTH · STAGE',
+          'col': 1,
+          'row': 0,
+          'colSpan': cols - 2,
+          'rowSpan': 2,
         },
       ],
-      'floors': [
-        {
-          'floorId': 'f1',
-          'name': '1F',
-          'order': 0,
-          'cols': cols,
-          'rows': 16,
-          'fixtures': [
-            {
-              'id': 'fx1',
-              'type': 'stage',
-              'label': 'DJ BOOTH · STAGE',
-              'col': 1,
-              'row': 0,
-              'colSpan': cols - 2,
-              'rowSpan': 2,
-            },
-          ],
-          'tables': [
-            _table('S1', 'vvip', 0, 3, price: 1000000),
-            _table('T1', 'std', cols - 2, 3, price: 200000),
-          ],
-        },
-        if (twoFloors)
-          {
-            'floorId': 'f2',
-            'name': '2F 라운지',
-            'order': 1,
-            'cols': 12,
-            'rows': 12,
-            'fixtures': const [],
-            'tables': [_table('L1', 'std', 0, 3, price: 250000)],
-          },
+      'tables': [
+        _table('S1', 'vvip', 0, 3, price: 1000000),
+        _table('T1', 'std', cols - 2, 3, price: 200000),
       ],
-      'notice': '가격은 변동될 수 있습니다.',
-    }, 'club_1')!;
+    },
+    if (twoFloors)
+      {
+        'floorId': 'f2',
+        'name': '2F 라운지',
+        'order': 1,
+        'cols': 12,
+        'rows': 12,
+        'fixtures': const [],
+        'tables': [_table('L1', 'std', 0, 3, price: 250000)],
+      },
+  ],
+  'notice': '가격은 변동될 수 있습니다.',
+}, 'club_1')!;
 
 Widget _host(Widget child) => ScreenUtilInit(
   designSize: const Size(393, 852),
@@ -172,6 +177,25 @@ void main() {
     expect(size.height, greaterThanOrEqualTo(44));
   });
 
+  testWidgets('ㄱ자 방(도려낸 격자)도 오버플로 없이 그려진다', (tester) async {
+    // 12×16 격자에서 오른쪽 아래 블록을 도려낸 방.
+    final cells = List.generate(16, (r) {
+      return List.generate(12, (c) => (r >= 10 && c >= 8) ? '0' : '1').join();
+    }).join();
+
+    await _pump(tester, TablePricingSection(layout: _layout(cells: cells)));
+
+    final floor = _layout(cells: cells).floors.first;
+    expect(floor.isFullRect, isFalse);
+    expect(floor.isInside(11, 15), isFalse);
+    expect(floor.isInside(0, 0), isTrue);
+
+    // 도려낸 방이어도 배치도·상세가 그대로 그려진다.
+    expect(find.text('DJ BOOTH · STAGE'), findsOneWidget);
+    expect(find.text('테이블 S1'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('셀은 정사각 — 캔버스 높이가 cols/rows 비율을 따른다', (tester) async {
     await _pump(tester, TablePricingSection(layout: _layout()));
 
@@ -179,6 +203,24 @@ void main() {
     // 12열 × 16행 → 격자가 3:4(가로:세로). 캔버스 여백(_pad)까지 포함해도 세로가 길다.
     expect(map.height / map.width, greaterThan(1.2));
     expect(map.height / map.width, lessThan(1.5));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('가로로 긴 홀(12×5)은 미니맵도 납작하게 그려진다', (tester) async {
+    // 클럽마다 홀 모양이 달라 세로로 긴 곳도, 가로로 긴 곳도 있다.
+    // 셀이 정사각이라 칸 수의 비가 곧 미니맵 비가 된다 — 세로 칸을 줄이면 납작해진다.
+    await _pump(
+      tester,
+      TablePricingSection(layout: _layout(cols: 12, rows: 5)),
+    );
+
+    final map = tester.getSize(find.byType(ClubFloorMap));
+    expect(map.width, greaterThan(map.height));
+    expect(map.height / map.width, lessThan(0.6));
+
+    // 납작해져도 도형·글자가 넘치지 않는다.
+    expect(find.text('DJ BOOTH · STAGE'), findsOneWidget);
+    expect(find.text('테이블 S1'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

@@ -15,15 +15,17 @@ import 'package:vybe/presentation/main_scaffold/nav_bar_visibility_provider.dart
 import 'package:vybe/presentation/nearby/nearby_camera_math.dart';
 import 'package:vybe/presentation/nearby/nearby_map_presenter.dart';
 import 'package:vybe/presentation/nearby/nearby_marker_factory.dart';
+import 'package:vybe/presentation/nearby/nearby_marker_plan.dart';
+import 'package:vybe/presentation/nearby/nearby_search_route.dart';
 import 'package:vybe/presentation/nearby/nearby_style.dart';
 import 'package:vybe/presentation/nearby/viewmodels/nearby_search_provider.dart';
 import 'package:vybe/presentation/nearby/viewmodels/nearby_viewmodel.dart';
-import 'package:vybe/presentation/nearby/widgets/nearby_bottom_sheet.dart';
-import 'package:vybe/presentation/nearby/widgets/nearby_glass.dart';
+import 'package:vybe/presentation/nearby/widgets/nearby_list_sheet.dart';
+import 'package:vybe/presentation/nearby/widgets/nearby_map_view.dart';
+import 'package:vybe/presentation/nearby/widgets/nearby_my_location_button.dart';
 import 'package:vybe/presentation/nearby/widgets/nearby_pin_card_layer.dart';
 import 'package:vybe/presentation/nearby/widgets/nearby_re_search_button.dart';
 import 'package:vybe/presentation/nearby/widgets/nearby_top_overlay.dart';
-import 'package:vybe/presentation/search/search_screen.dart';
 import 'package:vybe/presentation/search/viewmodels/club_filter_viewmodel.dart';
 
 /// 주변 탭 — 네이버 지도 + 하단 리스트 시트.
@@ -90,7 +92,8 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
       onPinTap: _onPinTap,
       onRegionTap: _onRegionTap,
       onSelectionChanged: () => mounted ? setState(() {}) : null,
-      onSelectionLost: () => mounted ? setState(() => _pinCardClub = null) : null,
+      onSelectionLost: () =>
+          mounted ? setState(() => _pinCardClub = null) : null,
       isMounted: () => mounted,
     );
   }
@@ -231,26 +234,11 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
 
   void _openSearch() {
     final uid = ref.read(currentUidProvider);
-    Navigator.of(context).push(
-      PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 280),
-        reverseTransitionDuration: const Duration(milliseconds: 240),
-        pageBuilder: (_, __, ___) => SearchScreen(
-          showBackButton: true,
-          // 지도 모드: 검색 제출 시 결과를 핀으로 표시.
-          onMapResult: (q) => ref
-              .read(nearbySearchResultProvider.notifier)
-              .search(q, userId: uid),
-        ),
-        transitionsBuilder: (_, anim, __, child) => FadeTransition(
-          opacity: CurvedAnimation(
-            parent: anim,
-            curve: Curves.easeOutCubic,
-            reverseCurve: Curves.easeInCubic,
-          ),
-          child: child,
-        ),
-      ),
+    openNearbySearch(
+      context,
+      // 지도 모드: 검색 제출 시 결과를 핀으로 표시.
+      onMapResult: (q) =>
+          ref.read(nearbySearchResultProvider.notifier).search(q, userId: uid),
     );
   }
 
@@ -346,68 +334,62 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
 
   /// 지금 보여야 할 클럽 목록을 구해 마커 렌더를 예약한다.
   ///
-  /// build 중에는 지도를 건드리지 않는다 — 실제 호출은 post-frame으로 미룬다.
+  /// 무엇을 그릴지 정하는 건 순수 함수 [planNearbyMarkers] — 여기서는 provider를
+  /// 읽어 넘기고 결과대로 실행만 한다. build 중에는 지도를 건드리지 않는다
+  /// (실제 호출은 post-frame으로 미룬다).
   void _syncMarkers({required bool isActive}) {
     final searchResult = ref.watch(nearbySearchResultProvider);
     final clubsAsync = ref.watch(nearbyViewModelProvider);
     final sourceClubs = searchResult?.clubs ?? clubsAsync.asData?.value;
     if (sourceClubs == null) return;
 
-    // 검색 칩 필터(찜 포함)를 마커에도 동일 적용.
-    final activeFilters = ref.watch(clubFilterViewModelProvider);
-    final favoritedIds = ref.watch(mergedFavoriteIdsProvider);
-    final filtered = activeFilters.isEmpty
-        ? sourceClubs
-        : sourceClubs
-              .where(
-                (c) => clubMatchesFilters(
-                  c,
-                  activeFilters,
-                  favoritedIds: favoritedIds,
-                ),
-              )
-              .toList();
+    final plan = planNearbyMarkers(
+      sourceClubs: sourceClubs,
+      activeFilters: ref.watch(clubFilterViewModelProvider),
+      favoritedIds: ref.watch(mergedFavoriteIdsProvider),
+      searchKeyword: searchResult?.keyword,
+      searchRequestId: searchResult?.requestId,
+      searchFitCountry: searchResult?.fitCountry ?? false,
+      regionModeByZoom: _regionModeByZoom,
+      // (_lastSearchReqId 갱신은 활성 탭에서 실제 렌더할 때만 — 화면 밖 build가
+      //  값을 먼저 소비해 재진입 시 fit이 누락되는 것 방지)
+      lastSearchRequestId: _lastSearchReqId,
+    );
+    _map.regionMode = plan.regionMode;
+    if (plan.searchRequestId == null) _lastSearchReqId = null;
 
-    // 검색(TOP 10 포함) 모드에서는 줌과 무관하게 항상 개별 핀 표시.
-    _map.regionMode = _regionModeByZoom && searchResult == null;
-
-    final searchReqId = searchResult?.requestId;
-    // 새 검색 요청이면 카메라를 결과 핀에 맞춘다.
-    // (_lastSearchReqId 갱신은 활성 탭에서 실제 렌더할 때만 — 화면 밖 build가
-    //  값을 먼저 소비해 재진입 시 fit이 누락되는 것 방지)
-    final newSearch = searchReqId != null && searchReqId != _lastSearchReqId;
-    if (searchReqId == null) _lastSearchReqId = null;
-
-    final sig =
-        '${searchResult?.keyword ?? "geo"}#${searchReqId ?? 0}'
-        '|${filtered.map((c) => c.clubId).join(',')}|${_map.regionMode}';
-    final changed = sig != _lastMarkerSig;
+    final changed = plan.signature != _lastMarkerSig;
     if (changed) {
-      _lastMarkerSig = sig;
-      _map.lastRendered = filtered;
+      _lastMarkerSig = plan.signature;
+      _map.lastRendered = plan.clubs;
       // 화면 밖이면 지금 렌더 금지 — 다시 보일 때 렌더하도록 표시.
       if (!isActive) _renderWhenVisible = true;
     }
     if (!isActive || !(changed || _renderWhenVisible)) return;
 
     _renderWhenVisible = false;
-    _lastSearchReqId = searchReqId;
-    final fitCountry = searchResult?.fitCountry ?? false;
+    _lastSearchReqId = plan.searchRequestId;
+    _scheduleRender(plan);
+  }
 
+  /// 프레임이 끝난 뒤 실제 지도 렌더·카메라 이동을 실행한다.
+  ///
+  /// 맵이 아직 준비 전이면 보류했다가 [_onMapReady] 에서 소비한다
+  /// (첫 진입이 검색 모드인 경우).
+  void _scheduleRender(NearbyMarkerPlan plan) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       if (!_map.isReady) {
-        _pendingClubs = filtered;
-        // 맵 준비 후 fit 하도록 보류 (첫 진입이 검색 모드인 경우).
-        if (newSearch) {
+        _pendingClubs = plan.clubs;
+        if (plan.isNewSearch) {
           _pendingFitCamera = true;
-          _pendingFitCountry = fitCountry;
+          _pendingFitCountry = plan.fitCountry;
         }
         return;
       }
-      _map.render(filtered);
-      if (!newSearch) return;
-      _fitTo(filtered, country: fitCountry);
+      _map.render(plan.clubs);
+      if (!plan.isNewSearch) return;
+      _fitTo(plan.clubs, country: plan.fitCountry);
       // 검색 직후 결과 리스트가 보이도록 시트 펼침.
       _animateSheetTo(kNearbySheetMid);
     });
@@ -417,28 +399,15 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
   bool _regionModeByZoom = false;
 
   Widget _buildMap() {
-    // 지도가 먼저 만들어지는 경우를 위한 폴백 (build에서 항상 채워지긴 한다).
-    final myPos =
-        _map.myPosition ?? const NLatLng(AppGeo.hongdaeLat, AppGeo.hongdaeLng);
-    return NaverMap(
-      // 지도가 제스처를 선점(EagerGestureRecognizer)해 부모 PageView 가로
-      // 스와이프에 팬이 가로채이지 않도록. 시트 영역은 지도 밖이라 영향 없음.
-      forceGesture: true,
-      options: NaverMapViewOptions(
-        // 초기 위치 = 내 위치 (화면 가운데).
-        initialCameraPosition: NCameraPosition(target: myPos, zoom: 16),
-        mapType: NMapType.basic,
-        activeLayerGroups: const [NLayerGroup.building, NLayerGroup.transit],
-        nightModeEnable: true,
-      ),
+    return NearbyMapView(
+      // 지도가 먼저 만들어지는 경우를 위한 폴백 (build에서 항상 채워지긴 한다).
+      initialCenter:
+          _map.myPosition ??
+          const NLatLng(AppGeo.hongdaeLat, AppGeo.hongdaeLng),
       onMapReady: _onMapReady,
-      onCameraChange: (reason, animated) {
-        // 사용자가 지도를 직접 움직일 때만 nav 축소 (프로그램 이동 제외).
-        if (reason == NCameraUpdateReason.gesture) {
-          ref.read(navBarVisibilityProvider.notifier).collapse();
-        }
-      },
       onCameraIdle: _onCameraIdle,
+      // 사용자가 지도를 직접 움직일 때만 nav 축소 (프로그램 이동 제외).
+      onUserPan: () => ref.read(navBarVisibilityProvider.notifier).collapse(),
     );
   }
 
@@ -479,42 +448,15 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
   }
 
   /// 지도 우측 플로팅 컨트롤 — 내 위치 (디자인 NGControls).
-  Widget _buildMyLocationButton() {
-    return Positioned(
-      right: 16.w,
-      bottom: _stackHeight * _sheetSize + 8.h,
-      child: NearbyRoundButton(
-        onTap: () => _map.moveToMyLocation(zoom: 16),
-        child: Icon(Icons.my_location_rounded, size: 19.r, color: Colors.white),
-      ),
-    );
-  }
+  Widget _buildMyLocationButton() => NearbyMyLocationButton(
+    sheetTop: _stackHeight * _sheetSize,
+    onTap: () => _map.moveToMyLocation(zoom: 16),
+  );
 
-  /// 리스트 시트. 핀 카드가 떠 있는 동안은 아래로 밀어 감춘다
-  /// (디자인은 시트 높이를 0으로 만들지만 DraggableScrollableSheet는 minChildSize
-  ///  아래로 못 내려가므로 슬라이드로 처리 — 시트 상태/스크롤은 그대로 보존된다).
-  Widget _buildBottomSheet() {
-    final hidden = _pinCardClub != null;
-    return IgnorePointer(
-      ignoring: hidden,
-      child: AnimatedSlide(
-        offset: Offset(0, hidden ? 1 : 0),
-        duration: const Duration(milliseconds: 280),
-        curve: Curves.easeOutCubic,
-        child: DraggableScrollableSheet(
-          key: _sheetKey,
-          controller: _sheetController,
-          initialChildSize: kNearbySheetMin,
-          minChildSize: kNearbySheetMin,
-          maxChildSize: kNearbySheetMax,
-          snap: true,
-          snapSizes: const [kNearbySheetMin, kNearbySheetMid, kNearbySheetMax],
-          builder: (_, scrollController) => NearbyBottomSheet(
-            scrollController: scrollController,
-            selectedClubId: _map.selectedClubId,
-          ),
-        ),
-      ),
-    );
-  }
+  Widget _buildBottomSheet() => NearbyListSheet(
+    controller: _sheetController,
+    sheetKey: _sheetKey,
+    hidden: _pinCardClub != null,
+    selectedClubId: _map.selectedClubId,
+  );
 }

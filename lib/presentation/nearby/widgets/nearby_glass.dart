@@ -366,3 +366,48 @@ String todayHoursLabel(DayHours today) {
   }
   return today.open != null ? '${today.open} 오픈' : '영업 시간 미등록';
 }
+
+/// 사진 위에 얹는 작은 글래스 pill (지도 핀 카드 · 시트 리스트 항목 공용).
+///
+/// 두 곳이 같은 모양을 복붙해 쓰고 있어 승격했다. 화면마다 다른 건 채움색·테두리·
+/// 세로 여백뿐이라 파라미터로 받되 **기본값은 핀 카드 값([ClubGlass])** 을 유지한다.
+class NearbyGlassPill extends StatelessWidget {
+  final Widget child;
+
+  /// 반투명 채움색.
+  final Color? fill;
+
+  /// 헤어라인 테두리 색.
+  final Color? border;
+
+  /// 세로 안쪽 여백(dp, `.h` 적용 전).
+  final double vPadding;
+
+  const NearbyGlassPill({
+    super.key,
+    required this.child,
+    this.fill,
+    this.border,
+    this.vPadding = 4,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(999.r);
+    return ClipRRect(
+      borderRadius: radius,
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: vPadding.h),
+          decoration: BoxDecoration(
+            color: fill ?? ClubGlass.barFill,
+            borderRadius: radius,
+            border: Border.all(color: border ?? ClubGlass.hair),
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+}

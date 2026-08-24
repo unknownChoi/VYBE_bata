@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/core/providers/auth_providers.dart';
 import 'package:vybe/data/models/search_hashtag_model.dart';
 import 'package:vybe/data/models/search_history_model.dart';
@@ -18,7 +17,8 @@ import 'package:vybe/presentation/search/viewmodels/search_viewmodel.dart';
 import 'package:vybe/presentation/search/widgets/popular_hashtags_section.dart';
 import 'package:vybe/presentation/search/widgets/recent_keywords_section.dart';
 import 'package:vybe/presentation/search/widgets/search_bar.dart';
-import 'package:vybe/presentation/search/widgets/search_suggestion_item.dart';
+import 'package:vybe/presentation/search/widgets/search_section_list.dart';
+import 'package:vybe/presentation/search/widgets/search_suggestion_list.dart';
 import 'package:vybe/presentation/search/widgets/trending_searches_section.dart';
 
 /// 해시태그 노출 개수. 문서는 이보다 많이 두고 상위 N개만 보여준다.
@@ -27,9 +27,6 @@ const int _kHashtagCount = 8;
 /// 연관 검색어: 입력당 서버 폭증 방지 (디바운스 + 최소 글자수).
 const Duration _kDebounce = Duration(milliseconds: 300);
 const int _kMinChars = 2;
-
-/// 섹션 사이 간격. 숨은 섹션의 간격까지 같이 빠져야 해서 사이에만 넣는다.
-const double _kSectionGap = 30;
 
 class SearchScreen extends ConsumerStatefulWidget {
   /// 외부(MainScaffold)에서 탭 재진입 시 포커스를 주기 위해 주입.
@@ -63,6 +60,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   /// 최근 검색어 전체 삭제 진행 중 — 연타로 중복 요청되지 않게 막는다.
   bool _clearingHistory = false;
 
+  /// 검색엔진 결과가 아직 안 나온 검색어로 엔터를 눌렀을 때 대기시켜 둔 검색어.
+  /// 결과가 확정되면 그때 결과 화면으로 보낸다([_flushPendingSubmit]).
+  String? _pendingSubmit;
+
   bool get _isMapMode => widget.onMapResult != null;
   bool get _hasQuery => _query.trim().length >= _kMinChars;
 
@@ -83,7 +84,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   void _onQueryChanged(String value) {
-    setState(() => _query = value);
+    // 입력이 바뀌면 대기 중이던 엔터는 무효 — 예전 검색어로 이동하면 안 된다.
+    setState(() {
+      _query = value;
+      _pendingSubmit = null;
+    });
     _debounce?.cancel();
     final q = value.trim();
     if (q.length < _kMinChars) {
@@ -94,6 +99,34 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       _kDebounce,
       () => ref.read(searchSuggestionViewModelProvider.notifier).fetch(q),
     );
+  }
+
+  // ------------------------------------------------------------------ 검색
+
+  /// 엔터(검색 실행) — **검색엔진이 이 검색어로 이미 돌았을 때만** 결과 화면으로 간다.
+  ///
+  /// 입력 직후(디바운스 대기 중이거나 조회 중)에 엔터를 누르면 엔진 조회와
+  /// 결과 화면 조회가 동시에 나가 결과가 비는 일이 있었다. 그래서 여기서는
+  /// 이동하지 않고 디바운스를 건너뛴 즉시 조회만 걸어 두고,
+  /// 결과가 확정되면 [_flushPendingSubmit]이 이어서 이동시킨다.
+  void _onSubmitted(String value) {
+    final q = value.trim();
+    if (q.isEmpty) return;
+    if (ref.read(searchSuggestionViewModelProvider).isSettledFor(q)) {
+      _navigateToResult(q);
+      return;
+    }
+    _debounce?.cancel();
+    setState(() => _pendingSubmit = q);
+    ref.read(searchSuggestionViewModelProvider.notifier).fetch(q);
+  }
+
+  /// 대기 중이던 엔터를, 엔진 결과가 확정된 뒤 이어서 처리한다.
+  void _flushPendingSubmit(SearchSuggestions suggestions) {
+    final q = _pendingSubmit;
+    if (q == null || !suggestions.isSettledFor(q)) return;
+    setState(() => _pendingSubmit = null);
+    _navigateToResult(q);
   }
 
   // ------------------------------------------------------------------ 이동
@@ -122,8 +155,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   void _openClub(String clubId) {
     // 지도 모드: 클럽 제안 탭 → 그 클럽명으로 검색해 핀 표시.
     if (_isMapMode) {
-      final clubs =
-          ref.read(searchSuggestionViewModelProvider).value ?? const [];
+      final clubs = ref.read(searchSuggestionViewModelProvider).clubs;
       final matches = clubs.where((c) => c.clubId == clubId);
       _navigateToResult(
         matches.isEmpty ? _query.trim() : matches.first.name,
@@ -207,6 +239,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     // 입력할 때마다 구독을 끊었다 다시 걸면 Firestore 리스너가 껐다 켜진다.
     final sections = _visibleSections();
 
+    // 엔진 결과가 확정되는 순간, 대기 중이던 엔터를 이어서 처리한다.
+    ref.listen(searchSuggestionViewModelProvider, (_, next) {
+      _flushPendingSubmit(next);
+    });
+
     return Scaffold(
       backgroundColor: VybeColors.background,
       body: Stack(
@@ -227,59 +264,26 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     focusNode: _focusNode,
                     autofocus: false,
                     onChanged: _onQueryChanged,
-                    onSubmitted: _navigateToResult,
+                    onSubmitted: _onSubmitted,
+                    // 엔진 결과를 기다리는 동안 검색이 멈춘 게 아니라는 표시.
+                    busy: _pendingSubmit != null,
                     onBack: widget.showBackButton
                         ? () => Navigator.of(context).pop()
                         : null,
                   ),
                   Expanded(
                     child: _hasQuery
-                        ? _buildSuggestionList()
-                        : _buildDefaultContent(sections),
+                        ? SearchSuggestionList(
+                            query: _query.trim(),
+                            onSelectClub: _openClub,
+                          )
+                        : SearchSectionList(sections: sections),
                   ),
                 ],
               ),
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSuggestionList() {
-    final clubs =
-        ref.watch(searchSuggestionViewModelProvider).value ?? const [];
-    // 로딩 중이거나(첫 입력) 결과 없음 → 빈 화면.
-    if (clubs.isEmpty) return const SizedBox.shrink();
-
-    return ListView.builder(
-      padding: EdgeInsets.zero,
-      itemCount: clubs.length,
-      itemBuilder: (_, i) => SearchSuggestionItem(
-        keyword: clubs[i].name,
-        query: _query.trim(),
-        onTap: () => _openClub(clubs[i].clubId),
-      ),
-    );
-  }
-
-  /// 검색어 입력 전 기본 화면 — 최근 검색어 / 인기 해시태그 / 실시간 인기 검색어.
-  ///
-  /// 데이터가 없는 섹션은 통째로 숨는다 → 사이 여백도 같이 빠지도록
-  /// **보이는 섹션만** 모은 뒤 그 사이에만 간격을 넣는다.
-  Widget _buildDefaultContent(List<Widget> sections) {
-    return SingleChildScrollView(
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(24.w, 8.h, 24.w, 28.h),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            for (var i = 0; i < sections.length; i++) ...[
-              if (i > 0) SizedBox(height: _kSectionGap.h),
-              sections[i],
-            ],
-          ],
-        ),
       ),
     );
   }
@@ -299,8 +303,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       if (uid != null && historyAsync != null)
         RecentKeywordsSection(
           historyAsync: historyAsync,
-          onKeyword: (k) =>
-              _navigateToResult(k, source: SearchSource.history),
+          onKeyword: (k) => _navigateToResult(k, source: SearchSource.history),
           onDelete: (historyId) => ref
               .read(searchViewModelProvider.notifier)
               .deleteHistory(uid, historyId),

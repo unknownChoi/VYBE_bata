@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/presentation/auth/terms/legal_documents.dart';
 import 'package:vybe/presentation/common/renew/renew_glass.dart';
 import 'package:vybe/presentation/common/renew/renew_icons.dart';
+import 'package:vybe/presentation/my_page/widgets/my_page_common.dart';
 import 'package:vybe/presentation/my_page/widgets/setting_row.dart';
 
 /// 설정 화면의 그룹 블록들. 화면은 상태만 들고 여기에 값·콜백을 넘긴다.
@@ -171,6 +172,128 @@ class SettingsLeaveLink extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// 일반 그룹 — 자동 로그인 · 위치 · 사운드 · 테마 · 언어.
+///
+/// 자동 로그인만 기기에 저장되고([LocalPrefs]) 나머지 토글은 표시 전용이라,
+/// 값의 출처는 화면이 알고 여기서는 키로만 그린다.
+class SettingsGeneralGroup extends StatelessWidget {
+  /// 자동 로그인 유지 — 유일하게 기기에 저장되는 설정.
+  final bool autoLogin;
+  final VoidCallback onToggleAutoLogin;
+
+  /// 표시 전용 토글 키 → 켬/끔. 키는 `location`·`sound`.
+  final Map<String, bool> toggles;
+  final ValueChanged<String> onToggle;
+
+  /// 테마·언어는 고를 것이 하나뿐이라 안내만 띄운다(빈 화면으로 보내지 않는다).
+  final VoidCallback onThemeTap;
+  final VoidCallback onLanguageTap;
+
+  const SettingsGeneralGroup({
+    super.key,
+    required this.autoLogin,
+    required this.onToggleAutoLogin,
+    required this.toggles,
+    required this.onToggle,
+    required this.onThemeTap,
+    required this.onLanguageTap,
+  });
+
+  Widget _row({
+    required String label,
+    required String sub,
+    required String key,
+    String? icon,
+  }) => SettingToggleRow(
+    label: label,
+    sub: sub,
+    on: toggles[key] ?? false,
+    onToggle: () => onToggle(key),
+    icon: icon,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const RenewSectionHead(title: '일반'),
+        SettingRow(
+          icon: RenewIcons.lock,
+          label: '자동 로그인 유지',
+          sub: '앱을 껐다 켜도 로그인 상태 유지',
+          control: MyToggle(on: autoLogin, onTap: onToggleAutoLogin),
+        ),
+        _row(
+          label: '위치 서비스',
+          sub: '내 주변 클럽 추천에 사용',
+          key: 'location',
+          icon: RenewIcons.pin,
+        ),
+        _row(
+          label: '사운드 및 진동',
+          sub: '앱 효과음',
+          key: 'sound',
+          icon: RenewIcons.mega,
+        ),
+        SettingRow(
+          icon: RenewIcons.moon,
+          label: '테마',
+          control: const SettingValueChevron(value: '다크'),
+          onTap: onThemeTap,
+        ),
+        SettingRow(
+          icon: RenewIcons.globe,
+          label: '언어',
+          control: const SettingValueChevron(value: '한국어'),
+          onTap: onLanguageTap,
+          last: true,
+        ),
+      ],
+    );
+  }
+}
+
+/// 데이터 그룹 — 캐시 용량 표시 + 삭제.
+class SettingsDataGroup extends StatelessWidget {
+  /// 캐시 용량 문구. 순회 중에는 숫자 대신 상태를 그대로 쓴다
+  /// ('계산 중… 사용 중'처럼 붙어 읽히지 않게 문장 전체를 갈아 끼운다).
+  final String cacheLabel;
+
+  /// 삭제가 진행 중인지 — 버튼 문구가 바뀌고 재탭이 막힌다.
+  final bool clearing;
+
+  final VoidCallback onClear;
+
+  const SettingsDataGroup({
+    super.key,
+    required this.cacheLabel,
+    required this.clearing,
+    required this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const RenewSectionHead(title: '데이터'),
+        SettingRow(
+          icon: RenewIcons.trash,
+          label: '캐시 삭제',
+          sub: cacheLabel,
+          control: RenewChip(
+            label: clearing ? '삭제 중…' : '삭제',
+            selected: false,
+            onTap: onClear,
+          ),
+          last: true,
+        ),
+      ],
     );
   }
 }

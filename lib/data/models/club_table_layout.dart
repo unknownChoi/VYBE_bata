@@ -1,15 +1,15 @@
 // 클럽 테이블 배치도 — `clubs/{clubId}/tableLayout/{clubId}` 문서 1건.
-// 
+//
 // 위치는 **정수 그리드 셀**이다. 층마다 `cols × rows` 격자를 두고 테이블·구조물은
 // 자기가 점유하는 셀 사각형(`col`,`row`,`colSpan`,`rowSpan`)만 저장한다.
-// 
+//
 // 소수 좌표(0~1) 대신 격자를 쓰는 이유:
 // - 웹(업주 편집기)과 앱이 `col * width / cols` 로 **반올림 여지 없이 같은 그림**을 그린다.
 // - 캔버스 비율이 `cols / rows` 로 자동 도출된다(셀 정사각) — 양쪽이 따로 지켜야 할
 //   `aspectRatio` 필드가 없다.
 // - 겹침 판정이 셀 비교 한 줄이라 편집기가 원천 차단할 수 있다.
 // - 회전 개념이 사라진다(축 정렬만).
-// 
+//
 // 문서 하나에 층·테이블·구조물을 전부 담는다. 배치도는 통째로 편집되고 통째로 읽히므로
 // 문서를 쪼개면 앱은 read N회, 웹은 저장이 원자적이지 않아 **저장 도중 반쯤 옮겨진
 // 배치도**가 앱에 보인다.
@@ -244,12 +244,7 @@ class ClubTable {
       tierKey: map['tierKey'] as String? ?? '',
       name: map['name'] as String? ?? '',
       desc: map['desc'] as String? ?? '',
-      rect: GridRect.parse(
-        map,
-        cols: cols,
-        rows: rows,
-        minSpan: kMinTableSpan,
-      ),
+      rect: GridRect.parse(map, cols: cols, rows: rows, minSpan: kMinTableSpan),
       shape: TableShape.fromKey(map['shape'] as String?),
       price: _int(map['price'], 0),
       minPeople: _int(map['minPeople'], 0),
@@ -331,6 +326,13 @@ class TableFloor {
   /// 격자 행 수.
   final int rows;
 
+  /// 방 모양 마스크 — 길이 `cols * rows`, 행 우선. `'1'` = 방 안, `'0'` = 방 밖.
+  ///
+  /// 클럽 홀이 직사각형이 아니라서(ㄱ자·계단 옆이 파인 형태 등) 격자 안에서
+  /// 실제 바닥만 남길 수 있게 둔다. 길이가 안 맞거나 비면 **전부 방 안**으로 본다 —
+  /// 마스크는 표현일 뿐이라, 깨졌다고 배치도를 통째로 버리면 손해가 더 크다.
+  final String cells;
+
   final List<FloorFixture> fixtures;
   final List<ClubTable> tables;
 
@@ -340,12 +342,33 @@ class TableFloor {
     required this.order,
     required this.cols,
     required this.rows,
+    required this.cells,
     required this.fixtures,
     required this.tables,
   });
 
   /// 캔버스 가로/세로 비. 셀이 정사각이므로 격자 모양이 곧 캔버스 모양이다.
   double get aspectRatio => cols / rows;
+
+  /// 마스크가 없거나(빈 문자열) 전부 방 안이면 true — 예전처럼 둥근 사각 판으로 그린다.
+  bool get isFullRect => cells.isEmpty;
+
+  /// 이 셀이 방 안인가. 격자 밖은 항상 false.
+  bool isInside(int col, int row) {
+    if (col < 0 || row < 0 || col >= cols || row >= rows) return false;
+    if (cells.isEmpty) return true;
+    return cells.codeUnitAt(row * cols + col) != _kCellOut;
+  }
+
+  /// 사각 영역이 전부 방 안인가 (테이블 배치 검사용).
+  bool containsRect(GridRect r) {
+    for (var y = r.row; y < r.row + r.rowSpan; y++) {
+      for (var x = r.col; x < r.col + r.colSpan; x++) {
+        if (!isInside(x, y)) return false;
+      }
+    }
+    return true;
+  }
 
   factory TableFloor.fromMap(Map<String, dynamic> map, int index) {
     final cols = _int(map['cols'], 12).clamp(kMinGridCols, kMaxGridCols);
@@ -370,6 +393,7 @@ class TableFloor {
       order: _int(map['order'], index),
       cols: cols,
       rows: rows,
+      cells: _cellMask(map['cells'], cols, rows),
       fixtures: fixtures,
       tables: tables,
     );
@@ -472,6 +496,21 @@ class ClubTableLayout {
 // ============================================================================
 // 파싱 헬퍼
 // ============================================================================
+
+/// 방 밖을 뜻하는 문자 `'0'`.
+const int _kCellOut = 0x30;
+
+/// 방 모양 마스크 정규화. **빈 문자열 = 전부 방 안**.
+///
+/// 길이가 `cols * rows` 와 다르면(격자를 바꾼 뒤 마스크를 안 고친 문서) 버린다 —
+/// 어긋난 마스크로 그리면 엉뚱한 칸이 뚫려 배치도가 거짓말을 한다.
+/// 전부 `'0'` 인 마스크도 버린다(바닥이 없는 층은 그릴 게 없다).
+String _cellMask(Object? v, int cols, int rows) {
+  if (v is! String || v.length != cols * rows) return '';
+  if (!v.contains('1')) return '';
+  if (!v.contains('0')) return ''; // 전부 방 안 = 마스크 없는 것과 같다
+  return v;
+}
 
 /// Firestore 숫자는 int/double 어느 쪽으로도 올 수 있다.
 int _int(Object? v, int fallback) {

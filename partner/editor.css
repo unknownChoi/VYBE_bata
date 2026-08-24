@@ -50,12 +50,14 @@ label.field input, label.field select { width: 100%; }
 /* ── 격자 캔버스 ──
    앱 캔버스(353px)와 비슷한 폭으로 묶는다 — 넓게 펴면 셀이 90px씩 되어 배치 감이 안 잡힌다. */
 .ed-canvas-wrap { position: relative; margin: 0 auto; max-width: 420px; touch-action: none; user-select: none; }
-.ed-canvas {
-  position: relative; width: 100%; border-radius: 14px; overflow: hidden;
-  background: radial-gradient(120% 90% at 50% 0%, #1b1b22 0%, #101014 72%);
-  border: 1px solid #404042;
-}
-.ed-grid { position: absolute; inset: 0; pointer-events: none; }
+/* 바닥판은 <canvas> 가 직접 그린다 — 방 모양이 직사각형이 아닐 수 있어
+   CSS 배경/테두리로는 표현이 안 된다. */
+.ed-canvas { position: relative; width: 100%; }
+.ed-canvas > canvas { position: absolute; inset: 0; }
+
+/* 방 모양 편집 중에는 물건이 클릭을 가로채지 않게 비켜 준다. */
+.ed-canvas-wrap.shape-mode .item { pointer-events: none; }
+.ed-canvas-wrap.shape-mode > .ed-canvas { cursor: crosshair; }
 .item {
   position: absolute; border-radius: 9px; display: flex; flex-direction: column;
   align-items: center; justify-content: center; cursor: grab; overflow: hidden;

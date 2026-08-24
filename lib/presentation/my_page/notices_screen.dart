@@ -12,7 +12,6 @@ import 'package:vybe/presentation/my_page/widgets/notice_card.dart';
 import 'package:vybe/presentation/my_page/widgets/notice_glass.dart';
 import 'package:vybe/presentation/my_page/widgets/notices_header.dart';
 import 'package:vybe/presentation/my_page/widgets/notices_states.dart';
-import 'package:vybe/presentation/promotion/promotion_detail_screen.dart';
 
 // ============================================================
 // 공지사항 목록 (마이페이지 → 계정 → 공지사항)
@@ -71,15 +70,12 @@ class NoticesScreen extends ConsumerWidget {
     );
   }
 
-  /// 공지 탭 → 상세. 단, 프로모션이 연결된 공지(광고)는 공지 본문을 거치지 않고
-  /// 배너와 같은 광고 페이지로 바로 보낸다 — 같은 내용을 두 번 보게 하지 않으려고.
+  /// 공지 탭 → 상세. 광고 글도 같은 화면을 쓴다 — 홈 배너가 보내는 곳과 같은 공지 상세다.
   /// 바텀 nav는 이 화면에 들어올 때 이미 내려가 있어 여기선 평범하게 push한다.
   void _open(BuildContext context, NoticeModel notice) {
     Navigator.of(context).push(
       SwipeBackPageRoute<void>(
-        builder: (_) => notice.opensPromotion
-            ? PromotionDetailScreen(promotionId: notice.promotionId)
-            : NoticeDetailScreen(notice: notice),
+        builder: (_) => NoticeDetailScreen(notice: notice),
       ),
     );
   }

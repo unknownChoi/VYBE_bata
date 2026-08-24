@@ -23,6 +23,10 @@ class SearchInputBar extends StatefulWidget {
   /// true이면 등장 시 자동 포커스 → 키보드 즉시 노출
   final bool autofocus;
 
+  /// 검색엔진 조회 대기 중 — 우측 타일을 스피너로 바꾼다.
+  /// 엔터를 눌렀는데 아무 일도 안 일어나는 것처럼 보이지 않게 하려는 표시.
+  final bool busy;
+
   /// null이 아니면 검색창 왼쪽에 뒤로가기 화살표 노출 (push로 띄운 경우).
   final VoidCallback? onBack;
 
@@ -33,6 +37,7 @@ class SearchInputBar extends StatefulWidget {
     this.onChanged,
     this.onSubmitted,
     this.autofocus = false,
+    this.busy = false,
     this.onBack,
   });
 
@@ -162,7 +167,19 @@ class _SearchInputBarState extends State<SearchInputBar> {
                 ),
                 SizedBox(width: 8.w),
                 // pill 높이가 34로 줄어 기본 34 타일은 테두리에 붙는다 → 26으로 축소.
-                if (_hasText)
+                if (widget.busy)
+                  GlassCircleTile(
+                    size: 26,
+                    child: SizedBox(
+                      width: 13.r,
+                      height: 13.r,
+                      child: const CircularProgressIndicator(
+                        strokeWidth: 1.6,
+                        color: VybeColors.mainLime500,
+                      ),
+                    ),
+                  )
+                else if (_hasText)
                   GestureDetector(
                     onTap: _clear,
                     behavior: HitTestBehavior.opaque,

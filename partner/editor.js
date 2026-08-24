@@ -30,13 +30,24 @@ const TIER_STYLE = {
   gray:   { text: '#DBDBDC', dot: '#9F9FA1', fill: 'rgba(255,255,255,.05)', border: 'rgba(255,255,255,.2)' },
 };
 
+// 구조물 색은 **타입마다 고정**이고 업주가 못 바꾼다 — 클럽마다 무대 색이 다르면
+// 사용자가 색으로 알아보는 학습이 통째로 무너진다. 등급(tier)만 클럽별로 다르다.
+// ⚠ lib/data/models/table_layout_palette.dart 의 kFixtureStyles 와 같은 값이어야 한다.
 const FX_STYLE = {
-  stage:      { fill: 'rgba(119,49,254,.15)', border: 'rgba(119,49,254,.5)', text: '#C8A8FF' },
-  dj:         { fill: 'rgba(119,49,254,.15)', border: 'rgba(119,49,254,.5)', text: '#C8A8FF' },
-  dancefloor: { fill: 'rgba(255,255,255,.015)', border: '#535355', text: '#9F9FA1' },
-  wall:       { fill: 'rgba(255,255,255,.1)', border: 'rgba(255,255,255,.1)', text: 'transparent' },
+  stage:      { fill: 'rgba(119,49,254,.20)', border: 'rgba(119,49,254,.55)', text: '#C8A8FF' },
+  dj:         { fill: 'rgba(255,77,141,.16)', border: 'rgba(255,77,141,.50)', text: '#FFA8C8' },
+  dancefloor: { fill: 'rgba(45,212,208,.10)',  border: 'rgba(45,212,208,.42)', text: '#7FE3E0' },
+  bar:        { fill: 'rgba(255,167,38,.16)',  border: 'rgba(255,167,38,.50)', text: '#FFD79A' },
+  entrance:   { fill: 'rgba(181,255,96,.14)',  border: 'rgba(181,255,96,.50)', text: '#D3FFA0' },
+  restroom:   { fill: 'rgba(43,107,255,.14)',  border: 'rgba(43,107,255,.50)', text: '#8FB5FF' },
+  stairs:     { fill: 'rgba(255,255,255,.08)', border: 'rgba(255,255,255,.28)', text: '#B9B9C6' },
+  wall:       { fill: 'rgba(255,255,255,.14)', border: 'rgba(255,255,255,.14)', text: 'transparent' },
+  etc:        { fill: 'rgba(255,255,255,.04)', border: '#404042', text: '#CACACA' },
   _default:   { fill: 'rgba(255,255,255,.04)', border: '#404042', text: '#CACACA' },
 };
+
+// 바닥판 색 — 앱 ClubFloorMap._plateGradient / VybeColors.gray800 과 같은 값.
+const PLATE_IN = '#1b1b22', PLATE_OUT = '#101014', PLATE_LINE = '#404042';
 
 // FixtureType enum(club_table_layout.dart)과 키가 같아야 한다.
 // 앱이 모르는 키는 조용히 버리므로, 여기서만 늘리면 화면에 안 나온다.
@@ -56,6 +67,30 @@ const FX_OPTIONS = [
 export const MIN_TABLE_SPAN = 2;
 export const MAX_COLS = 14, MIN_COLS = 4, MAX_ROWS = 32, MIN_ROWS = 4;
 const SCHEMA_VERSION = 1;
+
+// 미니맵 비율 프리셋 (가로:세로). 셀이 정사각이라 격자 모양이 곧 미니맵 모양이다 —
+// 가로로 긴 홀은 열을 그대로 두고 행을 줄여서 만든다.
+const RATIOS = [
+  ['3:1', 3 / 1],
+  ['2:1', 2 / 1],
+  ['3:2', 3 / 2],
+  ['1:1', 1 / 1],
+  ['2:3', 2 / 3],
+  ['1:2', 1 / 2],
+];
+
+/** 두 수를 최대공약수로 줄여 '3:4' 같은 문자열로. */
+function ratioLabel(cols, rows) {
+  const gcd = (a, b) => (b ? gcd(b, a % b) : a);
+  const g = gcd(cols, rows) || 1;
+  return (cols / g) + ':' + (rows / g);
+}
+
+function ratioShape(cols, rows) {
+  if (cols > rows) return '가로형';
+  if (cols < rows) return '세로형';
+  return '정사각';
+}
 
 // ===========================================================================
 // 마크업
@@ -77,11 +112,17 @@ const HTML = `
   <div>
     <div class="card">
       <div class="row" data-el="floorBar"></div>
-      <div class="row" style="margin-top:10px">
-        <label class="field">열 (cols)
+
+      <div class="row" style="margin-top:12px">
+        <span class="muted" style="width:64px">미니맵 비율</span>
+        <span data-el="ratioBar" class="row" style="gap:6px"></span>
+      </div>
+
+      <div class="row" style="margin-top:8px">
+        <label class="field">가로 칸
           <input type="number" data-el="colsInp" min="${MIN_COLS}" max="${MAX_COLS}" />
         </label>
-        <label class="field">행 (rows)
+        <label class="field">세로 칸
           <input type="number" data-el="rowsInp" min="${MIN_ROWS}" max="${MAX_ROWS}" />
         </label>
         <label class="field" style="flex:1">층 이름
@@ -90,10 +131,11 @@ const HTML = `
         <button data-el="addFloorBtn">＋ 층</button>
         <button data-el="delFloorBtn" class="danger">층 삭제</button>
       </div>
+
       <div class="hint">
-        열은 최대 ${MAX_COLS} — 가장 좁은 기기(iPhone SE)에서도 셀 ≈23px, 테이블 최소 2칸 ≈46px 로
-        탭 타겟 44px 하한이 격자 규칙만으로 보장된다. 셀은 정사각이라 캔버스 비율(cols/rows)이
-        앱과 자동으로 같아진다.
+        <div data-el="cellHint"></div>
+        가로로 긴 홀은 <b>세로 칸을 줄여서</b> 만든다. 셀은 정사각이라 칸 수의 비(가로:세로)가
+        곧 앱 미니맵 모양이 되고, 가로 칸을 늘릴수록 <b>앱에서 칸이 작아진다</b>(세로 칸은 무관).
       </div>
     </div>
 
@@ -104,10 +146,11 @@ const HTML = `
           ${FX_OPTIONS.map(([v, t]) => `<option value="${v}">${t}</option>`).join('')}
         </select>
         <button data-el="addFxBtn">＋ 구조물</button>
-        <span class="muted">끌어서 이동 · 우하단 초록 손잡이로 크기 조절</span>
+        <button data-el="shapeBtn">방 모양</button>
+        <span class="muted" data-el="canvasHint">끌어서 이동 · 우하단 초록 손잡이로 크기 조절</span>
       </div>
       <div class="ed-canvas-wrap" data-el="canvasWrap" style="margin-top:12px">
-        <div class="ed-canvas" data-el="canvas"><div class="ed-grid" data-el="grid"></div></div>
+        <div class="ed-canvas" data-el="canvas"><canvas data-el="plate"></canvas></div>
       </div>
       <div class="legend" data-el="legend"></div>
     </div>
@@ -158,6 +201,7 @@ export function mountEditor(root, api, opts = {}) {
   let fi = 0;          // 현재 층 index
   let sel = null;      // { kind: 'table'|'fixture', id }
   let dirty = false;
+  let shapeMode = false;   // 방 모양(바닥) 편집 중
 
   // ── 기본값 ──
 
@@ -167,6 +211,7 @@ export function mountEditor(root, api, opts = {}) {
     order: i,
     cols: 12,
     rows: 16,
+    cells: '',      // 빈 문자열 = 직사각형 방 전체
     fixtures: [],
     tables: [],
   });
@@ -198,6 +243,62 @@ export function mountEditor(root, api, opts = {}) {
   const tierOf = (key) =>
     layout.tiers.find((t) => t.key === key)
     || { key: '', name: 'TABLE', short: 'TBL', colorKey: 'gray', order: 999 };
+
+  // ── 방 모양(cells) ──
+  //
+  // 길이 cols*rows 인 '1'/'0' 문자열. 빈 문자열이면 직사각형 방 전체.
+  // 클럽 홀이 ㄱ자·계단 옆이 파인 형태 등 제각각이라 격자 안에서 실제 바닥만 남긴다.
+
+  /** 층 f 에서 사각 영역이 전부 방 안인가. 마스크가 없으면 항상 true. */
+  function rectInFloor(f, rect) {
+    if (!f.cells) return true;
+    for (let y = rect.row; y < rect.row + rect.rowSpan; y++) {
+      for (let x = rect.col; x < rect.col + rect.colSpan; x++) {
+        if (f.cells[y * f.cols + x] === '0') return false;
+      }
+    }
+    return true;
+  }
+
+  const isInside = (col, row) => {
+    const f = floor();
+    if (col < 0 || row < 0 || col >= f.cols || row >= f.rows) return false;
+    if (!f.cells) return true;
+    return f.cells[row * f.cols + col] !== '0';
+  };
+
+  /** 현재 층에서 사각 영역이 전부 방 안인가 — 테이블은 방 밖에 놓을 수 없다. */
+  const insideRoom = (rect) => rectInFloor(floor(), rect);
+
+  function setCell(col, row, on) {
+    const f = floor();
+    const mask = (f.cells || '1'.repeat(f.cols * f.rows)).split('');
+    mask[row * f.cols + col] = on ? '1' : '0';
+    const joined = mask.join('');
+    // 전부 방 안이면 마스크를 지운다 — 앱이 그때만 둥근 카드로 그린다.
+    f.cells = joined.includes('0') ? joined : '';
+  }
+
+  /** 격자 크기를 바꾸면 마스크도 같이 옮긴다. 새로 생긴 칸은 방 안. */
+  function remapCells(f, cols, rows) {
+    if (!f.cells) return '';
+    const out = [];
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        out.push(
+          r < f.rows && c < f.cols ? f.cells[r * f.cols + c] : '1'
+        );
+      }
+    }
+    const joined = out.join('');
+    return joined.includes('0') ? joined : '';
+  }
+
+  /** 이 칸을 테이블·구조물이 점유하고 있나 (도려내기 전에 확인). */
+  const occupied = (col, row) =>
+    [...floor().tables, ...floor().fixtures].some((x) =>
+      col >= x.col && col < x.col + x.colSpan
+      && row >= x.row && row < x.row + x.rowSpan);
 
   const overlaps = (a, b) =>
     a.col < b.col + b.colSpan && b.col < a.col + a.colSpan
@@ -249,9 +350,28 @@ export function mountEditor(root, api, opts = {}) {
     renderInspector();
     renderTiers();
     $('noticeInp').value = layout.notice || '';
-    $('colsInp').value = floor().cols;
-    $('rowsInp').value = floor().rows;
     $('floorNameInp').value = floor().name;
+    renderGridInputs();
+  }
+
+  /** 가로/세로 칸 입력 + 비율 프리셋 버튼 상태. */
+  function renderGridInputs() {
+    const f = floor();
+    $('colsInp').value = f.cols;
+    $('rowsInp').value = f.rows;
+
+    const bar = $('ratioBar');
+    bar.innerHTML = '';
+    const current = f.cols / f.rows;
+    for (const [label, r] of RATIOS) {
+      const b = document.createElement('button');
+      b.textContent = label;
+      // 정확히 떨어지지 않는 조합(예 12×7)도 있으니 가장 가까운 프리셋을 켜 준다.
+      if (Math.abs(current - r) < 0.06) b.className = 'on';
+      b.onclick = () => applyRatio(r);
+      bar.appendChild(b);
+    }
+    renderCellHint();
   }
 
   function renderFloorBar() {
@@ -276,13 +396,99 @@ export function mountEditor(root, api, opts = {}) {
     const cell = cellSize();
     canvas.style.height = (cell * f.rows) + 'px';
 
-    $('grid').style.background =
-      'repeating-linear-gradient(to right, rgba(255,255,255,.05) 0 1px, transparent 1px ' + cell + 'px),'
-      + 'repeating-linear-gradient(to bottom, rgba(255,255,255,.05) 0 1px, transparent 1px ' + cell + 'px)';
+    drawPlate(cell);
 
     [...canvas.querySelectorAll('.item')].forEach((el) => el.remove());
     f.fixtures.forEach((x) => canvas.appendChild(itemEl(x, 'fixture', cell)));
     f.tables.forEach((x) => canvas.appendChild(itemEl(x, 'table', cell)));
+  }
+
+  /**
+   * 바닥판을 그린다 — 방 모양(cells)대로 칠하고 **경계 변에만** 외곽선.
+   *
+   * 셀마다 사각형을 다 그리면 격자무늬로 보인다. 채움은 이어 붙이고 선은 방 밖과
+   * 맞닿은 변에서만 그어야 하나의 방 윤곽으로 읽힌다 — 앱 _FloorPlatePainter 와 같은 방식.
+   */
+  function drawPlate(cell) {
+    const f = floor();
+    const cv = $('plate');
+    const w = f.cols * cell, h = f.rows * cell;
+    const dpr = window.devicePixelRatio || 1;
+
+    cv.width = Math.round(w * dpr);
+    cv.height = Math.round(h * dpr);
+    cv.style.width = w + 'px';
+    cv.style.height = h + 'px';
+
+    const ctx = cv.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+
+    const grad = ctx.createRadialGradient(w / 2, 0, 0, w / 2, 0, Math.max(w, h) * 1.1);
+    grad.addColorStop(0, PLATE_IN);
+    grad.addColorStop(0.72, PLATE_OUT);
+    ctx.fillStyle = grad;
+    ctx.strokeStyle = PLATE_LINE;
+    ctx.lineWidth = 1;
+
+    if (!f.cells) {
+      // 직사각형 방은 앱과 같이 둥근 카드로.
+      ctx.beginPath();
+      ctx.roundRect(0.5, 0.5, w - 1, h - 1, 14);
+      ctx.fill();
+      ctx.stroke();
+    } else {
+      ctx.beginPath();
+      for (let r = 0; r < f.rows; r++) {
+        for (let c = 0; c < f.cols; c++) {
+          if (!isInside(c, r)) continue;
+          // 0.5 씩 부풀려 이웃 칸과 겹치게 — 딱 맞붙이면 칸 사이에 이음매가 보인다.
+          ctx.rect(c * cell - 0.5, r * cell - 0.5, cell + 1, cell + 1);
+        }
+      }
+      ctx.fill();
+
+      ctx.beginPath();
+      for (let r = 0; r < f.rows; r++) {
+        for (let c = 0; c < f.cols; c++) {
+          if (!isInside(c, r)) continue;
+          const l = c * cell, t = r * cell, rt = l + cell, b = t + cell;
+          if (!isInside(c - 1, r)) { ctx.moveTo(l, t); ctx.lineTo(l, b); }
+          if (!isInside(c + 1, r)) { ctx.moveTo(rt, t); ctx.lineTo(rt, b); }
+          if (!isInside(c, r - 1)) { ctx.moveTo(l, t); ctx.lineTo(rt, t); }
+          if (!isInside(c, r + 1)) { ctx.moveTo(l, b); ctx.lineTo(rt, b); }
+        }
+      }
+      ctx.stroke();
+    }
+
+    // 격자선 — 편집 보조용이라 앱에는 없다. 방 모양 편집 중엔 진하게.
+    ctx.strokeStyle = shapeMode ? 'rgba(255,255,255,.16)' : 'rgba(255,255,255,.05)';
+    ctx.beginPath();
+    for (let c = 1; c < f.cols; c++) { ctx.moveTo(c * cell, 0); ctx.lineTo(c * cell, h); }
+    for (let r = 1; r < f.rows; r++) { ctx.moveTo(0, r * cell); ctx.lineTo(w, r * cell); }
+    ctx.stroke();
+  }
+
+  /**
+   * 이 격자가 앱에서 실제로 몇 px 이 되는지 보여준다.
+   *
+   * "열을 늘리면 작아진다"를 말로만 적어 두면 업주가 감을 못 잡는다 —
+   * 가장 좁은 흔한 기기(iPhone SE 375) 기준으로 셀·테이블 크기를 직접 보여준다.
+   * 섹션 좌우 20 + 캔버스 안쪽 8 을 뺀 폭이 격자에 쓰인다(앱 ClubFloorMap._pad).
+   */
+  function renderCellHint() {
+    const f = floor();
+    const seWidth = (375 / 393) * (393 - 40 - 16); // ≈ 321px
+    const px = seWidth / f.cols;
+    const tap = px * MIN_TABLE_SPAN;
+    const bad = tap < 44;
+    $('cellHint').innerHTML =
+      '지금 <b>' + f.cols + ' × ' + f.rows + '</b> 칸 · 미니맵 비율 <b>'
+      + ratioLabel(f.cols, f.rows) + '</b> (' + ratioShape(f.cols, f.rows) + ')<br />'
+      + 'iPhone SE 기준 칸 <b>' + px.toFixed(0) + 'px</b> · 최소 테이블(2칸) <b>'
+      + tap.toFixed(0) + 'px</b>'
+      + (bad ? ' <span class="err">— 탭 타겟 44px 미달</span>' : ' <span class="ok">— 탭 타겟 OK</span>');
   }
 
   function itemEl(item, kind, cell) {
@@ -354,7 +560,8 @@ export function mountEditor(root, api, opts = {}) {
       if (col === item.col && row === item.row) return;
 
       const next = { col, row, colSpan: item.colSpan, rowSpan: item.rowSpan };
-      if (kind === 'table' && collides(next, item.id)) return; // 겹치면 그 자리엔 안 놓는다
+      // 겹치거나 방 밖이면 그 자리엔 안 놓는다. 구조물(벽·계단)은 방 경계에 걸칠 수 있어 허용.
+      if (kind === 'table' && (collides(next, item.id) || !insideRoom(next))) return;
       item.col = col; item.row = row;
       renderCanvas(); renderInspector();
     }
@@ -382,7 +589,7 @@ export function mountEditor(root, api, opts = {}) {
       if (colSpan === item.colSpan && rowSpan === item.rowSpan) return;
 
       const next = { col: item.col, row: item.row, colSpan, rowSpan };
-      if (kind === 'table' && collides(next, item.id)) return;
+      if (kind === 'table' && (collides(next, item.id) || !insideRoom(next))) return;
       item.colSpan = colSpan; item.rowSpan = rowSpan;
       renderCanvas(); renderInspector();
     }
@@ -403,7 +610,7 @@ export function mountEditor(root, api, opts = {}) {
     for (let r = 0; r + rowSpan <= f.rows; r++) {
       for (let c = 0; c + colSpan <= f.cols; c++) {
         const rect = { col: c, row: r, colSpan, rowSpan };
-        if (!collides(rect, null)) return rect;
+        if (!collides(rect, null) && insideRoom(rect)) return rect;
       }
     }
     return null;
@@ -411,7 +618,7 @@ export function mountEditor(root, api, opts = {}) {
 
   function addTable() {
     const spot = findSpot(MIN_TABLE_SPAN, MIN_TABLE_SPAN);
-    if (!spot) return alert('빈 자리가 없습니다. 격자를 넓히거나 테이블을 지우세요.');
+    if (!spot) return alert('빈 자리가 없습니다. 방을 넓히거나 테이블을 지우세요.');
     const id = uid('T');
     floor().tables.push({
       id,
@@ -429,6 +636,7 @@ export function mountEditor(root, api, opts = {}) {
 
   function addFixture() {
     const id = uid('FX');
+    if (shapeMode) setShapeMode(false);
     floor().fixtures.push({
       id,
       type: $('fxTypeSel').value,
@@ -525,6 +733,8 @@ export function mountEditor(root, api, opts = {}) {
 
     if (sel.kind === 'table' && collides(rect, item.id)) {
       setStatus('다른 테이블과 겹칩니다 — 위치를 되돌렸습니다', 'err');
+    } else if (sel.kind === 'table' && !insideRoom(rect)) {
+      setStatus('방 밖입니다 — 위치를 되돌렸습니다', 'err');
     } else {
       Object.assign(item, rect);
     }
@@ -626,6 +836,8 @@ export function mountEditor(root, api, opts = {}) {
         }
         if (t.col + t.colSpan > f.cols || t.row + t.rowSpan > f.rows) {
           errs.push(f.name + '/' + t.id + ': 격자 밖으로 나갔습니다.');
+        } else if (!rectInFloor(f, t)) {
+          errs.push(f.name + '/' + t.id + ': 방 밖(도려낸 칸)에 있습니다.');
         }
         if (!tierKeys.has(t.tierKey)) {
           errs.push(f.name + '/' + t.id + ': 없는 등급 — ' + t.tierKey);
@@ -686,6 +898,10 @@ export function mountEditor(root, api, opts = {}) {
         order: f.order ?? i,
         cols: clamp(f.cols || 12, MIN_COLS, MAX_COLS),
         rows: clamp(f.rows || 16, MIN_ROWS, MAX_ROWS),
+        // 길이가 격자와 안 맞으면 버린다 — 앱 파서와 같은 규칙(어긋난 마스크는 엉뚱한 칸을 뚫는다).
+        cells: (typeof f.cells === 'string'
+          && f.cells.length === (f.cols || 12) * (f.rows || 16)
+          && f.cells.includes('0')) ? f.cells : '',
         fixtures: (f.fixtures || []).map((x) => ({
           id: x.id || '', type: x.type || 'etc', label: x.label || '',
           col: x.col || 0, row: x.row || 0,
@@ -753,8 +969,67 @@ export function mountEditor(root, api, opts = {}) {
     loadLayout(first);
   }
 
+  // ── 방 모양 편집 ──
+  //
+  // 켜면 칸을 눌러(끌어서) 바닥을 넣고 뺀다. 테이블·구조물이 놓인 칸은 못 뺀다 —
+  // 빼면 물건이 허공에 뜬 상태가 되고, 그 상태로 저장하면 앱에 그대로 나간다.
+
+  function setShapeMode(on) {
+    shapeMode = on;
+    $('shapeBtn').className = on ? 'on' : '';
+    $('canvasWrap').classList.toggle('shape-mode', on);
+    $('canvasHint').innerHTML = on
+      ? '칸을 눌러(끌어서) 바닥을 넣고 뺍니다 · 물건이 놓인 칸은 뺄 수 없습니다'
+      : '끌어서 이동 · 우하단 초록 손잡이로 크기 조절';
+    if (on) { sel = null; renderInspector(); }
+    renderCanvas();
+  }
+
+  function cellAt(ev) {
+    const cell = cellSize();
+    const box = $('canvas').getBoundingClientRect();
+    return {
+      col: Math.floor((ev.clientX - box.left) / cell),
+      row: Math.floor((ev.clientY - box.top) / cell),
+    };
+  }
+
+  $('plate').addEventListener('mousedown', (e) => {
+    if (!shapeMode) return;
+    e.preventDefault();
+    const f = floor();
+    const first = cellAt(e);
+    if (first.col < 0 || first.row < 0 || first.col >= f.cols || first.row >= f.rows) return;
+
+    // 처음 누른 칸의 반대값으로 통일해 칠한다 — 끌면서 값이 토글되면 얼룩덜룩해진다.
+    const paintOn = !isInside(first.col, first.row);
+    let blocked = false;
+    let changed = false;
+
+    const apply = (ev) => {
+      const { col, row } = cellAt(ev);
+      if (col < 0 || row < 0 || col >= f.cols || row >= f.rows) return;
+      if (isInside(col, row) === paintOn) return;
+      if (!paintOn && occupied(col, row)) { blocked = true; return; }
+      setCell(col, row, paintOn);
+      changed = true;
+      renderCanvas();
+    };
+    apply(e);
+
+    const up = () => {
+      document.removeEventListener('mousemove', apply);
+      document.removeEventListener('mouseup', up);
+      if (changed) markDirty();
+      if (blocked) setStatus('물건이 놓인 칸은 뺄 수 없습니다 — 먼저 옮기세요', 'err');
+    };
+    document.addEventListener('mousemove', apply);
+    document.addEventListener('mouseup', up);
+  });
+
   // ── 이벤트 ──
 
+  $('shapeBtn').onclick = () => setShapeMode(!shapeMode);
   $('addTableBtn').onclick = addTable;
   $('addFxBtn').onclick = addFixture;
   $('saveBtn').onclick = save;
@@ -799,25 +1074,53 @@ export function mountEditor(root, api, opts = {}) {
   $('floorNameInp').onchange = (e) => { floor().name = e.target.value; markDirty(); renderFloorBar(); };
   $('noticeInp').onchange = () => markDirty();
 
-  function resizeGrid(key, min, max) {
-    return (e) => {
-      const v = clamp(parseInt(e.target.value, 10) || min, min, max);
-      const f = floor();
-      // 줄이면 밖으로 밀려나는 항목이 생긴다. 앱은 clamp 하지만 그 결과는 업주가
-      // 의도한 배치가 아니므로 여기서 막는다.
-      const out = [...f.tables, ...f.fixtures].filter((x) =>
-        key === 'cols' ? x.col + x.colSpan > v : x.row + x.rowSpan > v);
-      if (out.length) {
-        alert('격자를 줄이면 밖으로 나가는 항목이 있습니다: ' + out.map((x) => x.id).join(', '));
-        e.target.value = f[key];
-        return;
-      }
-      f[key] = v;
-      markDirty(); renderCanvas();
-    };
+  /**
+   * 격자 크기를 바꾼다. 성공하면 true.
+   *
+   * 줄이면 밖으로 밀려나는 항목이 생긴다 — 앱은 clamp 하지만 그 결과는 업주가
+   * 의도한 배치가 아니므로 여기서 막는다.
+   */
+  function setGridSize(cols, rows) {
+    const f = floor();
+    cols = clamp(cols, MIN_COLS, MAX_COLS);
+    rows = clamp(rows, MIN_ROWS, MAX_ROWS);
+    if (cols === f.cols && rows === f.rows) return true;
+
+    const out = [...f.tables, ...f.fixtures].filter(
+      (x) => x.col + x.colSpan > cols || x.row + x.rowSpan > rows
+    );
+    if (out.length) {
+      alert('격자를 줄이면 밖으로 나가는 항목이 있습니다: ' + out.map((x) => x.id).join(', '));
+      renderGridInputs();
+      return false;
+    }
+
+    // 마스크도 같이 옮긴다 — 안 옮기면 길이가 어긋나 앱이 마스크를 통째로 버린다.
+    const next = remapCells(f, cols, rows);
+    f.cols = cols;
+    f.rows = rows;
+    f.cells = next;
+    markDirty();
+    renderGridInputs();
+    renderCanvas();
+    return true;
   }
-  $('colsInp').onchange = resizeGrid('cols', MIN_COLS, MAX_COLS);
-  $('rowsInp').onchange = resizeGrid('rows', MIN_ROWS, MAX_ROWS);
+
+  /**
+   * 비율 프리셋 — **가로 칸은 그대로 두고 세로 칸만 맞춘다.**
+   *
+   * 둘 다 바꾸면 이미 놓아 둔 배치가 가로로도 밀려 대부분 '밖으로 나감'으로 막힌다.
+   * 가로를 유지하면 세로 길이만 바뀌어 배치가 대체로 살아남는다.
+   */
+  function applyRatio(r) {
+    const f = floor();
+    setGridSize(f.cols, Math.max(MIN_ROWS, Math.round(f.cols / r)));
+  }
+
+  $('colsInp').onchange = (e) =>
+    setGridSize(parseInt(e.target.value, 10) || floor().cols, floor().rows);
+  $('rowsInp').onchange = (e) =>
+    setGridSize(floor().cols, parseInt(e.target.value, 10) || floor().rows);
 
   document.addEventListener('keydown', (e) => {
     if ((e.key === 'Delete' || e.key === 'Backspace') && sel

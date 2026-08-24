@@ -34,25 +34,36 @@ class ClubFloorMap extends StatelessWidget {
   ///   같이 들어가 있다. 키우려면 열 상한을 다시 계산할 것.
   static const double _pad = 8;
 
+  /// 바닥판 채움 — 위가 밝은 방사형.
+  static const _plateGradient = RadialGradient(
+    center: Alignment(0, -1),
+    radius: 1.1,
+    colors: [Color(0xFF1B1B22), Color(0xFF101014)],
+    stops: [0.0, 0.72],
+  );
+
   @override
   Widget build(BuildContext context) {
+    // 방이 직사각형이면 예전처럼 둥근 카드로 그린다 — 대부분의 클럽이 여기 해당하고,
+    // 셀 단위 외곽선은 모서리가 각져 카드보다 거칠다.
+    final rect = floor.isFullRect;
+
     return Container(
-      clipBehavior: Clip.antiAlias,
+      clipBehavior: rect ? Clip.antiAlias : Clip.none,
       padding: EdgeInsets.all(_pad.w),
       // 테두리는 자식 위에 — decoration 에 두면 코너 호에서 선이 덮인다.
-      foregroundDecoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: VybeColors.gray800),
-      ),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16.r),
-        gradient: const RadialGradient(
-          center: Alignment(0, -1),
-          radius: 1.1,
-          colors: [Color(0xFF1B1B22), Color(0xFF101014)],
-          stops: [0.0, 0.72],
-        ),
-      ),
+      foregroundDecoration: rect
+          ? BoxDecoration(
+              borderRadius: BorderRadius.circular(16.r),
+              border: Border.all(color: VybeColors.gray800),
+            )
+          : null,
+      decoration: rect
+          ? BoxDecoration(
+              borderRadius: BorderRadius.circular(16.r),
+              gradient: _plateGradient,
+            )
+          : null,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final cell = constraints.maxWidth / floor.cols;
@@ -61,6 +72,13 @@ class ClubFloorMap extends StatelessWidget {
             height: cell * floor.rows,
             child: Stack(
               children: [
+                // 깎인 방은 바닥판을 셀 모양대로 직접 그린다.
+                if (!rect)
+                  Positioned.fill(
+                    child: CustomPaint(
+                      painter: _FloorPlatePainter(floor: floor, cell: cell),
+                    ),
+                  ),
                 // 구조물이 먼저 — 테이블이 항상 위에 온다.
                 for (final f in floor.fixtures)
                   _place(f.rect, cell, child: _FixtureBox(fixture: f)),
@@ -90,6 +108,68 @@ class ClubFloorMap extends StatelessWidget {
     height: r.rowSpan * cell,
     child: child,
   );
+}
+
+// ── 바닥판 ──
+
+/// 방 모양(`floor.cells`)대로 바닥을 칠하고 **경계 변에만** 외곽선을 긋는다.
+///
+/// 셀마다 사각형을 다 그리면 격자무늬처럼 보인다 — 채움은 이어 붙이고
+/// 선은 방 밖과 맞닿은 변에서만 그어야 하나의 방 윤곽으로 읽힌다.
+class _FloorPlatePainter extends CustomPainter {
+  final TableFloor floor;
+  final double cell;
+
+  const _FloorPlatePainter({required this.floor, required this.cell});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final fill = Paint()
+      ..shader = ClubFloorMap._plateGradient.createShader(
+        Rect.fromLTWH(0, 0, size.width, size.height),
+      );
+
+    final path = Path();
+    for (var r = 0; r < floor.rows; r++) {
+      for (var c = 0; c < floor.cols; c++) {
+        if (!floor.isInside(c, r)) continue;
+        // 0.5 씩 부풀려 이웃 칸과 겹치게 한다 — 딱 맞붙이면 안티에일리어싱 때문에
+        // 칸 사이에 실선 같은 이음매가 보인다.
+        path.addRect(
+          Rect.fromLTWH(c * cell, r * cell, cell, cell).inflate(0.5),
+        );
+      }
+    }
+    canvas.drawPath(path, fill);
+
+    final stroke = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1
+      ..color = VybeColors.gray800;
+
+    for (var r = 0; r < floor.rows; r++) {
+      for (var c = 0; c < floor.cols; c++) {
+        if (!floor.isInside(c, r)) continue;
+        final l = c * cell, t = r * cell, rt = l + cell, b = t + cell;
+        if (!floor.isInside(c - 1, r)) {
+          canvas.drawLine(Offset(l, t), Offset(l, b), stroke);
+        }
+        if (!floor.isInside(c + 1, r)) {
+          canvas.drawLine(Offset(rt, t), Offset(rt, b), stroke);
+        }
+        if (!floor.isInside(c, r - 1)) {
+          canvas.drawLine(Offset(l, t), Offset(rt, t), stroke);
+        }
+        if (!floor.isInside(c, r + 1)) {
+          canvas.drawLine(Offset(l, b), Offset(rt, b), stroke);
+        }
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_FloorPlatePainter old) =>
+      old.cell != cell || old.floor != floor;
 }
 
 // ── 구조물 ──

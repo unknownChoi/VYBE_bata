@@ -7,7 +7,6 @@ import 'package:vybe/data/repositories/user_repository_impl.dart';
 import 'package:vybe/presentation/auth/terms/legal_documents.dart';
 import 'package:vybe/presentation/auth/viewmodels/auth_viewmodel.dart';
 import 'package:vybe/presentation/common/renew/renew_glass.dart';
-import 'package:vybe/presentation/common/renew/renew_icons.dart';
 import 'package:vybe/presentation/common/widgets/vybe_aurora.dart';
 import 'package:vybe/presentation/common/widgets/vybe_confirm_dialog.dart';
 import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
@@ -16,7 +15,6 @@ import 'package:vybe/presentation/my_page/account_delete_screen.dart';
 import 'package:vybe/presentation/my_page/legal_screen.dart';
 import 'package:vybe/presentation/my_page/viewmodels/settings_viewmodel.dart';
 import 'package:vybe/presentation/my_page/widgets/my_page_common.dart';
-import 'package:vybe/presentation/my_page/widgets/setting_row.dart';
 import 'package:vybe/presentation/my_page/widgets/settings_groups.dart';
 import 'package:vybe/presentation/profile/viewmodels/user_viewmodel.dart';
 
@@ -181,9 +179,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             : _toggle(key),
                       ),
                       SizedBox(height: _kGroupGap.h),
-                      _generalGroup(),
+                      SettingsGeneralGroup(
+                        autoLogin: _autoLogin,
+                        onToggleAutoLogin: _toggleAutoLogin,
+                        toggles: _toggles,
+                        onToggle: _toggle,
+                        onThemeTap: () =>
+                            VybeToast.show(context, message: '지금은 다크 테마만 지원해요'),
+                        onLanguageTap: () =>
+                            VybeToast.show(context, message: '지금은 한국어만 지원해요'),
+                      ),
                       SizedBox(height: _kGroupGap.h),
-                      _dataGroup(),
+                      SettingsDataGroup(
+                        cacheLabel: _cacheLabel(),
+                        clearing: _clearing,
+                        onClear: _clearCache,
+                      ),
                       SizedBox(height: _kGroupGap.h),
                       SettingsAccountGroup(
                         onSupport: () =>
@@ -217,96 +228,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  // ============ 그룹 ============
-
-  Widget _generalGroup() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const RenewSectionHead(title: '일반'),
-        SettingRow(
-          icon: RenewIcons.lock,
-          label: '자동 로그인 유지',
-          sub: '앱을 껐다 켜도 로그인 상태 유지',
-          control: MyToggle(on: _autoLogin, onTap: _toggleAutoLogin),
-        ),
-        _toggleRow(
-          label: '위치 서비스',
-          sub: '내 주변 클럽 추천에 사용',
-          key: 'location',
-          icon: RenewIcons.pin,
-        ),
-        _toggleRow(
-          label: '사운드 및 진동',
-          sub: '앱 효과음',
-          key: 'sound',
-          icon: RenewIcons.mega,
-        ),
-        SettingRow(
-          icon: RenewIcons.moon,
-          label: '테마',
-          control: const SettingValueChevron(value: '다크'),
-          onTap: () => VybeToast.show(context, message: '지금은 다크 테마만 지원해요'),
-        ),
-        SettingRow(
-          icon: RenewIcons.globe,
-          label: '언어',
-          control: const SettingValueChevron(value: '한국어'),
-          onTap: () => VybeToast.show(context, message: '지금은 한국어만 지원해요'),
-          last: true,
-        ),
-      ],
-    );
-  }
-
-  Widget _dataGroup() {
-    // 실제 임시 디렉토리 용량. 순회 중에는 숫자 대신 상태를 그대로 쓴다
-    // ('계산 중… 사용 중'처럼 붙어 읽히지 않게 문장 전체를 갈아 끼운다).
-    final sizeLabel = ref
-        .watch(cacheManagerProvider)
-        .when(
-          data: (bytes) => '${formatCacheSize(bytes)} 사용 중',
-          loading: () => '용량 계산 중…',
-          error: (_, __) => '용량을 확인할 수 없어요',
-        );
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const RenewSectionHead(title: '데이터'),
-        SettingRow(
-          icon: RenewIcons.trash,
-          label: '캐시 삭제',
-          sub: sizeLabel,
-          control: RenewChip(
-            label: _clearing ? '삭제 중…' : '삭제',
-            selected: false,
-            onTap: _clearCache,
-          ),
-          last: true,
-        ),
-      ],
-    );
-  }
+  /// 캐시 용량 문구. 순회 중에는 숫자 대신 상태를 그대로 쓴다
+  /// ('계산 중… 사용 중'처럼 붙어 읽히지 않게 문장 전체를 갈아 끼운다).
+  String _cacheLabel() => ref
+      .watch(cacheManagerProvider)
+      .when(
+        data: (bytes) => '${formatCacheSize(bytes)} 사용 중',
+        loading: () => '용량 계산 중…',
+        error: (_, __) => '용량을 확인할 수 없어요',
+      );
 
   /// 약관·정책은 '이용약관' 목록 화면 한 곳에서 본다.
   void _openLegal() => pushHidingNavBar<void>(context, const LegalScreen());
-
-  /// 토글 상태를 [_toggles] 에서 읽어오는 설정 행.
-  Widget _toggleRow({
-    required String label,
-    required String sub,
-    required String key,
-    String? icon,
-    bool last = false,
-  }) => SettingToggleRow(
-    label: label,
-    sub: sub,
-    on: _toggles[key] ?? false,
-    onToggle: () => _toggle(key),
-    icon: icon,
-    last: last,
-  );
 
   // ============ 동작 ============
 

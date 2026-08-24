@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
+import 'package:vybe/presentation/home/widgets/home_banner_skeleton.dart';
 
 /// 홈 화면 전체 스켈레톤.
 ///
@@ -25,7 +26,7 @@ class HomeScreenSkeleton extends StatelessWidget {
       ),
       children: const [
         _GreetingSkeleton(),
-        _BannerSkeleton(),
+        HomeBannerSkeleton(),
         _CategoryGridSkeleton(),
         _NearbyClubsSkeleton(),
       ],
@@ -61,36 +62,6 @@ class _GreetingSkeleton extends StatelessWidget {
 }
 
 // ── 배너 (HomeBanner) ────────────────────────────────────────────
-
-class _BannerSkeleton extends StatelessWidget {
-  const _BannerSkeleton();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Padding(
-          // 배너 카드: viewportFraction 0.9 + 좌우 6.w → 실제와 유사한 좌우 여백.
-          padding: EdgeInsets.symmetric(horizontal: 26.w),
-          child: VybeSkel(height: 200.h, radius: 20),
-        ),
-        SizedBox(height: 12.h),
-        // 인디케이터 dots (활성 1 + 비활성 2)
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            VybeSkel(width: 18.w, height: 5.h, radius: 99),
-            SizedBox(width: 4.w),
-            VybeSkel(width: 5.w, height: 5.h, radius: 99),
-            SizedBox(width: 4.w),
-            VybeSkel(width: 5.w, height: 5.h, radius: 99),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
 // ── 카테고리 그리드 (HomeCategoryGrid) ───────────────────────────
 
 class _CategoryGridSkeleton extends StatelessWidget {

@@ -190,6 +190,97 @@ void main() {
     });
   });
 
+  group('방 모양 마스크 (cells)', () {
+    // 4×4 격자에서 오른쪽 아래 2×2 를 도려낸 ㄱ자 방.
+    const lShape =
+        '1111'
+        '1111'
+        '1100'
+        '1100';
+
+    ClubTableLayout parseWithCells(
+      String? cells, {
+      int cols = 4,
+      int rows = 4,
+    }) => ClubTableLayout.fromMap({
+      'schemaVersion': 1,
+      'clubId': 'club_1',
+      'tiers': [
+        {'key': 'vip', 'name': 'VIP', 'colorKey': 'blue', 'order': 0},
+      ],
+      'floors': [
+        {
+          'floorId': 'f1',
+          'name': '1F',
+          'order': 0,
+          'cols': cols,
+          'rows': rows,
+          if (cells != null) 'cells': cells,
+          'tables': [_table(id: 'A', col: 0, row: 0)],
+        },
+      ],
+    }, 'club_1')!;
+
+    test('마스크가 없으면 전부 방 안', () {
+      final f = parseWithCells(null).floors.first;
+
+      expect(f.isFullRect, isTrue);
+      expect(f.isInside(3, 3), isTrue);
+    });
+
+    test('도려낸 칸은 방 밖', () {
+      final f = parseWithCells(lShape).floors.first;
+
+      expect(f.isFullRect, isFalse);
+      expect(f.isInside(0, 0), isTrue);
+      expect(f.isInside(1, 3), isTrue);
+      expect(f.isInside(2, 2), isFalse);
+      expect(f.isInside(3, 3), isFalse);
+    });
+
+    test('격자 밖은 항상 방 밖 — 외곽선을 그릴 때 경계가 된다', () {
+      final f = parseWithCells(lShape).floors.first;
+
+      expect(f.isInside(-1, 0), isFalse);
+      expect(f.isInside(0, -1), isFalse);
+      expect(f.isInside(4, 0), isFalse);
+      expect(f.isInside(0, 4), isFalse);
+    });
+
+    test('containsRect — 테이블이 방 안에 온전히 들어가는지', () {
+      final f = parseWithCells(lShape).floors.first;
+
+      expect(
+        f.containsRect(const GridRect(col: 0, row: 0, colSpan: 2, rowSpan: 2)),
+        isTrue,
+      );
+      // 오른쪽 아래로 걸치면 도려낸 칸을 밟는다.
+      expect(
+        f.containsRect(const GridRect(col: 2, row: 2, colSpan: 2, rowSpan: 2)),
+        isFalse,
+      );
+    });
+
+    test('길이가 격자와 안 맞으면 버린다 — 어긋난 마스크는 엉뚱한 칸을 뚫는다', () {
+      final f = parseWithCells('1111').floors.first; // 4칸뿐인데 격자는 16칸
+
+      expect(f.isFullRect, isTrue);
+      expect(f.isInside(3, 3), isTrue);
+    });
+
+    test('전부 방 밖이면 버린다 — 바닥 없는 층은 그릴 게 없다', () {
+      final f = parseWithCells('0' * 16).floors.first;
+
+      expect(f.isFullRect, isTrue);
+    });
+
+    test('전부 방 안인 마스크는 없는 것과 같게 다룬다 (둥근 카드로 그린다)', () {
+      final f = parseWithCells('1' * 16).floors.first;
+
+      expect(f.isFullRect, isTrue);
+    });
+  });
+
   group('모르는 값 처리', () {
     test('모르는 구조물 타입은 버린다 — 영문 키가 화면에 뜨면 안 된다', () {
       final layout = _parse(
@@ -294,7 +385,12 @@ void main() {
       );
 
       final layout = _parse(
-        _doc(tables: [_table(id: 'A'), _table(id: 'B', isActive: false)]),
+        _doc(
+          tables: [
+            _table(id: 'A'),
+            _table(id: 'B', isActive: false),
+          ],
+        ),
       );
       expect(layout.tableCount, 1);
       expect(layout.floors.first.tables.first.id, 'A');

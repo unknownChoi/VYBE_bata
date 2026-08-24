@@ -121,15 +121,6 @@ service cloud.firestore {
         && request.auth.token.admin == true;
     }
 
-    // promotions/{promotionId} — 배너 전용 상세 콘텐츠. 앱은 읽기만.
-    // isActive를 read 조건에 넣지 않는다 — 비활성 문서를 permission-denied로
-    // 막으면 앱에서 '없음'과 '오류'를 구분할 수 없다. 노출 여부는 클라에서 필터.
-    match /promotions/{promotionId} {
-      allow read: if true;
-      allow write: if request.auth != null
-        && request.auth.token.admin == true;
-    }
-
     // appConfig/{platform} — 앱 전역 설정(현재는 버전 정책). 앱은 읽기만.
     // ⚠ read에 auth 조건을 걸지 않는다 — 버전 게이트는 로그인 **전에**,
     //   앱 실행 직후 이 문서를 읽는다. auth를 요구하면 비로그인 유저가

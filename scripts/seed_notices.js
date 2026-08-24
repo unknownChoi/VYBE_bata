@@ -30,7 +30,7 @@ const CLUB_A = '0xhYvbbj3GlVgSHKpqOB'; // 홍대 클럽 레이저
 const CLUB_B = '1kX6M1jUZBhRRQJ6ZRFb'; // 클럽 오메가
 
 // 홈 배너 원본 이미지 — category:'ad' 공지가 어떤 배너 얘기인지 바로 알아보게
-// 같은 그림을 붙인다. 배너·프로모션 쪽 소스는 scripts/seed_promotions.js.
+// 같은 그림을 붙인다.
 // (banners/ 는 토큰이 있어야 열린다 — clubs/ 와 달리 공개 읽기 규칙이 없음)
 const BANNER_TOKEN = {
   1: 'f939cfa4-addd-416b-981b-a11cacc70a25',
@@ -164,16 +164,14 @@ const NOTICES = [
       + '· 혜택: vybe 앱 화면 제시 시 웰컴 드링크 1잔\n\n'
       + '본 게시물은 광고이며, 상세 조건은 각 클럽 운영 정책에 따릅니다.',
     category: 'ad',
-    promotionId: 'promo_003',
     isPinned: false,
     daysAgo: 2,
     imageUrls: [SAMPLE_IMG(CLUB_B, 1)],
   },
 
-  // ── 홈 배너 광고 연동 공지 (promotions/promo_001~004 와 1:1) ──────────────
+  // ── 광고 공지 ────────────────────────────────────────────────────────────
   // 배너를 놓친 사용자도 공지 목록에서 같은 내용을 볼 수 있게 한다.
   // 첨부 사진은 해당 배너 이미지 그대로 — 어떤 배너 얘기인지 바로 알아보게.
-  // daysAgo 는 프로모션 startAt(seed_promotions.js) 과 맞춰 시점이 어긋나지 않게 했다.
   {
     id: 'notice_010',
     title: '[광고] vybe 첫 방문 웰컴 이벤트',
@@ -186,7 +184,6 @@ const NOTICES = [
       + '자세한 내용은 홈 화면 배너에서 확인하실 수 있습니다.\n\n'
       + '본 게시물은 광고입니다.',
     category: 'ad',
-    promotionId: 'promo_001',
     isPinned: false,
     daysAgo: 5,
     imageUrls: [BANNER_IMG(1)],
@@ -202,7 +199,6 @@ const NOTICES = [
       + '입장료와 테이블 정보는 홈 배너 또는 클럽 상세 페이지에서 확인해 주세요.\n\n'
       + '본 게시물은 광고입니다.',
     category: 'ad',
-    promotionId: 'promo_002',
     isPinned: false,
     daysAgo: 2,
     imageUrls: [BANNER_IMG(2)],
@@ -218,7 +214,6 @@ const NOTICES = [
       + '클럽별 상세 일정은 각 클럽 상세 페이지의 오늘의 라인업에서 확인할 수 있습니다.\n\n'
       + '본 게시물은 광고입니다.',
     category: 'ad',
-    promotionId: 'promo_003',
     isPinned: false,
     daysAgo: 6,
     imageUrls: [BANNER_IMG(3)],
@@ -234,7 +229,6 @@ const NOTICES = [
       + '광고성이거나 방문 사실과 무관한 리뷰는 추첨에서 제외됩니다.\n\n'
       + '본 게시물은 광고입니다.',
     category: 'ad',
-    promotionId: 'promo_004',
     isPinned: false,
     daysAgo: 1,
     imageUrls: [BANNER_IMG(4)],
@@ -334,7 +328,6 @@ async function writeNotice(token, notice) {
     },
     category: { stringValue: notice.category },
     // 연결된 프로모션. 빈 문자열이면 앱이 평소대로 공지 상세를 연다.
-    promotionId: { stringValue: notice.promotionId ?? '' },
     isPinned: { booleanValue: notice.isPinned },
     // 게시 상태 — false면 게시 기간 안이어도 앱에 노출되지 않는다.
     isActive: { booleanValue: notice.isActive ?? true },

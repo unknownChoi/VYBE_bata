@@ -398,27 +398,39 @@ class RenewNearbySection extends StatelessWidget {
             padding: EdgeInsets.symmetric(horizontal: RenewGlass.pagePad.w),
             itemCount: clubs.length,
             separatorBuilder: (_, __) => SizedBox(width: 12.w),
-            itemBuilder: (_, i) => _card(clubs[i]),
+            itemBuilder: (_, i) => _NearbyClubCard(
+              club: clubs[i],
+              onTap: () => onTapClub(clubs[i]),
+            ),
           ),
         ),
       ],
     );
   }
+}
 
-  Widget _card(ClubModel club) {
+/// 주변 클럽 가로 목록의 카드 1장.
+class _NearbyClubCard extends StatelessWidget {
+  final ClubModel club;
+  final VoidCallback onTap;
+
+  const _NearbyClubCard({required this.club, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
     final isOpen = club.operatingHours.today.isCurrentlyOpen;
 
     return GestureDetector(
-      onTap: () => onTapClub(club),
+      onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: SizedBox(
-        width: _thumb.w,
+        width: RenewNearbySection._thumb.w,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(
-              width: _thumb.w,
-              height: _thumb.w,
+              width: RenewNearbySection._thumb.w,
+              height: RenewNearbySection._thumb.w,
               child: Stack(
                 fit: StackFit.expand,
                 children: [

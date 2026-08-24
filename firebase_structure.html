@@ -306,7 +306,7 @@
   <a href="#feature-review" class="sub">리뷰 작성 · 평점 집계</a>
   <a href="#feature-favorite" class="sub">찜 · 집계 카운터</a>
   <a href="#feature-search" class="sub">검색 · 트렌드 집계</a>
-  <a href="#feature-banner" class="sub">배너 → 프로모션 상세</a>
+  <a href="#feature-banner" class="sub">배너 → 공지사항 상세</a>
   <a href="#feature-notice" class="sub">공지사항 게시 제어</a>
   <a href="#feature-performance" class="sub">공연 일정 · 장르 페이지</a>
   <a href="#feature-free-entry" class="sub">시간대별 무료입장 (앱 미구현)</a>
@@ -324,7 +324,6 @@
   <a href="#favorites" class="sub">favorites</a>
   <a href="#search-history" class="sub">searchHistory</a>
   <a href="#banners" class="sub">banners</a>
-  <a href="#promotions" class="sub">promotions</a>
   <a href="#vybe-recommendations" class="sub">vybeRecommendations</a>
   <a href="#performances" class="sub">performances</a>
   <a href="#notices" class="sub">notices</a>
@@ -496,8 +495,8 @@ logFirebaseAccess(
     <tr><td><strong>판정은 순수 함수 한 곳</strong></td><td>조건 분기는 Firestore·화면과 분리된 순수 함수에 몰아넣고 단위 테스트로 고정. 화면은 결과만 본다</td><td><code>version_utils.dart</code> · <code>session_utils.dart</code> · <code>app_geo.dart</code> · <code>compute_trends.ts</code> · <code>NoticeModel.isVisibleAt</code></td></tr>
     <tr><td><strong>fail-open</strong></td><td>확인에 실패하면 <u>막지 말고 통과</u>시킨다. 서버 사고·오프라인으로 전 유저 앱이 잠기는 쪽이 훨씬 큰 사고</td><td>버전 게이트 · 네트워크 게이트 · 세션 검사 · 위치 조회</td></tr>
     <tr><td><strong>집계 필드는 서버만 쓴다</strong></td><td><code>rating</code>·<code>reviewCount</code>·<code>favoriteCount</code>는 Cloud Functions 트리거 전용. 클라는 읽기만</td><td>리뷰 · 찜</td></tr>
-    <tr><td><strong>노출 제어는 문서 삭제가 아니라 플래그</strong></td><td>지우면 되돌릴 수 없고 집계가 어긋난다. <code>isActive</code>·<code>isHidden</code>·기간 필드로 숨긴다</td><td>탈퇴 · 공지 · 배너 · 프로모션 · 클럽</td></tr>
-    <tr><td><strong>앱 배포 없이 바꿀 수 있게</strong></td><td>문구·링크·정책값은 코드가 아니라 Firestore 문서에 둔다</td><td><code>appConfig</code> · <code>promotions</code> · <code>notices</code> · <code>searchHashtags</code></td></tr>
+    <tr><td><strong>노출 제어는 문서 삭제가 아니라 플래그</strong></td><td>지우면 되돌릴 수 없고 집계가 어긋난다. <code>isActive</code>·<code>isHidden</code>·기간 필드로 숨긴다</td><td>탈퇴 · 공지 · 배너 · 클럽</td></tr>
+    <tr><td><strong>앱 배포 없이 바꿀 수 있게</strong></td><td>문구·링크·정책값은 코드가 아니라 Firestore 문서에 둔다</td><td><code>appConfig</code> · <code>notices</code> · <code>searchHashtags</code></td></tr>
     <tr><td><strong>SDK는 datasource 한 곳</strong></td><td>Firebase뿐 아니라 GPS·네트워크·설정앱 SDK도 전용 datasource 안에만 둔다. presentation은 provider만 본다</td><td><code>device_location_datasource</code> · <code>device_network_datasource</code></td></tr>
   </table>
 </section>
@@ -1147,18 +1146,18 @@ photos.userId     COLLECTION + COLLECTION_GROUP                     <span class=
   <div class="note danger"><code>searchLogs</code> 는 <strong>클라 읽기 불가</strong>(Admin SDK 전용) · create 만 허용하며 <code>keyword</code> 2~30자 · 필드 화이트리스트로 막는다. 비로그인 검색은 Rules 상 로깅되지 않는다.</div>
 </section>
 
-<!-- ========================= FEATURE: BANNER → PROMOTION ========================= -->
+<!-- ========================= FEATURE: BANNER → NOTICE ========================= -->
 <section id="feature-banner">
-  <h2>배너 → 프로모션 상세 <span class="pill pk">구현 완료</span></h2>
-  <p><strong>배너마다 다른 광고 페이지를 앱 배포 없이 DB 만으로 추가</strong>하는 것이 이 설계의 목적이다.</p>
+  <h2>배너 → 공지사항 상세 <span class="pill pk">구현 완료</span></h2>
+  <p><strong>배너마다 다른 광고 글을 앱 배포 없이 DB 만으로 추가</strong>하는 것이 이 설계의 목적이다. 광고 글은 <code>notices</code> 에 같이 쌓아 <strong>배너가 내려간 뒤에도 공지 목록에서 다시 찾을 수 있게</strong> 했다 (2026.08.24 통합).</p>
 
   <div class="tree">홈 배너 탭
    │
    ▼ <span class="str">banner_link_handler.dart</span>  <span class="cmt"># linkType 으로 분기 (라우팅 단일 지점)</span>
    │
-   ├── "promotion" ─▶ promotions/{linkValue} <span class="str">doc 1건</span> get
-   │                  ─▶ PromotionDetailScreen
-   │                     히어로 · 제목 · 기간 pill · 본문 · 사진 n장 · 하단 CTA
+   ├── "notice" ──▶ notices/{linkValue} <span class="str">doc 1건</span> get  <span class="cmt"># openNoticeDetail()</span>
+   │                 ─▶ NoticeDetailScreen  <span class="cmt"># 공지 목록에서 여는 것과 같은 화면</span>
+   │                    배지 · 제목 · 운영팀/날짜 · 본문 · 사진 n장 · 이전/다음 글
    ├── "club" ─┐
    ├── "page" ─┼─ <span class="cmt"># 미연결 — 조용히 무시 (잘못된 곳으로 보내는 것보다 낫다)</span>
    └── "url"  ─┘</div>
@@ -1167,7 +1166,8 @@ photos.userId     COLLECTION + COLLECTION_GROUP                     <span class=
     <tr><th>결정</th><th>이유</th></tr>
     <tr><td>본문을 <strong>배너 문서에 넣지 않는다</strong></td><td>홈 진입마다 배너 N개를 읽는데, 안 여는 사용자까지 본문·사진 배열을 내려받게 된다. 탭했을 때만 doc 1건 조회</td></tr>
     <tr><td>화면은 <strong>하나</strong>, 내용만 갈아 끼운다</td><td>광고가 늘어도 앱 코드는 그대로. 인덱스 불필요(단건 get), 집계 없어 트리거도 불필요</td></tr>
-    <tr><td>Rules 의 read 조건에 <code>isActive</code> 를 <u>넣지 않는다</u></td><td>단건 get 이라 규칙으로 막으면 <code>permission-denied</code> 가 되어 앱이 <strong>'없음'과 '오류'를 구분 못 한다</strong>. 노출 여부는 datasource 에서 필터해 null 로 돌린다 (notices 와 다른 점)</td></tr>
+    <tr><td><strong>광고 전용 페이지를 없애고 공지로 합쳤다</strong> (2026.08.24)</td><td>목적지가 배너 전용 페이지와 공지사항 둘로 갈려 같은 광고를 두 벌 관리해야 했다. 지운 것 — <code>promotions</code> 컬렉션 · <code>PromotionDetailScreen</code> · <code>notices.promotionId</code> · <code>BannerLinkType.promotion</code></td></tr>
+    <tr><td>배너에서 열 때만 <strong>문서를 조회</strong>한다</td><td>목록에서 탭한 경로는 이미 받은 모델을 그대로 넘긴다(<u>조회 0회</u>). 배너는 모델이 없어 <code>noticeProvider(noticeId)</code> 로 1건만 읽는다</td></tr>
     <tr><td>전체화면이라 <code>pushHidingNavBar</code></td><td>광고 페이지를 열면 하단 nav 바를 내리고, 돌아오면 복원</td></tr>
   </table>
   <p>배너 노출 기간(<code>startAt</code>·<code>endAt</code>)과 <code>order</code> 정렬은 <code>isActive==true</code> 쿼리 후 <strong>클라이언트에서</strong> 처리한다 — 배너 건수가 적어 복합 인덱스를 유지할 이유가 없다.</p>
@@ -1194,7 +1194,7 @@ photos.userId     COLLECTION + COLLECTION_GROUP                     <span class=
     <tr><td><code>isPinned</code> 는 서버 orderBy 에 안 넣는다</td><td>받아온 뒤 메모리에서 위로 올린다 — 정렬 규칙을 바꿔도 인덱스 재배포가 불필요</td></tr>
     <tr><td><strong>게시 기간을 Rules 에 넣지 않는다</strong></td><td>클라 시계가 서버보다 조금이라도 앞서면 쿼리 범위가 <code>request.time</code> 을 넘어 <strong>목록 전체가 permission-denied</strong> 가 된다. Rules 는 <code>isActive</code> 만 막는다</td></tr>
     <tr><td><strong>읽음 상태를 저장하지 않는다</strong></td><td><code>users/{uid}/noticeReads</code> 방식은 공지를 열 때마다 write 가 발생 — 베타 규모에 과하다. <code>NEW</code> 배지는 <code>publishedAt</code> 이 7일 이내인지로만 판정</td></tr>
-    <tr><td><code>promotionId</code> 를 <code>category</code> 와 분리</td><td>비어 있지 않으면 공지 상세가 아니라 <code>PromotionDetailScreen</code> 으로 직행한다. 프로모션 없는 광고 공지도, 광고 아닌 공지의 이벤트 링크도 가능해야 하므로 카테고리로 판단하지 않는다</td></tr>
+    <tr><td><strong>광고 글도 같은 공지 화면</strong></td><td>홈 배너(<code>linkType:'notice'</code>)가 보내는 곳이 곧 이 화면이다. 광고 전용 화면·<code>promotionId</code> 분기는 2026.08.24 에 제거했다 — 같은 내용을 두 벌 관리하게 되기 때문</td></tr>
   </table>
   <div class="note">인덱스는 <code>notices(isActive ASC, publishedAt DESC)</code> 하나. <code>publishedAt &lt;= now</code> 는 정렬 키와 같은 필드라 <strong>기존 인덱스로 그대로 처리</strong>된다.</div>
 </section>
@@ -1351,7 +1351,7 @@ photos.userId     COLLECTION + COLLECTION_GROUP                     <span class=
   <h3>결정 안 한 것 (범위 밖)</h3>
   <ul>
     <li><strong>대상 조건</strong>('여성만' · '대학생 인증') 은 여전히 <code>condition</code> <u>문자열</u>이다. 시간 축만 구조화하고 대상 축은 안 건드린다 — 필터로 쓰지 않기 때문. 필터가 필요해지면 <code>target</code> 배열을 창 안에 추가하면 된다</li>
-    <li><strong>날짜 지정 무료</strong>(특정 하루 이벤트) 는 <code>promotions</code>/<code>performances</code> 쪽 일이다. <code>freeEntry</code> 는 <u>매주 반복</u>되는 정책만 담는다</li>
+    <li><strong>날짜 지정 무료</strong>(특정 하루 이벤트) 는 <code>notices</code>/<code>performances</code> 쪽 일이다. <code>freeEntry</code> 는 <u>매주 반복</u>되는 정책만 담는다</li>
     <li><strong>어드민 편집 UI</strong> — 요일 토글 + 시:분 입력 + <code>isFreeEntry</code> 동시 쓰기. 어드민 페이지 구축 때 함께</li>
   </ul>
 </section>
@@ -1359,7 +1359,7 @@ photos.userId     COLLECTION + COLLECTION_GROUP                     <span class=
 
 <!-- ========================= TABLES ========================= -->
 <section id="feature-tables">
-  <h2>테이블 배치도 · 가격 <span class="pill pk">앱 · 편집기 · Rules 완료 · 2026.08.22</span> <span class="pill plan">업주 웹 배포 남음</span></h2>
+  <h2>테이블 배치도 · 가격 <span class="pill pk">앱 · 편집기 · Rules 완료 · 2026.08.23</span> <span class="pill plan">업주 웹 배포 남음</span></h2>
   <p>클럽마다 <strong>홀 구조가 다르다</strong>. 지금까지 앱은 테이블 9자리를 <u>상수로 박아</u> 164개 클럽에 똑같은 배치도를 보여주고 있었다(<code>table_pricing_data.dart</code>). 이 문서가 그 상수를 대체한다 — 배치·가격·예약 조건을 클럽별로 저장하고, <strong>업주가 업주용 웹에서 직접 편집</strong>한다.</p>
 
   <h3>위치는 정수 그리드 셀</h3>
@@ -1374,6 +1374,78 @@ photos.userId     COLLECTION + COLLECTION_GROUP                     <span class=
   </table>
   <div class="note danger"><strong>열은 최대 14, 테이블은 최소 2×2.</strong> 이 둘이 짝을 이뤄 <u>탭 타겟 44px 하한</u>을 격자 규칙만으로 보장한다 — 가장 좁은 흔한 기기(iPhone SE 375)에서 섹션 좌우 <code>20.w</code> + 캔버스 안쪽 <code>8.w</code> 를 뺀 격자 폭 ≈321px ÷ 14열 ≈23px/셀 × 2칸 ≈<strong>46px</strong>(기준 폭 393 에선 48px). <strong>열을 늘리거나 캔버스 여백을 키우면</strong> 이 보장이 깨져 손가락으로 못 누르는 테이블이 생긴다 — 둘 다 셀 폭을 깎기 때문. 구조물은 탭 대상이 아니라 1칸을 허용한다.</div>
   <div class="note">포기한 것 — 비스듬한 홀·대각선 배치·곡선 벽. 나이트클럽 배치도에 그 정밀도가 필요하지 않고, 필요해지면 <code>cols</code> 를 올려 근사한다.</div>
+
+  <h3>미니맵 비율 — <code>cols : rows</code></h3>
+  <p>클럽마다 홀 모양이 다르다 — 세로로 긴 곳도, <strong>가로로 긴 곳</strong>도 있다. 셀이 정사각이므로 <u>칸 수의 비가 곧 앱 미니맵 모양</u>이 되고, 따로 <code>aspectRatio</code> 필드를 둘 필요가 없다.</p>
+  <table>
+    <tr><th>결정</th><th>이유</th></tr>
+    <tr><td>비율 = 칸 수의 비 (별도 필드 없음)</td><td>필드를 따로 두면 웹·앱이 각자 지켜야 할 값이 하나 늘고, <code>cols/rows</code> 와 어긋나면 셀이 정사각이 아니게 되어 탭 타겟 계산이 무너진다</td></tr>
+    <tr><td>프리셋은 <strong>가로 칸을 유지</strong>하고 세로 칸만 맞춘다</td><td>둘 다 바꾸면 이미 놓아 둔 배치가 가로로도 밀려 대부분 '밖으로 나감'으로 막힌다. 가로를 유지하면 세로 길이만 바뀌어 배치가 대체로 살아남는다</td></tr>
+    <tr><td>상한은 <strong>가로 칸에만</strong></td><td>앱 칸 크기 = 폭 ÷ 가로 칸. 세로 칸은 미니맵이 세로로 길어질 뿐 칸 크기와 무관하다</td></tr>
+  </table>
+
+  <h3>방 모양 — 격자 안에서 바닥을 깎는다 (<code>cells</code>)</h3>
+  <p>클럽 홀이 직사각형인 경우가 오히려 드물다(ㄱ자, 계단 옆이 파인 형태, 한쪽만 튀어나온 형태). 격자는 <strong>바운딩 박스</strong>로 두고, 그 안에서 실제 바닥만 <code>'1'</code> 로 남긴다.</p>
+  <div class="tree">cols=4, rows=4 인 ㄱ자 방
+
+  1 1 1 1       cells = "1111" + "1111" + "1100" + "1100"
+  1 1 1 1               (길이 = cols * rows, 행 우선)
+  1 1 · ·
+  1 1 · ·       빈 문자열 = 직사각형 방 전체</div>
+  <table>
+    <tr><th>결정</th><th>이유</th></tr>
+    <tr><td>격자를 없애지 않고 <strong>마스크만</strong> 얹는다</td><td>좌표계·탭 타겟·웹↔앱 일치가 전부 격자 위에 서 있다. 자유 폴리곤으로 바꾸면 그게 다 무너진다</td></tr>
+    <tr><td>빈 문자열 = 전체</td><td>대부분의 클럽은 직사각형이다. 그때는 앱이 <strong>예전처럼 둥근 카드</strong>로 그린다 — 셀 단위 외곽선은 모서리가 각져 카드보다 거칠다</td></tr>
+    <tr><td>길이가 <code>cols*rows</code> 와 다르면 <strong>버린다</strong></td><td>격자를 바꾸고 마스크를 안 고친 문서다. 어긋난 마스크로 그리면 <u>엉뚱한 칸이 뚫려</u> 배치도가 거짓말을 한다. 편집기는 격자를 바꿀 때 마스크를 같이 옮긴다(remap)</td></tr>
+    <tr><td>전부 <code>'1'</code>·전부 <code>'0'</code> 도 버린다</td><td>각각 '마스크 없음'과 같고, 바닥이 하나도 없는 층은 그릴 게 없다</td></tr>
+    <tr><td>채움은 이어 붙이고 <strong>선은 경계 변에만</strong></td><td>셀마다 사각형을 다 그리면 <u>격자무늬</u>로 보인다. 방 밖과 맞닿은 변에서만 선을 그어야 하나의 방 윤곽으로 읽힌다 (<code>_FloorPlatePainter</code>)</td></tr>
+    <tr><td>테이블은 방 안만, 구조물은 자유</td><td>테이블이 허공에 뜨면 상품 정보가 거짓이 된다. 벽·계단은 경계에 걸치는 게 자연스럽다</td></tr>
+    <tr><td>물건이 놓인 칸은 <strong>못 뺀다</strong></td><td>빼면 그 물건이 허공에 뜬 채로 저장돼 앱에 그대로 나간다. 편집기가 막고 안내한다</td></tr>
+  </table>
+
+  <h3>구조물 색은 타입마다 고정</h3>
+  <div class="note"><code>stage</code>(보라) · <code>dj</code>(핑크) · <code>dancefloor</code>(청록) · <code>bar</code>(앰버) · <code>entrance</code>(라임) · <code>restroom</code>(파랑) · <code>stairs</code>(회색) · <code>wall</code>(흰 반투명) · <code>etc</code>(무채색). <strong>업주가 못 바꾼다</strong> — 클럽마다 무대가 다른 색이면 사용자가 배치도를 색으로 알아보는 학습이 통째로 무너진다. 클럽별로 다른 건 <u>등급(tier) 색</u>뿐이다. 정본은 <code>lib/data/models/table_layout_palette.dart</code> 의 <code>kFixtureStyles</code>, 편집기의 <code>FX_STYLE</code> 이 같은 값을 들고 있어야 한다.</div>
+
+  <h3>문서 예시 — <code>clubs/{clubId}/tableLayout/{clubId}</code></h3>
+  <div class="tree">{
+  "schemaVersion": 1,
+  "clubId": "abc123",
+
+  "tiers": [                                  <span class="cmt">// 등급 정의 — 클럽마다 다르다</span>
+    { "key": "vvip", "name": "VVIP", "short": "VVIP", "colorKey": "purple", "order": 0 },
+    { "key": "vip",  "name": "VIP",  "short": "VIP",  "colorKey": "blue",   "order": 1 }
+  ],
+
+  "floors": [
+    {
+      "floorId": "f1",
+      "name": "1F",
+      "order": 0,
+      "cols": 12,                             <span class="cmt">// 4~14 — 앱 칸 크기를 정하는 축</span>
+      "rows": 16,                             <span class="cmt">// 4~32 — 미니맵 비율 = cols:rows</span>
+      "cells": "",                            <span class="cmt">// 빈 문자열 = 직사각형 방 전체</span>
+
+      "fixtures": [                           <span class="cmt">// 구조물 — 탭 대상 아님, 최소 1칸</span>
+        { "id": "fx1", "type": "stage", "label": "DJ BOOTH · STAGE",
+          "col": 1, "row": 0, "colSpan": 10, "rowSpan": 2 }
+      ],
+
+      "tables": [
+        { "id": "S1", "tierKey": "vvip",
+          "name": "스테이지 프론트 A", "desc": "무대 바로 앞 · 최고의 시야",
+          "col": 0, "row": 3, "colSpan": 2, "rowSpan": 2,   <span class="cmt">// 테이블 최소 2×2</span>
+          "shape": "rect",                                  <span class="cmt">// rect | circle</span>
+          "price": 1000000,                                 <span class="cmt">// 원 단위 정수. 0 = '문의'</span>
+          "minPeople": 8, "minBottles": 3, "minSpend": 1000000,
+          "note": "", "isActive": true }
+      ]
+    }
+  ],
+
+  "notice": "가격 및 예약 조건은 요일·이벤트에 따라 변동될 수 있습니다.",
+  "updatedAt": &lt;serverTimestamp&gt;,
+  "updatedBy": "&lt;uid&gt;"
+}</div>
 
   <h3>왜 문서 한 건인가 (테이블마다 문서 X)</h3>
   <table>
@@ -1397,7 +1469,8 @@ Rules  clubs/{clubId}/tableLayout/{docId}
   read   : 누구나
   write  : admin  또는  (partner == true &amp;&amp; clubId in token.clubIds)
            + request.resource.data.clubId == clubId
-           + schemaVersion is int</div>
+           + schemaVersion is number</div>
+  <div class="note danger"><code>is int</code> 가 아니라 <strong><code>is number</code></strong> 다. 클라 SDK 가 숫자를 double 로 실어 보내면 <code>is int</code> 는 <u>업주의 모든 저장을 거부</u>한다. 이건 보안 경계가 아니라 형식 가드일 뿐이라 넓게 받고, 실제 판정은 앱 파서가 한다.</div>
   <table>
     <tr><th>규칙</th><th>이유</th></tr>
     <tr><td><code>token.get('clubIds', [])</code> 로 읽는다</td><td>클레임에 키가 없는 계정에서 <u>직접 접근하면 Rules 평가가 에러</u>로 떨어져 통째로 거부된다(<code>isHidden</code> 때와 같은 함정)</td></tr>
@@ -1432,6 +1505,10 @@ Rules  clubs/{clubId}/tableLayout/{docId}
     <li>테이블끼리 <strong>셀 겹침 금지</strong>. 구조물은 겹쳐도 된다(앱이 구조물을 먼저 그리고 테이블을 위에 얹는다)</li>
     <li>격자 밖 금지 — <code>col + colSpan &lt;= cols</code>, <code>row + rowSpan &lt;= rows</code></li>
     <li>테이블 최소 2×2, 구조물 1칸 허용. <code>cols</code> 4~14, <code>rows</code> 4~32</li>
+    <li><strong>테이블은 방 안에만</strong> — <code>cells</code> 로 도려낸 칸을 밟으면 앱에서 허공에 뜬다. 구조물은 경계에 걸쳐도 된다</li>
+    <li>물건(테이블·구조물)이 놓인 칸은 <strong>방 밖으로 못 뺀다</strong></li>
+    <li><code>cells</code> 길이는 항상 <code>cols × rows</code>. 격자를 바꾸면 <strong>마스크도 같이 옮긴다</strong>(remap) — 길이가 어긋나면 앱이 통째로 버린다</li>
+    <li>비율은 <code>cols : rows</code> 로만 정한다. 별도 <code>aspectRatio</code> 필드를 만들지 않는다</li>
     <li><code>id</code> 는 층 안에서 유일. <strong>기존 테이블 id 를 바꾸지 않는다</strong></li>
     <li>금액은 원 단위 정수만</li>
     <li><code>schemaVersion: 1</code> 고정</li>
@@ -1453,6 +1530,7 @@ Rules  clubs/{clubId}/tableLayout/{docId}
     <tr><td><code>scripts/seed_table_layout.js</code></td><td>화면 확인용 샘플 배치(첫 클럽은 2층)</td></tr>
     <tr><td><code>partner/editor.js</code> · <code>editor.css</code></td><td><strong>편집 로직 단일 소스</strong> — 업주 웹과 로컬 도구가 같이 쓴다(전송 계층만 다름). 복붙으로 나누면 두 화면이 같은 배치도를 다르게 그린다</td></tr>
     <tr><td><code>partner/index.html</code></td><td><strong>업주용 실서비스 페이지</strong> — Firebase Auth 로그인 → Firestore 직접 쓰기, 권한은 Rules 가 판정. 클레임 <code>clubIds</code> 의 클럽만 보인다</td></tr>
+    <tr><td>편집기 기능</td><td>드래그 이동(셀 스냅) · 우하단 손잡이 크기 조절 · 비율 프리셋(3:1~1:2) · 방 모양 칠하기 · 층 추가/삭제 · 등급 편집 · 가격/조건 입력 · 저장 전 검증 · 문서 전체 교체 저장</td></tr>
     <tr><td><code>partner/README.md</code></td><td>배포·업주 계정 생성·클레임 부여 운영 절차</td></tr>
     <tr><td><code>scripts/table_editor_server.js</code> + <code>table_editor.html</code></td><td>로컬 확인 도구 — 같은 편집기를 로컬 서버 전송으로 띄운다</td></tr>
     <tr><td><code>scripts/set_partner_claim.js</code></td><td>업주 계정에 <code>{ partner, clubIds }</code> 클레임 부여/회수</td></tr>
@@ -1489,7 +1567,6 @@ Rules  clubs/{clubId}/tableLayout/{docId}
 
 📁 banners/{bannerId}                         <span class="cmt"># 홈 배너</span>
 
-📁 promotions/{promotionId}                   <span class="cmt"># 배너 상세 콘텐츠 (배너별 사진·본문, 어드민 페이지에서 작성)</span>
 
 📁 vybeRecommendations/{recId}                <span class="cmt"># VYBE 추천 페이지 큐레이션 (clubs 조인)</span>
 
@@ -1624,6 +1701,8 @@ Rules  clubs/{clubId}/tableLayout/{docId}
   order   : number    <span class="cmt">// 정렬 (앱이 오름차순 정렬)</span>
   cols    : number    <span class="cmt">// 격자 열 4~14 — 14 상한이 탭 타겟 44px 보장의 한쪽 축</span>
   rows    : number    <span class="cmt">// 격자 행 4~32. 캔버스 비율 = cols/rows (셀 정사각)</span>
+  cells   : string    <span class="cmt">// 방 모양 마스크 — 길이 cols*rows, 행 우선. '1'=방 안 / '0'=방 밖</span>
+                      <span class="cmt">//   빈 문자열 = 직사각형 방 전체. 길이가 안 맞으면 앱이 통째로 버린다</span>
 
   fixtures[] : {      <span class="cmt">// 구조물 — 탭 대상 아님, 최소 1칸</span>
     id, type, label, col, row, colSpan, rowSpan
@@ -1721,8 +1800,8 @@ Rules  clubs/{clubId}/tableLayout/{docId}
     <tr><th>필드</th><th>타입</th><th>설명</th></tr>
     <tr><td class="field-name">bannerId</td><td class="ftype">string</td><td><span class="pill pk">PK</span> (= doc.id fallback)</td></tr>
     <tr><td class="field-name">imageUrl</td><td class="ftype">string</td><td>배너 이미지 URL — 권장 원본 <strong>1026 × 600 px</strong> (비율 1.71:1, 아래 규격 표 참고)</td></tr>
-    <tr><td class="field-name">linkType</td><td class="ftype">string</td><td><code>"promotion" | "club" | "page" | "url"</code> — 탭 시 이동 방식. 알 수 없는 값은 <strong>이동 없음</strong>으로 폴백</td></tr>
-    <tr><td class="field-name">linkValue</td><td class="ftype">string</td><td>링크 대상 값 — promotion: promotionId / club: clubId / page: 화면 키 / url: URL</td></tr>
+    <tr><td class="field-name">linkType</td><td class="ftype">string</td><td><code>"notice" | "club" | "page" | "url"</code> — 탭 시 이동 방식. 알 수 없는 값은 <strong>이동 없음</strong>으로 폴백</td></tr>
+    <tr><td class="field-name">linkValue</td><td class="ftype">string</td><td>링크 대상 값 — notice: noticeId / club: clubId / page: 화면 키 / url: URL</td></tr>
     <tr><td class="field-name">order</td><td class="ftype">number</td><td>정렬 순서 (오름차순)</td></tr>
     <tr><td class="field-name">isActive</td><td class="ftype">boolean</td><td>노출 여부</td></tr>
     <tr><td class="field-name">startAt</td><td class="ftype">timestamp</td><td>노출 시작</td></tr>
@@ -1730,7 +1809,8 @@ Rules  clubs/{clubId}/tableLayout/{docId}
     <tr><td class="field-name">createdAt</td><td class="ftype">timestamp</td><td>생성 시각</td></tr>
   </table>
   <div class="note">홈 배너 데이터 소스. <code>getActiveBanners()</code>는 <code>isActive=true</code> 쿼리 후 클라이언트에서 <code>startAt &lt; now &lt; endAt</code> 필터 + <code>order</code> 정렬.</div>
-  <div class="note"><strong>탭 라우팅</strong>은 <code>core/navigation/banner_link_handler.dart</code> 한 곳에서 <code>linkType</code> 으로 분기한다. 현재 연결된 것은 <code>promotion</code> 뿐 — club·page·url 은 미연결이라 조용히 무시된다.</div>
+  <div class="note"><strong>탭 라우팅</strong>은 <code>core/navigation/banner_link_handler.dart</code> 한 곳에서 <code>linkType</code> 으로 분기한다. 연결된 것은 <code>notice</code> 하나 — club·page·url 은 미연결이라 조용히 무시된다.</div>
+  <div class="note"><strong>2026.08.24 — 배너 광고를 공지사항으로 합쳤다.</strong> 운영 배너 5건은 전부 <code>linkType:'notice'</code> 이고, 탭하면 <code>openNoticeDetail(noticeId)</code>(<code>my_page/notice_detail_route.dart</code>)가 <code>getNotice</code> 1건을 조회해 <code>NoticeDetailScreen</code> 을 띄운다. 목록에서 탭한 경로는 이미 받은 모델을 넘겨 <u>조회 0회</u>. 광고 글이 공지 목록에도 남아 <strong>배너가 내려간 뒤에도 찾아볼 수 있다</strong>. 구 <code>promotions</code> 컬렉션과 <code>PromotionDetailScreen</code> 은 같은 날 <strong>삭제됐다</strong>.</div>
 
   <h3>🖼 배너 이미지 규격 <span style="font-size:13px;color:var(--muted);">(2026.08.21)</span></h3>
   <div class="note">카드 실측은 <code>home/widgets/home_banner.dart</code> — 높이 <code>200.h</code>, 폭 = 화면폭 × 0.9(<code>PageController(viewportFraction: 0.9)</code>) − <code>12.w</code>(좌우 패딩 6+6), <code>BoxFit.cover</code>. 기준 393×852에서 <strong>342 × 200 logical px = 비율 1.71:1</strong>.</div>
@@ -1743,32 +1823,7 @@ Rules  clubs/{clubId}/tableLayout/{docId}
     <tr><td class="field-name">하단 45%</td><td>앱이 검정 그라데이션(<code>0xC708080C</code>)을 덮는다 → <strong>밝은 글자</strong>를 쓸 것</td></tr>
   </table>
   <div class="note">⚠ <strong>기기마다 카드 비율이 달라진다</strong> — <code>.w</code>(가로 비)와 <code>.h</code>(세로 비)가 따로 스케일돼 폭·높이가 다른 계수로 늘어난다. iPhone SE(375×667)에서 <strong>2.08:1</strong>로 가장 납작하고, iPhone 15 · 15 Pro Max 는 1.71:1. <code>cover</code> 라 납작한 기기에서 위아래가 잘리므로 안전영역 9% 는 <strong>SE 기준</strong>이다.</div>
-  <div class="note">⚠ 이 비율은 <strong>홈 배너 전용</strong> — <code>promotions.heroImageUrl</code>(상세 히어로)은 별도 비율이라 같은 파일을 재사용하지 않는다.</div>
-</section>
-
-<!-- promotions -->
-<section id="promotions">
-  <h2>📁 promotions/{promotionId} <span style="font-size:13px;color:var(--muted);">(top-level)</span></h2>
-  <table>
-    <tr><th>필드</th><th>타입</th><th>설명</th></tr>
-    <tr><td class="field-name">promotionId</td><td class="ftype">string</td><td><span class="pill pk">PK</span> (= doc.id fallback)</td></tr>
-    <tr><td class="field-name">title</td><td class="ftype">string</td><td>상세 제목</td></tr>
-    <tr><td class="field-name">subtitle</td><td class="ftype">string</td><td>제목 아래 한 줄 요약. 비면 미표시</td></tr>
-    <tr><td class="field-name">heroImageUrl</td><td class="ftype">string</td><td>상세 상단 히어로 이미지. 비면 히어로 없이 제목부터 시작 (배너 이미지는 목록용 비율이라 재사용 안 함)</td></tr>
-    <tr><td class="field-name">content</td><td class="ftype">string</td><td>본문 plain text. <code>\n</code> 줄바꿈 그대로 렌더 (마크다운/HTML 파싱 안 함)</td></tr>
-    <tr><td class="field-name">imageUrls</td><td class="ftype">array</td><td>본문 아래 첨부 사진 0~n장 — Storage <code>promotions/{promotionId}/{index}.{ext}</code></td></tr>
-    <tr><td class="field-name">ctaType</td><td class="ftype">string</td><td><code>"none" | "club" | "url"</code> — 하단 고정 버튼 동작</td></tr>
-    <tr><td class="field-name">ctaValue</td><td class="ftype">string</td><td>club: clubId / url: URL</td></tr>
-    <tr><td class="field-name">ctaLabel</td><td class="ftype">string</td><td>버튼 문구. 비면 타입별 기본값('클럽 보러가기' / '자세히 보기')</td></tr>
-    <tr><td class="field-name">isActive</td><td class="ftype">boolean</td><td>노출 여부. false면 상세에서 '종료된 이벤트' 표시</td></tr>
-    <tr><td class="field-name">startAt</td><td class="ftype">timestamp</td><td>표시용 진행 기간 시작 (선택)</td></tr>
-    <tr><td class="field-name">endAt</td><td class="ftype">timestamp</td><td>표시용 진행 기간 종료 (선택) — 둘 다 없으면 기간 pill 미표시</td></tr>
-    <tr><td class="field-name">createdAt</td><td class="ftype">timestamp</td><td>생성 시각</td></tr>
-    <tr><td class="field-name">updatedAt</td><td class="ftype">timestamp</td><td>수정 시각</td></tr>
-  </table>
-  <div class="note">홈 배너(<code>linkType: "promotion"</code>) 탭 시 열리는 상세 콘텐츠. 화면은 <code>PromotionDetailScreen</code> <strong>하나뿐</strong>이고 내용만 이 문서에서 갈아 끼운다 → 배너별로 사진·본문이 다른 광고 페이지를 <strong>앱 배포 없이</strong> 늘릴 수 있다. 쓰기는 <strong>어드민 페이지(별도 구축 예정)</strong> 전용.</div>
-  <div class="note"><strong>배너 doc에 본문을 넣지 않는 이유</strong> — 홈 진입마다 배너 N개를 읽는데, 안 여는 사용자까지 본문·사진 배열을 내려받게 된다. 탭했을 때만 doc 1건 조회(<code>getPromotion</code>). <strong>쿼리는 단건 get뿐 → 인덱스 불필요.</strong> 집계 필드 없음 → Cloud Functions 트리거 불필요.</div>
-  <div class="note"><strong>Rules에서 <code>isActive</code> 를 read 조건에 넣지 않는다</strong> (notices와 다른 점) — 단건 get이라 비활성 문서를 규칙으로 막으면 permission-denied가 되어 앱이 '없음'과 '오류'를 구분할 수 없다. 노출 여부는 datasource에서 필터해 null로 돌린다. seed(샘플): <code>scripts/seed_promotions.js</code></div>
+  <div class="note">⚠ 이 비율은 <strong>홈 배너 전용</strong>이다. 같은 이미지를 광고 공지(<code>notice_ad_*</code>)의 첨부 사진으로도 쓰는데, 공지 본문 첨부는 폭에 맞춰 늘리는 자리(<code>BoxFit.fitWidth</code>)라 잘리지 않는다.</div>
 </section>
 
 <!-- vybeRecommendations -->
@@ -1820,7 +1875,6 @@ Rules  clubs/{clubId}/tableLayout/{docId}
     <tr><td class="field-name">content</td><td class="ftype">string</td><td>본문 plain text. <code>\n</code> 줄바꿈 그대로 렌더 (마크다운/HTML 파싱 안 함)</td></tr>
     <tr><td class="field-name">imageUrls</td><td class="ftype">array</td><td>첨부 사진 URL 0~n장 — Storage <code>notices/{noticeId}/{index}.{ext}</code></td></tr>
     <tr><td class="field-name">category</td><td class="ftype">string</td><td><code>"notice" | "update" | "event" | "maint" | "ad"</code> — 목록 배지. 색: 공지=흰색 / 업데이트=보라 / 이벤트=라임 / 점검=옐로 / <strong>광고=스카이블루</strong>. 미지정/알 수 없는 값이면 '공지'로 표시</td></tr>
-    <tr><td class="field-name">promotionId</td><td class="ftype">string</td><td>연결된 <code>promotions</code> 문서 id. 비어 있지 않으면 목록·이전/다음에서 탭했을 때 공지 상세가 아니라 <code>PromotionDetailScreen</code>으로 직행 (광고 공지 = 홈 배너와 같은 목적지). <strong>category와 분리</strong> — 프로모션 없는 광고 공지도, 광고가 아닌 공지의 이벤트 페이지 링크도 가능해야 하므로</td></tr>
     <tr><td class="field-name">isPinned</td><td class="ftype">boolean</td><td>상단 고정. 정렬은 <strong>클라 메모리</strong>에서 처리 (인덱스 절약)</td></tr>
     <tr><td class="field-name">isActive</td><td class="ftype">boolean</td><td><strong>게시 상태</strong> — <code>true</code>: 게시 / <code>false</code>: 게시중단. 게시중단이면 <strong>게시 기간 안이어도 노출되지 않는다</strong>(기간보다 우선). 삭제 대신 이 값으로 내린다</td></tr>
     <tr><td class="field-name">publishedAt</td><td class="ftype">timestamp</td><td><strong>게시 시작 시각</strong> = <strong>목록 정렬 키</strong>. createdAt과 분리해 예약/소급 게시 가능. 미래 시각이면 그 시각까지 노출되지 않는다</td></tr>
@@ -2030,8 +2084,7 @@ clubs/{clubId}/menus/{menuId}.{jpg|png}     <span class="cmt">// 개별 메뉴 �
 clubs/{clubId}/menus/boards/board_{n}.png   <span class="cmt">// 메뉴판 이미지 (menuBoardUrls)</span>
 reviews/{clubId}/{reviewId}/{index}.{ext}   <span class="cmt">// 리뷰 첨부 이미지 (0~3, 최대 4장)</span>
 users/{uid}/profile.jpg                     <span class="cmt">// 프로필 이미지 (덮어쓰기)</span>
-notices/{noticeId}/{index}.{ext}            <span class="cmt">// 공지 첨부 이미지 (어드민 업로드)</span>
-promotions/{promotionId}/{index}.{ext}      <span class="cmt">// 배너 상세 히어로·본문 이미지 (어드민 업로드)</span></div>
+notices/{noticeId}/{index}.{ext}            <span class="cmt">// 공지 첨부 이미지 (어드민 업로드)</span></div>
   <div class="note"><strong>URL 토큰 차이:</strong> <code>thumbnail</code> 은 다운로드 토큰(<code>?alt=media&amp;token=…</code>) 포함, <code>gallery</code>/<code>menus</code> 는 토큰 없이 <code>?alt=media</code> 만 → Storage 규칙 <code>clubs/** read: if true</code>(공개 읽기)에 의존.</div>
   <div class="note"><strong>사진탭 photos 서브컬렉션:</strong> 현재 seed 데이터는 기존 <code>gallery/</code> URL 재활용(별도 업로드 없음). 추후 유저 업로드 기능 추가 시 권장 경로 <code>clubs/{clubId}/photos/{photoId}.{ext}</code>.</div>
 </section>
@@ -2050,7 +2103,6 @@ promotions/{promotionId}/{index}.{ext}      <span class="cmt">// 배너 상세 �
     <tr><td><code>favorites</code></td><td>본인만</td><td>생성·삭제: 본인만</td></tr>
     <tr><td><code>users/.../searchHistory</code></td><td>본인만</td><td>본인만</td></tr>
     <tr><td><code>notices/{noticeId}</code></td><td>누구나 (isActive=true만 — 게시 기간은 앱에서 필터)</td><td>어드민만</td></tr>
-    <tr><td><code>promotions/{promotionId}</code></td><td>누구나 (isActive는 클라 필터)</td><td>어드민만</td></tr>
     <tr><td><code>searchLogs/{logId}</code></td><td><strong>불가</strong> (Admin SDK 전용)</td><td>생성만: 로그인 유저(본인 userId, keyword 2~30자, 필드 화이트리스트). 수정·삭제 불가</td></tr>
     <tr><td><code>searchTrends</code>, <code>searchHashtags</code></td><td>누구나</td><td>어드민만</td></tr>
     <tr><td><code>appConfig/{platform}</code></td><td>누구나 (<strong>auth 조건 금지</strong> — 로그인 전에 읽는다)</td><td>어드민만</td></tr>
@@ -2066,7 +2118,6 @@ promotions/{promotionId}/{index}.{ext}      <span class="cmt">// 배너 상세 �
     <tr><td><code>reviews/**</code></td><td>누구나</td><td>로그인 유저, 10MB 이하, 이미지만</td></tr>
     <tr><td><code>users/{uid}/**</code></td><td>누구나</td><td>본인만, 5MB 이하, 이미지만</td></tr>
     <tr><td><code>notices/**</code></td><td>누구나</td><td>어드민만, 10MB 이하, 이미지만</td></tr>
-    <tr><td><code>promotions/**</code></td><td>누구나</td><td>어드민만, 10MB 이하, 이미지만</td></tr>
   </table>
 </section>
 

@@ -131,7 +131,10 @@ class ClubPinCard extends StatelessWidget {
                     left: 0,
                     right: 0,
                     child: IgnorePointer(
-                      child: Container(height: 1, color: const Color(0x2EFFFFFF)),
+                      child: Container(
+                        height: 1,
+                        color: const Color(0x2EFFFFFF),
+                      ),
                     ),
                   ),
                 ],
@@ -253,17 +256,15 @@ class ClubPinCard extends StatelessWidget {
         SizedBox(width: 8.w),
         _RoundTileButton(
           onTap: onDirectionsTap,
-          child: Icon(
-            Icons.near_me_rounded,
-            size: 16.r,
-            color: ClubGlass.t2,
-          ),
+          child: Icon(Icons.near_me_rounded, size: 16.r, color: ClubGlass.t2),
         ),
         SizedBox(width: 8.w),
         _RoundTileButton(
           onTap: onFavoriteTap,
           child: Icon(
-            isFavorited ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+            isFavorited
+                ? Icons.favorite_rounded
+                : Icons.favorite_border_rounded,
             size: 16.r,
             color: isFavorited ? ClubGlass.saved : ClubGlass.t2,
           ),
@@ -342,9 +343,7 @@ class ClubPinCard extends StatelessWidget {
       child: Row(
         children: [
           // 디자인 문구는 '사진, 리뷰, 예약까지' — 예약 기능이 없어 '메뉴'로 바꿨다.
-          Expanded(
-            child: Text('사진, 리뷰, 메뉴까지 자세히 보기', style: _meta()),
-          ),
+          Expanded(child: Text('사진, 리뷰, 메뉴까지 자세히 보기', style: _meta())),
           Icon(
             Icons.chevron_right_rounded,
             size: 15.r,
@@ -550,7 +549,7 @@ class _PhotoTile extends StatelessWidget {
             Positioned(
               left: 8.w,
               bottom: 8.h,
-              child: _GlassPill(
+              child: NearbyGlassPill(
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -575,33 +574,6 @@ class _PhotoTile extends StatelessWidget {
             ),
           ],
         ],
-      ),
-    );
-  }
-}
-
-/// 사진 위 작은 글래스 pill (도보 거리).
-class _GlassPill extends StatelessWidget {
-  final Widget child;
-
-  const _GlassPill({required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    final radius = BorderRadius.circular(999.r);
-    return ClipRRect(
-      borderRadius: radius,
-      child: BackdropFilter(
-        filter: ui.ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-        child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-          decoration: BoxDecoration(
-            color: ClubGlass.barFill,
-            borderRadius: radius,
-            border: Border.all(color: ClubGlass.hair),
-          ),
-          child: child,
-        ),
       ),
     );
   }

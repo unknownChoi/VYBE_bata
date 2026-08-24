@@ -14,31 +14,78 @@ Future<List<SearchHistoryModel>> searchHistory(Ref ref, String userId) {
   return ref.watch(searchHistoryRepositoryProvider).getSearchHistory(userId);
 }
 
+/// 연관 검색어(검색엔진) 결과 + 그 결과가 어느 검색어의 것인지.
+///
+/// 검색어를 같이 들고 다니는 이유 — 화면이 "지금 입력된 검색어로 엔진이 이미
+/// 돌았는지"를 알아야 그 전까지 엔터(검색 실행)를 막을 수 있다.
+/// 목록만 들고 있으면 이전 검색어의 결과와 구분이 안 된다.
+class SearchSuggestions {
+  /// 이 결과가 속한 검색어(trim). 빈 문자열이면 아직 아무것도 조회하지 않은 상태.
+  final String keyword;
+  final List<ClubModel> clubs;
+
+  /// [keyword]로 엔진이 도는 중.
+  final bool loading;
+
+  const SearchSuggestions({
+    required this.keyword,
+    required this.clubs,
+    required this.loading,
+  });
+
+  static const empty = SearchSuggestions(
+    keyword: '',
+    clubs: [],
+    loading: false,
+  );
+
+  /// [query]로 엔진이 이미 돌아 결과가 확정된 상태인지.
+  /// 실패해서 빈 목록으로 확정된 경우도 true — 조회가 끝났다는 뜻이다.
+  bool isSettledFor(String query) => !loading && keyword == query;
+}
+
 /// 입력 중 연관 검색어(클럽 제안). 디바운스는 호출측(화면)에서 처리.
-/// searchClubsPage(평점순 상위 8개)를 재사용 — 추가 인프라 없음.
+/// searchClubsPage(관련도순 상위 8개)를 재사용 — 추가 인프라 없음.
 @riverpod
 class SearchSuggestionViewModel extends _$SearchSuggestionViewModel {
+  /// 연관 검색어 노출 개수.
+  static const int _suggestionCount = 8;
+
   @override
-  AsyncValue<List<ClubModel>> build() => const AsyncData([]);
+  SearchSuggestions build() => SearchSuggestions.empty;
 
   Future<void> fetch(String keyword) async {
     final q = keyword.trim();
+    // 2자 미만은 엔진을 태우지 않는다 — 조회한 셈 치고 **확정** 상태로 둔다.
+    // 안 그러면 한 글자 검색어가 영영 '대기 중'이라 엔터가 먹통이 된다.
     if (q.length < 2) {
-      state = const AsyncData([]);
+      state = SearchSuggestions(keyword: q, clubs: const [], loading: false);
       return;
     }
-    final result = await AsyncValue.guard(() async {
+    state = SearchSuggestions(keyword: q, clubs: const [], loading: true);
+
+    List<ClubModel> clubs;
+    try {
       final page = await ref
           .read(clubRepositoryProvider)
-          .searchClubsPage(q, pageSize: 8);
-      return page.clubs;
-    });
+          .searchClubsPage(q, pageSize: _suggestionCount);
+      // 조합 중 자모('홍대 ㅇ')는 엔진이 못 걸러 후보를 넉넉히 받아 온 뒤
+      // repository가 초성으로 거른다 → 여기서 목록 길이를 다시 제한한다.
+      clubs = page.clubs.take(_suggestionCount).toList();
+    } catch (e) {
+      // 실패해도 **확정**으로 끝낸다 — 엔진이 죽었다고 검색 자체를 막으면
+      // 사용자가 결과 화면에 영영 못 간다.
+      debugPrint('[Search] 연관 검색어 조회 실패(무시): $e');
+      clubs = const [];
+    }
     // 응답 전에 화면을 떠나면 autoDispose로 provider가 이미 버려진다 → 결과 폐기.
     if (!ref.mounted) return;
-    state = result;
+    // 그 사이 다른 검색어로 다시 조회했으면 늦게 온 응답이 최신을 덮지 않게 버린다.
+    if (state.keyword != q) return;
+    state = SearchSuggestions(keyword: q, clubs: clubs, loading: false);
   }
 
-  void clear() => state = const AsyncData([]);
+  void clear() => state = SearchSuggestions.empty;
 }
 
 /// 검색 결과 + 페이지네이션 상태 (평점순 서버 페이지네이션).
@@ -116,6 +163,9 @@ class SearchViewModel extends _$SearchViewModel {
     });
     // 응답 전에 화면을 떠나면 autoDispose로 VM이 이미 버려진다 → 결과 폐기.
     if (!ref.mounted) return;
+    // 그 사이 다른 검색어로 다시 검색했으면 늦게 온 응답은 버린다
+    // (먼저 던진 요청이 늦게 도착해 최신 결과를 덮어쓰는 것 방지).
+    if (_keyword != keyword.trim()) return;
     state = result;
 
     // 검색 기록 저장은 부가기능 — 실패해도 검색 결과를 막지 않음.
