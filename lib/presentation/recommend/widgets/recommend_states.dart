@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/common/widgets/vybe_shimmer.dart';
+import 'package:vybe/presentation/recommend/widgets/recommend_hero.dart';
 
 // VYBE 추천 로딩 · 빈 목록 · 오류 상태.
 
@@ -61,25 +62,15 @@ class RecommendSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final top = MediaQuery.paddingOf(context).top;
     return SingleChildScrollView(
       physics: const NeverScrollableScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(24.w, top + 60.h, 24.w, 26.h),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                VybeShimmerBox(width: 120.w, height: 28.h, radius: 999.r),
-                SizedBox(height: 14.h),
-                VybeShimmerBox(width: 280.w, height: 30.h, radius: 8.r),
-                SizedBox(height: 14.h),
-                VybeShimmerBox(width: 200.w, height: 18.h, radius: 6.r),
-              ],
-            ),
-          ),
+          // 인트로 히어로는 로컬 asset이라 즉시 그려진다 — 셔머로 대체하면
+          // 데이터가 도착하는 순간 같은 자리가 한 번 깜빡인다.
+          const RecommendHero(),
+          SizedBox(height: 16.h), // 화면(vybe_recommend_screen)과 같은 값
           Padding(
             padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 0),
             child: Column(

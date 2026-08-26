@@ -2,17 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/core/providers/auth_providers.dart';
-import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/domain/repositories/vybe_recommendation_repository.dart';
 import 'package:vybe/presentation/clubs/club_detail_route.dart';
 import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
 import 'package:vybe/presentation/common/widgets/vybe_aurora.dart';
-import 'package:vybe/presentation/common/widgets/vybe_footer_note.dart';
 import 'package:vybe/presentation/common/widgets/vybe_glass_header.dart';
 import 'package:vybe/presentation/recommend/recommend_models.dart';
 import 'package:vybe/presentation/recommend/viewmodels/vybe_recommend_viewmodel.dart';
 import 'package:vybe/presentation/recommend/widgets/recommend_featured.dart';
-import 'package:vybe/presentation/recommend/widgets/recommend_intro.dart';
+import 'package:vybe/presentation/recommend/widgets/recommend_hero.dart';
 import 'package:vybe/presentation/recommend/widgets/recommend_rank.dart';
 import 'package:vybe/presentation/recommend/widgets/recommend_states.dart';
 
@@ -85,8 +83,16 @@ class _VybeRecommendScreenState extends ConsumerState<VybeRecommendScreen> {
 
     return ListView(
       padding: EdgeInsets.zero,
+      // ⚠ 튕김(오버스크롤) 금지 — 히어로가 상태바 뒤까지 올라가 있어서 위로 당기면
+      // 이미지 위에 검은 배경이 드러난다. iOS 기본 BouncingScrollPhysics를 쓰면
+      // 화면 맨 위가 들리면서 그 틈이 보인다.
+      physics: const ClampingScrollPhysics(),
       children: [
-        const RecommendIntro(),
+        const RecommendHero(),
+        // 라임 띠와 첫 카드 사이 숨돌릴 간격. 카드 자체가 8.h를 갖고 있어 합쳐 24.h.
+        // ⚠ 스켈레톤(recommend_states.dart)에도 같은 값이 있어야 로딩이 끝날 때
+        //   카드가 위아래로 튀지 않는다.
+        SizedBox(height: 16.h),
         RecommendFeatured(
           club: featured,
           saved: favoritedIds.contains(featured.id),
@@ -103,15 +109,10 @@ class _VybeRecommendScreenState extends ConsumerState<VybeRecommendScreen> {
             onSave: (id) => _toggleFavorite(id, favoritedIds.contains(id)),
             onOpen: _openDetail,
           ),
-        VybeFooterNote(
-          icon: Icons.auto_awesome,
-          iconColor: VybeColors.mainLime500,
-          text: '추천 리스트는 매주 화요일, 최근 방문 데이터를 반영해 새롭게 업데이트돼요.',
-          iconSize: 16,
-          margin: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 8.h),
-          padding: EdgeInsets.all(16.r),
-        ),
-        SizedBox(height: 28.h),
+        // 하단 안내문은 뺐다 — 인트로 라임 띠가 같은 말('매주 화요일 …
+        // 업데이트돼요')을 이미 하고 있어 한 화면에 두 번 나왔다.
+        // 자리는 여백으로 남긴다(마지막 행이 하단 탭바에 붙지 않게).
+        SizedBox(height: 120.h),
       ],
     );
   }

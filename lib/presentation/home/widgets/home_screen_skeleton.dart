@@ -82,7 +82,8 @@ class _CategoryGridSkeleton extends StatelessWidget {
           return Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              VybeSkel(width: 62.w, height: 62.h, radius: 18),
+              // 실제 타일과 같은 정사각 규칙 — 둘 다 `.w` (home_category_grid 참고)
+              VybeSkel(width: 62.w, height: 62.w, radius: 18),
               SizedBox(height: 8.h),
               VybeSkel(width: 44.w, height: 12.h, radius: 4),
             ],

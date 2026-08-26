@@ -137,9 +137,12 @@ class _CategoryTile extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          // ⚠ 정사각 타일이라 가로·세로 **둘 다 `.w`** 로 잰다.
+          // `.h`(세로 비)는 `.w`(가로 비)와 계수가 달라 화면비가 다른 기기에서
+          // 정사각이 직사각으로 찌그러진다 — iPhone SE(375x667)에서 59x49.
           SizedBox(
             width: 62.w,
-            height: 62.h,
+            height: 62.w,
             child: _CategoryIconBox(item: item),
           ),
           SizedBox(height: 8.h),
@@ -169,11 +172,13 @@ class _CategoryIconBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final radius = BorderRadius.circular(18.r);
+    // 판이 `.w` 로 잡히므로 라운드·아이콘도 같은 축으로 재야 비율이 유지된다.
+    // `.r` 은 min(가로비, 세로비)라 세로가 짧은 기기에서 판보다 더 줄어든다.
+    final radius = BorderRadius.circular(18.w);
     final icon = SvgPicture.asset(
       item.icon,
-      width: 34.r,
-      height: 34.r,
+      width: 34.w,
+      height: 34.w,
       colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
     );
 

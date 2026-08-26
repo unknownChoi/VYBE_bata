@@ -1,43 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:vybe/design_system/colors.dart';
-import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/common/widgets/vybe_shimmer.dart';
-import 'package:vybe/presentation/hot_places/widgets/hot_places_list_row.dart';
+import 'package:vybe/presentation/hot_places/widgets/hot_places_hero.dart';
 
-// 핫플레이스 로딩 스켈레톤 · 하단 안내.
-
-// ── 푸터 안내 ──
-class HotPlacesFooter extends StatelessWidget {
-  const HotPlacesFooter({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(20.w, 18.h, 20.w, 8.h),
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
-        decoration: BoxDecoration(
-          color: VybeColors.gray900,
-          borderRadius: BorderRadius.circular(14.r),
-          border: Border.all(color: VybeColors.gray800),
-        ),
-        child: Row(
-          children: [
-            const HotFlameIcon(size: 15),
-            SizedBox(width: 10.w),
-            Expanded(
-              child: Text(
-                '순위는 실시간 방문자 수와 혼잡도를 반영해 10분마다 갱신돼요.',
-                style: VybeTypography.caption.copyWith(height: 17 / 12, color: VybeColors.gray400),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+// 핫플레이스 로딩 스켈레톤.
 
 // ── 스켈레톤 ──
 class HotPlacesSkeleton extends StatelessWidget {
@@ -45,19 +11,15 @@ class HotPlacesSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
+      // ⚠ padding 미지정이면 safe-area(상태바)가 top padding으로 **자동 주입**돼
+      // 히어로 위에 빈 띠가 생긴다 — 로딩 1.3초 동안만 앱바 자리가 비어 보인다.
+      padding: EdgeInsets.zero,
       physics: const NeverScrollableScrollPhysics(),
       children: [
-        Padding(
-          padding: EdgeInsets.fromLTRB(24.w, 20.h, 24.w, 18.h),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              VybeShimmerBox(widthFactor: 0.75, height: 28.h, radius: 6.r),
-              SizedBox(height: 12.h),
-              VybeShimmerBox(width: 150.w, height: 26.h, radius: 999.r),
-            ],
-          ),
-        ),
+        // 인트로 히어로는 로컬 asset이라 즉시 그려진다 — 셔머로 대체하면
+        // 데이터가 도착하는 순간 같은 자리가 한 번 깜빡인다.
+        const HotPlacesHero(),
+        SizedBox(height: 8.h), // 화면(hot_places_screen)과 같은 값
         Padding(
           padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 12.h),
           child: Row(

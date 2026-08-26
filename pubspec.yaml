@@ -94,6 +94,8 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+  config:
+    enable-swift-package-manager: false
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
@@ -116,6 +118,8 @@ flutter:
 
     - assets/images/home_screen/
     - assets/images/search_screen/
+    - assets/images/recommend/
+    - assets/images/hot_places/
 
     - assets/club_detail/images/
     - assets/club_detail/icons/

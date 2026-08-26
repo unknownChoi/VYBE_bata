@@ -4,22 +4,6 @@ import 'package:vybe/domain/repositories/vybe_recommendation_repository.dart';
 
 // VYBE 추천 표시 모델 — 큐레이션 문서 + 클럽 조인 결과 어댑터.
 
-// ── 추천 기준 칩 ──
-class RecommendCriterion {
-  final String label;
-  final IconData icon;
-  final Color color;
-  const RecommendCriterion(this.label, this.icon, this.color);
-}
-
-const kRecommendCriteria = [
-  RecommendCriterion('플로어 분위기', Icons.auto_awesome, VybeColors.mainPurple500),
-  RecommendCriterion('사운드 퀄리티', Icons.graphic_eq, VybeColors.accentBlue500),
-  RecommendCriterion('최근 리뷰', Icons.star_rounded, VybeColors.mainLime500),
-  RecommendCriterion('혼잡도', Icons.groups_rounded, Color(0xFFFF8A3D)),
-  RecommendCriterion('재방문율', Icons.repeat_rounded, Color(0xFFFF4D8D)),
-];
-
 // 이미지 없을 때 쓰는 그라데이션 폴백 팔레트 (rank 순으로 배정).
 const kRecommendBgPalette = <List<Color>>[
   [Color(0xFF2B1655), VybeColors.mainPurple500, Color(0xFFFF4D8D)],

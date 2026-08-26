@@ -6,6 +6,7 @@ import 'package:vybe/presentation/common/widgets/vybe_aurora.dart';
 import 'package:vybe/presentation/common/widgets/vybe_glass_header.dart';
 import 'package:vybe/presentation/hot_places/hot_places_models.dart';
 import 'package:vybe/presentation/hot_places/widgets/hot_places_header.dart';
+import 'package:vybe/presentation/hot_places/widgets/hot_places_hero.dart';
 import 'package:vybe/presentation/hot_places/widgets/hot_places_list_row.dart';
 import 'package:vybe/presentation/hot_places/widgets/hot_places_podium.dart';
 import 'package:vybe/presentation/hot_places/widgets/hot_places_skeleton.dart';
@@ -73,37 +74,32 @@ class _HotPlacesScreenState extends State<HotPlacesScreen> {
     final total = ranked.length;
     // 플로팅 바텀 nav(MainScaffold) 가림 방지용 하단 여백.
     final bottomPad = MediaQuery.paddingOf(context).bottom + 90.h;
-    final top = MediaQuery.paddingOf(context).top;
 
     return Scaffold(
-      backgroundColor: VybeColors.background,
+      backgroundColor: kVybeInk,
       // SizedBox.expand로 Stack을 화면 전체로 강제 → 백드롭이 다이나믹 아일랜드
       // (상태바) 영역까지 채워지고 본문이 그 밑으로 흐름. (vybe 추천 페이지와 동일)
       body: SizedBox.expand(
         child: Stack(
           children: [
-            // 공용 오로라 배경 — 색만 핫플레이스 오렌지/레드로.
+            // 배경 — 공용 리뉴얼 오로라 기본색(VYBE 추천 등 다른 전용 페이지와 동일).
             // 화면 전체를 채운다(상태바 포함) — 부분 높이로 자르면 우하단
             // 글로우가 화면 중간에 맺히고 아래쪽에 색 경계가 생긴다.
             const Positioned.fill(
-              child: IgnorePointer(
-                child: VybeAurora(
-                  accent1: kHotAccent,
-                  accent2: Color(0xFFFF3B30),
-                ),
-              ),
+              child: IgnorePointer(child: VybeAurora()),
             ),
             Positioned.fill(
               child: _loading
-                  ? Padding(
-                      padding: EdgeInsets.only(top: top + 52.h),
-                      child: const HotPlacesSkeleton(),
-                    )
+                  ? const HotPlacesSkeleton()
                   : ListView(
                       controller: _scroll,
-                      padding: EdgeInsets.only(top: top + 52.h, bottom: bottomPad),
+                      padding: EdgeInsets.only(bottom: bottomPad),
+                      // ⚠ 튕김(오버스크롤) 금지 — 히어로가 상태바 뒤까지 올라가 있어서
+                      // 위로 당기면 이미지 위에 배경이 드러난다.
+                      physics: const ClampingScrollPhysics(),
                       children: [
-                        HotPlacesIntro(area: _area),
+                        const HotPlacesHero(),
+                        SizedBox(height: 8.h),
                         HotPlacesAreaFilter(
                           active: _area,
                           scrolled: _scrolled,
@@ -132,7 +128,10 @@ class _HotPlacesScreenState extends State<HotPlacesScreen> {
                                 saved: _saved.contains(c.id),
                                 onSave: _toggleSave,
                               )),
-                        const HotPlacesFooter(),
+                        // 하단 안내문은 뺐다 — 히어로 띠가 같은 말을 하고 있었고
+                        // (게다가 '10분마다' vs '1시간마다'로 서로 어긋났다).
+                        // 자리는 여백으로 남긴다.
+                        SizedBox(height: 60.h),
                       ],
                     ),
             ),

@@ -1,0 +1,1647 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>VYBE 테이블 배치 편집기 (데모)</title>
+<style>
+/* 테이블 배치 편집기 — 로컬 도구(scripts/table_editor.html)와 업주 웹(partner/index.html) 공용. */
+
+:root {
+  --ink: #0e0d12;
+  --panel: #16151b;
+  --panel2: #1c1b22;
+  --line: #2c2b34;
+  --t1: #ffffff;
+  --t2: #d1d1d6;
+  --t3: #9f9fa1;
+  --purple: #7731fe;
+  --lime: #b5ff60;
+  --red: #ff5c5f;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--ink); color: var(--t1);
+  font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
+}
+.ed-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 18px; border-bottom: 1px solid var(--line); background: var(--panel);
+  position: sticky; top: 0; z-index: 10;
+}
+.ed-header h1 { font-size: 15px; margin: 0; font-weight: 700; letter-spacing: .2px; }
+.ed-header .spacer { flex: 1; }
+select, input, button, textarea {
+  font: inherit; color: var(--t1); background: var(--panel2);
+  border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px;
+}
+input[type=number] { width: 72px; }
+button { cursor: pointer; }
+button:hover { border-color: #45444f; }
+button.primary { background: var(--purple); border-color: var(--purple); font-weight: 700; }
+button.danger { color: var(--red); }
+button.on { background: var(--purple); border-color: var(--purple); }
+.muted { color: var(--t3); }
+
+.ed-main { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; padding: 18px; align-items: start; }
+.ed-main > div { min-width: 0; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+.card + .card { margin-top: 14px; }
+.card h2 { font-size: 13px; margin: 0 0 10px; color: var(--t2); font-weight: 700; }
+.row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.row + .row { margin-top: 8px; }
+label.field { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--t3); }
+label.field input, label.field select { width: 100%; }
+
+/* ── 격자 캔버스 ──
+   앱 캔버스(353px)와 비슷한 폭으로 묶는다 — 넓게 펴면 셀이 90px씩 되어 배치 감이 안 잡힌다. */
+.ed-canvas-wrap { position: relative; margin: 0 auto; max-width: 420px; touch-action: none; user-select: none; }
+/* 바닥판은 <canvas> 가 직접 그린다 — 방 모양이 직사각형이 아닐 수 있어
+   CSS 배경/테두리로는 표현이 안 된다. */
+.ed-canvas { position: relative; width: 100%; }
+.ed-canvas > canvas { position: absolute; inset: 0; }
+
+/* 방 모양 편집 중에는 물건이 클릭을 가로채지 않게 비켜 준다. */
+.ed-canvas-wrap.shape-mode .item { pointer-events: none; }
+.ed-canvas-wrap.shape-mode > .ed-canvas { cursor: crosshair; }
+.item {
+  position: absolute; border-radius: 9px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; cursor: grab; overflow: hidden;
+  font-size: 11px; line-height: 1.15; text-align: center; padding: 2px;
+}
+.item.sel { outline: 2px solid var(--lime); outline-offset: -1px; z-index: 5; }
+.item .tier { font-size: 9px; font-weight: 800; opacity: .95; }
+.item .price { font-size: 12px; font-weight: 800; color: #fff; }
+.item .fx { font-size: 10px; font-weight: 700; letter-spacing: 1px; }
+.handle {
+  position: absolute; right: 0; bottom: 0; width: 14px; height: 14px;
+  background: var(--lime); border-radius: 3px 0 8px 0; cursor: nwse-resize;
+}
+.legend { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 5px; color: var(--t3); font-size: 11px; }
+.dot { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+
+.list { display: flex; flex-direction: column; gap: 6px; max-height: 340px; overflow: auto; }
+.ed-status { font-size: 12px; }
+.warn { color: #ffd79a; }
+.err { color: var(--red); }
+.ok { color: var(--lime); }
+.hint { font-size: 11px; color: var(--t3); line-height: 1.6; margin-top: 8px; }
+
+/* ── 로그인 화면 (업주 웹 전용) ── */
+.signin-wrap { max-width: 360px; margin: 12vh auto; }
+.signin-wrap h1 { font-size: 18px; margin: 0 0 4px; }
+.signin-wrap p { color: var(--t3); margin: 0 0 18px; line-height: 1.6; }
+.signin-wrap label.field { margin-bottom: 10px; }
+.signin-wrap button { width: 100%; }
+
+.demo-banner {
+  background: #2a2320; border-bottom: 1px solid #5a4a2a; color: #FFD79A;
+  padding: 10px 18px; font-size: 12px; line-height: 1.7;
+}
+.demo-banner b { color: #fff; }
+</style>
+</head>
+<body>
+
+<div class="demo-banner">
+  <b>데모 모드</b> — 서버·로그인·네트워크 없이 도는 화면 확인용 파일입니다.
+  저장을 눌러도 <b>실제 DB(Firestore)에 반영되지 않고</b> 이 브라우저 안에서만 유지됩니다.
+  클럽 목록도 샘플 2곳뿐입니다. 실제 연동 방법은 함께 보낸
+  <b>구현_요청_프롬프트.md</b> 를 참고하세요.
+</div>
+
+<div id="root"></div>
+
+<script>
+// 테이블 배치 편집기 — 편집 로직 단일 소스.
+//
+// 로컬 도구(scripts/table_editor.html)와 업주 웹(partner/index.html)이 이 파일을 **같이** 쓴다.
+// 복붙으로 나눠 가지면 두 화면이 같은 배치도를 다르게 그리게 되고, 그 순간
+// "웹과 앱의 데이터가 같아야 한다"는 요구가 조용히 깨진다.
+//
+// 전송 계층은 여기 없다 — 호출부가 api 를 넘긴다:
+//   api.listClubs()                → [{ id, name, area }]
+//   api.getLayout(clubId)          → 문서 객체 | null
+//   api.saveLayout(clubId, layout) → 저장(문서 전체 교체). 실패하면 throw
+//   api.deleteLayout(clubId)       → 삭제. 없으면 삭제 버튼을 숨긴다
+//
+// 앱 쪽 대응: lib/data/models/club_table_layout.dart (파서) ·
+//             lib/presentation/clubs/widgets/table_floor_map.dart (렌더)
+
+// ===========================================================================
+// 팔레트 — 앱과 같은 값이어야 한다
+// ===========================================================================
+
+const COLOR_KEYS = ['purple', 'blue', 'lime', 'pink', 'amber', 'gray'];
+
+// lib/data/models/table_layout_palette.dart 와 같은 값.
+// 여기가 어긋나면 업주가 보는 색과 앱이 보여주는 색이 달라진다.
+const TIER_STYLE = {
+  purple: { text: '#C8A8FF', dot: '#7731FE', fill: 'rgba(119,49,254,.16)', border: 'rgba(119,49,254,.5)' },
+  blue:   { text: '#8FB5FF', dot: '#2B6BFF', fill: 'rgba(43,107,255,.14)', border: 'rgba(43,107,255,.5)' },
+  lime:   { text: '#D3FFA0', dot: '#B5FF60', fill: 'rgba(181,255,96,.14)', border: 'rgba(181,255,96,.5)' },
+  pink:   { text: '#FFA8C8', dot: '#FF4D8D', fill: 'rgba(255,77,141,.14)', border: 'rgba(255,77,141,.5)' },
+  amber:  { text: '#FFD79A', dot: '#FFA726', fill: 'rgba(255,167,38,.14)', border: 'rgba(255,167,38,.5)' },
+  gray:   { text: '#DBDBDC', dot: '#9F9FA1', fill: 'rgba(255,255,255,.05)', border: 'rgba(255,255,255,.2)' },
+};
+
+// 구조물 색은 **타입마다 고정**이고 업주가 못 바꾼다 — 클럽마다 무대 색이 다르면
+// 사용자가 색으로 알아보는 학습이 통째로 무너진다. 등급(tier)만 클럽별로 다르다.
+// ⚠ lib/data/models/table_layout_palette.dart 의 kFixtureStyles 와 같은 값이어야 한다.
+const FX_STYLE = {
+  stage:      { fill: 'rgba(119,49,254,.20)', border: 'rgba(119,49,254,.55)', text: '#C8A8FF' },
+  dj:         { fill: 'rgba(255,77,141,.16)', border: 'rgba(255,77,141,.50)', text: '#FFA8C8' },
+  dancefloor: { fill: 'rgba(45,212,208,.10)',  border: 'rgba(45,212,208,.42)', text: '#7FE3E0' },
+  bar:        { fill: 'rgba(255,167,38,.16)',  border: 'rgba(255,167,38,.50)', text: '#FFD79A' },
+  entrance:   { fill: 'rgba(181,255,96,.14)',  border: 'rgba(181,255,96,.50)', text: '#D3FFA0' },
+  restroom:   { fill: 'rgba(43,107,255,.14)',  border: 'rgba(43,107,255,.50)', text: '#8FB5FF' },
+  stairs:     { fill: 'rgba(255,255,255,.08)', border: 'rgba(255,255,255,.28)', text: '#B9B9C6' },
+  wall:       { fill: 'rgba(255,255,255,.14)', border: 'rgba(255,255,255,.14)', text: 'transparent' },
+  etc:        { fill: 'rgba(255,255,255,.04)', border: '#404042', text: '#CACACA' },
+  _default:   { fill: 'rgba(255,255,255,.04)', border: '#404042', text: '#CACACA' },
+};
+
+// 바닥판 색 — 앱 ClubFloorMap._plateGradient / VybeColors.gray800 과 같은 값.
+const PLATE_IN = '#1b1b22', PLATE_OUT = '#101014', PLATE_LINE = '#404042';
+
+// FixtureType enum(club_table_layout.dart)과 키가 같아야 한다.
+// 앱이 모르는 키는 조용히 버리므로, 여기서만 늘리면 화면에 안 나온다.
+const FX_LABEL = {
+  stage: 'STAGE', dancefloor: 'DANCE FLOOR', bar: 'BAR', dj: 'DJ BOOTH',
+  entrance: 'ENTRANCE', restroom: 'RESTROOM', stairs: 'STAIRS', wall: '', etc: '',
+};
+
+const FX_OPTIONS = [
+  ['stage', '무대 stage'], ['dj', 'DJ 부스 dj'], ['dancefloor', '댄스플로어 dancefloor'],
+  ['bar', '바 bar'], ['entrance', '입구 entrance'], ['restroom', '화장실 restroom'],
+  ['stairs', '계단 stairs'], ['wall', '벽 wall'], ['etc', '기타 etc'],
+];
+
+// club_table_layout.dart 의 kMinTableSpan · kMaxGridCols 와 같아야 한다.
+// 열 상한 14 는 탭 타겟 44px 보장의 한쪽 축 — 늘리면 앱에서 못 누르는 테이블이 생긴다.
+const MIN_TABLE_SPAN = 2;
+const MAX_COLS = 14, MIN_COLS = 4, MAX_ROWS = 32, MIN_ROWS = 4;
+const SCHEMA_VERSION = 1;
+
+// 미니맵 비율 프리셋 (가로:세로). 셀이 정사각이라 격자 모양이 곧 미니맵 모양이다 —
+// 가로로 긴 홀은 열을 그대로 두고 행을 줄여서 만든다.
+const RATIOS = [
+  ['3:1', 3 / 1],
+  ['2:1', 2 / 1],
+  ['3:2', 3 / 2],
+  ['1:1', 1 / 1],
+  ['2:3', 2 / 3],
+  ['1:2', 1 / 2],
+];
+
+/** 두 수를 최대공약수로 줄여 '3:4' 같은 문자열로. */
+function ratioLabel(cols, rows) {
+  const gcd = (a, b) => (b ? gcd(b, a % b) : a);
+  const g = gcd(cols, rows) || 1;
+  return (cols / g) + ':' + (rows / g);
+}
+
+function ratioShape(cols, rows) {
+  if (cols > rows) return '가로형';
+  if (cols < rows) return '세로형';
+  return '정사각';
+}
+
+// ===========================================================================
+// 마크업
+// ===========================================================================
+
+const HTML = `
+<header class="ed-header">
+  <h1 data-el="title">테이블 배치</h1>
+  <select data-el="clubSel"><option>불러오는 중…</option></select>
+  <span data-el="status" class="ed-status muted">—</span>
+  <span class="spacer"></span>
+  <span data-el="headerExtra"></span>
+  <button data-el="reloadBtn">되돌리기</button>
+  <button data-el="deleteBtn" class="danger">배치도 삭제</button>
+  <button data-el="saveBtn" class="primary">저장</button>
+</header>
+
+<main class="ed-main">
+  <div>
+    <div class="card">
+      <div class="row" data-el="floorBar"></div>
+
+      <div class="row" style="margin-top:12px">
+        <span class="muted" style="width:64px">미니맵 비율</span>
+        <span data-el="ratioBar" class="row" style="gap:6px"></span>
+      </div>
+
+      <div class="row" style="margin-top:8px">
+        <label class="field">가로 칸
+          <input type="number" data-el="colsInp" min="${MIN_COLS}" max="${MAX_COLS}" />
+        </label>
+        <label class="field">세로 칸
+          <input type="number" data-el="rowsInp" min="${MIN_ROWS}" max="${MAX_ROWS}" />
+        </label>
+        <label class="field" style="flex:1">층 이름
+          <input type="text" data-el="floorNameInp" />
+        </label>
+        <button data-el="addFloorBtn">＋ 층</button>
+        <button data-el="delFloorBtn" class="danger">층 삭제</button>
+      </div>
+
+      <div class="hint">
+        <div data-el="cellHint"></div>
+        가로로 긴 홀은 <b>세로 칸을 줄여서</b> 만든다. 셀은 정사각이라 칸 수의 비(가로:세로)가
+        곧 앱 미니맵 모양이 되고, 가로 칸을 늘릴수록 <b>앱에서 칸이 작아진다</b>(세로 칸은 무관).
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <button data-el="addTableBtn">＋ 테이블</button>
+        <select data-el="fxTypeSel">
+          ${FX_OPTIONS.map(([v, t]) => `<option value="${v}">${t}</option>`).join('')}
+        </select>
+        <button data-el="addFxBtn">＋ 구조물</button>
+        <button data-el="shapeBtn">방 모양</button>
+        <span class="muted" data-el="canvasHint">끌어서 이동 · 우하단 초록 손잡이로 크기 조절</span>
+      </div>
+      <div class="ed-canvas-wrap" data-el="canvasWrap" style="margin-top:12px">
+        <div class="ed-canvas" data-el="canvas"><canvas data-el="plate"></canvas></div>
+      </div>
+      <div class="legend" data-el="legend"></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <h2>선택 항목</h2>
+      <div data-el="inspector" class="muted">항목을 클릭하세요.</div>
+    </div>
+
+    <div class="card">
+      <h2>등급</h2>
+      <div class="list" data-el="tierList"></div>
+      <div class="row" style="margin-top:8px">
+        <button data-el="addTierBtn">＋ 등급</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>안내 문구</h2>
+      <textarea data-el="noticeInp" rows="3" style="width:100%"></textarea>
+    </div>
+  </div>
+</main>
+`;
+
+// ===========================================================================
+// 편집기
+// ===========================================================================
+
+/**
+ * @param {HTMLElement} root  마운트할 컨테이너
+ * @param {object} api        전송 계층 (파일 상단 주석 참고)
+ * @param {object} [opts]     { title, headerExtra: HTMLElement }
+ */
+function mountEditor(root, api, opts = {}) {
+  root.innerHTML = HTML;
+  const $ = (name) => root.querySelector(`[data-el="${name}"]`);
+
+  if (opts.title) $('title').textContent = opts.title;
+  if (opts.headerExtra) $('headerExtra').appendChild(opts.headerExtra);
+  if (!api.deleteLayout) $('deleteBtn').remove();
+
+  let clubs = [];
+  let clubId = '';
+  let layout = null;   // { schemaVersion, tiers, floors, notice }
+  let fi = 0;          // 현재 층 index
+  let sel = null;      // { kind: 'table'|'fixture', id }
+  let dirty = false;
+  let shapeMode = false;   // 방 모양(바닥) 편집 중
+
+  // ── 기본값 ──
+
+  const blankFloor = (i) => ({
+    floorId: 'f' + (i + 1) + '_' + Math.random().toString(36).slice(2, 7),
+    name: (i + 1) + 'F',
+    order: i,
+    cols: 12,
+    rows: 16,
+    cells: '',      // 빈 문자열 = 직사각형 방 전체
+    fixtures: [],
+    tables: [],
+  });
+
+  const blankLayout = () => ({
+    schemaVersion: SCHEMA_VERSION,
+    tiers: [
+      { key: 'vvip', name: 'VVIP', short: 'VVIP', colorKey: 'purple', order: 0 },
+      { key: 'vip', name: 'VIP', short: 'VIP', colorKey: 'blue', order: 1 },
+      { key: 'std', name: 'STANDARD', short: 'STD', colorKey: 'gray', order: 2 },
+    ],
+    floors: [blankFloor(0)],
+    notice: '가격 및 예약 조건은 요일·이벤트에 따라 변동될 수 있습니다.',
+  });
+
+  // ── 유틸 ──
+
+  const floor = () => layout.floors[fi];
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+  function priceShort(won) {
+    won = Number(won) || 0;
+    if (won <= 0) return '문의';
+    if (won < 10000) return won.toLocaleString('ko-KR');
+    const man = won / 10000;
+    return (won % 10000 === 0 ? man : man.toFixed(1)) + '만';
+  }
+
+  const tierOf = (key) =>
+    layout.tiers.find((t) => t.key === key)
+    || { key: '', name: 'TABLE', short: 'TBL', colorKey: 'gray', order: 999 };
+
+  // ── 방 모양(cells) ──
+  //
+  // 길이 cols*rows 인 '1'/'0' 문자열. 빈 문자열이면 직사각형 방 전체.
+  // 클럽 홀이 ㄱ자·계단 옆이 파인 형태 등 제각각이라 격자 안에서 실제 바닥만 남긴다.
+
+  /** 층 f 에서 사각 영역이 전부 방 안인가. 마스크가 없으면 항상 true. */
+  function rectInFloor(f, rect) {
+    if (!f.cells) return true;
+    for (let y = rect.row; y < rect.row + rect.rowSpan; y++) {
+      for (let x = rect.col; x < rect.col + rect.colSpan; x++) {
+        if (f.cells[y * f.cols + x] === '0') return false;
+      }
+    }
+    return true;
+  }
+
+  const isInside = (col, row) => {
+    const f = floor();
+    if (col < 0 || row < 0 || col >= f.cols || row >= f.rows) return false;
+    if (!f.cells) return true;
+    return f.cells[row * f.cols + col] !== '0';
+  };
+
+  /** 현재 층에서 사각 영역이 전부 방 안인가 — 테이블은 방 밖에 놓을 수 없다. */
+  const insideRoom = (rect) => rectInFloor(floor(), rect);
+
+  function setCell(col, row, on) {
+    const f = floor();
+    const mask = (f.cells || '1'.repeat(f.cols * f.rows)).split('');
+    mask[row * f.cols + col] = on ? '1' : '0';
+    const joined = mask.join('');
+    // 전부 방 안이면 마스크를 지운다 — 앱이 그때만 둥근 카드로 그린다.
+    f.cells = joined.includes('0') ? joined : '';
+  }
+
+  /** 격자 크기를 바꾸면 마스크도 같이 옮긴다. 새로 생긴 칸은 방 안. */
+  function remapCells(f, cols, rows) {
+    if (!f.cells) return '';
+    const out = [];
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        out.push(
+          r < f.rows && c < f.cols ? f.cells[r * f.cols + c] : '1'
+        );
+      }
+    }
+    const joined = out.join('');
+    return joined.includes('0') ? joined : '';
+  }
+
+  /** 이 칸을 테이블·구조물이 점유하고 있나 (도려내기 전에 확인). */
+  const occupied = (col, row) =>
+    [...floor().tables, ...floor().fixtures].some((x) =>
+      col >= x.col && col < x.col + x.colSpan
+      && row >= x.row && row < x.row + x.rowSpan);
+
+  const overlaps = (a, b) =>
+    a.col < b.col + b.colSpan && b.col < a.col + a.colSpan
+    && a.row < b.row + b.rowSpan && b.row < a.row + a.rowSpan;
+
+  // 테이블끼리만 겹침을 막는다. 구조물은 벽·바닥처럼 겹쳐 쓰는 경우가 있어 허용한다
+  // (앱은 구조물을 먼저 그리고 테이블을 그 위에 얹는다).
+  const collides = (rect, exceptId) =>
+    floor().tables.some((t) => t.id !== exceptId && overlaps(rect, t));
+
+  function uid(prefix) {
+    let n = 1;
+    const all = [...floor().tables, ...floor().fixtures].map((x) => x.id);
+    while (all.includes(prefix + n)) n++;
+    return prefix + n;
+  }
+
+  function setStatus(msg, cls) {
+    $('status').textContent = msg;
+    $('status').className = 'ed-status ' + (cls || 'muted');
+  }
+
+  function markDirty() {
+    dirty = true;
+    setStatus('저장 안 됨', 'warn');
+  }
+
+  const esc = (s) => String(s == null ? '' : s)
+    .replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  function field(label, type, value, key, options) {
+    const head = '<label class="field">' + esc(label);
+    if (type === 'select') {
+      return head + '<select data-key="' + key + '">'
+        + options.map(([v, t]) =>
+            '<option value="' + esc(v) + '"' + (String(v) === String(value) ? ' selected' : '') + '>'
+            + esc(t) + '</option>').join('')
+        + '</select></label>';
+    }
+    return head + '<input type="' + type + '" data-key="' + key + '" value="' + esc(value) + '" /></label>';
+  }
+
+  // ── 렌더 ──
+
+  function renderAll() {
+    renderFloorBar();
+    renderCanvas();
+    renderLegend();
+    renderInspector();
+    renderTiers();
+    $('noticeInp').value = layout.notice || '';
+    $('floorNameInp').value = floor().name;
+    renderGridInputs();
+  }
+
+  /** 가로/세로 칸 입력 + 비율 프리셋 버튼 상태. */
+  function renderGridInputs() {
+    const f = floor();
+    $('colsInp').value = f.cols;
+    $('rowsInp').value = f.rows;
+
+    const bar = $('ratioBar');
+    bar.innerHTML = '';
+    const current = f.cols / f.rows;
+    for (const [label, r] of RATIOS) {
+      const b = document.createElement('button');
+      b.textContent = label;
+      // 정확히 떨어지지 않는 조합(예 12×7)도 있으니 가장 가까운 프리셋을 켜 준다.
+      if (Math.abs(current - r) < 0.06) b.className = 'on';
+      b.onclick = () => applyRatio(r);
+      bar.appendChild(b);
+    }
+    renderCellHint();
+  }
+
+  function renderFloorBar() {
+    const bar = $('floorBar');
+    bar.innerHTML = '';
+    layout.floors.forEach((f, i) => {
+      const b = document.createElement('button');
+      b.textContent = f.name + ' (' + f.tables.length + ')';
+      if (i === fi) b.className = 'on';
+      b.onclick = () => { fi = i; sel = null; renderAll(); };
+      bar.appendChild(b);
+    });
+  }
+
+  const cellSize = () => ($('canvasWrap').clientWidth || 420) / floor().cols;
+
+  function renderCanvas() {
+    const f = floor();
+    const canvas = $('canvas');
+
+    // 셀은 정사각 — 폭에서만 구한다. 높이로 따로 구하면 두 값이 어긋나 앱과 그림이 달라진다.
+    const cell = cellSize();
+    canvas.style.height = (cell * f.rows) + 'px';
+
+    drawPlate(cell);
+
+    [...canvas.querySelectorAll('.item')].forEach((el) => el.remove());
+    f.fixtures.forEach((x) => canvas.appendChild(itemEl(x, 'fixture', cell)));
+    f.tables.forEach((x) => canvas.appendChild(itemEl(x, 'table', cell)));
+  }
+
+  /**
+   * 바닥판을 그린다 — 방 모양(cells)대로 칠하고 **경계 변에만** 외곽선.
+   *
+   * 셀마다 사각형을 다 그리면 격자무늬로 보인다. 채움은 이어 붙이고 선은 방 밖과
+   * 맞닿은 변에서만 그어야 하나의 방 윤곽으로 읽힌다 — 앱 _FloorPlatePainter 와 같은 방식.
+   */
+  function drawPlate(cell) {
+    const f = floor();
+    const cv = $('plate');
+    const w = f.cols * cell, h = f.rows * cell;
+    const dpr = window.devicePixelRatio || 1;
+
+    cv.width = Math.round(w * dpr);
+    cv.height = Math.round(h * dpr);
+    cv.style.width = w + 'px';
+    cv.style.height = h + 'px';
+
+    const ctx = cv.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+
+    const grad = ctx.createRadialGradient(w / 2, 0, 0, w / 2, 0, Math.max(w, h) * 1.1);
+    grad.addColorStop(0, PLATE_IN);
+    grad.addColorStop(0.72, PLATE_OUT);
+    ctx.fillStyle = grad;
+    ctx.strokeStyle = PLATE_LINE;
+    ctx.lineWidth = 1;
+
+    if (!f.cells) {
+      // 직사각형 방은 앱과 같이 둥근 카드로.
+      ctx.beginPath();
+      ctx.roundRect(0.5, 0.5, w - 1, h - 1, 14);
+      ctx.fill();
+      ctx.stroke();
+    } else {
+      ctx.beginPath();
+      for (let r = 0; r < f.rows; r++) {
+        for (let c = 0; c < f.cols; c++) {
+          if (!isInside(c, r)) continue;
+          // 0.5 씩 부풀려 이웃 칸과 겹치게 — 딱 맞붙이면 칸 사이에 이음매가 보인다.
+          ctx.rect(c * cell - 0.5, r * cell - 0.5, cell + 1, cell + 1);
+        }
+      }
+      ctx.fill();
+
+      ctx.beginPath();
+      for (let r = 0; r < f.rows; r++) {
+        for (let c = 0; c < f.cols; c++) {
+          if (!isInside(c, r)) continue;
+          const l = c * cell, t = r * cell, rt = l + cell, b = t + cell;
+          if (!isInside(c - 1, r)) { ctx.moveTo(l, t); ctx.lineTo(l, b); }
+          if (!isInside(c + 1, r)) { ctx.moveTo(rt, t); ctx.lineTo(rt, b); }
+          if (!isInside(c, r - 1)) { ctx.moveTo(l, t); ctx.lineTo(rt, t); }
+          if (!isInside(c, r + 1)) { ctx.moveTo(l, b); ctx.lineTo(rt, b); }
+        }
+      }
+      ctx.stroke();
+    }
+
+    // 격자선 — 편집 보조용이라 앱에는 없다. 방 모양 편집 중엔 진하게.
+    ctx.strokeStyle = shapeMode ? 'rgba(255,255,255,.16)' : 'rgba(255,255,255,.05)';
+    ctx.beginPath();
+    for (let c = 1; c < f.cols; c++) { ctx.moveTo(c * cell, 0); ctx.lineTo(c * cell, h); }
+    for (let r = 1; r < f.rows; r++) { ctx.moveTo(0, r * cell); ctx.lineTo(w, r * cell); }
+    ctx.stroke();
+  }
+
+  /**
+   * 이 격자가 앱에서 실제로 몇 px 이 되는지 보여준다.
+   *
+   * "열을 늘리면 작아진다"를 말로만 적어 두면 업주가 감을 못 잡는다 —
+   * 가장 좁은 흔한 기기(iPhone SE 375) 기준으로 셀·테이블 크기를 직접 보여준다.
+   * 섹션 좌우 20 + 캔버스 안쪽 8 을 뺀 폭이 격자에 쓰인다(앱 ClubFloorMap._pad).
+   */
+  function renderCellHint() {
+    const f = floor();
+    const seWidth = (375 / 393) * (393 - 40 - 16); // ≈ 321px
+    const px = seWidth / f.cols;
+    const tap = px * MIN_TABLE_SPAN;
+    const bad = tap < 44;
+    $('cellHint').innerHTML =
+      '지금 <b>' + f.cols + ' × ' + f.rows + '</b> 칸 · 미니맵 비율 <b>'
+      + ratioLabel(f.cols, f.rows) + '</b> (' + ratioShape(f.cols, f.rows) + ')<br />'
+      + 'iPhone SE 기준 칸 <b>' + px.toFixed(0) + 'px</b> · 최소 테이블(2칸) <b>'
+      + tap.toFixed(0) + 'px</b>'
+      + (bad ? ' <span class="err">— 탭 타겟 44px 미달</span>' : ' <span class="ok">— 탭 타겟 OK</span>');
+  }
+
+  function itemEl(item, kind, cell) {
+    const el = document.createElement('div');
+    el.className = 'item';
+    el.style.left = (item.col * cell) + 'px';
+    el.style.top = (item.row * cell) + 'px';
+    el.style.width = (item.colSpan * cell) + 'px';
+    el.style.height = (item.rowSpan * cell) + 'px';
+
+    if (kind === 'table') {
+      const st = TIER_STYLE[tierOf(item.tierKey).colorKey] || TIER_STYLE.gray;
+      el.style.background = st.fill;
+      el.style.border = '1px solid ' + st.border;
+      el.style.borderRadius = item.shape === 'circle' ? '999px' : '9px';
+      el.innerHTML =
+        '<div class="tier" style="color:' + st.text + '">' + esc(tierOf(item.tierKey).short) + '</div>'
+        + '<div class="price">' + priceShort(item.price) + '</div>';
+    } else {
+      const st = FX_STYLE[item.type] || FX_STYLE._default;
+      el.style.background = st.fill;
+      el.style.border = '1px solid ' + st.border;
+      el.style.borderRadius = '10px';
+      const label = item.label || FX_LABEL[item.type] || '';
+      el.innerHTML = '<div class="fx" style="color:' + st.text + '">' + esc(label) + '</div>';
+    }
+
+    if (sel && sel.kind === kind && sel.id === item.id) {
+      el.classList.add('sel');
+      const h = document.createElement('div');
+      h.className = 'handle';
+      h.onmousedown = (e) => startResize(e, item, kind);
+      el.appendChild(h);
+    }
+
+    el.onmousedown = (e) => {
+      if (e.target.classList.contains('handle')) return;
+      sel = { kind, id: item.id };
+      renderCanvas();
+      renderInspector();
+      startDrag(e, item, kind);
+    };
+    return el;
+  }
+
+  function renderLegend() {
+    const used = new Set(layout.floors.flatMap((f) => f.tables.map((t) => t.tierKey)));
+    $('legend').innerHTML = layout.tiers
+      .filter((t) => used.has(t.key))
+      .map((t) => {
+        const st = TIER_STYLE[t.colorKey] || TIER_STYLE.gray;
+        return '<span><i class="dot" style="background:' + st.dot + '"></i>' + esc(t.name) + '</span>';
+      })
+      .join('');
+  }
+
+  // ── 드래그 / 리사이즈 ──
+
+  function startDrag(e, item, kind) {
+    e.preventDefault();
+    const cell = cellSize();
+    const sx = e.clientX, sy = e.clientY;
+    const c0 = item.col, r0 = item.row;
+    const f = floor();
+
+    function move(ev) {
+      const col = clamp(c0 + Math.round((ev.clientX - sx) / cell), 0, f.cols - item.colSpan);
+      const row = clamp(r0 + Math.round((ev.clientY - sy) / cell), 0, f.rows - item.rowSpan);
+      if (col === item.col && row === item.row) return;
+
+      const next = { col, row, colSpan: item.colSpan, rowSpan: item.rowSpan };
+      // 겹치거나 방 밖이면 그 자리엔 안 놓는다. 구조물(벽·계단)은 방 경계에 걸칠 수 있어 허용.
+      if (kind === 'table' && (collides(next, item.id) || !insideRoom(next))) return;
+      item.col = col; item.row = row;
+      renderCanvas(); renderInspector();
+    }
+    function up() {
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', up);
+      if (item.col !== c0 || item.row !== r0) markDirty();
+    }
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', up);
+  }
+
+  function startResize(e, item, kind) {
+    e.preventDefault();
+    e.stopPropagation();
+    const cell = cellSize();
+    const sx = e.clientX, sy = e.clientY;
+    const w0 = item.colSpan, h0 = item.rowSpan;
+    const minSpan = kind === 'table' ? MIN_TABLE_SPAN : 1;
+    const f = floor();
+
+    function move(ev) {
+      const colSpan = clamp(w0 + Math.round((ev.clientX - sx) / cell), minSpan, f.cols - item.col);
+      const rowSpan = clamp(h0 + Math.round((ev.clientY - sy) / cell), minSpan, f.rows - item.row);
+      if (colSpan === item.colSpan && rowSpan === item.rowSpan) return;
+
+      const next = { col: item.col, row: item.row, colSpan, rowSpan };
+      if (kind === 'table' && (collides(next, item.id) || !insideRoom(next))) return;
+      item.colSpan = colSpan; item.rowSpan = rowSpan;
+      renderCanvas(); renderInspector();
+    }
+    function up() {
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', up);
+      if (item.colSpan !== w0 || item.rowSpan !== h0) markDirty();
+    }
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', up);
+  }
+
+  // ── 추가 / 삭제 ──
+
+  /** 빈 자리를 왼쪽 위부터 훑어 찾는다. 없으면 null. */
+  function findSpot(colSpan, rowSpan) {
+    const f = floor();
+    for (let r = 0; r + rowSpan <= f.rows; r++) {
+      for (let c = 0; c + colSpan <= f.cols; c++) {
+        const rect = { col: c, row: r, colSpan, rowSpan };
+        if (!collides(rect, null) && insideRoom(rect)) return rect;
+      }
+    }
+    return null;
+  }
+
+  function addTable() {
+    const spot = findSpot(MIN_TABLE_SPAN, MIN_TABLE_SPAN);
+    if (!spot) return alert('빈 자리가 없습니다. 방을 넓히거나 테이블을 지우세요.');
+    const id = uid('T');
+    floor().tables.push({
+      id,
+      tierKey: (layout.tiers[0] || {}).key || '',
+      name: '테이블 ' + id,
+      desc: '',
+      ...spot,
+      shape: 'rect',
+      price: 0, minPeople: 0, minBottles: 0, minSpend: 0,
+      note: '', isActive: true,
+    });
+    sel = { kind: 'table', id };
+    markDirty(); renderAll();
+  }
+
+  function addFixture() {
+    const id = uid('FX');
+    if (shapeMode) setShapeMode(false);
+    floor().fixtures.push({
+      id,
+      type: $('fxTypeSel').value,
+      label: '',
+      col: 0, row: 0,
+      colSpan: Math.min(4, floor().cols), rowSpan: 2,
+    });
+    sel = { kind: 'fixture', id };
+    markDirty(); renderAll();
+  }
+
+  function deleteSelected() {
+    if (!sel) return;
+    const f = floor();
+    if (sel.kind === 'table') f.tables = f.tables.filter((t) => t.id !== sel.id);
+    else f.fixtures = f.fixtures.filter((x) => x.id !== sel.id);
+    sel = null;
+    markDirty(); renderAll();
+  }
+
+  // ── 인스펙터 ──
+
+  function selectedItem() {
+    if (!sel) return null;
+    const list = sel.kind === 'table' ? floor().tables : floor().fixtures;
+    return list.find((x) => x.id === sel.id) || null;
+  }
+
+  function renderInspector() {
+    const box = $('inspector');
+    const item = selectedItem();
+    if (!item) { box.className = 'muted'; box.textContent = '항목을 클릭하세요.'; return; }
+    box.className = '';
+    box.innerHTML = '';
+
+    const add = (html) => {
+      const d = document.createElement('div');
+      d.className = 'row';
+      d.innerHTML = html;
+      box.appendChild(d);
+    };
+
+    if (sel.kind === 'table') {
+      add(field('id', 'text', item.id, 'tid')
+        + field('등급', 'select', item.tierKey, 'ttier', layout.tiers.map((t) => [t.key, t.name])));
+      add(field('이름', 'text', item.name, 'tname'));
+      add(field('설명', 'text', item.desc, 'tdesc'));
+      add(field('가격(원)', 'number', item.price, 'tprice')
+        + field('최소 주문(원)', 'number', item.minSpend, 'tspend'));
+      add(field('최소 인원', 'number', item.minPeople, 'tpeople')
+        + field('최소 보틀', 'number', item.minBottles, 'tbottle'));
+      add(field('모양', 'select', item.shape, 'tshape', [['rect', '사각'], ['circle', '원형']])
+        + field('노출', 'select', String(item.isActive !== false), 'tactive', [['true', '노출'], ['false', '숨김']]));
+      add(field('비고', 'text', item.note || '', 'tnote'));
+    } else {
+      add(field('id', 'text', item.id, 'tid')
+        + field('타입', 'select', item.type, 'ftype', FX_OPTIONS));
+      add(field('라벨(비우면 기본)', 'text', item.label || '', 'flabel'));
+    }
+
+    add(field('col', 'number', item.col, 'pcol')
+      + field('row', 'number', item.row, 'prow')
+      + field('colSpan', 'number', item.colSpan, 'pcw')
+      + field('rowSpan', 'number', item.rowSpan, 'pch'));
+
+    const btns = document.createElement('div');
+    btns.className = 'row';
+    const del = document.createElement('button');
+    del.className = 'danger';
+    del.textContent = '삭제';
+    del.onclick = deleteSelected;
+    btns.appendChild(del);
+    box.appendChild(btns);
+
+    box.querySelectorAll('input,select').forEach((el) => {
+      el.onchange = () => applyInspector(item);
+    });
+  }
+
+  function applyInspector(item) {
+    const box = $('inspector');
+    const get = (k) => {
+      const el = box.querySelector('[data-key="' + k + '"]');
+      return el ? el.value : null;
+    };
+    const f = floor();
+    const minSpan = sel.kind === 'table' ? MIN_TABLE_SPAN : 1;
+
+    const colSpan = clamp(parseInt(get('pcw'), 10) || minSpan, minSpan, f.cols);
+    const rowSpan = clamp(parseInt(get('pch'), 10) || minSpan, minSpan, f.rows);
+    const col = clamp(parseInt(get('pcol'), 10) || 0, 0, f.cols - colSpan);
+    const row = clamp(parseInt(get('prow'), 10) || 0, 0, f.rows - rowSpan);
+    const rect = { col, row, colSpan, rowSpan };
+
+    if (sel.kind === 'table' && collides(rect, item.id)) {
+      setStatus('다른 테이블과 겹칩니다 — 위치를 되돌렸습니다', 'err');
+    } else if (sel.kind === 'table' && !insideRoom(rect)) {
+      setStatus('방 밖입니다 — 위치를 되돌렸습니다', 'err');
+    } else {
+      Object.assign(item, rect);
+    }
+
+    const newId = (get('tid') || '').trim();
+    if (newId && newId !== item.id) {
+      const taken = [...f.tables, ...f.fixtures].some((x) => x !== item && x.id === newId);
+      if (taken) setStatus('id 가 이미 있습니다 — 변경하지 않았습니다', 'err');
+      else { item.id = newId; sel.id = newId; }
+    }
+
+    if (sel.kind === 'table') {
+      item.tierKey = get('ttier');
+      item.name = get('tname');
+      item.desc = get('tdesc');
+      item.price = Math.max(0, parseInt(get('tprice'), 10) || 0);
+      item.minSpend = Math.max(0, parseInt(get('tspend'), 10) || 0);
+      item.minPeople = Math.max(0, parseInt(get('tpeople'), 10) || 0);
+      item.minBottles = Math.max(0, parseInt(get('tbottle'), 10) || 0);
+      item.shape = get('tshape');
+      item.isActive = get('tactive') === 'true';
+      item.note = get('tnote') || '';
+    } else {
+      item.type = get('ftype');
+      item.label = get('flabel') || '';
+    }
+
+    markDirty();
+    renderCanvas(); renderLegend(); renderInspector();
+  }
+
+  // ── 등급 편집 ──
+
+  function renderTiers() {
+    const box = $('tierList');
+    box.innerHTML = '';
+    layout.tiers.forEach((t, i) => {
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.innerHTML =
+        field('key', 'text', t.key, 'k' + i)
+        + field('이름', 'text', t.name, 'n' + i)
+        + field('짧게', 'text', t.short || '', 's' + i)
+        + field('색', 'select', t.colorKey, 'c' + i, COLOR_KEYS.map((k) => [k, k]))
+        + '<button class="danger" data-del="' + i + '">✕</button>';
+      box.appendChild(row);
+    });
+
+    box.querySelectorAll('input,select').forEach((el) => {
+      el.onchange = () => {
+        layout.tiers.forEach((t, i) => {
+          const g = (p) => box.querySelector('[data-key="' + p + i + '"]').value;
+          t.key = g('k').trim();
+          t.name = g('n');
+          t.short = g('s');
+          t.colorKey = g('c');
+          t.order = i;
+        });
+        markDirty(); renderCanvas(); renderLegend(); renderInspector();
+      };
+    });
+    box.querySelectorAll('[data-del]').forEach((b) => {
+      b.onclick = () => {
+        const i = Number(b.dataset.del);
+        const key = layout.tiers[i].key;
+        if (layout.floors.some((f) => f.tables.some((t) => t.tierKey === key))) {
+          return alert('이 등급을 쓰는 테이블이 있습니다. 먼저 등급을 바꾸세요.');
+        }
+        layout.tiers.splice(i, 1);
+        markDirty(); renderTiers(); renderLegend();
+      };
+    });
+  }
+
+  // ── 검증 / 저장 ──
+
+  function validate() {
+    const errs = [];
+    if (!layout.tiers.length) errs.push('등급이 하나도 없습니다.');
+    const tierKeys = new Set(layout.tiers.map((t) => t.key));
+    if (tierKeys.size !== layout.tiers.length) errs.push('등급 key 가 중복됩니다.');
+    if (layout.tiers.some((t) => !t.key)) errs.push('등급 key 가 비어 있습니다.');
+
+    if (!layout.floors.some((f) => f.tables.length > 0)) {
+      errs.push('테이블이 한 자리도 없습니다 — 앱이 섹션을 그리지 않습니다.');
+    }
+
+    layout.floors.forEach((f) => {
+      const ids = new Set();
+      [...f.tables, ...f.fixtures].forEach((x) => {
+        if (!x.id) errs.push(f.name + ': id 가 빈 항목이 있습니다.');
+        if (ids.has(x.id)) errs.push(f.name + ': id 중복 — ' + x.id);
+        ids.add(x.id);
+      });
+      f.tables.forEach((t) => {
+        if (t.colSpan < MIN_TABLE_SPAN || t.rowSpan < MIN_TABLE_SPAN) {
+          errs.push(f.name + '/' + t.id + ': 테이블은 최소 '
+            + MIN_TABLE_SPAN + '×' + MIN_TABLE_SPAN + ' 여야 합니다(탭 타겟).');
+        }
+        if (t.col + t.colSpan > f.cols || t.row + t.rowSpan > f.rows) {
+          errs.push(f.name + '/' + t.id + ': 격자 밖으로 나갔습니다.');
+        } else if (!rectInFloor(f, t)) {
+          errs.push(f.name + '/' + t.id + ': 방 밖(도려낸 칸)에 있습니다.');
+        }
+        if (!tierKeys.has(t.tierKey)) {
+          errs.push(f.name + '/' + t.id + ': 없는 등급 — ' + t.tierKey);
+        }
+      });
+      for (let i = 0; i < f.tables.length; i++) {
+        for (let j = i + 1; j < f.tables.length; j++) {
+          if (overlaps(f.tables[i], f.tables[j])) {
+            errs.push(f.name + ': ' + f.tables[i].id + ' 와 ' + f.tables[j].id + ' 가 겹칩니다.');
+          }
+        }
+      }
+    });
+    return errs;
+  }
+
+  async function save() {
+    const errs = validate();
+    if (errs.length) {
+      alert('저장 못 함:\n\n' + errs.join('\n'));
+      setStatus('검증 실패', 'err');
+      return;
+    }
+    // 테이블 없는 층은 저장할 이유가 없다 — 앱도 목록에서 뺀다.
+    const payload = {
+      schemaVersion: SCHEMA_VERSION,
+      tiers: layout.tiers.map((t, i) => ({ ...t, order: i })),
+      floors: layout.floors.filter((f) => f.tables.length > 0).map((f, i) => ({ ...f, order: i })),
+      notice: $('noticeInp').value,
+    };
+
+    setStatus('저장 중…');
+    try {
+      await api.saveLayout(clubId, payload);
+      dirty = false;
+      setStatus('저장됨 · ' + new Date().toLocaleTimeString('ko-KR'), 'ok');
+    } catch (e) {
+      setStatus('저장 실패: ' + (e.message || e), 'err');
+    }
+  }
+
+  // ── 로드 ──
+
+  /** 서버에서 온 문서를 편집기가 기대하는 모양으로 채운다(누락 필드 보정). */
+  function normalize(doc) {
+    const out = {
+      schemaVersion: SCHEMA_VERSION,
+      tiers: (doc.tiers || []).map((t, i) => ({
+        key: t.key || '',
+        name: t.name || '',
+        short: t.short || t.name || '',
+        colorKey: COLOR_KEYS.includes(t.colorKey) ? t.colorKey : 'gray',
+        order: t.order ?? i,
+      })),
+      floors: (doc.floors || []).map((f, i) => ({
+        floorId: f.floorId || 'f' + (i + 1),
+        name: f.name || (i + 1) + 'F',
+        order: f.order ?? i,
+        cols: clamp(f.cols || 12, MIN_COLS, MAX_COLS),
+        rows: clamp(f.rows || 16, MIN_ROWS, MAX_ROWS),
+        // 길이가 격자와 안 맞으면 버린다 — 앱 파서와 같은 규칙(어긋난 마스크는 엉뚱한 칸을 뚫는다).
+        cells: (typeof f.cells === 'string'
+          && f.cells.length === (f.cols || 12) * (f.rows || 16)
+          && f.cells.includes('0')) ? f.cells : '',
+        fixtures: (f.fixtures || []).map((x) => ({
+          id: x.id || '', type: x.type || 'etc', label: x.label || '',
+          col: x.col || 0, row: x.row || 0,
+          colSpan: x.colSpan || 1, rowSpan: x.rowSpan || 1,
+        })),
+        tables: (f.tables || []).map((t) => ({
+          id: t.id || '', tierKey: t.tierKey || '', name: t.name || '', desc: t.desc || '',
+          col: t.col || 0, row: t.row || 0,
+          colSpan: t.colSpan || MIN_TABLE_SPAN, rowSpan: t.rowSpan || MIN_TABLE_SPAN,
+          shape: t.shape === 'circle' ? 'circle' : 'rect',
+          price: t.price || 0, minPeople: t.minPeople || 0,
+          minBottles: t.minBottles || 0, minSpend: t.minSpend || 0,
+          note: t.note || '', isActive: t.isActive !== false,
+        })),
+      })),
+      notice: doc.notice || '',
+    };
+    if (!out.tiers.length) out.tiers = blankLayout().tiers;
+    if (!out.floors.length) out.floors = [blankFloor(0)];
+    out.floors.sort((a, b) => a.order - b.order);
+    return out;
+  }
+
+  async function loadLayout(id) {
+    if (dirty && !confirm('저장하지 않은 변경이 있습니다. 버리고 이동할까요?')) {
+      $('clubSel').value = clubId;
+      return;
+    }
+    clubId = id;
+    setStatus('불러오는 중…');
+    try {
+      const doc = await api.getLayout(id);
+      layout = doc ? normalize(doc) : blankLayout();
+      fi = 0; sel = null; dirty = false;
+      setStatus(doc ? '불러옴' : '새 배치도 (아직 저장 안 됨)', doc ? 'ok' : 'warn');
+      renderAll();
+    } catch (e) {
+      setStatus('불러오기 실패: ' + (e.message || e), 'err');
+    }
+  }
+
+  async function loadClubs() {
+    try {
+      clubs = await api.listClubs();
+    } catch (e) {
+      setStatus('클럽 목록 실패: ' + (e.message || e), 'err');
+      return;
+    }
+    if (!clubs.length) {
+      setStatus('관리 중인 클럽이 없습니다', 'err');
+      $('clubSel').innerHTML = '<option>없음</option>';
+      return;
+    }
+    const selEl = $('clubSel');
+    selEl.innerHTML = clubs
+      .map((c) => '<option value="' + esc(c.id) + '">' + esc(c.name)
+        + (c.area ? ' · ' + esc(c.area) : '') + '</option>')
+      .join('');
+    selEl.onchange = () => loadLayout(selEl.value);
+
+    // ?clubId=xxx 로 바로 열 수 있다.
+    const want = new URLSearchParams(location.search).get('clubId');
+    const first = (want && clubs.some((c) => c.id === want)) ? want : clubs[0].id;
+    selEl.value = first;
+    loadLayout(first);
+  }
+
+  // ── 방 모양 편집 ──
+  //
+  // 켜면 칸을 눌러(끌어서) 바닥을 넣고 뺀다. 테이블·구조물이 놓인 칸은 못 뺀다 —
+  // 빼면 물건이 허공에 뜬 상태가 되고, 그 상태로 저장하면 앱에 그대로 나간다.
+
+  function setShapeMode(on) {
+    shapeMode = on;
+    $('shapeBtn').className = on ? 'on' : '';
+    $('canvasWrap').classList.toggle('shape-mode', on);
+    $('canvasHint').innerHTML = on
+      ? '칸을 눌러(끌어서) 바닥을 넣고 뺍니다 · 물건이 놓인 칸은 뺄 수 없습니다'
+      : '끌어서 이동 · 우하단 초록 손잡이로 크기 조절';
+    if (on) { sel = null; renderInspector(); }
+    renderCanvas();
+  }
+
+  function cellAt(ev) {
+    const cell = cellSize();
+    const box = $('canvas').getBoundingClientRect();
+    return {
+      col: Math.floor((ev.clientX - box.left) / cell),
+      row: Math.floor((ev.clientY - box.top) / cell),
+    };
+  }
+
+  $('plate').addEventListener('mousedown', (e) => {
+    if (!shapeMode) return;
+    e.preventDefault();
+    const f = floor();
+    const first = cellAt(e);
+    if (first.col < 0 || first.row < 0 || first.col >= f.cols || first.row >= f.rows) return;
+
+    // 처음 누른 칸의 반대값으로 통일해 칠한다 — 끌면서 값이 토글되면 얼룩덜룩해진다.
+    const paintOn = !isInside(first.col, first.row);
+    let blocked = false;
+    let changed = false;
+
+    const apply = (ev) => {
+      const { col, row } = cellAt(ev);
+      if (col < 0 || row < 0 || col >= f.cols || row >= f.rows) return;
+      if (isInside(col, row) === paintOn) return;
+      if (!paintOn && occupied(col, row)) { blocked = true; return; }
+      setCell(col, row, paintOn);
+      changed = true;
+      renderCanvas();
+    };
+    apply(e);
+
+    const up = () => {
+      document.removeEventListener('mousemove', apply);
+      document.removeEventListener('mouseup', up);
+      if (changed) markDirty();
+      if (blocked) setStatus('물건이 놓인 칸은 뺄 수 없습니다 — 먼저 옮기세요', 'err');
+    };
+    document.addEventListener('mousemove', apply);
+    document.addEventListener('mouseup', up);
+  });
+
+  // ── 이벤트 ──
+
+  $('shapeBtn').onclick = () => setShapeMode(!shapeMode);
+  $('addTableBtn').onclick = addTable;
+  $('addFxBtn').onclick = addFixture;
+  $('saveBtn').onclick = save;
+  $('reloadBtn').onclick = () => { dirty = false; loadLayout(clubId); };
+
+  $('addTierBtn').onclick = () => {
+    const n = layout.tiers.length;
+    layout.tiers.push({
+      key: 'tier' + (n + 1), name: 'TIER ' + (n + 1), short: 'T' + (n + 1),
+      colorKey: COLOR_KEYS[n % COLOR_KEYS.length], order: n,
+    });
+    markDirty(); renderTiers(); renderLegend();
+  };
+
+  if (api.deleteLayout) {
+    $('deleteBtn').onclick = async () => {
+      if (!confirm('이 클럽의 배치도 문서를 삭제합니다. 앱에서 테이블 섹션이 사라집니다. 계속할까요?')) return;
+      try {
+        await api.deleteLayout(clubId);
+      } catch (e) {
+        return setStatus('삭제 실패: ' + (e.message || e), 'err');
+      }
+      layout = blankLayout(); fi = 0; sel = null; dirty = false;
+      setStatus('삭제됨', 'ok'); renderAll();
+    };
+  }
+
+  $('addFloorBtn').onclick = () => {
+    layout.floors.push(blankFloor(layout.floors.length));
+    fi = layout.floors.length - 1; sel = null;
+    markDirty(); renderAll();
+  };
+
+  $('delFloorBtn').onclick = () => {
+    if (layout.floors.length <= 1) return alert('층이 하나뿐입니다.');
+    if (!confirm(floor().name + ' 층을 삭제할까요?')) return;
+    layout.floors.splice(fi, 1);
+    fi = 0; sel = null;
+    markDirty(); renderAll();
+  };
+
+  $('floorNameInp').onchange = (e) => { floor().name = e.target.value; markDirty(); renderFloorBar(); };
+  $('noticeInp').onchange = () => markDirty();
+
+  /**
+   * 격자 크기를 바꾼다. 성공하면 true.
+   *
+   * 줄이면 밖으로 밀려나는 항목이 생긴다 — 앱은 clamp 하지만 그 결과는 업주가
+   * 의도한 배치가 아니므로 여기서 막는다.
+   */
+  function setGridSize(cols, rows) {
+    const f = floor();
+    cols = clamp(cols, MIN_COLS, MAX_COLS);
+    rows = clamp(rows, MIN_ROWS, MAX_ROWS);
+    if (cols === f.cols && rows === f.rows) return true;
+
+    const out = [...f.tables, ...f.fixtures].filter(
+      (x) => x.col + x.colSpan > cols || x.row + x.rowSpan > rows
+    );
+    if (out.length) {
+      alert('격자를 줄이면 밖으로 나가는 항목이 있습니다: ' + out.map((x) => x.id).join(', '));
+      renderGridInputs();
+      return false;
+    }
+
+    // 마스크도 같이 옮긴다 — 안 옮기면 길이가 어긋나 앱이 마스크를 통째로 버린다.
+    const next = remapCells(f, cols, rows);
+    f.cols = cols;
+    f.rows = rows;
+    f.cells = next;
+    markDirty();
+    renderGridInputs();
+    renderCanvas();
+    return true;
+  }
+
+  /**
+   * 비율 프리셋 — **가로 칸은 그대로 두고 세로 칸만 맞춘다.**
+   *
+   * 둘 다 바꾸면 이미 놓아 둔 배치가 가로로도 밀려 대부분 '밖으로 나감'으로 막힌다.
+   * 가로를 유지하면 세로 길이만 바뀌어 배치가 대체로 살아남는다.
+   */
+  function applyRatio(r) {
+    const f = floor();
+    setGridSize(f.cols, Math.max(MIN_ROWS, Math.round(f.cols / r)));
+  }
+
+  $('colsInp').onchange = (e) =>
+    setGridSize(parseInt(e.target.value, 10) || floor().cols, floor().rows);
+  $('rowsInp').onchange = (e) =>
+    setGridSize(floor().cols, parseInt(e.target.value, 10) || floor().rows);
+
+  document.addEventListener('keydown', (e) => {
+    if ((e.key === 'Delete' || e.key === 'Backspace') && sel
+        && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
+      e.preventDefault();
+      deleteSelected();
+    }
+  });
+
+  window.addEventListener('resize', () => { if (layout) renderCanvas(); });
+  window.addEventListener('beforeunload', (e) => { if (dirty) e.preventDefault(); });
+
+  loadClubs();
+
+  return { reload: () => loadLayout(clubId) };
+}
+
+
+// ── 데모 전송 계층 ──
+// 실제 페이지는 이 자리에 Firestore 호출이 들어간다 (partner/index.html 참고).
+// 여기서는 메모리에만 담아 새로고침 전까지 유지한다.
+
+const DEMO_CLUBS = [
+  { id: 'demo_club_1', name: '샘플 클럽 A (2층 · ㄱ자 라운지)', area: '홍대' },
+  { id: 'demo_club_2', name: '샘플 클럽 B (배치도 없음)', area: '강남' },
+];
+
+const store = {
+  "demo_club_1": {
+    "schemaVersion": 1,
+    "clubId": "demo_club_1",
+    "tiers": [
+      {
+        "key": "vvip",
+        "name": "VVIP",
+        "short": "VVIP",
+        "colorKey": "purple",
+        "order": 0
+      },
+      {
+        "key": "vip",
+        "name": "VIP",
+        "short": "VIP",
+        "colorKey": "blue",
+        "order": 1
+      },
+      {
+        "key": "std",
+        "name": "STANDARD",
+        "short": "STD",
+        "colorKey": "gray",
+        "order": 2
+      }
+    ],
+    "floors": [
+      {
+        "floorId": "f1",
+        "name": "1F",
+        "order": 0,
+        "cols": 12,
+        "rows": 16,
+        "cells": "",
+        "fixtures": [
+          {
+            "id": "fx_stage",
+            "type": "stage",
+            "label": "DJ BOOTH · STAGE",
+            "col": 1,
+            "row": 0,
+            "colSpan": 10,
+            "rowSpan": 2
+          },
+          {
+            "id": "fx_floor",
+            "type": "dancefloor",
+            "label": "DANCE FLOOR",
+            "col": 4,
+            "row": 5,
+            "colSpan": 4,
+            "rowSpan": 6
+          },
+          {
+            "id": "fx_bar",
+            "type": "bar",
+            "label": "BAR",
+            "col": 1,
+            "row": 14,
+            "colSpan": 10,
+            "rowSpan": 2
+          }
+        ],
+        "tables": [
+          {
+            "id": "S1",
+            "tierKey": "vvip",
+            "name": "스테이지 프론트 A",
+            "desc": "무대 바로 앞 · 최고의 시야",
+            "col": 0,
+            "row": 3,
+            "colSpan": 2,
+            "rowSpan": 2,
+            "shape": "rect",
+            "price": 1000000,
+            "minPeople": 8,
+            "minBottles": 3,
+            "minSpend": 1000000,
+            "note": "",
+            "isActive": true
+          },
+          {
+            "id": "S2",
+            "tierKey": "vvip",
+            "name": "스테이지 프론트 B",
+            "desc": "무대 바로 앞 · 최고의 시야",
+            "col": 10,
+            "row": 3,
+            "colSpan": 2,
+            "rowSpan": 2,
+            "shape": "rect",
+            "price": 1000000,
+            "minPeople": 8,
+            "minBottles": 3,
+            "minSpend": 1000000,
+            "note": "",
+            "isActive": true
+          },
+          {
+            "id": "V1",
+            "tierKey": "vip",
+            "name": "센터 사이드 1",
+            "desc": "플로어 옆 · 활기찬 자리",
+            "col": 0,
+            "row": 6,
+            "colSpan": 2,
+            "rowSpan": 2,
+            "shape": "rect",
+            "price": 500000,
+            "minPeople": 6,
+            "minBottles": 2,
+            "minSpend": 500000,
+            "note": "",
+            "isActive": true
+          },
+          {
+            "id": "V2",
+            "tierKey": "vip",
+            "name": "센터 사이드 2",
+            "desc": "플로어 옆 · 활기찬 자리",
+            "col": 10,
+            "row": 6,
+            "colSpan": 2,
+            "rowSpan": 2,
+            "shape": "rect",
+            "price": 500000,
+            "minPeople": 6,
+            "minBottles": 2,
+            "minSpend": 500000,
+            "note": "",
+            "isActive": true
+          },
+          {
+            "id": "V3",
+            "tierKey": "vip",
+            "name": "센터 사이드 3",
+            "desc": "플로어 옆 · 활기찬 자리",
+            "col": 0,
+            "row": 9,
+            "colSpan": 2,
+            "rowSpan": 2,
+            "shape": "rect",
+            "price": 500000,
+            "minPeople": 6,
+            "minBottles": 2,
+            "minSpend": 500000,
+            "note": "",
+            "isActive": true
+          },
+          {
+            "id": "V4",
+            "tierKey": "vip",
+            "name": "센터 사이드 4",
+            "desc": "플로어 옆 · 활기찬 자리",
+            "col": 10,
+            "row": 9,
+            "colSpan": 2,
+            "rowSpan": 2,
+            "shape": "rect",
+            "price": 500000,
+            "minPeople": 6,
+            "minBottles": 2,
+            "minSpend": 500000,
+            "note": "",
+            "isActive": true
+          },
+          {
+            "id": "T1",
+            "tierKey": "std",
+            "name": "바 라운지 1",
+            "desc": "바 근처 · 편안한 자리",
+            "col": 1,
+            "row": 12,
+            "colSpan": 2,
+            "rowSpan": 2,
+            "shape": "rect",
+            "price": 200000,
+            "minPeople": 4,
+            "minBottles": 1,
+            "minSpend": 200000,
+            "note": "",
+            "isActive": true
+          },
+          {
+            "id": "T2",
+            "tierKey": "std",
+            "name": "바 라운지 2",
+            "desc": "바 근처 · 편안한 자리",
+            "col": 5,
+            "row": 12,
+            "colSpan": 2,
+            "rowSpan": 2,
+            "shape": "rect",
+            "price": 200000,
+            "minPeople": 4,
+            "minBottles": 1,
+            "minSpend": 200000,
+            "note": "",
+            "isActive": true
+          },
+          {
+            "id": "T3",
+            "tierKey": "std",
+            "name": "바 라운지 3",
+            "desc": "바 근처 · 편안한 자리",
+            "col": 9,
+            "row": 12,
+            "colSpan": 2,
+            "rowSpan": 2,
+            "shape": "rect",
+            "price": 200000,
+            "minPeople": 4,
+            "minBottles": 1,
+            "minSpend": 200000,
+            "note": "",
+            "isActive": true
+          }
+        ]
+      },
+      {
+        "floorId": "f2",
+        "name": "2F 라운지",
+        "order": 1,
+        "cols": 12,
+        "rows": 12,
+        "cells": "111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111100000111111100000111111100000111111100000111111100000",
+        "fixtures": [
+          {
+            "id": "fx2_stairs",
+            "type": "stairs",
+            "label": "STAIRS",
+            "col": 0,
+            "row": 0,
+            "colSpan": 2,
+            "rowSpan": 2
+          },
+          {
+            "id": "fx2_bar",
+            "type": "bar",
+            "label": "LOUNGE BAR",
+            "col": 3,
+            "row": 0,
+            "colSpan": 9,
+            "rowSpan": 2
+          },
+          {
+            "id": "fx2_rest",
+            "type": "restroom",
+            "label": "REST",
+            "col": 0,
+            "row": 10,
+            "colSpan": 2,
+            "rowSpan": 2
+          }
+        ],
+        "tables": [
+          {
+            "id": "L1",
+            "tierKey": "vip",
+            "name": "라운지 창가 1",
+            "desc": "통창 옆 · 조용한 자리",
+            "col": 0,
+            "row": 3,
+            "colSpan": 2,
+            "rowSpan": 2,
+            "shape": "rect",
+            "price": 400000,
+            "minPeople": 5,
+            "minBottles": 2,
+            "minSpend": 400000,
+            "note": "",
+            "isActive": true
+          },
+          {
+            "id": "L2",
+            "tierKey": "vip",
+            "name": "라운지 창가 2",
+            "desc": "통창 옆 · 조용한 자리",
+            "col": 3,
+            "row": 3,
+            "colSpan": 2,
+            "rowSpan": 2,
+            "shape": "rect",
+            "price": 400000,
+            "minPeople": 5,
+            "minBottles": 2,
+            "minSpend": 400000,
+            "note": "",
+            "isActive": true
+          },
+          {
+            "id": "L3",
+            "tierKey": "std",
+            "name": "라운지 센터 1",
+            "desc": "2층 중앙 · 넓은 자리",
+            "col": 6,
+            "row": 3,
+            "colSpan": 2,
+            "rowSpan": 2,
+            "shape": "rect",
+            "price": 250000,
+            "minPeople": 4,
+            "minBottles": 1,
+            "minSpend": 250000,
+            "note": "",
+            "isActive": true
+          },
+          {
+            "id": "L4",
+            "tierKey": "std",
+            "name": "라운지 센터 2",
+            "desc": "2층 중앙 · 넓은 자리",
+            "col": 9,
+            "row": 3,
+            "colSpan": 2,
+            "rowSpan": 2,
+            "shape": "rect",
+            "price": 250000,
+            "minPeople": 4,
+            "minBottles": 1,
+            "minSpend": 250000,
+            "note": "",
+            "isActive": true
+          },
+          {
+            "id": "L5",
+            "tierKey": "std",
+            "name": "라운지 코너 1",
+            "desc": "구석 · 프라이빗",
+            "col": 1,
+            "row": 7,
+            "colSpan": 2,
+            "rowSpan": 2,
+            "shape": "rect",
+            "price": 250000,
+            "minPeople": 4,
+            "minBottles": 1,
+            "minSpend": 250000,
+            "note": "",
+            "isActive": true
+          },
+          {
+            "id": "L6",
+            "tierKey": "std",
+            "name": "라운지 코너 2",
+            "desc": "구석 · 프라이빗",
+            "col": 4,
+            "row": 7,
+            "colSpan": 2,
+            "rowSpan": 2,
+            "shape": "rect",
+            "price": 250000,
+            "minPeople": 4,
+            "minBottles": 1,
+            "minSpend": 250000,
+            "note": "",
+            "isActive": true
+          }
+        ]
+      }
+    ],
+    "notice": "가격 및 예약 조건은 요일·이벤트에 따라 변동될 수 있습니다."
+  },
+  "demo_club_2": null
+};
+
+mountEditor(document.getElementById('root'), {
+  listClubs: async () => DEMO_CLUBS,
+  getLayout: async (clubId) => store[clubId] || null,
+  saveLayout: async (clubId, layout) => {
+    store[clubId] = { ...layout, clubId, updatedBy: 'demo' };
+  },
+  deleteLayout: async (clubId) => { store[clubId] = null; },
+}, {
+  title: 'VYBE 테이블 배치 편집기 (데모)',
+});
+</script>
+</body>
+</html>
