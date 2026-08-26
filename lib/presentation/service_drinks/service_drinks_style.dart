@@ -4,14 +4,12 @@ import 'package:vybe/presentation/common/club_list_sorting.dart';
 
 /// 서비스 음료 화면 전용 색·상수.
 
-/// 서비스음료 액센트 (cyan).
-const Color kDrinkAccent = Color(0xFF38D6EC);
+/// 서비스음료 포인트 색 — 브랜드 라임.
+/// (예전엔 화면 전용 시안. 카테고리 페이지마다 포인트가 달라 브랜드로 통일)
+const Color kDrinkAccent = VybeColors.mainLime500;
 
-/// cyan 위에 얹는 어두운 텍스트/아이콘 색.
-const Color kDrinkInk = Color(0xFF042027);
-
-/// 백드롭 잉크 — 시안 계열이라 기본 배경보다 살짝 푸르게.
-const Color kDrinkBackdropInk = Color(0xFF0A0E10);
+/// 라임 위에 얹는 어두운 텍스트/아이콘 색 (배경 잉크와 같은 톤).
+const Color kDrinkInk = Color(0xFF0E0D12);
 
 /// 종류 필터 칩. `clubs.serviceDrink.drinks` 값과 문자열이 같아야 필터가 걸린다.
 const List<String> kDrinkTypes = [

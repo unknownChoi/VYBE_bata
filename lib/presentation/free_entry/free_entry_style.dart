@@ -4,14 +4,14 @@ import 'package:vybe/presentation/common/club_list_sorting.dart';
 
 /// 입장비 무료 화면 전용 색·상수.
 
-/// 무료입장 액센트 (hot pink).
-const Color kEntryAccent = Color(0xFFFF4D8D);
+/// 무료입장 액센트 — 브랜드 라임.
+///
+/// 예전엔 화면 전용 핫핑크였는데, 히어로 이미지(라임 'FREE ENTRY' 테이프)와
+/// 하단 띠가 라임이라 화면 안에서 포인트 색이 둘로 갈렸다.
+const Color kEntryAccent = VybeColors.mainLime500;
 
-/// pink 위에 얹는 어두운 텍스트/아이콘 색.
-const Color kEntryInk = Color(0xFF2A0712);
-
-/// 백드롭 잉크 — 핑크 계열이라 기본 배경보다 살짝 붉게.
-const Color kEntryBackdropInk = Color(0xFF0D0A0C);
+/// 라임 위에 얹는 어두운 텍스트/아이콘 색 (배경 잉크와 같은 톤).
+const Color kEntryInk = Color(0xFF0E0D12);
 
 /// 지역 필터 칩. `clubs.area` 값과 문자열이 같아야 필터가 걸린다.
 const List<String> kEntryRegions = [kFilterAll, '홍대', '강남', '이태원', '압구정', '건대'];
@@ -28,7 +28,7 @@ const double kEntryCardHeight = 208;
 
 /// 썸네일이 없을 때 clubId 해시로 고르는 일관 그라데이션.
 const List<List<Color>> kEntryFallbackGradients = <List<Color>>[
-  [Color(0xFF2B1655), Color(0xFFFF4D8D)],
+  [Color(0xFF2B1655), VybeColors.mainPurple500],
   [Color(0xFF06FFA5), Color(0xFF3A86FF)],
   [VybeColors.accentBlue500, VybeColors.mainPurple500],
   [Color(0xFF3A0CA3), Color(0xFF4361EE)],

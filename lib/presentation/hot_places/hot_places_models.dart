@@ -4,8 +4,13 @@ import 'package:vybe/design_system/colors.dart';
 // 핫플레이스 표시 모델 · 더미 데이터.
 // TODO: 추후 Firebase 실연동 (현재는 더미 데이터).
 
-// hot-place accent (flame orange)
-const Color kHotAccent = Color(0xFFFF6A2B);
+// 핫플레이스 포인트 색 — 브랜드 라임.
+// (예전엔 화면 전용 플레임 오렌지. 카테고리 페이지마다 포인트가 달라 브랜드로 통일)
+const Color kHotAccent = VybeColors.mainLime500;
+
+/// 혼잡도 '붐빔' 전용 주황. **포인트 색이 아니라 데이터 눈금**이라 브랜드로 안 바꾼다 —
+/// 매우 붐빔(빨강) → 붐빔(주황) → 활기참(라임) 단계가 색으로 읽혀야 한다.
+const Color kHotCrowdBusy = Color(0xFFFF6A2B);
 
 // ── 혼잡도 ──
 enum HotCrowd { packed, busy, lively }
@@ -19,7 +24,7 @@ class HotCrowdInfo {
 
 const Map<HotCrowd, HotCrowdInfo> kHotCrowdMap = {
   HotCrowd.packed: HotCrowdInfo('매우 붐빔', Color(0xFFFF3B30), 95),
-  HotCrowd.busy: HotCrowdInfo('붐빔', kHotAccent, 78),
+  HotCrowd.busy: HotCrowdInfo('붐빔', kHotCrowdBusy, 78),
   HotCrowd.lively: HotCrowdInfo('활기참', VybeColors.mainLime500, 55),
 };
 

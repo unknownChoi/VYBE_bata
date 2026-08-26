@@ -34,10 +34,7 @@ class HipBackdrop extends StatelessWidget {
   const HipBackdrop({super.key});
   @override
   Widget build(BuildContext context) {
-    return const VybeAurora(
-      accent1: Color(0xFFF5B82E), // 좌상단 골드
-      accent2: VybeColors.mainPurple500, // 우상단 보라
-      ink: Color(0xFF0F0B0C), // 기존 세로 그라데이션 중간색을 단색 잉크로
-    );
+    // 배경 — 공용 리뉴얼 오로라 기본색(다른 카테고리 페이지와 동일).
+    return const VybeAurora();
   }
 }

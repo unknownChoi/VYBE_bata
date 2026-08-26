@@ -20,7 +20,7 @@ class AppGeo {
   ///
   /// 예전(위치 연동 전) 동작 그대로 — 지역이 홍대로 고정된 상태를 다시 보고 싶을 때
   /// 이 값만 true로 바꾼다. 판정은 `UserLocationNotifier.resolveFromDevice()` 한 곳.
-  static const useFixedLocation = false;
+  static const useFixedLocation = true;
 
   /// 국내 어느 시군구에도 안 잡힐 때(해외 등) 위치 칩에 쓰는 라벨.
   ///

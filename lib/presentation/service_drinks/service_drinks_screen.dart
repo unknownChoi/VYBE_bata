@@ -18,7 +18,7 @@ import 'package:vybe/presentation/service_drinks/service_drinks_models.dart';
 import 'package:vybe/presentation/service_drinks/service_drinks_style.dart';
 import 'package:vybe/presentation/service_drinks/viewmodels/service_drinks_viewmodel.dart';
 import 'package:vybe/presentation/service_drinks/widgets/service_drinks_card.dart';
-import 'package:vybe/presentation/service_drinks/widgets/service_drinks_intro.dart';
+import 'package:vybe/presentation/service_drinks/widgets/service_drinks_hero.dart';
 import 'package:vybe/presentation/service_drinks/widgets/service_drinks_type_filter.dart';
 
 /// 카드 목록이 비었을 때 안내 문구가 남기는 세로 여백.
@@ -62,26 +62,22 @@ class _ServiceDrinksScreenState extends ConsumerState<ServiceDrinksScreen>
     final list = _filtered(source);
 
     return Scaffold(
-      backgroundColor: VybeColors.background,
+      backgroundColor: kVybeInk,
       body: SizedBox.expand(
         child: Stack(
           children: [
-            // 시안/보라 백드롭 — 화면 전체를 채운다(우하단 글로우까지).
+            // 배경 — 공용 리뉴얼 오로라 기본색(다른 카테고리 페이지와 동일).
+            // 화면 전체를 채운다(우하단 글로우까지).
             const Positioned.fill(
-              child: IgnorePointer(
-                child: VybeAurora(
-                  accent1: kDrinkAccent, // 좌상단 시안
-                  accent2: VybeColors.mainPurple500, // 우상단 보라
-                  ink: kDrinkBackdropInk,
-                ),
-              ),
+              child: IgnorePointer(child: VybeAurora()),
             ),
             CustomScrollView(
+              // ⚠ 튕김(오버스크롤) 금지 — 히어로가 상태바 뒤까지 올라가 있어서
+              // 위로 당기면 이미지 위에 배경이 드러난다.
+              physics: const ClampingScrollPhysics(),
               slivers: [
-                SliverPadding(
-                  padding: EdgeInsets.only(top: insets.top + 52.h),
-                  sliver: SliverList.list(children: _headerSlivers(list.length)),
-                ),
+                // 히어로가 상태바 뒤까지 채우므로 top 패딩을 두지 않는다.
+                SliverList.list(children: _headerSlivers()),
                 // 카드 목록은 SliverList.builder로 보이는 만큼만 만든다
                 // (ListView(children: [...])는 클럽 전부를 즉시 빌드해 진입이 무거워진다).
                 _cardList(list),
@@ -106,8 +102,9 @@ class _ServiceDrinksScreenState extends ConsumerState<ServiceDrinksScreen>
     );
   }
 
-  List<Widget> _headerSlivers(int count) => [
-    ServiceDrinksIntro(count: count, loc: _loc),
+  List<Widget> _headerSlivers() => [
+    const ServiceDrinksHero(),
+    SizedBox(height: 8.h),
     VybeLocationSortBar(
       loc: _loc,
       sort: _sort,

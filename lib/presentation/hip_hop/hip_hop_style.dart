@@ -5,11 +5,15 @@ library;
 
 import 'dart:ui' show Color;
 
-/// hip-hop accent (gold).
-const Color kHipAccent = Color(0xFFF5B82E);
+import 'package:vybe/design_system/colors.dart';
+import 'package:vybe/presentation/common/widgets/vybe_aurora.dart';
 
-/// gold 위에 얹는 어두운 텍스트/아이콘 색.
-const Color kHipOnAccent = Color(0xFF2A1E04);
+/// 힙합 포인트 색 — 브랜드 라임.
+/// (예전엔 화면 전용 골드. 카테고리 페이지마다 포인트가 달라 브랜드로 통일)
+const Color kHipAccent = VybeColors.mainLime500;
 
-/// 디자인 App 배경(#0d0a0c) — VybeColors.background와 미세하게 달라 값 그대로 쓴다.
-const Color kHipBg = Color(0xFF0D0A0C);
+/// 라임 위에 얹는 어두운 텍스트/아이콘 색 (배경 잉크와 같은 톤).
+const Color kHipOnAccent = Color(0xFF0E0D12);
+
+/// 화면 배경 — 오로라 기본 잉크와 같은 값(다른 카테고리 페이지와 동일).
+const Color kHipBg = kVybeInk;

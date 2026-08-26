@@ -7,7 +7,7 @@ import 'package:vybe/presentation/free_entry/free_entry_style.dart';
 /// 카드 좌상단 무료입장 리본.
 ///
 /// 상태 셋 — ① 지금 무료(영업 중 + 무료 창 안) ② 시간대 무료인데 지금은 아님
-/// ③ 상시 무료. ②만 톤을 낮춘다(채운 핑크는 "지금 들어가면 공짜"라는 뜻으로 읽혀서).
+/// ③ 상시 무료. ②만 톤을 낮춘다(채운 라임은 "지금 들어가면 공짜"라는 뜻으로 읽혀서).
 class FreeEntryRibbon extends StatelessWidget {
   final FreeEntryClub club;
 

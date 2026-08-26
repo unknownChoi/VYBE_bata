@@ -120,6 +120,8 @@ flutter:
     - assets/images/search_screen/
     - assets/images/recommend/
     - assets/images/hot_places/
+    - assets/images/free_entry/
+    - assets/images/service_drinks/
 
     - assets/club_detail/images/
     - assets/club_detail/icons/

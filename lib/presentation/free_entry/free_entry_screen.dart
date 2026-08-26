@@ -4,7 +4,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/core/constants/app_geo.dart';
 import 'package:vybe/core/providers/auth_providers.dart';
 import 'package:vybe/data/models/club_model.dart';
-import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/club_detail_route.dart';
 import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
 import 'package:vybe/presentation/common/club_list_sorting.dart';
@@ -18,7 +17,7 @@ import 'package:vybe/presentation/free_entry/free_entry_models.dart';
 import 'package:vybe/presentation/free_entry/free_entry_style.dart';
 import 'package:vybe/presentation/free_entry/viewmodels/free_entry_viewmodel.dart';
 import 'package:vybe/presentation/free_entry/widgets/free_entry_card.dart';
-import 'package:vybe/presentation/free_entry/widgets/free_entry_intro.dart';
+import 'package:vybe/presentation/free_entry/widgets/free_entry_hero.dart';
 import 'package:vybe/presentation/free_entry/widgets/free_entry_states.dart';
 
 /// 무료입장 클럽 모음 — clubs Firestore 실데이터(`isFreeEntry=true`).
@@ -78,23 +77,21 @@ class _FreeEntryScreenState extends ConsumerState<FreeEntryScreen>
     final list = _filtered(_cards(clubsAsync.asData?.value));
 
     return Scaffold(
-      backgroundColor: VybeColors.background,
+      backgroundColor: kVybeInk,
       body: SizedBox.expand(
         child: Stack(
           children: [
-            // 핑크/보라 백드롭 — 화면 전체를 채운다(우하단 글로우까지).
+            // 배경 — 공용 리뉴얼 오로라 기본색(VYBE 추천 등 다른 전용 페이지와 동일).
+            // 화면 전체를 채운다(우하단 글로우까지).
             const Positioned.fill(
-              child: IgnorePointer(
-                child: VybeAurora(
-                  accent1: kEntryAccent,
-                  accent2: VybeColors.mainPurple500,
-                  ink: kEntryBackdropInk,
-                ),
-              ),
+              child: IgnorePointer(child: VybeAurora()),
             ),
             CustomScrollView(
+              // ⚠ 튕김(오버스크롤) 금지 — 히어로가 상태바 뒤까지 올라가 있어서
+              // 위로 당기면 이미지 위에 배경이 드러난다.
+              physics: const ClampingScrollPhysics(),
               slivers: [
-                _headerSliver(list),
+                _headerSliver(),
                 _listSliver(list),
                 _tailSliver(clubsAsync, list),
               ],
@@ -111,40 +108,36 @@ class _FreeEntryScreenState extends ConsumerState<FreeEntryScreen>
     );
   }
 
-  /// 인트로 + 위치/정렬 바 + 지역 필터.
-  Widget _headerSliver(List<FreeEntryClub> list) {
-    return SliverPadding(
-      padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top + 52.h),
-      sliver: SliverList.list(
-        children: [
-          FreeEntryIntro(
-            count: list.length,
-            freeNowCount: list.where((c) => c.freeNow).length,
-            region: _region,
-          ),
-          VybeLocationSortBar(
-            loc: _loc,
-            sort: _sort,
-            sorts: kEntrySorts,
-            locLoading: locLoading,
-            flip: flip,
-            onLocTap: _onLocationTap,
-            onSort: (s) => setState(() => _sort = s),
-            accent: kEntryAccent,
-          ),
-          VybeChipFilterBar(
-            options: kEntryRegions,
-            active: _region,
-            onChange: (r) => setState(() => _region = r),
-            accent: kEntryAccent,
-            accentInk: kEntryInk,
-            // '전체' 값은 필터 로직 유지, 표시만 '내 주변'.
-            labelOf: (r) => r == kFilterAll ? '내 주변' : r,
-            chipHPadding: 16,
-          ),
-          SizedBox(height: 4.h),
-        ],
-      ),
+  /// 히어로 + 위치/정렬 바 + 지역 필터.
+  ///
+  /// 히어로가 상태바 뒤까지 채우므로 top 패딩을 두지 않는다.
+  Widget _headerSliver() {
+    return SliverList.list(
+      children: [
+        const FreeEntryHero(),
+        SizedBox(height: 8.h),
+        VybeLocationSortBar(
+          loc: _loc,
+          sort: _sort,
+          sorts: kEntrySorts,
+          locLoading: locLoading,
+          flip: flip,
+          onLocTap: _onLocationTap,
+          onSort: (s) => setState(() => _sort = s),
+          accent: kEntryAccent,
+        ),
+        VybeChipFilterBar(
+          options: kEntryRegions,
+          active: _region,
+          onChange: (r) => setState(() => _region = r),
+          accent: kEntryAccent,
+          accentInk: kEntryInk,
+          // '전체' 값은 필터 로직 유지, 표시만 '내 주변'.
+          labelOf: (r) => r == kFilterAll ? '내 주변' : r,
+          chipHPadding: 16,
+        ),
+        SizedBox(height: 4.h),
+      ],
     );
   }
 
