@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/common/filter_chip_style.dart';
 import 'package:vybe/presentation/hip_hop/hip_hop_style.dart';
 
 // 힙합 페이지 섹션 헤더 · 지역 필터 칩.
@@ -134,40 +135,14 @@ class HipHopAreaFilter extends StatelessWidget {
         separatorBuilder: (_, __) => SizedBox(width: 8.w),
         itemBuilder: (_, i) {
           final s = kHipHopAreas[i];
-          final sel = s == active;
-          final fg = sel ? kHipOnAccent : VybeColors.gray300;
-          return GestureDetector(
+          // 칩 외형은 주변 페이지와 같은 글래스 칩 단일 소스.
+          return VybeGlassFilterChip(
+            label: s,
+            selected: s == active,
+            icon: s == '인기순' ? null : Icons.place_rounded,
+            iconSize: 12,
+            hPadding: 15,
             onTap: () => onChange(s),
-            child: Container(
-              height: 34.h,
-              padding: EdgeInsets.symmetric(horizontal: 15.w),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: sel ? kHipAccent : VybeColors.gray900,
-                borderRadius: BorderRadius.circular(999.r),
-                border: sel ? null : Border.all(color: VybeColors.gray800),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (s != '인기순') ...[
-                    Icon(
-                      Icons.place_rounded,
-                      size: 12.r,
-                      color: sel ? kHipOnAccent : VybeColors.gray400,
-                    ),
-                    SizedBox(width: 5.w),
-                  ],
-                  Text(
-                    s,
-                    style: VybeTypography.button2.copyWith(
-                      fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
-                      color: fg,
-                    ),
-                  ),
-                ],
-              ),
-            ),
           );
         },
       ),

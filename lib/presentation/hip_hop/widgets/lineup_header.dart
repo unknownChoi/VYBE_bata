@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/clubs/widgets/club_glass.dart';
+import 'package:vybe/presentation/common/filter_chip_style.dart';
 import 'package:vybe/presentation/hip_hop/hip_hop_style.dart';
 import 'package:vybe/presentation/hip_hop/lineup_models.dart';
 import 'package:vybe/presentation/hip_hop/widgets/lineup_dots.dart';
@@ -263,40 +265,22 @@ class LineupTypeFilter extends StatelessWidget {
     );
   }
 
+  // 칩 외형은 주변 페이지와 같은 글래스 칩 단일 소스. 여기 남는 건 개수 꼬리표뿐.
   Widget _chip(String key, String label) {
     final sel = key == active;
-    return GestureDetector(
+    return VybeGlassFilterChip(
+      label: label,
+      selected: sel,
+      hPadding: 14,
       onTap: () => onChange(key),
-      child: Container(
-        height: 34.h,
-        padding: EdgeInsets.symmetric(horizontal: 14.w),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: sel ? kHipAccent : VybeColors.gray900,
-          borderRadius: BorderRadius.circular(999.r),
-          border: sel ? null : Border.all(color: VybeColors.gray800),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: VybeTypography.button2.copyWith(
-                fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
-                color: sel ? kHipOnAccent : VybeColors.gray300,
-              ),
-            ),
-            SizedBox(width: 5.w),
-            Text(
-              '${counts[key]}',
-              style: VybeTypography.caption.copyWith(
-                fontSize: 11.sp,
-                height: 12 / 11,
-                fontWeight: FontWeight.w700,
-                color: sel ? kHipOnAccent : VybeColors.gray500,
-              ),
-            ),
-          ],
+      trailing: (fg) => Text(
+        '${counts[key]}',
+        style: VybeTypography.caption.copyWith(
+          fontSize: 11.sp,
+          height: 12 / 11,
+          fontWeight: FontWeight.w700,
+          // 선택 안 된 칩의 개수는 라벨보다 한 단 낮춰 라벨이 먼저 읽히게 한다.
+          color: sel ? fg : ClubGlass.t4,
         ),
       ),
     );

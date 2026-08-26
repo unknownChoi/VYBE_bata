@@ -9,29 +9,6 @@ import 'package:vybe/presentation/hip_hop/hip_hop_gradients.dart';
 // 화면이 쓰기 좋은 형태로 옮긴 어댑터. 로직 없음.
 
 // ── 더미 모델 ──
-class HipHopHero {
-  final String name;
-  final String area;
-  final double dist;
-  final double rating;
-  final String lineup;
-  final String genre;
-  final String time;
-  final String tag;
-  final List<Color> bg;
-  const HipHopHero({
-    required this.name,
-    required this.area,
-    required this.dist,
-    required this.rating,
-    required this.lineup,
-    required this.genre,
-    required this.time,
-    required this.tag,
-    required this.bg,
-  });
-}
-
 class HipHopDj {
   final int id;
   final String clubId; // 탭 → 클럽 상세 이동용
@@ -119,27 +96,6 @@ HipHopClub hipHopClubFrom(
     thumbnailUrl: c.thumbnailUrl,
     bg: hipGradFor(c.clubId),
     vybe: c.isVybeRecommended,
-  );
-}
-
-// 오늘 공연(performance) + 클럽 → hero(배너) 슬라이드 뷰모델. (텍스트=실데이터, 배경=그라데이션)
-HipHopHero hipHopHeroFrom(
-  PerformanceModel p,
-  ClubModel? club, {
-  ({double lat, double lng})? origin,
-}) {
-  return HipHopHero(
-    name: p.clubName,
-    area: p.clubArea,
-    dist: club != null
-        ? hipHopDistanceKm(club.lat, club.lng, origin: origin)
-        : 0,
-    rating: club?.rating ?? 0,
-    lineup: p.artistName,
-    genre: club?.genre ?? p.genre,
-    time: '오늘 ${p.hhmm} 공연',
-    tag: '오늘밤 주목할 공연',
-    bg: hipGradFor(p.clubId),
   );
 }
 

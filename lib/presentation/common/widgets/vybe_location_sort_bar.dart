@@ -4,7 +4,7 @@ import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/common/location_flip_mixin.dart';
 import 'package:vybe/presentation/common/widgets/vybe_accent_dropdown.dart';
-import 'package:vybe/presentation/common/widgets/vybe_pin_flip.dart';
+import 'package:vybe/presentation/common/widgets/vybe_location_chip.dart';
 
 /// 목록 상단 「내 위치 칩 + 정렬 드롭다운」 한 줄.
 ///
@@ -33,7 +33,10 @@ class VybeLocationSortBar extends StatelessWidget {
   final VoidCallback onLocTap;
   final ValueChanged<String> onSort;
 
-  /// 화면별 액센트 색 (칩 배경·테두리·핀 앞면·선택 항목).
+  /// 화면별 액센트 색 (정렬 드롭다운의 선택 항목 표시).
+  ///
+  /// 위치 칩은 여기 쓰지 않는다 — 홈 위치 칩과 같은 중립 글래스 톤으로 통일했다
+  /// (화면마다 칩이 다른 색으로 물들면 같은 동작이 다른 신호로 읽힌다).
   final Color accent;
 
   const VybeLocationSortBar({
@@ -55,45 +58,12 @@ class VybeLocationSortBar extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // 내 위치 — 탭하면 칩 원형 축소 + 핀 플립 후 내 위치 인식.
-          GestureDetector(
+          // 내 위치 — 홈 상단과 **같은 위젯**(VybeLocationChip).
+          VybeLocationChip(
+            label: loc,
+            loading: locLoading,
+            flip: flip,
             onTap: onLocTap,
-            behavior: HitTestBehavior.opaque,
-            child: AnimatedContainer(
-              duration: shrinkDuration,
-              curve: Curves.easeInOut,
-              // 로딩 중엔 사방 동일 패딩 → 핀을 감싸는 원형.
-              padding: locLoading
-                  ? EdgeInsets.all(7.r)
-                  : EdgeInsets.fromLTRB(10.w, 6.h, 12.w, 6.h),
-              decoration: BoxDecoration(
-                color: accent.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(999.r),
-                border: Border.all(color: accent.withValues(alpha: 0.34)),
-              ),
-              child: AnimatedSize(
-                duration: shrinkDuration,
-                curve: Curves.easeInOut,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    VybePinFlip(animation: flip, frontColor: accent),
-                    // 로딩 중엔 텍스트 제거 → 너비 축소.
-                    if (!locLoading) ...[
-                      SizedBox(width: 5.w),
-                      Text(
-                        loc,
-                        style: VybeTypography.caption.copyWith(
-                          height: 14 / 12,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
           ),
           // 정렬.
           VybeAccentDropdown<String>(

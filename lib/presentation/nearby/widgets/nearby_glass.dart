@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/data/models/operating_hours.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/clubs/widgets/club_glass.dart';
+import 'package:vybe/presentation/common/filter_chip_style.dart';
 import 'package:vybe/presentation/common/widgets/vybe_liquid_press.dart';
 
 /// 주변 페이지 리퀴드 글래스 공통 요소.
@@ -37,15 +38,12 @@ class NearbyGlass {
   /// 활성 칩 라임 테두리 — rgba(181,255,96,0.45)
   static const Color activeBorder = Color(0x73B5FF60);
 
-  /// 시트 안 칩(비활성) 채움 — rgba(255,255,255,0.06)
-  static const Color chipFill = Color(0x0FFFFFFF);
+  /// 시트 안 칩(비활성) 채움 — rgba(255,255,255,0.06).
+  /// 값은 [kFilterChipFill] 단일 소스 (카테고리 페이지 칩과 같은 외형).
+  static const Color chipFill = kFilterChipFill;
 
-  /// 활성 칩 보라 그라데이션 (135deg, 0.95 → 0.7)
-  static const LinearGradient activeChip = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [Color(0xF27731FE), Color(0xB3622ACF)],
-  );
+  /// 활성 칩 보라 그라데이션 (135deg, 0.95 → 0.7) — [kFilterChipActiveGradient].
+  static const LinearGradient activeChip = kFilterChipActiveGradient;
 
   /// CSS blur(34px) ≈ sigma 17 (시트)
   static const double sheetBlur = 17;
@@ -53,14 +51,8 @@ class NearbyGlass {
   /// CSS blur(16px) ≈ sigma 8 (플로팅 컨트롤)
   static const double floatBlur = 8;
 
-  static TextStyle chipText({required bool selected}) => TextStyle(
-    fontFamily: 'Pretendard',
-    fontSize: 12.sp,
-    height: 14 / 12,
-    letterSpacing: 12 * -0.025,
-    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-    color: selected ? Colors.white : ClubGlass.t2,
-  );
+  static TextStyle chipText({required bool selected}) =>
+      filterChipTextStyle(selected: selected);
 }
 
 // ============================================================================

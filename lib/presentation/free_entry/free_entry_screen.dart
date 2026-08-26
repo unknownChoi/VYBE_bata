@@ -131,7 +131,6 @@ class _FreeEntryScreenState extends ConsumerState<FreeEntryScreen>
           active: _region,
           onChange: (r) => setState(() => _region = r),
           accent: kEntryAccent,
-          accentInk: kEntryInk,
           // '전체' 값은 필터 로직 유지, 표시만 '내 주변'.
           labelOf: (r) => r == kFilterAll ? '내 주변' : r,
           chipHPadding: 16,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/common/renew/renew_glass.dart';
 import 'package:vybe/presentation/common/widgets/vybe_meta_dot.dart';
 import 'package:vybe/presentation/common/widgets/vybe_recommend_badge.dart';
 import 'package:vybe/presentation/recommend/recommend_models.dart';
@@ -27,25 +28,18 @@ class RecommendFeatured extends StatelessWidget {
       child: GestureDetector(
         onTap: onOpen,
         behavior: HitTestBehavior.opaque,
-        child: Container(
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          color: VybeColors.gray900,
-          borderRadius: BorderRadius.circular(20.r),
+        // 회색 카드 대신 리퀴드 글래스 — 뒤 오로라가 큐레이터 노트 영역으로 비친다.
+        // 이미지가 위쪽을 덮어 블러는 노트 영역에서만 눈에 띈다.
+        child: RenewGlassCard(
+          radius: 20,
+          padding: 0,
+          child: Column(
+            children: [
+              _heroImage(),
+              _curatorNote(),
+            ],
+          ),
         ),
-        // 테두리는 자식 위에 그린다 — decoration 에 두면 클립된 자식이 코너 호에서
-        // 선을 덮어 직선부만 남고 모서리가 끊긴 것처럼 보인다.
-        foregroundDecoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20.r),
-          border: Border.all(color: VybeColors.gray800),
-        ),
-        child: Column(
-          children: [
-            _heroImage(),
-            _curatorNote(),
-          ],
-        ),
-      ),
       ),
     );
   }

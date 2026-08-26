@@ -6,9 +6,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/core/providers/auth_providers.dart';
 import 'package:vybe/core/providers/location_providers.dart';
 import 'package:vybe/design_system/colors.dart';
-import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/common/location_flip_mixin.dart';
-import 'package:vybe/presentation/common/widgets/vybe_pin_flip.dart';
+import 'package:vybe/presentation/common/widgets/vybe_location_chip.dart';
 import 'package:vybe/presentation/profile/viewmodels/user_viewmodel.dart';
 
 class HomeLocationGreeting extends ConsumerStatefulWidget {
@@ -67,53 +66,17 @@ class _HomeLocationGreetingState extends ConsumerState<HomeLocationGreeting>
     );
   }
 
-  // 위치 칩 — 평상시 [핀+텍스트], 로딩 시 텍스트 사라지며 원형으로 축소 + 핀 3D 플립.
+  // 위치 칩 — 공통 위젯 (VybeLocationChip). 라벨만 여기서 정한다.
   Widget _buildLocationChip() {
     // 라벨 = 지금 내 좌표가 속한 지역(예: '강남'). 등록된 지역 밖이면 '내 주변'.
     final locationLabel = ref.watch(userLocationProvider).areaLabel;
 
-    return GestureDetector(
+    return VybeLocationChip(
+      label: locationLabel,
+      loading: locLoading,
+      flip: flip,
       onTap: _onLocationTap,
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: kLocationChipShrinkDuration,
-        curve: Curves.easeInOut,
-        margin: EdgeInsets.only(bottom: 12.h),
-        // 로딩 중엔 사방 동일 패딩 → 핀을 감싸는 원형.
-        padding: locLoading
-            ? EdgeInsets.all(8.r)
-            : EdgeInsets.fromLTRB(9.w, 6.h, 12.w, 6.h),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(999.r),
-          border: Border.all(color: VybeColors.gray800),
-        ),
-        child: AnimatedSize(
-          duration: kLocationChipShrinkDuration,
-          curve: Curves.easeInOut,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              VybePinFlip(
-                animation: flip,
-                frontColor: VybeColors.mainLime500,
-                size: 14,
-              ),
-              // 로딩 중엔 텍스트 제거 → 너비 축소.
-              if (!locLoading) ...[
-                SizedBox(width: 5.w),
-                Text(
-                  locationLabel,
-                  style: VybeTypography.button2.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
+      margin: EdgeInsets.only(bottom: 12.h),
     );
   }
 }

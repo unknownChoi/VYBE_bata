@@ -18,7 +18,7 @@ import 'package:vybe/presentation/hip_hop/today_lineup_screen.dart';
 import 'package:vybe/presentation/hip_hop/viewmodels/hip_hop_viewmodel.dart';
 import 'package:vybe/presentation/hip_hop/widgets/hip_hop_chrome.dart';
 import 'package:vybe/presentation/hip_hop/widgets/hip_hop_dj_rail.dart';
-import 'package:vybe/presentation/hip_hop/widgets/hip_hop_hero.dart';
+import 'package:vybe/presentation/hip_hop/widgets/hip_hop_intro_hero.dart';
 import 'package:vybe/presentation/hip_hop/widgets/hip_hop_poster_card.dart';
 import 'package:vybe/presentation/main_scaffold/nav_bar_visibility_provider.dart';
 import 'package:vybe/presentation/nearby/viewmodels/nearby_search_provider.dart';
@@ -86,16 +86,6 @@ class _HipHopScreenState extends ConsumerState<HipHopScreen> {
     final me = ref.watch(userLocationProvider);
     final origin = (lat: me.lat, lng: me.lng);
 
-    // 배너 = 오늘 공연하는 클럽(클럽별 1개, featured 먼저 → 시작시각순).
-    final heroSrc =
-        (data?.headlinerByClub.values.toList() ?? <PerformanceModel>[])
-          ..sort((a, b) {
-            final f = (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0);
-            return f != 0 ? f : a.startAt.compareTo(b.startAt);
-          });
-    final heroes = heroSrc
-        .map((p) => hipHopHeroFrom(p, clubById[p.clubId], origin: origin))
-        .toList();
     // 아티스트 = 오늘 공연 전체(시작시각순).
     final djs = [
       for (var i = 0; i < perfs.length; i++) hipHopDjFrom(perfs[i], i),
@@ -117,17 +107,13 @@ class _HipHopScreenState extends ConsumerState<HipHopScreen> {
             Positioned.fill(
               child: ListView(
                 padding: EdgeInsets.only(bottom: bottomPad),
+                // ⚠ 튕김(오버스크롤) 금지 — 히어로가 상태바 뒤까지 올라가 있어서
+                // 위로 당기면 이미지 위에 배경이 드러난다.
+                physics: const ClampingScrollPhysics(),
                 children: [
-                  if (loading)
-                    VybeSkel(height: 440.h, radius: 0)
-                  else if (heroes.isNotEmpty)
-                    HipHopHeroCarousel(
-                      heroes: heroes,
-                      saved: _saved,
-                      onSave: _toggleSave,
-                    )
-                  else
-                    const HipHopHeroEmpty(),
+                  // 상단은 오늘 공연 캐러셀 대신 인트로 히어로 이미지.
+                  // 로딩 분기가 없다 — 로컬 asset이라 데이터와 무관하게 바로 그려진다.
+                  const HipHopIntroHero(),
                   // 오늘의 공연 아티스트 (항상 노출)
                   Padding(
                     padding: EdgeInsets.only(top: 24.h),

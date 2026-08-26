@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:vybe/design_system/colors.dart';
-import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/common/filter_chip_style.dart';
 
 /// 목록 화면 상단의 가로 스크롤 필터 칩 줄.
 ///
@@ -17,11 +16,9 @@ class VybeChipFilterBar extends StatelessWidget {
 
   final ValueChanged<String> onChange;
 
-  /// 선택된 칩 배경색.
+  /// 화면 액센트 색. 선택 **안 된** 칩의 아이콘 색에 쓴다
+  /// (칩 외형 자체는 화면과 무관하게 [VybeGlassFilterChip] — 주변 페이지와 같은 글래스 칩).
   final Color accent;
-
-  /// 선택된 칩 위에 얹는 글자·아이콘 색 ([accent] 위에서 읽히는 어두운 색).
-  final Color accentInk;
 
   /// 칩에 붙일 아이콘. null을 돌려주면 그 칩만 아이콘 없이 그린다
   /// (예: '전체'는 종류가 아니라 해제라 아이콘을 달지 않는다).
@@ -40,7 +37,6 @@ class VybeChipFilterBar extends StatelessWidget {
     required this.active,
     required this.onChange,
     required this.accent,
-    required this.accentInk,
     this.iconOf,
     this.labelOf,
     this.chipHPadding = 14,
@@ -57,69 +53,15 @@ class VybeChipFilterBar extends StatelessWidget {
         separatorBuilder: (_, __) => SizedBox(width: 8.w),
         itemBuilder: (_, i) {
           final option = options[i];
-          return _FilterChip(
+          return VybeGlassFilterChip(
             label: labelOf?.call(option) ?? option,
             selected: option == active,
             icon: iconOf?.call(option),
             accent: accent,
-            accentInk: accentInk,
             hPadding: chipHPadding,
             onTap: () => onChange(option),
           );
         },
-      ),
-    );
-  }
-}
-
-class _FilterChip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final IconData? icon;
-  final Color accent;
-  final Color accentInk;
-  final double hPadding;
-  final VoidCallback onTap;
-
-  const _FilterChip({
-    required this.label,
-    required this.selected,
-    required this.icon,
-    required this.accent,
-    required this.accentInk,
-    required this.hPadding,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final iconData = icon;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: hPadding.w),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: selected ? accent : VybeColors.gray900,
-          borderRadius: BorderRadius.circular(999.r),
-          border: selected ? null : Border.all(color: VybeColors.gray800),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (iconData != null) ...[
-              Icon(iconData, size: 13.r, color: selected ? accentInk : accent),
-              SizedBox(width: 4.w),
-            ],
-            Text(
-              label,
-              style: VybeTypography.button2.copyWith(
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                color: selected ? accentInk : VybeColors.gray300,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

@@ -24,7 +24,6 @@ class ServiceDrinksTypeFilter extends StatelessWidget {
       active: active,
       onChange: onChange,
       accent: kDrinkAccent,
-      accentInk: kDrinkInk,
       // '전체'는 종류가 아니라 해제라 술잔 아이콘을 달지 않는다.
       iconOf: (type) => type == kFilterAll ? null : Icons.liquor_rounded,
     );

@@ -6,9 +6,11 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/common/renew/renew_glass.dart';
+import 'package:vybe/presentation/edm/edm_screen.dart';
 import 'package:vybe/presentation/free_entry/free_entry_screen.dart';
 import 'package:vybe/presentation/hip_hop/hip_hop_screen.dart';
 import 'package:vybe/presentation/hot_places/hot_places_screen.dart';
+import 'package:vybe/presentation/kpop/kpop_screen.dart';
 import 'package:vybe/presentation/recommend/vybe_recommend_screen.dart';
 import 'package:vybe/presentation/service_drinks/service_drinks_screen.dart';
 
@@ -56,6 +58,8 @@ Widget _hotPlaces(BuildContext _) => const HotPlacesScreen();
 Widget _freeEntry(BuildContext _) => const FreeEntryScreen();
 Widget _serviceDrinks(BuildContext _) => const ServiceDrinksScreen();
 Widget _hipHop(BuildContext _) => const HipHopScreen();
+Widget _edm(BuildContext _) => const EdmScreen();
+Widget _kpop(BuildContext _) => const KpopScreen();
 
 const _categories = [
   CategoryItem(
@@ -87,10 +91,12 @@ const _categories = [
   CategoryItem(
     icon: 'assets/icons/home_screen/category_grid/edm.svg',
     label: 'EDM',
+    destination: _edm,
   ),
   CategoryItem(
     icon: 'assets/icons/home_screen/category_grid/hot_place.svg',
     label: 'K-POP',
+    destination: _kpop,
   ),
   CategoryItem(
     icon: 'assets/icons/home_screen/category_grid/vybe_recommend.svg',

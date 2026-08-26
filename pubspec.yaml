@@ -122,6 +122,9 @@ flutter:
     - assets/images/hot_places/
     - assets/images/free_entry/
     - assets/images/service_drinks/
+    - assets/images/hip_hop/
+    - assets/images/edm/
+    - assets/images/kpop/
 
     - assets/club_detail/images/
     - assets/club_detail/icons/
