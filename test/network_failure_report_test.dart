@@ -13,9 +13,13 @@ class _FakeNetwork extends DeviceNetworkDataSource {
   bool connected;
   int checks = 0;
 
+  /// 마지막 호출에 넘어온 도달 확인 횟수.
+  int lastAttempts = 0;
+
   @override
-  Future<bool> isConnected() async {
+  Future<bool> isConnected({int attempts = 1}) async {
     checks++;
+    lastAttempts = attempts;
     return connected;
   }
 
@@ -76,6 +80,18 @@ void main() {
       ]);
 
       expect(network.checks - afterBuild, 1);
+    });
+
+    test('재연결 경로는 도달 확인을 여러 번 한다 — 붙은 직후 DNS가 아직 안 잡힌다', () async {
+      container = makeContainer();
+      await container.read(networkStatusProvider.future);
+      expect(network.lastAttempts, 1); // 첫 진입은 스플래시를 안 붙잡게 1회
+
+      await container
+          .read(networkStatusProvider.notifier)
+          .recheck(attempts: kReconnectAttempts);
+
+      expect(network.lastAttempts, kReconnectAttempts);
     });
 
     test('재시도 버튼(recheck)은 디바운스와 무관하게 매번 확인한다', () async {

@@ -41,7 +41,8 @@ class ClubRepositoryImpl implements ClubRepository {
       _dataSource.getTimedFreeEntryClubs();
 
   @override
-  Future<List<ClubModel>> getHipHopClubs() => _dataSource.getHipHopClubs();
+  Future<List<ClubModel>> getClubsByGenre(String genre) =>
+      _dataSource.getClubsByGenre(genre);
 
   @override
   Stream<List<ClubModel>> watchActiveClubs() => _dataSource.watchActiveClubs();

@@ -580,16 +580,28 @@ grep -rn "border: Border.all" lib/presentation/   # 후보 추린 뒤 ClipRRect/
   **버전 조회·세션 복원보다 먼저** 걸린다(연결이 없으면 그것들은 타임아웃만 먹고
   빈 화면이 된다). 확인은 스플래시가 도는 동안 시작 —
   `splashDestinationProvider`가 `networkStatusProvider`를 보기 때문.
-  - 판정 2단계 — ① `connectivity_plus` 연결 종류(비행기 모드·데이터 꺼짐)
-    ② `InternetAddress.lookup('firestore.googleapis.com')` 실제 도달(공용 와이파이
-    로그인 페이지). **fail-open** — 플러그인 오류·조회 타임아웃·DNS 타임아웃은 전부
-    통과시킨다(확인 실패로 앱을 막으면 잘못된 차단). 판정은
+  - 판정 우선순위 (2026.08.28 수정) — ① `InternetAddress.lookup('firestore.googleapis.com')`
+    **실제 도달이 최우선**(성공=연결됨 / `SocketException`=연결 없음) ② 도달이 답을 못
+    냈을 때(타임아웃 등)만 `connectivity_plus` 연결 종류로 가른다 — 종류가 하나도
+    없으면 연결 없음, 그 외엔 통과. **fail-open** — 플러그인 오류·조회 타임아웃은
+    통과(확인 실패로 앱을 막으면 잘못된 차단). 판정은
     `data/datasources/local/device_network_datasource.dart` 한 곳
+    - ⚠ **연결 종류를 먼저 보고 끊지 않는다** — 와이파이가 막 붙었거나 기기가 상태를
+      늦게 갱신하면 종류와 실제 통신이 어긋나, 연결이 돌아왔는데도 안내 화면에 갇힌다
+    - ⚠ **도달 확인은 재연결 경로에서 여러 번**(`kReconnectAttempts` 3회 · 0.5초 간격).
+      붙은 직후엔 인터페이스만 올라오고 DNS는 아직 못 쓰는 구간이 있어, 한 번 실패로
+      오프라인을 확정하면 **다시 시도 버튼을 눌러도 계속 실패**한다.
+      첫 진입만 1회(스플래시를 붙잡지 않으려고)
   - 차단 화면 `widgets/network_error_screen.dart` (디자인 `network_error.jsx` 이식) —
     오로라 배경 + 신호없음 아이콘(`no_signal_icon.dart`, CustomPaint) + 다시 시도 +
     '네트워크 설정 열기'. 재시도 실패는 `VybeToast`(횟수 표기)
-  - 자동 복구 3경로 — 재시도 버튼 · 앱 복귀(`resumed`) · 기기 연결 변화 스트림.
-    설정에서 와이파이를 켜고 돌아오면 버튼을 안 눌러도 넘어간다
+  - 자동 복구 4경로 — 재시도 버튼 · 앱 복귀(`resumed`) · 기기 연결 변화 스트림 ·
+    **안내 화면이 떠 있는 동안 5초마다 도는 조용한 재확인**. 설정에서 와이파이를 켜고
+    돌아오면 버튼을 안 눌러도 넘어간다
+    - 주기 확인을 더한 이유 — 앞의 세 경로는 전부 '사건'에 걸려 있어, 연결 변화
+      이벤트를 놓치거나(확인 중에 흘러감) 종류는 그대로인데 회선만 살아난 경우에
+      **아무도 다시 확인하지 않는다**. 실패해도 토스트는 안 띄운다(사용자가 시킨
+      확인이 아니다)
   - ⚠ iOS는 와이파이 설정 직접 진입이 막혀 있어 '설정 열기'가 **앱 설정 화면**으로
     열린다(app_settings 폴백). Android는 와이파이 설정으로 직행
   - **화면 확인용 강제 오프라인** — `DeviceNetworkDataSource.debugForceOffline = true`
@@ -689,6 +701,27 @@ grep -rn "border: Border.all" lib/presentation/   # 후보 추린 뒤 ClipRRect/
     - 탈퇴 화면 타임라인·완료 오버레이 문구도 '보관 기간엔 로그인도 막힌다' → '다시 로그인하면
       복구된다'로 수정 (**새 가입은 여전히 파기일 이후**)
   - 배포 순서·주의는 아래 '미구현' 항목 참고. 상세 설계는 `firebase_structure.html#account-deletion`
+- **EDM 장르 페이지 (2026.08.28)** — `edm_renew.html` 디자인 이식. 인트로 히어로(기존 이미지) +
+  **DJ 타임테이블** + **주변 EDM 클럽 추천** 2섹션. 데이터는 오늘 `performances`(genre=EDM) +
+  `clubs`(genre=EDM) 실연동 — 조각은 `presentation/edm/`
+  (`edm_models.dart` · `viewmodels/edm_viewmodel.dart` · `widgets/edm_{timetable,set_card,club_grid,chrome,equalizer}.dart`)
+  - **디자인에 있지만 데이터가 없어 뺀 것** — 셋 종료 시각 · BPM(에너지 등급) · 셋 단위 세부 장르.
+    `performances`에 그 필드가 없다. 대신 **시작 후 60분 = 진행 중**(공용 `night_clock.dart` 규칙)으로
+    상태를 판정하고, 좌측 액센트 바 색·DJ 이름 색을 그 상태로 칠한다. 없는 값을 지어내지 않는다
+  - **세부 장르 칩은 오늘 셋에 실제로 있는 장르만** 만든다(`clubs.genreStyles` 첫 항목으로 묶음).
+    2종 미만이면 칩 줄 자체를 뺀다 — 눌러도 늘 0건인 칩은 화면만 차지한다
+  - ⚠ 판정 시각(`now`)은 **화면당 한 번** 읽어 목록 전체에 넘긴다. 카드마다 `DateTime.now()`를
+    다시 읽으면 같은 목록에서 NOW 마커와 카드 상태가 어긋난다(입장비 무료 페이지와 같은 규칙)
+  - **밤 시각 계산은 공용 `presentation/common/night_clock.dart` 하나** — 06시 미만은 +24h.
+    힙합 '오늘의 라인업'(`lineup_models.dart`)도 이걸 위임해서 쓴다. 두 화면이 같은 공연을
+    다른 상태로 말하면 안 되므로
+  - **포스터 카드는 공용으로 승격** — `common/widgets/vybe_club_poster_card.dart`
+    (`VybeClubPoster` + `VybeClubPosterCard`). 힙합 전용이던 것을 EDM이 그대로 쓰게 되면서 옮겼고,
+    화면마다 다른 건 액센트 색·LIVE 아이콘뿐이라 그 둘만 파라미터. `HipHopClub`은 typedef로 남겼다.
+    테스트도 `test/vybe_club_poster_card_test.dart`로 이동
+  - **클럽 조회는 `getClubsByGenre(genre)`로 일반화** (구 `getHipHopClubs()`) — 힙합·EDM이 같은 쿼리
+  - 그리드 타일은 디자인대로 **LIVE 뱃지를 안 단다** — 바로 위 타임테이블이 오늘 라인업을 이미 말한다
+  - 테스트 `test/edm_timetable_test.dart` 5건(진행 상태 표기 · 종료 공연 접기 · 장르 칩 · 빈 상태)
 
 ### 미구현 / 진행 중 ✗
 - **시간대별 무료입장 — 앱 전 화면 완료, Algolia 색인만 남음 (2026.08.21)**
@@ -779,6 +812,12 @@ grep -rn "border: Border.all" lib/presentation/   # 후보 추린 뒤 ClipRRect/
   ⑤ 실 데이터 입력 (현재는 seed 샘플 3곳뿐 — 실제 배치·가격 조사 필요)
   - 예약 기능은 **범위 밖** — 표시 전용이고 예약은 매장 전화로 안내한다
   - 절차 상세: `partner/README.md`
+- EDM 페이지 잔여 작업 — ① **`node scripts/seed_edm_genre_styles.js`** (EDM 클럽 30곳에
+  `genreStyles` 배정. 안 돌리면 타임테이블 **세부 장르 칩이 안 뜨고** 포스터 #태그가
+  `tags` 폴백('EDM'·'홍대')으로 나온다. 힙합 클럽은 `seed_performances.js`에서 이미 받았고
+  `seed_performances_sep.js`는 공연만 만들어 EDM 클럽만 비어 있다. `--dry` 확인 · `--force` 덮어쓰기)
+  ② 세부 장르 실제 조사 데이터 + 어드민 편집 UI (현재 배정은 clubId 해시 샘플)
+- K-POP 장르 페이지 본문 (`kpop_screen.dart` — 아직 인트로 히어로만. EDM과 같은 구조로 붙일 수 있다)
 - 패스·지갑 탭 (`pass_wallet_screen.dart` 플레이스홀더 — 현재 탭 슬롯엔 미연결)
 - 주변 페이지 ↔ 상세 페이지 연동 마무리 (최근 커밋 진행 중)
 - 마이페이지 세부 — 프로필 사진 변경(image_picker 설치됨 — 연결만 남음), 알림 화면
@@ -1065,8 +1104,11 @@ location            : object    // { lat: double, lng: double, geohash: string }
                                 //   geohash는 GeoQuery용 — location 맵 안에 포함됨 (최상위 아님)
                                 //   쿼리 시 'location.geohash' 필드 경로 사용
 genre               : string    // 주요 장르 (예: "힙합", "테크노", "팝")
-genreStyles         : array     // 세부 장르 스타일 태그 (예: ["트랩","붐뱁","드릴","올드스쿨","R&B"])
-                                //   장르 페이지(힙합 등) 포스터 카드 #태그 표시 + 추후 세부 필터용
+genreStyles         : array     // 세부 장르 스타일 태그 (예: ["트랩","붐뱁"] · ["빅룸","프로그레시브"])
+                                //   장르 페이지(힙합·EDM) 포스터 카드 #태그 + EDM 타임테이블 장르 칩
+                                //   ⚠ **첫 항목이 그 클럽의 대표 장르** — EDM 타임테이블 칩이 이 값으로 묶는다
+                                //   비어 있으면 앱은 tags → genre 순으로 폴백하고, 칩 줄은 아예 안 그린다
+                                //   seed: 힙합 `scripts/seed_performances.js` / EDM `scripts/seed_edm_genre_styles.js`
                                 //   검색(Algolia 인덱스 필드)과는 별개 — 혼용 금지
 rating              : double    // 평점 (ratingSum / reviewCount, Cloud Functions 자동 업데이트, 직접 수정 금지)
 ratingSum           : number    // 별점 합계 (Cloud Functions 자동 업데이트, 직접 수정 금지)
@@ -1434,8 +1476,26 @@ createdAt       : timestamp
 > "오늘 모든 힙합 클럽 공연을 시간순"으로 가져오는 크로스-클럽 쿼리이기 때문(서브컬렉션이면 collectionGroup 필요).
 > 문서 1개 = (클럽 × 날짜 × 공연). 같은 클럽이 여러 날 공연하면 doc 여러 개(clubId 동일, date·startAt 상이) → 멀티-날짜 저장.
 > 쿼리: `genre== + date==<today YYYYMMDD> + isActive==true orderBy(startAt asc)` → hero=isFeatured만 / rail=전체.
+> ⚠ **`isActive` 를 쿼리에서 빼면 안 된다 (2026.08.28 수정)** — 배포된 인덱스가
+> `(genre, date, isActive, startAt)` 이라, `isActive` 없이 `orderBy startAt` 만 걸면 정렬 필드
+> 앞에 제약 없는 `isActive` 가 끼어 **인덱스를 못 탄다**(`FAILED_PRECONDITION`).
+> 뷰모델이 이 예외를 삼켜(그리드는 살려야 하므로) 힙합·EDM 둘 다 **공연 일정이 조용히 빈
+> 화면**이었다. 전 문서가 `isActive: true` 라(633/633) 쿼리에 넣어도 누락 없음.
 > 포스터 그리드의 live·lineup은 오늘 공연 목록을 clubId로 머지해 도출(클럽에 저장 안 함 — 날짜 지나면 자동 무효).
-> 인덱스: `performances(genre, date, startAt)`. seed: `scripts/seed_performances.js`.
+> 인덱스: `performances(genre, date, isActive, startAt)`(배포본·`firestore.indexes.json` 일치).
+> seed: `scripts/seed_performances.js`(힙합 오늘/내일) ·
+> `scripts/seed_performances_july.js`(7월 전 클럽) · **`scripts/seed_performances_sep.js`(현행 — 2026.08.28 실행)**.
+> - `seed_performances_sep.js` — 실행일~9/30, **장르 힙합·EDM 클럽 52곳만**(나머지 112곳은 공연 없음).
+>   힙합은 `artistType` dj+rapper 혼합(2팀 이상이면 양쪽 최소 1팀), **EDM은 dj만**.
+>   ⚠ 공연일은 **클럽 영업일 안에서만** 잡는다 — DB의 클럽이 전부 목·금·토만 열어서,
+>   '주 2일 휴무'를 달력 그대로 적용하면 문 닫은 날 공연이 잡힌다. 대신 **목·금·토 중 매주
+>   랜덤 1일을 휴무**로 빼 주 2일 공연이 된다(영업일이 3일 미만인 부분 주는 휴무 없음).
+>   ⚠ 전 요일 영업인 예외 클럽 1곳 때문에 월·화·수·일이 후보일에 섞이면 휴무일 추첨이
+>   아무도 안 여는 날에 걸려 무의미해진다 → **대상 클럽의 25% 이상이 여는 요일만** 후보로 본다.
+>   난수는 전부 `clubId`·날짜 해시 기반이라 **재실행해도 같은 결과**(멱등, 잔여 doc 없음).
+>   `--dry` 확인만 · `--purge` 기존 문서 전삭제 후 재작성.
+>   실행 결과(2026.08.28): 공연일 10일(8/28·29, 9/4·5·10·11·17·19·25·26) / **doc 633개**
+>   (힙합 rapper 132 + dj 127, EDM dj 374) / hero `isFeatured` 30건.
 > ⚠ favoriteCount·rating 같은 집계 없음 → Cloud Functions 트리거 불필요(live/lineup은 클라 머지 계산).
 
 #### notices/{noticeId}

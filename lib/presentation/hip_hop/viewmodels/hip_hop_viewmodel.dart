@@ -36,7 +36,7 @@ class HipHopViewModel extends _$HipHopViewModel {
   Future<HipHopData> _load() async {
     // 클럽은 필수. 오늘 공연(performances)은 인덱스 미생성/데이터 없음 시
     // 실패해도 그리드(클럽 목록)는 보여야 하므로 비치명적으로 처리.
-    final clubsF = ref.read(clubRepositoryProvider).getHipHopClubs();
+    final clubsF = ref.read(clubRepositoryProvider).getClubsByGenre('힙합');
     final perfsF = ref
         .read(performanceRepositoryProvider)
         .getTodayPerformances()

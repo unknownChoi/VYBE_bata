@@ -48,8 +48,11 @@ class _NetworkGateState extends ConsumerState<NetworkGate>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // 설정에서 와이파이를 켜고 돌아온 경우 — 버튼을 다시 누르지 않아도 넘어간다.
+    // 막 붙은 직후라 도달 확인은 여러 번 본다.
     if (state == AppLifecycleState.resumed) {
-      ref.read(networkStatusProvider.notifier).recheck();
+      ref
+          .read(networkStatusProvider.notifier)
+          .recheck(attempts: kReconnectAttempts);
     }
   }
 

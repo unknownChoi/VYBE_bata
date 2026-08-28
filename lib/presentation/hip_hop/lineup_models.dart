@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/data/models/performance_model.dart';
 import 'package:vybe/presentation/clubs/club_detail_route.dart';
+import 'package:vybe/presentation/common/night_clock.dart';
 import 'package:vybe/presentation/hip_hop/hip_hop_gradients.dart';
 import 'package:vybe/presentation/hip_hop/hip_hop_style.dart';
 
@@ -49,32 +50,21 @@ LineupItem lineupItemFrom(PerformanceModel p, ClubModel? club) => LineupItem(
   bg: hipGradFor(p.clubId),
 );
 
-// "HH:mm" → 분. 새벽(06시 미만)은 +24h 취급 (밤 영업 연속성).
-int lineupToMinutes(String t) {
-  final parts = t.split(':');
-  var h = int.parse(parts[0]);
-  final m = int.parse(parts[1]);
-  if (h < 6) h += 24;
-  return h * 60 + m;
-}
+// 시각 계산은 공용 [night_clock] 단일 소스에 위임한다 — 힙합/EDM 타임라인이
+// 같은 공연을 다른 상태로 말하지 않게.
+int lineupToMinutes(String t) => nightMinutes(t);
 
-// 현재 시각 → 분(밤 영업 연속성 동일 규칙).
-int lineupNowMinutes() {
-  final now = DateTime.now();
-  var h = now.hour;
-  if (h < 6) h += 24;
-  return h * 60 + now.minute;
-}
+int lineupNowMinutes() => nightNowMinutes();
 
 enum LineupStatus { past, now, up }
 
 // 시작 후 60분 지나면 past, 시작~60분은 now, 이전은 up.
-LineupStatus lineupStatusOf(String t, int nowMin) {
-  final m = lineupToMinutes(t);
-  if (m <= nowMin - 60) return LineupStatus.past;
-  if (m <= nowMin) return LineupStatus.now;
-  return LineupStatus.up;
-}
+LineupStatus lineupStatusOf(String t, int nowMin) =>
+    switch (nightSlotStatus(t, nowMin)) {
+      NightSlotStatus.past => LineupStatus.past,
+      NightSlotStatus.live => LineupStatus.now,
+      NightSlotStatus.upcoming => LineupStatus.up,
+    };
 
 // 타입(래퍼/DJ) 뱃지 메타.
 class LineupTypeMeta {

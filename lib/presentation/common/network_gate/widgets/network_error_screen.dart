@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -13,6 +15,13 @@ import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
 /// 버튼이 깜빡이기만 해서 눌린 건지 알 수 없다.
 const Duration _kRetryMinDuration = Duration(milliseconds: 700);
 
+/// 화면이 떠 있는 동안 스스로 다시 확인하는 간격.
+///
+/// 자동 복구가 기기 연결 변화 이벤트에만 걸려 있으면, 그 이벤트를 놓치거나
+/// (확인 중에 흘러갔거나 종류가 안 바뀐 경우) 종류는 그대로인데 회선만 살아난
+/// 경우에 **연결이 돌아왔는데도 화면에 갇힌다.** 버튼을 안 눌러도 빠져나온다.
+const Duration _kAutoRetryInterval = Duration(seconds: 5);
+
 /// 네트워크 없음 안내 — 앱 최초 진입에서 연결이 없을 때 [NetworkGate] 가 그린다.
 ///
 /// 디자인 `network_error.jsx` 이식. 뒤로가기로 빠져나갈 수 없다
@@ -27,11 +36,46 @@ class NetworkErrorScreen extends ConsumerStatefulWidget {
 class _NetworkErrorScreenState extends ConsumerState<NetworkErrorScreen> {
   bool _retrying = false;
 
+  /// 조용한 주기 확인 — 진행 중이면 겹쳐 돌리지 않는다.
+  Timer? _autoRetry;
+  bool _autoBusy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _autoRetry = Timer.periodic(_kAutoRetryInterval, (_) => _autoCheck());
+  }
+
+  @override
+  void dispose() {
+    _autoRetry?.cancel();
+    super.dispose();
+  }
+
+  /// 버튼을 누르지 않아도 도는 확인. 성공하면 게이트가 이 화면을 빼므로
+  /// 여기선 아무것도 그리지 않는다(실패해도 토스트를 띄우지 않는다 —
+  /// 사용자가 시킨 적 없는 확인이라 조용해야 한다).
+  Future<void> _autoCheck() async {
+    if (_retrying || _autoBusy) return;
+    _autoBusy = true;
+    try {
+      await ref
+          .read(networkStatusProvider.notifier)
+          .recheck(attempts: kReconnectAttempts);
+    } finally {
+      _autoBusy = false;
+    }
+  }
+
   Future<void> _retry() async {
     if (_retrying) return;
     setState(() => _retrying = true);
 
-    final connected = await ref.read(networkStatusProvider.notifier).recheck();
+    // 재연결 직후엔 DNS가 잡히기까지 잠깐 걸린다 — 여러 번 본다
+    // (한 번만 보면 방금 붙은 와이파이를 계속 '연결 없음'으로 읽는다).
+    final connected = await ref
+        .read(networkStatusProvider.notifier)
+        .recheck(attempts: kReconnectAttempts);
     // 확인이 먼저 끝나도 스피너를 최소 시간은 채운다.
     await Future<void>.delayed(_kRetryMinDuration);
     if (!mounted) return;

@@ -2,18 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vybe/design_system/colors.dart';
+import 'package:vybe/presentation/common/widgets/vybe_club_poster_card.dart';
 import 'package:vybe/presentation/common/widgets/vybe_recommend_badge.dart';
-import 'package:vybe/presentation/hip_hop/hip_hop_view_models.dart';
-import 'package:vybe/presentation/hip_hop/widgets/hip_hop_poster_card.dart';
 
 /// 포스터 카드 — 큰 build 하나를 조각 위젯으로 나눈 뒤에도 같은 것이 보이는지.
 
-HipHopClub _club({
+VybeClubPoster _club({
   bool live = true,
   bool open = true,
   bool vybe = true,
   List<String> styles = const ['트랩', '붐뱁'],
-}) => HipHopClub(
+}) => VybeClubPoster(
   id: 'c1',
   name: '어썸 레드',
   area: '홍대',
@@ -33,7 +32,7 @@ HipHopClub _club({
 /// 글자 하나가 폰트 크기만큼의 정사각형이라 Pretendard보다 훨씬 넓다.
 /// 그 폭으로 실제 칸 크기를 쓰면 실기기에 없는 오버플로가 잡히므로
 /// 글자 폭 차이만큼 넉넉한 칸을 준다 (검증 대상은 폭이 아니라 구성 요소다).
-Widget _host(HipHopClub club, {bool saved = false}) => ScreenUtilInit(
+Widget _host(VybeClubPoster club, {bool saved = false}) => ScreenUtilInit(
   designSize: const Size(393, 852),
   builder: (_, __) => MaterialApp(
     home: Scaffold(
@@ -42,7 +41,7 @@ Widget _host(HipHopClub club, {bool saved = false}) => ScreenUtilInit(
         child: SizedBox(
           width: 260,
           height: 360,
-          child: HipHopPosterCard(
+          child: VybeClubPosterCard(
             club: club,
             saved: saved,
             onSave: () {},

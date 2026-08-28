@@ -9,7 +9,7 @@ class FirebasePerformanceDataSource {
   FirebasePerformanceDataSource() : _firestore = FirebaseFirestore.instance;
 
   /// 오늘(KST) 해당 장르의 공연을 시작시각 오름차순으로 조회.
-  /// genre + date(YYYYMMDD) + isActive 복합 인덱스 사용.
+  /// 인덱스 (genre, date, isActive, startAt) — 네 필드 전부 쿼리에 쓴다.
   /// date 미지정 시 현재 KST 날짜 자동 계산.
   Future<List<PerformanceModel>> getTodayPerformances({
     String genre = '힙합',
@@ -19,21 +19,21 @@ class FirebasePerformanceDataSource {
     logFirebaseAccess(
       file: 'firebase_performance_datasource.dart',
       service:
-          "Firestore(performances) [where genre='$genre', date='$bucket', orderBy startAt]",
+          "Firestore(performances) [where genre='$genre', date='$bucket', isActive=true, orderBy startAt]",
       purpose: '장르 페이지 오늘 공연 일정 조회',
     );
-    // 인덱스 (genre, date, startAt) 사용. isActive는 클라에서 필터
-    // (3개 equality + orderBy 동시 사용 시 추가 인덱스 필요 → 회피).
+    // ⚠ isActive 를 **쿼리에** 넣어야 한다 — 배포된 인덱스가
+    // (genre, date, isActive, startAt) 라, isActive 없이 orderBy startAt 를 걸면
+    // 정렬 필드 앞에 제약 없는 isActive 가 끼어 인덱스를 못 탄다
+    // (FAILED_PRECONDITION → 호출부가 삼켜서 '공연 없음'으로 조용히 빈 화면이 됐다).
     final snapshot = await _firestore
         .collection(FirestorePaths.performances)
         .where('genre', isEqualTo: genre)
         .where('date', isEqualTo: bucket)
+        .where('isActive', isEqualTo: true)
         .orderBy('startAt')
         .get();
-    return snapshot.docs
-        .map(PerformanceModel.fromFirestore)
-        .where((p) => p.isActive)
-        .toList();
+    return snapshot.docs.map(PerformanceModel.fromFirestore).toList();
   }
 
   /// 특정 클럽의 다가오는 공연(오늘 밤 이후) 시작시각 오름차순 조회.

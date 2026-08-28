@@ -3,6 +3,7 @@ import 'package:vybe/core/constants/app_geo.dart';
 import 'package:vybe/core/utils/geohash_utils.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/data/models/performance_model.dart';
+import 'package:vybe/presentation/common/widgets/vybe_club_poster_card.dart';
 import 'package:vybe/presentation/hip_hop/hip_hop_gradients.dart';
 
 // 힙합 페이지 표시 모델 — Firestore 모델(ClubModel·PerformanceModel)을
@@ -28,36 +29,9 @@ class HipHopDj {
   });
 }
 
-class HipHopClub {
-  final String id;
-  final String name;
-  final String area;
-  final double dist;
-  final double rating;
-  final int reviews;
-  final List<String> styles;
-  final String lineup;
-  final bool live;
-  final bool open;
-  final String thumbnailUrl;
-  final List<Color> bg;
-  final bool vybe; // isVybeRecommended — VYBE 추천 뱃지 노출
-  const HipHopClub({
-    required this.id,
-    required this.name,
-    required this.area,
-    required this.dist,
-    required this.rating,
-    required this.reviews,
-    required this.styles,
-    required this.lineup,
-    required this.live,
-    required this.open,
-    required this.thumbnailUrl,
-    required this.bg,
-    required this.vybe,
-  });
-}
+// 포스터 카드 뷰모델은 공용([VybeClubPoster]) — EDM 페이지가 같은 카드를 쓰면서
+// 힙합 전용 클래스에서 승격했다. 힙합 코드가 부르던 이름은 그대로 둔다.
+typedef HipHopClub = VybeClubPoster;
 
 // 내 위치 기준 거리(km) — 표시용.
 // [origin]을 안 주면 홍대 좌표 기준 (위치를 못 받았을 때의 폴백, AppGeo와 동일).

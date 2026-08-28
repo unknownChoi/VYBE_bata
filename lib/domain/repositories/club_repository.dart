@@ -34,7 +34,8 @@ abstract class ClubRepository {
 
   /// 시간대 무료입장(freeEntry.type='timed') 클럽. 홈 '이 시간에만 무료입장' 섹션.
   Future<List<ClubModel>> getTimedFreeEntryClubs();
-  Future<List<ClubModel>> getHipHopClubs();
+  /// 장르 페이지(힙합·EDM …) — clubs.genre 가 [genre] 인 활성 클럽.
+  Future<List<ClubModel>> getClubsByGenre(String genre);
   Stream<List<ClubModel>> watchActiveClubs();
   Future<ClubModel?> getClub(String clubId);
   Future<ClubInfoModel?> getClubInfo(String clubId);

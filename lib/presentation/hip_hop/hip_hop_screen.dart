@@ -9,6 +9,7 @@ import 'package:vybe/data/models/performance_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/clubs/club_detail_route.dart';
+import 'package:vybe/presentation/common/widgets/vybe_club_poster_card.dart';
 import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 import 'package:vybe/presentation/hip_hop/hip_hop_gradients.dart';
@@ -19,7 +20,6 @@ import 'package:vybe/presentation/hip_hop/viewmodels/hip_hop_viewmodel.dart';
 import 'package:vybe/presentation/hip_hop/widgets/hip_hop_chrome.dart';
 import 'package:vybe/presentation/hip_hop/widgets/hip_hop_dj_rail.dart';
 import 'package:vybe/presentation/hip_hop/widgets/hip_hop_intro_hero.dart';
-import 'package:vybe/presentation/hip_hop/widgets/hip_hop_poster_card.dart';
 import 'package:vybe/presentation/main_scaffold/nav_bar_visibility_provider.dart';
 import 'package:vybe/presentation/nearby/viewmodels/nearby_search_provider.dart';
 
@@ -229,7 +229,7 @@ class _HipHopScreenState extends ConsumerState<HipHopScreen> {
                         childAspectRatio: 3 / 4,
                         children: grid
                             .map(
-                              (c) => HipHopPosterCard(
+                              (c) => VybeClubPosterCard(
                                 club: c,
                                 saved: _saved.contains(c.id),
                                 onSave: () => _toggleSave(c.id),

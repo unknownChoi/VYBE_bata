@@ -21,13 +21,6 @@ const hipFallbackGradients = <List<Color>>[
 List<Color> hipGradFor(String clubId) =>
     hipFallbackGradients[clubId.hashCode.abs() % hipFallbackGradients.length];
 
-// 150deg 그라데이션 근사 (디자인 색/순서 유지, 각도만 근사).
-LinearGradient hipHopSlideGradient(List<Color> colors) => LinearGradient(
-  begin: const Alignment(-0.5, -0.87),
-  end: const Alignment(0.5, 0.87),
-  colors: colors,
-);
-
 // 힙합 페이지 배경 — 공용 [VybeAurora]에 골드/보라만 얹은 것.
 // Stack 최하단 Positioned.fill에 IgnorePointer로 배치.
 class HipBackdrop extends StatelessWidget {

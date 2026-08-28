@@ -6,6 +6,13 @@ part 'network_status_viewmodel.g.dart';
 /// 요청 실패가 몰릴 때 연결 확인을 접는 간격.
 const Duration _kFailureDebounce = Duration(seconds: 3);
 
+/// "방금 연결됐을 수 있다"고 볼 만한 순간의 도달 확인 횟수.
+///
+/// 재시도 버튼 · 앱 복귀 · 기기 연결 변화가 여기 해당한다. 와이파이가 붙은
+/// 직후엔 인터페이스만 올라오고 DNS는 아직 못 쓰는 구간이 있어, 한 번만 보고
+/// 오프라인을 확정하면 **연결이 돌아왔는데도 안내 화면에서 못 빠져나온다.**
+const int kReconnectAttempts = 3;
+
 /// 기기 네트워크 연결 상태. `true` = 연결됨.
 ///
 /// 앱 첫 로딩(스플래시)에서 [SplashDestination] 판정이 이 provider를 보며 시작되고,
@@ -31,7 +38,7 @@ class NetworkStatus extends _$NetworkStatus {
     // 스트림 에러는 흘려보낸다 — 구독이 끊겨도 재시도 버튼·앱 복귀 경로가 남는다.
     final subscription = dataSource
         .connectionChanges()
-        .listen((_) => recheck(), onError: (_) {});
+        .listen((_) => recheck(attempts: kReconnectAttempts), onError: (_) {});
     ref.onDispose(subscription.cancel);
 
     return dataSource.isConnected();
@@ -42,12 +49,15 @@ class NetworkStatus extends _$NetworkStatus {
   /// 재시도 버튼 · 앱 복귀(resumed) · 기기 연결 변화 · 요청 실패에서 호출.
   /// 확인 중에도 직전 결과를 유지한다(로딩으로 되돌리면 차단 화면이 스플래시로
   /// 깜빡인다 — 재시도 중 표시는 화면이 자기 상태로 그린다).
-  Future<bool> recheck() async {
+  ///
+  /// [attempts] 는 도달 확인을 몇 번까지 다시 해 볼지 — 재연결 직후 경로는
+  /// [kReconnectAttempts] 를 넘긴다.
+  Future<bool> recheck({int attempts = 1}) async {
     _checking = true;
     try {
       final connected = await ref
           .read(deviceNetworkDataSourceProvider)
-          .isConnected();
+          .isConnected(attempts: attempts);
       _lastCheckedAt = DateTime.now();
       if (!ref.mounted) return connected;
       state = AsyncData(connected);

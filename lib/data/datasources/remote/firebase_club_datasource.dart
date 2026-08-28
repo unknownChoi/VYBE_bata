@@ -92,16 +92,16 @@ class FirebaseClubDataSource {
 
   /// 힙합 클럽 목록(genre=힙합). 힙합 페이지 인기 클럽 TOP 10 데이터 소스.
   /// 정렬(평점/리뷰순)·상위 N개는 화면에서 처리.
-  Future<List<ClubModel>> getHipHopClubs() async {
+  Future<List<ClubModel>> getClubsByGenre(String genre) async {
     logFirebaseAccess(
       file: 'firebase_club_datasource.dart',
-      service: "Firestore(clubs) [where isActive=true, genre='힙합']",
-      purpose: '힙합 장르 클럽 목록 조회',
+      service: "Firestore(clubs) [where isActive=true, genre='$genre']",
+      purpose: '장르 페이지(힙합·EDM …) 클럽 목록 조회',
     );
     final snapshot = await _firestore
         .collection(FirestorePaths.clubs)
         .where('isActive', isEqualTo: true)
-        .where('genre', isEqualTo: '힙합')
+        .where('genre', isEqualTo: genre)
         .get();
     return snapshot.docs.map(ClubModel.fromFirestore).toList();
   }
