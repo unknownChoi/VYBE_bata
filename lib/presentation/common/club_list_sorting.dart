@@ -3,12 +3,18 @@
 /// 순수 함수만 둔다 — Flutter·Firebase 의존 없음.
 library;
 
+import 'package:vybe/core/utils/geohash_utils.dart';
+
 /// 목록 정렬에 필요한 최소 필드. 화면별 카드 뷰모델이 구현한다.
 abstract interface class ClubSortable {
   /// 클럽 지역 (예: '홍대').
   String get area;
 
-  /// 내 위치 기준 거리(km). [ClubAreaDistance.estimate] 로 채운다.
+  /// 클럽 좌표. 둘 다 0이면 좌표 없음으로 보고 [ClubAreaDistance] 표로 떨어진다.
+  double get lat;
+  double get lng;
+
+  /// 내 위치 기준 거리(km). [buildClubList] 가 채운다.
   double get dist;
 
   double get rating;
@@ -37,9 +43,12 @@ int compareClubs(ClubSortable a, ClubSortable b, String sort) {
   return a.dist.compareTo(b.dist);
 }
 
-/// 내 위치(지역) → 클럽 지역 대략 거리 추정.
+/// 내 위치(지역) → 클럽 지역 대략 거리 추정. **좌표가 없을 때만 쓰는 폴백.**
 ///
-/// 클럽마다 정확한 좌표 거리를 매번 구하지 않고, 지역 간 대표 거리표를 쓴다.
+/// ⚠ 표에 있는 5개 상권끼리만 값이 있다 — 내 위치가 '신촌'·'마포구'처럼 표에 없는
+/// 지역이면 전부 [estimate] 의 fallback(대개 0)으로 떨어져 거리가 0km로 보인다.
+/// 그래서 좌표를 아는 클럽은 [buildClubList] 가 haversine 실거리를 먼저 쓴다.
+///
 /// 같은 지역 클럽이 전부 같은 거리로 뭉치지 않도록 인덱스 기반 미세 편차를 더한다
 /// (결정적 — 리스트를 다시 그려도 순서가 흔들리지 않음).
 class ClubAreaDistance {
@@ -71,27 +80,34 @@ class ClubAreaDistance {
 ///
 /// [withDist] 는 거리만 바꾼 복사본을 돌려주는 함수(`copyWithDist`),
 /// [keep] 은 필터 술어(null이면 전부 통과).
+///
+/// 거리는 **내 좌표([myLat]·[myLng])와 클럽 좌표의 haversine 실거리**가 기본이다.
+/// 둘 중 한쪽이라도 좌표가 없을 때만 [loc] 기준 [ClubAreaDistance] 표로 떨어진다 —
+/// 표는 상권 5곳끼리만 값이 있어 '신촌'·'마포구'에 있으면 전부 0km가 되기 때문.
 List<T> buildClubList<T extends ClubSortable>(
   List<T> source, {
   required String loc,
   required String sort,
   required T Function(T item, double dist) withDist,
+  double? myLat,
+  double? myLng,
   bool Function(T item)? keep,
 }) {
+  final hasMe = myLat != null && myLng != null && !(myLat == 0 && myLng == 0);
+
   final mapped = <T>[];
   for (var i = 0; i < source.length; i++) {
     final item = source[i];
-    mapped.add(
-      withDist(
-        item,
-        ClubAreaDistance.estimate(
-          from: loc,
-          to: item.area,
-          index: i,
-          fallback: item.dist,
-        ),
-      ),
-    );
+    final hasClub = !(item.lat == 0 && item.lng == 0);
+    final km = hasMe && hasClub
+        ? GeohashUtils.haversineKm(myLat, myLng, item.lat, item.lng)
+        : ClubAreaDistance.estimate(
+            from: loc,
+            to: item.area,
+            index: i,
+            fallback: item.dist,
+          );
+    mapped.add(withDist(item, (km * 10).round() / 10));
   }
   final list = keep == null ? mapped : mapped.where(keep).toList();
   return list..sort((a, b) => compareClubs(a, b, sort));

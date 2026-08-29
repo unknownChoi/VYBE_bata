@@ -18,9 +18,11 @@ class AppGeo {
 
   /// true면 기기 GPS를 아예 읽지 않고 항상 홍대 좌표로 고정한다.
   ///
-  /// 예전(위치 연동 전) 동작 그대로 — 지역이 홍대로 고정된 상태를 다시 보고 싶을 때
-  /// 이 값만 true로 바꾼다. 판정은 `UserLocationNotifier.resolveFromDevice()` 한 곳.
-  static const useFixedLocation = true;
+  /// **평소엔 false** — 실제 기기 위치를 쓴다. 예전(위치 연동 전) 동작처럼 지역을
+  /// 홍대로 묶어 두고 화면을 확인하고 싶을 때만 잠깐 true로 바꾼다(권한 팝업도 안 뜸).
+  /// ⚠ true인 채로 커밋하면 모든 기기가 홍대로 보인다. 판정은
+  /// `UserLocationNotifier.resolveFromDevice()` 한 곳.
+  static const useFixedLocation = false;
 
   /// 국내 어느 시군구에도 안 잡힐 때(해외 등) 위치 칩에 쓰는 라벨.
   ///

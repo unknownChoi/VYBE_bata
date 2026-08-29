@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:404505336223:android:1cd58df25533020cb545aa",
+        "mobilesdk_app_id": "1:404505336223:android:9765790c109a14e3b545aa",
         "android_client_info": {
-          "package_name": "com.example.vybe"
+          "package_name": "com.justinchoi.vybe"
         }
       },
       "oauth_client": [],

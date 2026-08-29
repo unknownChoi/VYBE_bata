@@ -1,8 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:vybe/core/constants/app_geo.dart';
 import 'package:vybe/core/providers/auth_providers.dart';
+import 'package:vybe/core/providers/location_providers.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/clubs/club_detail_route.dart';
@@ -36,22 +38,30 @@ class ServiceDrinksScreen extends ConsumerStatefulWidget {
 class _ServiceDrinksScreenState extends ConsumerState<ServiceDrinksScreen>
     with SingleTickerProviderStateMixin, LocationFlipMixin {
   String _type = kFilterAll;
-  String _loc = AppGeo.hongdaeLabel;
   String _sort = kClubSorts.first;
 
-  /// 위치 칩 탭 → 칩 원형 축소 후 핀 플립 → 내 위치 인식 (홈스크린과 동일 패턴).
-  void _onLocationTap() =>
-      runLocationFlip(onResolved: () => _loc = AppGeo.hongdaeLabel);
+  /// 위치 칩 탭 → 칩 원형 축소 후 핀 플립 → 기기 GPS 재조회 (홈스크린과 동일 패턴).
+  /// 라벨·좌표는 userLocationProvider가 들고 있어 여기서 대입할 상태가 없다.
+  void _onLocationTap() {
+    unawaited(ref.read(userLocationProvider.notifier).resolveFromDevice());
+    runLocationFlip(onResolved: () {});
+  }
 
   /// 실데이터 → 내 위치 기준 거리 재계산 → 종류 필터 → 정렬.
-  List<ServiceDrinkClub> _filtered(List<ServiceDrinkClub> source) =>
-      buildClubList(
-        source,
-        loc: _loc,
-        sort: _sort,
-        withDist: (c, d) => c.copyWithDist(d),
-        keep: (c) => _type == kFilterAll || c.drinks.contains(_type),
-      );
+  ///
+  /// 거리는 내 좌표와 클럽 좌표의 haversine 실거리 (`buildClubList` 안에서).
+  List<ServiceDrinkClub> _filtered(List<ServiceDrinkClub> source) {
+    final me = ref.watch(userLocationProvider);
+    return buildClubList(
+      source,
+      loc: me.area ?? '',
+      myLat: me.lat,
+      myLng: me.lng,
+      sort: _sort,
+      withDist: (c, d) => c.copyWithDist(d),
+      keep: (c) => _type == kFilterAll || c.drinks.contains(_type),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -106,7 +116,7 @@ class _ServiceDrinksScreenState extends ConsumerState<ServiceDrinksScreen>
     const ServiceDrinksHero(),
     SizedBox(height: 8.h),
     VybeLocationSortBar(
-      loc: _loc,
+      loc: ref.watch(userLocationProvider).areaLabel,
       sort: _sort,
       sorts: kClubSorts,
       locLoading: locLoading,

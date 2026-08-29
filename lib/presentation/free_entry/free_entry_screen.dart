@@ -1,8 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:vybe/core/constants/app_geo.dart';
 import 'package:vybe/core/providers/auth_providers.dart';
+import 'package:vybe/core/providers/location_providers.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/presentation/clubs/club_detail_route.dart';
 import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
@@ -34,28 +36,30 @@ class FreeEntryScreen extends ConsumerStatefulWidget {
 class _FreeEntryScreenState extends ConsumerState<FreeEntryScreen>
     with SingleTickerProviderStateMixin, LocationFlipMixin {
   String _region = kFilterAll;
-  String _loc = AppGeo.hongdaeLabel;
 
   /// 기본은 '지금 무료순' — 이 화면에 온 이유가 "지금 들어갈 수 있는 곳"이라서.
   String _sort = kEntrySorts.first;
 
-  // 위치 칩 탭 → 칩 원형 축소 후 핀 플립 → 내 위치 인식 (서비스 음료와 동일 패턴).
+  // 위치 칩 탭 → 칩 원형 축소 후 핀 플립 → 기기 GPS 재조회 (홈 인사말과 동일 패턴).
+  // 라벨·좌표는 userLocationProvider가 들고 있어 여기서 대입할 상태가 없다.
   void _onLocationTap() {
-    // 홍대 좌표로 인식 → 검색 로딩 시작. (홈·주변 페이지 최초 로딩 좌표와 동일)
-    debugPrint(
-      '위치 선택: ${AppGeo.hongdaeLabel} (${AppGeo.hongdaeLat}, ${AppGeo.hongdaeLng})',
-    );
-    runLocationFlip(onResolved: () => _loc = AppGeo.hongdaeLabel);
+    unawaited(ref.read(userLocationProvider.notifier).resolveFromDevice());
+    runLocationFlip(onResolved: () {});
   }
 
   /// source(실데이터) → 내 위치 기준 거리 재계산 → 지역 필터 → 정렬.
   ///
+  /// 거리는 내 좌표와 클럽 좌표의 haversine 실거리 (`buildClubList` 안에서).
+  ///
   /// '지금 무료순'은 공용 `compareClubs`가 모르는 값이라 여기서 다시 정렬한다
   /// (`buildClubList`에 넘기면 알 수 없는 값 → 거리순으로 조용히 떨어진다).
   List<FreeEntryClub> _filtered(List<FreeEntryClub> source) {
+    final me = ref.watch(userLocationProvider);
     final list = buildClubList(
       source,
-      loc: _loc,
+      loc: me.area ?? '',
+      myLat: me.lat,
+      myLng: me.lng,
       sort: _sort,
       withDist: (c, d) => c.copyWithDist(d),
       keep: (c) => _region == kFilterAll || c.area == _region,
@@ -117,7 +121,7 @@ class _FreeEntryScreenState extends ConsumerState<FreeEntryScreen>
         const FreeEntryHero(),
         SizedBox(height: 8.h),
         VybeLocationSortBar(
-          loc: _loc,
+          loc: ref.watch(userLocationProvider).areaLabel,
           sort: _sort,
           sorts: kEntrySorts,
           locLoading: locLoading,

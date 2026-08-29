@@ -52,7 +52,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyBmyU3TuQwx8fSqzJy5KlgBG4M6NQI-JOc',
-    appId: '1:404505336223:android:1cd58df25533020cb545aa',
+    appId: '1:404505336223:android:9765790c109a14e3b545aa',
     messagingSenderId: '404505336223',
     projectId: 'vybe-bata-c07aa',
     storageBucket: 'vybe-bata-c07aa.firebasestorage.app',
@@ -60,20 +60,20 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyBf-GS6Msp01ps7-Jvaua216DutifNqMiQ',
-    appId: '1:404505336223:ios:98089f31b00f8558b545aa',
+    appId: '1:404505336223:ios:efc994b69fc22384b545aa',
     messagingSenderId: '404505336223',
     projectId: 'vybe-bata-c07aa',
     storageBucket: 'vybe-bata-c07aa.firebasestorage.app',
-    iosBundleId: 'com.example.vybe',
+    iosBundleId: 'com.justinchoi.vybe',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyBf-GS6Msp01ps7-Jvaua216DutifNqMiQ',
-    appId: '1:404505336223:ios:98089f31b00f8558b545aa',
+    appId: '1:404505336223:ios:efc994b69fc22384b545aa',
     messagingSenderId: '404505336223',
     projectId: 'vybe-bata-c07aa',
     storageBucket: 'vybe-bata-c07aa.firebasestorage.app',
-    iosBundleId: 'com.example.vybe',
+    iosBundleId: 'com.justinchoi.vybe',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(

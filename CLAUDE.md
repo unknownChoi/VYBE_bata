@@ -640,8 +640,19 @@ grep -rn "border: Border.all" lib/presentation/   # 후보 추린 뒤 ClipRRect/
       지킨다. 상권 2km가 시군구보다 먼저라 홍대에 있으면 '마포구'가 아니라 '홍대'로 뜬다
   - 홈 '주변 클럽'은 3 → 10 → 30km로 반경을 넓혀 가까운 순 5곳. 다 비면 홍대로 폴백
     (섹션을 비우느니 보여준다)
-  - ⚠ **홍대 고정으로 되돌리려면 `AppGeo.useFixedLocation = true`** 하나만 바꾼다
-    (GPS를 아예 안 읽어 권한 팝업도 안 뜬다). 홍대 좌표·라벨 상수는 그대로 살아 있다
+  - **`AppGeo.useFixedLocation` 은 false 가 정상** (2026.08.28 — true로 켜져 있던 걸 껐다).
+    true면 GPS를 아예 안 읽고 전 화면이 홍대로 고정된다(권한 팝업도 안 뜸) — 화면 확인용
+    스위치이므로 **true인 채로 커밋하지 말 것**. 홍대 좌표·라벨 상수는 폴백으로 그대로 산다
+  - **입장비 무료 · 서비스 음료도 실 위치 연동 완료 (2026.08.28)** — 두 화면 위치 칩이
+    `userLocationProvider.areaLabel` 을 읽고, 칩을 누르면 홈 인사말과 같이
+    `resolveFromDevice()` 로 GPS를 다시 읽는다. 거리는 `buildClubList` 가
+    **내 좌표 × 클럽 좌표 haversine 실거리**로 계산한다
+    - ⚠ `ClubAreaDistance` 지역 간 거리표는 **좌표가 없을 때만 쓰는 폴백**으로 남겼다 —
+      표는 상권 5곳끼리만 값이 있어 내 위치가 '신촌'·'마포구'면 전부 0km가 된다.
+      그래서 좌표를 아는 클럽은 무조건 haversine이 먼저다
+    - 카드 뷰모델(`FreeEntryClub`·`ServiceDrinkClub`)이 `lat`·`lng` 를 싣는다
+      (`ClubSortable` 인터페이스에 추가). 둘 다 0이면 좌표 없음으로 보고 표로 떨어진다
+    - 테스트 `test/club_list_sorting_test.dart` 5건 (haversine 우선 · 표 폴백 · 0km 뭉침 회귀)
   - 위치 권한 문구는 이미 설정돼 있음 — Android `ACCESS_FINE/COARSE_LOCATION`,
     iOS `NSLocationWhenInUseUsageDescription`
 - **회원 탈퇴 — 30일 보관 soft delete (2026.08.17, 서버 배포 완료 · 앱 배포만 남음)**
@@ -844,11 +855,6 @@ grep -rn "border: Border.all" lib/presentation/   # 후보 추린 뒤 ClipRRect/
   ② Android `applicationId`가 아직 `com.example.vybe`(Flutter 기본값) — **Play 스토어 게시 불가**.
   실제 패키지명 확정 필요 (`storeUrl`은 비워 두면 설치된 패키지명으로 폴백하므로 그때도 수정 불필요)
   ③ 어드민 페이지에 버전 정책 편집 UI
-- 위치 연동 잔여 작업 — 입장비 무료(`free_entry`) · 서비스 음료(`service_drinks`)
-  위치 칩이 아직 `AppGeo.hongdaeLabel` 고정. 두 화면은 좌표가 아니라
-  `ClubAreaDistance` 지역 간 거리표(홍대·강남·이태원·압구정·건대)로 거리를 추정해서,
-  라벨만 실제 지역으로 바꾸면 표에 없는 지역('신촌'·'내 주변')일 때 거리가 전부 0이 된다.
-  → 카드 뷰모델에 클럽 좌표를 실어 실제 haversine 거리로 바꾸는 작업이 선행돼야 함
 - Storage Security Rules 배포 검증 (Firestore Rules는 배포됨)
 - Apple 로그인 (이후 구현)
 

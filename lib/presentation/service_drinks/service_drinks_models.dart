@@ -15,6 +15,13 @@ class ServiceDrinkClub implements ClubSortable {
   @override
   final String area;
   final String genre;
+
+  /// 클럽 좌표 — 내 위치와의 haversine 실거리 계산에 쓴다(0이면 좌표 없음).
+  @override
+  final double lat;
+  @override
+  final double lng;
+
   @override
   final double dist;
   @override
@@ -43,6 +50,8 @@ class ServiceDrinkClub implements ClubSortable {
     required this.name,
     required this.area,
     required this.genre,
+    required this.lat,
+    required this.lng,
     required this.dist,
     required this.rating,
     required this.perk,
@@ -59,6 +68,8 @@ class ServiceDrinkClub implements ClubSortable {
     name: name,
     area: area,
     genre: genre,
+    lat: lat,
+    lng: lng,
     dist: d,
     rating: rating,
     perk: perk,
@@ -76,6 +87,8 @@ class ServiceDrinkClub implements ClubSortable {
     name: c.name,
     area: c.area,
     genre: c.genre,
+    lat: c.lat,
+    lng: c.lng,
     dist: 0,
     rating: c.rating,
     perk: c.serviceDrink.comment,
