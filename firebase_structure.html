@@ -1623,7 +1623,6 @@ Rules  clubs/{clubId}/tableLayout/{docId}
     <tr><td class="field-name">instagramUrl</td><td class="ftype">string</td><td>인스타그램 URL</td></tr>
     <tr><td class="field-name">location</td><td class="ftype">object</td><td><code>{ lat, lng, geohash }</code> — geohash 는 GeoQuery용, location 맵 <strong>안에</strong> 포함 (최상위 아님). 쿼리 시 <code>'location.geohash'</code> 경로 사용</td></tr>
     <tr><td class="field-name">genre</td><td class="ftype">string</td><td>주요 장르 (예: "힙합", "테크노", "팝")</td></tr>
-    <tr><td class="field-name">genreStyles</td><td class="ftype">array</td><td>세부 장르 스타일 태그 (예: <code>["트랩","붐뱁","드릴","올드스쿨","R&amp;B"]</code>). <strong>장르 페이지(힙합 등)</strong> 포스터 카드 #태그 표시 + 추후 세부 필터용. 검색(Algolia 인덱스 필드)과는 별개 — 혼용 금지</td></tr>
     <tr><td class="field-name">rating</td><td class="ftype">double</td><td>평점 = ratingSum / reviewCount <span class="pill auto">자동</span></td></tr>
     <tr><td class="field-name">ratingSum</td><td class="ftype">number</td><td>별점 합계 <span class="pill auto">자동</span></td></tr>
     <tr><td class="field-name">reviewCount</td><td class="ftype">number</td><td>리뷰 수 <span class="pill auto">자동</span></td></tr>
@@ -1646,6 +1645,7 @@ Rules  clubs/{clubId}/tableLayout/{docId}
     <tr><td class="field-name">createdAt</td><td class="ftype">timestamp</td><td>생성 시각</td></tr>
     <tr><td class="field-name">updatedAt</td><td class="ftype">timestamp</td><td>수정 시각</td></tr>
   </table>
+  <div class="note"><strong>2026.09.01 — <code>genreStyles</code>(세부 장르)를 삭제했다.</strong> 값이 실제 조사 데이터가 아니라 clubId 해시로 만든 샘플이었고, 이걸 읽던 화면 세 곳(힙합 '오늘의 라인업' 장르 칩 · EDM 'DJ 타임테이블' 세부 장르 필터 칩 · 포스터 카드 <code>#태그</code>)을 같이 걷어냈다. 포스터 <code>#태그</code>는 이제 <code>tags</code> → 없으면 <code>genre</code> 로만 만든다. 지운 것 — Firestore <code>clubs.genreStyles</code> 22개 문서(전부 힙합, <code>scripts/delete_genre_styles.js</code>) · <code>ClubModel.genreStyles</code> · <code>LineupItem.genres</code> · <code>EdmSet.style</code> · <code>kEdmAllStyles</code> · <code>scripts/seed_edm_genre_styles.js</code> · <code>seed_performances.js</code> 의 <code>STYLE_SETS</code> 배정부.<br><strong>남은 것</strong> — Algolia Extension 의 Indexable Fields 에 아직 <code>genreStyles</code> 가 남아 있다(앱 <code>_requiredFields</code> 엔 없어 동작엔 영향 없음, 인덱스에 죽은 속성이 실릴 뿐). 다음에 Extension 설정을 만질 때 같이 뺄 것 — 재구성은 전체 재색인을 동반하고 <code>searchableAttributes</code> 가 살아남았는지 확인이 필요하다.</div>
 </section>
 
 <!-- club info -->
@@ -2056,7 +2056,7 @@ Rules  clubs/{clubId}/tableLayout/{docId}
           → 관련도순 clubId 페이지 (10개씩, page 번호 커서)
           → clubId로 Firestore getClub 조인               <span class="cmt">// 인덱스엔 표시용 일부 필드만</span></div>
   <ul>
-    <li>Extension 설정: Collection Path <code>clubs</code>, Index <code>clubs</code>, objectID = doc.id(= clubId), Indexable Fields: name,area,genre,genreStyles,tags,address,rating,reviewCount,thumbnailUrl,entryFeeMin,entryFeeMax,operatingHours,isActive,isVybeRecommended,isNonSmoking,favoriteCount,location<br><strong>⚠ <code>freeEntry</code>·<code>isFreeEntry</code> 는 아직 미추가</strong> — 시간대별 무료입장 앱 구현 전에 추가 + 재색인 (<a class="anchor-link" href="#feature-free-entry">계획 ↗</a>)</li>
+    <li>Extension 설정: Collection Path <code>clubs</code>, Index <code>clubs</code>, objectID = doc.id(= clubId), Indexable Fields <strong>정본 18개</strong>: name,area,genre,tags,address,rating,reviewCount,thumbnailUrl,entryFeeMin,entryFeeMax,operatingHours,isActive,isVybeRecommended,isNonSmoking,favoriteCount,location,freeEntry,isFreeEntry<br><strong>⚠ 배포본은 아직 19개</strong> (2026.09.01 실측 — 위 18개 + 삭제된 <code>genreStyles</code>). 앱 <code>_requiredFields</code> 엔 <code>genreStyles</code> 가 없어 동작엔 영향 없고, 다음 설정 변경 때 같이 뺀다</li>
     <li>진입점 <code>ClubRepositoryImpl.searchClubsPage</code> 하나 — viewmodel/화면은 엔진 무관</li>
     <li>비활성 클럽 제외는 조인 후 <code>isActive</code> 재확인으로 처리 — Algolia <code>filters</code>는 <code>attributesForFaceting</code> 미선언 속성이면 조용히 0건이라 사용 안 함</li>
     <li>.env 키: <code>ALGOLIA_APP_ID</code> / <code>ALGOLIA_SEARCH_API_KEY</code> — 없으면 검색 결과 빈 값</li>

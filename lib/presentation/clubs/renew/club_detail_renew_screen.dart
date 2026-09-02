@@ -15,6 +15,7 @@ import 'package:vybe/presentation/clubs/renew/renew_review_tab.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_chrome.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_header.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_lazy_tab.dart';
+import 'package:vybe/presentation/clubs/renew/widgets/renew_skeleton.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
 import 'package:vybe/presentation/clubs/viewmodels/favorite_viewmodel.dart';
 import 'package:vybe/presentation/common/renew/renew_glass.dart';
@@ -99,6 +100,9 @@ class _ClubDetailRenewScreenState extends ConsumerState<ClubDetailRenewScreen>
   Widget build(BuildContext context) {
     final clubAsync = ref.watch(clubDetailProvider(widget.clubId));
     final club = clubAsync.value;
+    // 진입 로딩 — 스피너 대신 스켈레톤. 히어로·타이틀·홈 탭이 같은 플래그를
+    // 봐야 세 곳이 한꺼번에 실제 내용으로 바뀐다(따로 풀리면 화면이 두 번 튄다).
+    final booting = clubAsync.isLoading;
 
     // 탭 전환 시 재로딩 방지 — 상세 진입 시 1회만 fetch.
     ref.watch(clubInfoProvider(widget.clubId));
@@ -133,7 +137,7 @@ class _ClubDetailRenewScreenState extends ConsumerState<ClubDetailRenewScreen>
               child: RenewHero(
                 imageUrls: club?.heroImageUrls ?? const [],
                 controller: _hero,
-                loading: clubAsync.isLoading,
+                loading: booting,
               ),
             ),
           ),
@@ -147,7 +151,9 @@ class _ClubDetailRenewScreenState extends ConsumerState<ClubDetailRenewScreen>
                   child: SizedBox(height: heroSpacer < 0 ? 0 : heroSpacer),
                 ),
                 SliverToBoxAdapter(
-                  child: club == null
+                  child: booting
+                      ? const RenewTitleSkeleton()
+                      : club == null
                       ? SizedBox(height: 120.h)
                       : RenewTitleBlock(
                           club: club,
@@ -164,7 +170,7 @@ class _ClubDetailRenewScreenState extends ConsumerState<ClubDetailRenewScreen>
                     activeIndex: _activeIndex,
                     onSelect: _goToTab,
                   ),
-                  Expanded(child: _tabViews(tabPadding)),
+                  Expanded(child: _tabViews(tabPadding, booting)),
                 ],
               ),
             ),
@@ -228,13 +234,14 @@ class _ClubDetailRenewScreenState extends ConsumerState<ClubDetailRenewScreen>
     );
   }
 
-  Widget _tabViews(EdgeInsets padding) {
+  Widget _tabViews(EdgeInsets padding, bool booting) {
     return TabBarView(
       controller: _tabController,
       children: [
         RenewHomeTab(
           clubId: widget.clubId,
           padding: padding,
+          showSkeleton: booting,
           onViewAllPhotos: () => _goToTab(1),
           onViewAllMenus: () => _goToTab(2),
         ),

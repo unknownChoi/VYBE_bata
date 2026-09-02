@@ -3,10 +3,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/presentation/edm/edm_models.dart';
-import 'package:vybe/presentation/edm/widgets/edm_chrome.dart';
 import 'package:vybe/presentation/edm/widgets/edm_timetable.dart';
 
-/// EDM 'DJ 타임테이블' — 진행 상태 표기 · 종료 공연 접기 · 세부 장르 칩.
+/// EDM 'DJ 타임테이블' — 진행 상태 표기 · 종료 공연 접기.
 ///
 /// 판정 시각을 주입할 수 있게 만들어 뒀으므로(now) 실행 시각과 무관하게 같은 결과가 나온다.
 
@@ -17,7 +16,6 @@ EdmSet _set({
   required String id,
   required String club,
   required String time,
-  required String style,
 }) => EdmSet(
   id: id,
   clubId: 'club_$id',
@@ -25,14 +23,13 @@ EdmSet _set({
   area: '홍대',
   dist: 1.2,
   dj: 'DJ$id',
-  style: style,
   time: time,
 );
 
 final _sets = [
-  _set(id: 'a', club: '알파', time: '22:00', style: '테크노'),
-  _set(id: 'b', club: '베타', time: '23:00', style: '빅룸'),
-  _set(id: 'c', club: '감마', time: '01:00', style: '하우스'),
+  _set(id: 'a', club: '알파', time: '22:00'),
+  _set(id: 'b', club: '베타', time: '23:00'),
+  _set(id: 'c', club: '감마', time: '01:00'),
 ];
 
 Widget _host(List<EdmSet> sets) => ScreenUtilInit(
@@ -93,33 +90,6 @@ void main() {
     expect(find.text('알파'), findsOneWidget);
     expect(find.text('공연 종료'), findsOneWidget);
     expect(find.text('종료된 공연 접기'), findsOneWidget);
-  });
-
-  testWidgets('세부 장르 칩을 고르면 그 장르만 남는다', (tester) async {
-    _wideScreen(tester);
-
-    await tester.pumpWidget(_host(_sets));
-    await tester.pump(const Duration(milliseconds: 100));
-
-    expect(find.text(kEdmAllStyles), findsOneWidget);
-
-    await tester.tap(find.text('빅룸').first);
-    await tester.pump(const Duration(milliseconds: 200));
-
-    expect(find.text('베타'), findsOneWidget);
-    expect(find.text('감마'), findsNothing);
-  });
-
-  testWidgets('세부 장르가 한 종류뿐이면 칩 줄을 아예 안 그린다', (tester) async {
-    _wideScreen(tester);
-
-    await tester.pumpWidget(
-      _host([_set(id: 'b', club: '베타', time: '23:00', style: '빅룸')]),
-    );
-    await tester.pump(const Duration(milliseconds: 100));
-
-    // 눌러도 늘 같은 결과인 칩은 화면만 차지한다.
-    expect(find.text(kEdmAllStyles), findsNothing);
   });
 
   testWidgets('오늘 공연이 없으면 빈 안내를 보여준다', (tester) async {

@@ -5,10 +5,10 @@ import 'package:vybe/data/models/menu_model.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_menu_rows.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_sticky_bar.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
+import 'package:vybe/presentation/clubs/renew/widgets/renew_skeleton.dart';
 import 'package:vybe/presentation/common/renew/renew_glass.dart';
 import 'package:vybe/presentation/common/widgets/vybe_photo_viewer.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
-import 'package:vybe/presentation/common/widgets/vybe_spinner.dart';
 
 /// 클럽 상세 리뉴얼 · 메뉴 탭.
 ///
@@ -53,7 +53,7 @@ class _RenewMenuTabState extends ConsumerState<RenewMenuTab> {
     final boards = club?.menuBoardUrls ?? const <String>[];
 
     if (menusAsync.isLoading) {
-      return const Center(child: VybeSpinner(size: 40));
+      return RenewMenuSkeleton(padding: widget.padding);
     }
 
     final menus = menusAsync.value ?? const <MenuModel>[];

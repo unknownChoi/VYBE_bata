@@ -7,6 +7,7 @@ import 'package:vybe/presentation/clubs/club_detail_route.dart';
 import 'package:vybe/presentation/clubs/performance_schedule_screen.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_free_entry.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_home_sections.dart';
+import 'package:vybe/presentation/clubs/renew/widgets/renew_skeleton.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_store_info_card.dart';
 import 'package:vybe/presentation/clubs/table_pricing_screen.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
@@ -14,7 +15,6 @@ import 'package:vybe/presentation/clubs/viewmodels/club_schedule_viewmodel.dart'
 import 'package:vybe/presentation/common/renew/renew_glass.dart';
 import 'package:vybe/presentation/common/widgets/vybe_fade_in_up.dart';
 import 'package:vybe/presentation/common/widgets/vybe_photo_viewer.dart';
-import 'package:vybe/presentation/common/widgets/vybe_spinner.dart';
 
 /// 클럽 상세 리뉴얼 · 홈 탭.
 ///
@@ -30,12 +30,17 @@ class RenewHomeTab extends ConsumerWidget {
   final VoidCallback onViewAllPhotos;
   final VoidCallback onViewAllMenus;
 
+  /// 상세 셸이 판단한 진입 로딩 — true면 섹션 대신 스켈레톤.
+  /// 히어로·타이틀과 같은 플래그를 써야 세 곳이 동시에 내용으로 바뀐다.
+  final bool showSkeleton;
+
   const RenewHomeTab({
     super.key,
     required this.clubId,
     required this.padding,
     required this.onViewAllPhotos,
     required this.onViewAllMenus,
+    this.showSkeleton = false,
   });
 
   @override
@@ -43,11 +48,12 @@ class RenewHomeTab extends ConsumerWidget {
     final clubAsync = ref.watch(clubDetailProvider(clubId));
     final club = clubAsync.value;
 
+    if (showSkeleton || clubAsync.isLoading) {
+      return RenewHomeSkeleton(padding: padding);
+    }
     if (club == null) {
       return Center(
-        child: clubAsync.isLoading
-            ? const VybeSpinner(size: 40)
-            : Text('클럽 정보를 불러올 수 없어요', style: RenewGlass.body()),
+        child: Text('클럽 정보를 불러올 수 없어요', style: RenewGlass.body()),
       );
     }
 

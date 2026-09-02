@@ -18,7 +18,6 @@ ClubModel _club({required String id, required double lat, required double lng}) 
     lng: lng,
     geohash: '',
     genre: '힙합',
-    genreStyles: const [],
     rating: 4.0,
     reviewCount: 1,
     operatingHours: const OperatingHours(),

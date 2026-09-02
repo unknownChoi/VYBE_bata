@@ -15,7 +15,7 @@ import 'package:vybe/presentation/common/version_gate/viewmodels/version_check_v
 ///
 /// `kDebugMode` 안에서만 읽으므로 켠 채 커밋해도 **릴리즈 빌드는 영향 없음**.
 /// 확인이 끝나면 false로 되돌릴 것.
-const kDebugStartAtWelcome = true;
+const kDebugStartAtWelcome = false;
 
 /// 스플래시가 넘어갈 첫 화면.
 enum SplashDestination {

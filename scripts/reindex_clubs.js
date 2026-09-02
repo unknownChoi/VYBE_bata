@@ -8,8 +8,8 @@
 //   (2026.08.21 실측: 16:04 ACTIVE → 16:06 에 164개 자동 반영).
 //   이 스크립트는 설정을 안 건드리고 문서만 다시 밀고 싶을 때 쓴다.
 //
-// 사전 조건: Extension 설정의 Indexable Fields에 아래 19개가 모두 포함돼 있어야 함
-//   name, area, genre, genreStyles, tags, address, rating, reviewCount,
+// 사전 조건: Extension 설정의 Indexable Fields에 아래 18개가 모두 포함돼 있어야 함
+//   name, area, genre, tags, address, rating, reviewCount,
 //   thumbnailUrl, entryFeeMin, entryFeeMax, operatingHours, isActive,
 //   isVybeRecommended, isNonSmoking, favoriteCount, location,
 //   freeEntry, isFreeEntry

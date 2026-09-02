@@ -8,9 +8,9 @@ import 'package:vybe/presentation/common/widgets/vybe_club_poster_card.dart';
 // EDM 페이지 표시 모델 — Firestore 모델(ClubModel·PerformanceModel)을
 // 화면이 쓰기 좋은 형태로 옮긴 어댑터. 로직 없음.
 //
-// 디자인(edm_renew.jsx)의 셋 카드는 종료 시각·BPM·셋 단위 세부 장르를 그리지만
+// 디자인(edm_renew.jsx)의 셋 카드는 종료 시각·BPM·세부 장르를 그리지만
 // performances 스키마엔 그 셋이 없다. **없는 값을 지어내지 않고** 있는 것만 그린다 —
-// 종료 시각 대신 시작 시각, BPM(에너지) 대신 진행 상태, 셋 장르 대신 클럽 세부 장르.
+// 종료 시각 대신 시작 시각, BPM(에너지) 대신 진행 상태, 세부 장르는 뺀다.
 
 /// EDM 포인트 색 — 브랜드 퍼플(디자인 ACC).
 const Color kEdmAccent = Color(0xFF7731FE);
@@ -36,9 +36,6 @@ class EdmSet {
 
   final String dj;
 
-  /// 세부 장르(클럽 genreStyles 첫 항목). 없으면 빈 문자열 — 칩 필터에도 안 잡힌다.
-  final String style;
-
   /// 시작 시각 'HH:mm'.
   final String time;
 
@@ -49,7 +46,6 @@ class EdmSet {
     required this.area,
     required this.dist,
     required this.dj,
-    required this.style,
     required this.time,
   });
 }
@@ -66,9 +62,6 @@ EdmSet edmSetFrom(
   area: p.clubArea,
   dist: club == null ? null : edmDistanceKm(club.lat, club.lng, origin: origin),
   dj: p.artistName,
-  style: club != null && club.genreStyles.isNotEmpty
-      ? club.genreStyles.first
-      : '',
   time: p.hhmm,
 );
 
@@ -84,9 +77,7 @@ VybeClubPoster edmClubFrom(ClubModel c, {({double lat, double lng})? origin}) =>
       dist: edmDistanceKm(c.lat, c.lng, origin: origin),
       rating: c.rating,
       reviews: c.reviewCount,
-      styles: c.genreStyles.isNotEmpty
-          ? c.genreStyles.take(2).toList()
-          : (c.tags.isNotEmpty ? c.tags.take(2).toList() : [c.genre]),
+      styles: c.tags.isNotEmpty ? c.tags.take(2).toList() : [c.genre],
       lineup: '',
       live: false,
       open: c.operatingHours.today.isCurrentlyOpen,

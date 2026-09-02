@@ -12,12 +12,12 @@ import 'package:vybe/presentation/clubs/renew/widgets/renew_facilities.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_free_entry.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_hours_table.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_map_card.dart';
+import 'package:vybe/presentation/clubs/renew/widgets/renew_skeleton.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
 import 'package:vybe/presentation/clubs/widgets/club_glass.dart'
     show SubwayStationLine, subwayLabel;
 import 'package:vybe/presentation/common/renew/renew_glass.dart';
 import 'package:vybe/presentation/common/widgets/vybe_fade_in_up.dart';
-import 'package:vybe/presentation/common/widgets/vybe_spinner.dart';
 import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
 
 /// 클럽 상세 리뉴얼 · 매장 정보 탭.
@@ -38,11 +38,10 @@ class RenewInfoTab extends ConsumerWidget {
     final clubAsync = ref.watch(clubDetailProvider(clubId));
     final club = clubAsync.value;
 
+    if (clubAsync.isLoading) return RenewInfoSkeleton(padding: padding);
     if (club == null) {
       return Center(
-        child: clubAsync.isLoading
-            ? const VybeSpinner(size: 40)
-            : Text('클럽 정보를 불러올 수 없어요', style: RenewGlass.body()),
+        child: Text('클럽 정보를 불러올 수 없어요', style: RenewGlass.body()),
       );
     }
 

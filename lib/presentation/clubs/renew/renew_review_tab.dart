@@ -5,13 +5,13 @@ import 'package:vybe/core/utils/gradient_palette.dart';
 import 'package:vybe/data/models/review_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
+import 'package:vybe/presentation/clubs/renew/widgets/renew_skeleton.dart';
 import 'package:vybe/presentation/clubs/review_write_screen.dart';
 import 'package:vybe/presentation/clubs/viewmodels/review_viewmodel.dart';
 import 'package:vybe/presentation/common/renew/renew_button.dart';
 import 'package:vybe/presentation/common/renew/renew_glass.dart';
 import 'package:vybe/presentation/common/widgets/vybe_photo_viewer.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
-import 'package:vybe/presentation/common/widgets/vybe_spinner.dart';
 import 'package:vybe/presentation/common/widgets/vybe_toast.dart';
 
 /// 리뷰 정렬 기준 (디자인 최신순 · 평점순 · 사진).
@@ -65,7 +65,7 @@ class _RenewReviewTabState extends ConsumerState<RenewReviewTab> {
     final reviewsAsync = ref.watch(reviewListProvider(widget.clubId));
 
     return reviewsAsync.when(
-      loading: () => const Center(child: VybeSpinner(size: 40)),
+      loading: () => RenewReviewSkeleton(padding: widget.padding),
       error: (_, __) =>
           Center(child: Text('리뷰를 불러올 수 없어요', style: RenewGlass.body())),
       data: _buildList,

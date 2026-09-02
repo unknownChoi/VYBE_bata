@@ -22,8 +22,6 @@ abstract class ClubModel with _$ClubModel {
     required double lng,
     required String geohash,
     required String genre,
-    @Default([])
-    List<String> genreStyles, // 세부 장르 스타일(트랩/붐뱁 등) — 장르 페이지 포스터 #태그
     required double rating,
     @Default(0) int reviewCount,
     @Default(OperatingHours()) OperatingHours operatingHours,
@@ -70,7 +68,6 @@ abstract class ClubModel with _$ClubModel {
       lng: (location['lng'] as num?)?.toDouble() ?? 0.0,
       geohash: location['geohash'] as String? ?? '',
       genre: data['genre'] as String? ?? '',
-      genreStyles: List<String>.from(data['genreStyles'] as List? ?? []),
       rating: (data['rating'] as num?)?.toDouble() ?? 0.0,
       reviewCount: (data['reviewCount'] as num?)?.toInt() ?? 0,
       operatingHours: OperatingHours.fromMap(
@@ -119,7 +116,6 @@ abstract class ClubModel with _$ClubModel {
       lng: (location['lng'] as num?)?.toDouble() ?? 0.0,
       geohash: location['geohash'] as String? ?? '',
       genre: data['genre'] as String? ?? '',
-      genreStyles: List<String>.from(data['genreStyles'] as List? ?? []),
       rating: (data['rating'] as num?)?.toDouble() ?? 0.0,
       reviewCount: (data['reviewCount'] as num?)?.toInt() ?? 0,
       operatingHours: OperatingHours.fromMap(

@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/data/models/performance_model.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
@@ -37,13 +36,10 @@ class _TodayLineupScreenState extends ConsumerState<TodayLineupScreen> {
     final data = async.asData?.value;
     final loading = async.isLoading && data == null;
 
-    // 오늘 공연(startAt 오름차순) → 클럽 조인 → 표시 모델.
-    final clubById = {
-      for (final c in data?.clubs ?? const <ClubModel>[]) c.clubId: c,
-    };
+    // 오늘 공연(startAt 오름차순) → 표시 모델.
     final lineup = [
       for (final p in data?.performances ?? const <PerformanceModel>[])
-        lineupItemFrom(p, clubById[p.clubId]),
+        lineupItemFrom(p),
     ];
 
     final nowMin = lineupNowMinutes();

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/data/models/performance_model.dart';
 import 'package:vybe/presentation/clubs/club_detail_route.dart';
 import 'package:vybe/presentation/common/night_clock.dart';
@@ -21,7 +20,6 @@ class LineupItem {
   final String area;
   final String time; // "HH:mm"
   final bool isDj; // true=DJ(disc), false=래퍼(mic)
-  final List<String> genres;
   final List<Color> bg;
   const LineupItem({
     required this.id,
@@ -31,14 +29,12 @@ class LineupItem {
     required this.area,
     required this.time,
     required this.isDj,
-    required this.genres,
     required this.bg,
   });
 }
 
-// 오늘 공연(performance) + 클럽 → 라인업 표시 모델.
-// genres = 클럽 세부 장르(genreStyles) 조인, bg = clubId 해시 그라데이션.
-LineupItem lineupItemFrom(PerformanceModel p, ClubModel? club) => LineupItem(
+// 오늘 공연(performance) → 라인업 표시 모델. bg = clubId 해시 그라데이션.
+LineupItem lineupItemFrom(PerformanceModel p) => LineupItem(
   id: p.performanceId,
   clubId: p.clubId,
   dj: p.artistName,
@@ -46,7 +42,6 @@ LineupItem lineupItemFrom(PerformanceModel p, ClubModel? club) => LineupItem(
   area: p.clubArea,
   time: p.hhmm,
   isDj: p.isDj,
-  genres: (club?.genreStyles ?? const []).take(2).toList(),
   bg: hipGradFor(p.clubId),
 );
 

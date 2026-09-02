@@ -60,10 +60,8 @@ HipHopClub hipHopClubFrom(
     dist: hipHopDistanceKm(c.lat, c.lng, origin: origin),
     rating: c.rating,
     reviews: c.reviewCount,
-    // 세부 장르 스타일 칩(genreStyles), 없으면 태그/장르 fallback.
-    styles: c.genreStyles.isNotEmpty
-        ? c.genreStyles.take(2).toList()
-        : (c.tags.isNotEmpty ? c.tags.take(2).toList() : [c.genre]),
+    // 포스터 #태그 — 클럽 태그, 없으면 장르.
+    styles: c.tags.isNotEmpty ? c.tags.take(2).toList() : [c.genre],
     lineup: headliner?.artistName ?? '',
     live: headliner != null,
     open: c.operatingHours.today.isCurrentlyOpen,

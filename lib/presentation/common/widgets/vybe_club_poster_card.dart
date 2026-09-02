@@ -408,7 +408,7 @@ class _PlaceRow extends StatelessWidget {
   }
 }
 
-/// `#트랩 #붐뱁` — clubs.genreStyles.
+/// `#홍대 #EDM` — clubs.tags, 없으면 clubs.genre.
 class _StyleTags extends StatelessWidget {
   final List<String> styles;
   const _StyleTags({required this.styles});

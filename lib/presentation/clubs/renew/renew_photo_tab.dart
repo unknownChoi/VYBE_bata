@@ -5,11 +5,11 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:vybe/data/models/photo_model.dart';
 import 'package:vybe/presentation/clubs/renew/widgets/renew_sticky_bar.dart';
 import 'package:vybe/presentation/clubs/viewmodels/club_detail_viewmodel.dart';
+import 'package:vybe/presentation/clubs/renew/widgets/renew_skeleton.dart';
 import 'package:vybe/presentation/common/renew/renew_button.dart';
 import 'package:vybe/presentation/common/renew/renew_glass.dart';
 import 'package:vybe/presentation/common/widgets/vybe_photo_viewer.dart';
 import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
-import 'package:vybe/presentation/common/widgets/vybe_spinner.dart';
 
 /// 클럽 상세 리뉴얼 · 사진 탭.
 ///
@@ -83,7 +83,7 @@ class _RenewPhotoTabState extends ConsumerState<RenewPhotoTab> {
     final photosAsync = ref.watch(clubPhotosProvider(widget.clubId));
 
     if (photosAsync.isLoading) {
-      return const Center(child: VybeSpinner(size: 40));
+      return RenewPhotoSkeleton(padding: widget.padding);
     }
 
     final photos = photosAsync.value ?? const <PhotoModel>[];

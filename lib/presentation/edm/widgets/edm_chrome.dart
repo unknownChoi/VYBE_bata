@@ -9,9 +9,6 @@ import 'package:vybe/presentation/common/filter_chip_style.dart';
 /// 지역 필터 항목 — 디자인(edm_renew.jsx `AREAS`) 그대로.
 const kEdmAreas = ['추천순', '홍대', '강남', '압구정', '이태원', '건대'];
 
-/// 장르(세부 스타일) 필터의 '전체' 항목.
-const kEdmAllStyles = '전체';
-
 /// 섹션 헤더 — 제목 + 부제 + (선택) 우측 액션.
 class EdmSectionHead extends StatelessWidget {
   final String title;

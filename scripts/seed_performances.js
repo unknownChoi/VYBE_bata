@@ -1,12 +1,11 @@
-// performances/{performanceId} 공연 일정 시드 + clubs.genreStyles 배정 — 장르 페이지(힙합) 데이터.
+// performances/{performanceId} 공연 일정 시드 — 장르 페이지(힙합) 데이터.
 //
 // 동작:
 //   1) genre==="힙합" 클럽 수집 → 지역별 그룹.
-//   2) 모든 힙합 클럽에 genreStyles(세부 스타일 태그) 배정 (포스터 그리드 #태그용).
-//   3) 지역별 "절반" 클럽만 공연 데이터 추가 (평점순 상위 절반).
+//   2) 지역별 "절반" 클럽만 공연 데이터 추가 (평점순 상위 절반).
 //      - 모든 공연 startAt(시각)은 전역에서 유일 (요구사항: 모든 공연 일정이 달라야 함).
 //      - 멀티-날짜: 대상 중 일부는 오늘 + 내일 공연 doc 2개.
-//   4) hero용 isFeatured 는 '오늘' 공연 중 일부만 true.
+//   3) hero용 isFeatured 는 '오늘' 공연 중 일부만 true.
 //
 // 멱등성: performanceId 를 결정적으로 생성(perf_<clubId>_<date>) → 재실행해도 같은 doc 덮어씀.
 //
@@ -20,19 +19,6 @@ const PROJECT = 'vybe-bata-c07aa';
 const DRY = process.argv.includes('--dry');
 const GENRE = '힙합';
 
-// 세부 장르 스타일 풀 (클럽마다 1~2개 배정).
-const STYLE_SETS = [
-  ['트랩', '붐뱁'],
-  ['올드스쿨'],
-  ['트랩', '드릴'],
-  ['드릴'],
-  ['붐뱁'],
-  ['R&B', '트랩'],
-  ['R&B'],
-  ['올드스쿨', '붐뱁'],
-  ['트랩'],
-  ['드릴', 'R&B'],
-];
 
 // 라인업 아티스트 풀 (이름 전역 유일, rapper/dj 혼합).
 const ARTISTS = [
@@ -106,17 +92,6 @@ async function listHipHopClubs(token) {
   return clubs;
 }
 
-async function setGenreStyles(token, clubId, styles) {
-  const body = JSON.stringify({
-    fields: { genreStyles: { arrayValue: { values: styles.map((s) => ({ stringValue: s })) } } },
-  });
-  const res = await fsReq(
-    token, 'PATCH',
-    `/v1/projects/${PROJECT}/databases/(default)/documents/clubs/${clubId}?updateMask.fieldPaths=genreStyles`,
-    body
-  );
-  if (res.status !== 200) throw new Error(`patch genreStyles failed: ${res.status} ${res.body}`);
-}
 
 // performanceId 결정적 → 재실행 시 같은 doc 덮어쓰기(멱등).
 async function upsertPerformance(token, p) {
@@ -188,15 +163,9 @@ async function run() {
   const nextArtist = () => ARTISTS[artistIdx++ % ARTISTS.length];
 
   const perfPlan = [];
-  let styleIdx = 0;
-  const stylePlan = []; // {id, name, styles}
 
   for (const area of Object.keys(byArea)) {
     const list = byArea[area];
-    // 모든 힙합 클럽에 genreStyles 배정.
-    for (const c of list) {
-      stylePlan.push({ id: c.id, name: c.name, styles: STYLE_SETS[styleIdx++ % STYLE_SETS.length] });
-    }
     // 지역별 절반(평점 상위)만 공연 추가.
     const half = Math.round(list.length / 2);
     const targets = list.slice(0, half);
@@ -235,7 +204,7 @@ async function run() {
     const n = byArea[a].length;
     console.log(`  ${a}: ${n}개 → 공연 ${Math.round(n / 2)}개 클럽`);
   }
-  console.log(`genreStyles 배정 ${stylePlan.length}개 / 공연 doc ${perfPlan.length}개 (today=${today}, tomorrow=${tomorrow})\n`);
+  console.log(`공연 doc ${perfPlan.length}개 (today=${today}, tomorrow=${tomorrow})\n`);
 
   // 시각 전역 유일성 검증.
   const slots = perfPlan.map((p) => p.slot);
@@ -251,19 +220,13 @@ async function run() {
     return;
   }
 
-  // genreStyles 쓰기.
-  for (const s of stylePlan) {
-    await setGenreStyles(token, s.id, s.styles);
-  }
-  console.log(`genreStyles ${stylePlan.length}개 배정 완료`);
-
   // 공연 doc 쓰기.
   for (let i = 0; i < perfPlan.length; i++) {
     await upsertPerformance(token, perfPlan[i]);
     const p = perfPlan[i];
     console.log(`[${i + 1}/${perfPlan.length}] ${p.date} ${p.slot}  ${p.clubArea}/${p.clubName}  ${p.artistName}${p.isFeatured ? '  ★' : ''}`);
   }
-  console.log(`\n완료 — 공연 ${perfPlan.length}개 / genreStyles ${stylePlan.length}개`);
+  console.log(`\n완료 — 공연 ${perfPlan.length}개`);
 }
 
 run().catch((e) => {

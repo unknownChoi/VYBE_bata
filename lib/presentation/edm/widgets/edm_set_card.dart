@@ -163,7 +163,7 @@ class _Info extends StatelessWidget {
           ],
         ),
         SizedBox(height: 7.h),
-        // DJ · 세부 장르.
+        // DJ.
         Row(
           children: [
             Icon(Icons.bolt_rounded, size: 13.r, color: tone),
@@ -177,20 +177,6 @@ class _Info extends StatelessWidget {
                 color: tone,
               ),
             ),
-            if (set.style.isNotEmpty) ...[
-              const _Dot(),
-              Flexible(
-                child: Text(
-                  set.style,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: VybeTypography.caption.copyWith(
-                    height: 14 / 12,
-                    color: VybeColors.gray400,
-                  ),
-                ),
-              ),
-            ],
           ],
         ),
         SizedBox(height: 9.h),

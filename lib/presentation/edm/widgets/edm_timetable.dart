@@ -18,7 +18,7 @@ const double _kTimeColW = 46;
 
 /// 'DJ 타임테이블' 섹션 — 오늘 EDM 공연을 시작 시각순 타임라인으로.
 ///
-/// 세부 장르 칩과 '종료된 공연 접기/펼치기'는 이 섹션 안에서만 쓰는 상태라
+/// '종료된 공연 접기/펼치기'는 이 섹션 안에서만 쓰는 상태라
 /// 화면(EdmScreen)이 아니라 여기가 들고 있는다.
 class EdmTimetable extends StatefulWidget {
   final List<EdmSet> sets;
@@ -44,7 +44,6 @@ class EdmTimetable extends StatefulWidget {
 }
 
 class _EdmTimetableState extends State<EdmTimetable> {
-  String _style = kEdmAllStyles;
   bool _showPast = false;
 
   int get _nowMin {
@@ -53,25 +52,10 @@ class _EdmTimetableState extends State<EdmTimetable> {
     return h * 60 + widget.now.minute;
   }
 
-  /// 오늘 셋에 실제로 있는 세부 장르만 칩으로 만든다.
-  /// 데이터에 없는 장르를 칩으로 걸어 두면 눌러도 늘 0건이다.
-  List<String> get _styles {
-    final seen = <String>[];
-    for (final s in widget.sets) {
-      if (s.style.isNotEmpty && !seen.contains(s.style)) seen.add(s.style);
-    }
-    return seen;
-  }
-
   @override
   Widget build(BuildContext context) {
-    final styles = _styles;
-    // 선택한 칩이 사라졌으면(데이터 갱신) '전체'로 되돌린다.
-    final style = styles.contains(_style) ? _style : kEdmAllStyles;
-
-    final all =
-        widget.sets.where((s) => style == kEdmAllStyles || s.style == style).toList()
-          ..sort((a, b) => nightMinutes(a.time).compareTo(nightMinutes(b.time)));
+    final all = [...widget.sets]
+      ..sort((a, b) => nightMinutes(a.time).compareTo(nightMinutes(b.time)));
 
     final nowMin = _nowMin;
     NightSlotStatus st(EdmSet s) => nightSlotStatus(s.time, nowMin);
@@ -96,14 +80,6 @@ class _EdmTimetableState extends State<EdmTimetable> {
               ? edmDateLabel(widget.now)
               : '${edmDateLabel(widget.now)} · 공연 ${widget.sets.length}개',
         ),
-        if (styles.length >= 2) ...[
-          EdmChipRow(
-            items: [kEdmAllStyles, ...styles],
-            active: style,
-            onChange: (s) => setState(() => _style = s),
-          ),
-          SizedBox(height: 16.h),
-        ],
         if (widget.loading)
           const _TimetableSkeleton()
         else if (widget.sets.isEmpty)
@@ -119,7 +95,7 @@ class _EdmTimetableState extends State<EdmTimetable> {
               ),
             ),
           if (shown.isEmpty)
-            _Empty(text: '$style 셋은 오늘 예정에 없어요')
+            const _Empty(text: '오늘 남은 EDM 공연이 없어요')
           else
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.w),

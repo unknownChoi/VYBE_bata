@@ -245,10 +245,6 @@ class LineupTimelineRow extends StatelessWidget {
                               runSpacing: 5.h,
                               crossAxisAlignment: WrapCrossAlignment.center,
                               children: [
-                                for (final g in item.genres)
-                                  _tagChip('#$g', VybeColors.gray300,
-                                      Colors.white.withValues(alpha: 0.09),
-                                      weight: FontWeight.w600),
                                 if (isNext)
                                   _tagChip('곧 시작 · $minsLeft분 후', kHipAccent,
                                       const Color(0x24F5B82E),

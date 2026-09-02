@@ -242,10 +242,13 @@ clubs 쓰기 → Firebase Extension(firestore-algolia-search) → Algolia `clubs
 ```
 
 - Extension 설정: Collection Path `clubs`, Index `clubs`, objectID = doc.id(= clubId),
-  Indexable Fields (**19개 — 이 목록이 정본**):
+  Indexable Fields (**18개 — 이 목록이 정본**):
   ```
-  name,area,genre,genreStyles,tags,address,rating,reviewCount,thumbnailUrl,entryFeeMin,entryFeeMax,operatingHours,isActive,isVybeRecommended,isNonSmoking,favoriteCount,location,freeEntry,isFreeEntry
+  name,area,genre,tags,address,rating,reviewCount,thumbnailUrl,entryFeeMin,entryFeeMax,operatingHours,isActive,isVybeRecommended,isNonSmoking,favoriteCount,location,freeEntry,isFreeEntry
   ```
+  ⚠ **배포본은 아직 19개** (2026.09.01 실측 — 위 18개 + 삭제된 `genreStyles`). 앱
+  `_requiredFields`에 없어 동작엔 영향 없고(인덱스에 죽은 속성이 실릴 뿐), 다음 설정 변경 때
+  같이 뺀다 — 재구성은 전체 재색인을 동반하고 `searchableAttributes` 생존 확인이 필요하다.
   ⚠ **배포된 설정이 문서와 달라져 있던 적이 있다 (2026.08.21 발견)** — 배포본 `FIELDS`에
   `reviewCount`·`entryFeeMax`·`operatingHours`·`isVybeRecommended`·`isNonSmoking`·`location`
   6개가 빠져 있었고(= 2026.07.31 '조인 제거' 설정이 실제로는 반영된 적이 없음), 그동안 검색은
@@ -716,11 +719,12 @@ grep -rn "border: Border.all" lib/presentation/   # 후보 추린 뒤 ClipRRect/
   **DJ 타임테이블** + **주변 EDM 클럽 추천** 2섹션. 데이터는 오늘 `performances`(genre=EDM) +
   `clubs`(genre=EDM) 실연동 — 조각은 `presentation/edm/`
   (`edm_models.dart` · `viewmodels/edm_viewmodel.dart` · `widgets/edm_{timetable,set_card,club_grid,chrome,equalizer}.dart`)
-  - **디자인에 있지만 데이터가 없어 뺀 것** — 셋 종료 시각 · BPM(에너지 등급) · 셋 단위 세부 장르.
+  - **디자인에 있지만 데이터가 없어 뺀 것** — 셋 종료 시각 · BPM(에너지 등급) · 세부 장르.
     `performances`에 그 필드가 없다. 대신 **시작 후 60분 = 진행 중**(공용 `night_clock.dart` 규칙)으로
     상태를 판정하고, 좌측 액센트 바 색·DJ 이름 색을 그 상태로 칠한다. 없는 값을 지어내지 않는다
-  - **세부 장르 칩은 오늘 셋에 실제로 있는 장르만** 만든다(`clubs.genreStyles` 첫 항목으로 묶음).
-    2종 미만이면 칩 줄 자체를 뺀다 — 눌러도 늘 0건인 칩은 화면만 차지한다
+  - ⚠ **세부 장르 칩은 2026.09.01에 걷어냈다** — `clubs.genreStyles`를 필드째 지우면서
+    타임테이블 장르 필터 줄·셋 카드 장르 표기·`kEdmAllStyles`가 같이 빠졌다. 되살리려면
+    실제 조사 데이터가 먼저다(해시로 만든 샘플을 장르라고 표시하던 게 문제였다)
   - ⚠ 판정 시각(`now`)은 **화면당 한 번** 읽어 목록 전체에 넘긴다. 카드마다 `DateTime.now()`를
     다시 읽으면 같은 목록에서 NOW 마커와 카드 상태가 어긋난다(입장비 무료 페이지와 같은 규칙)
   - **밤 시각 계산은 공용 `presentation/common/night_clock.dart` 하나** — 06시 미만은 +24h.
@@ -823,11 +827,9 @@ grep -rn "border: Border.all" lib/presentation/   # 후보 추린 뒤 ClipRRect/
   ⑤ 실 데이터 입력 (현재는 seed 샘플 3곳뿐 — 실제 배치·가격 조사 필요)
   - 예약 기능은 **범위 밖** — 표시 전용이고 예약은 매장 전화로 안내한다
   - 절차 상세: `partner/README.md`
-- EDM 페이지 잔여 작업 — ① **`node scripts/seed_edm_genre_styles.js`** (EDM 클럽 30곳에
-  `genreStyles` 배정. 안 돌리면 타임테이블 **세부 장르 칩이 안 뜨고** 포스터 #태그가
-  `tags` 폴백('EDM'·'홍대')으로 나온다. 힙합 클럽은 `seed_performances.js`에서 이미 받았고
-  `seed_performances_sep.js`는 공연만 만들어 EDM 클럽만 비어 있다. `--dry` 확인 · `--force` 덮어쓰기)
-  ② 세부 장르 실제 조사 데이터 + 어드민 편집 UI (현재 배정은 clubId 해시 샘플)
+- EDM 페이지 잔여 작업 — 세부 장르(`genreStyles`)는 **2026.09.01 폐기**(아래 참고).
+  포스터 #태그는 `tags` → 없으면 `genre` 로만 만든다. 장르 칩을 다시 붙이려면 실제 조사
+  데이터 + 어드민 편집 UI가 선행돼야 한다
 - K-POP 장르 페이지 본문 (`kpop_screen.dart` — 아직 인트로 히어로만. EDM과 같은 구조로 붙일 수 있다)
 - 패스·지갑 탭 (`pass_wallet_screen.dart` 플레이스홀더 — 현재 탭 슬롯엔 미연결)
 - 주변 페이지 ↔ 상세 페이지 연동 마무리 (최근 커밋 진행 중)
@@ -1110,12 +1112,12 @@ location            : object    // { lat: double, lng: double, geohash: string }
                                 //   geohash는 GeoQuery용 — location 맵 안에 포함됨 (최상위 아님)
                                 //   쿼리 시 'location.geohash' 필드 경로 사용
 genre               : string    // 주요 장르 (예: "힙합", "테크노", "팝")
-genreStyles         : array     // 세부 장르 스타일 태그 (예: ["트랩","붐뱁"] · ["빅룸","프로그레시브"])
-                                //   장르 페이지(힙합·EDM) 포스터 카드 #태그 + EDM 타임테이블 장르 칩
-                                //   ⚠ **첫 항목이 그 클럽의 대표 장르** — EDM 타임테이블 칩이 이 값으로 묶는다
-                                //   비어 있으면 앱은 tags → genre 순으로 폴백하고, 칩 줄은 아예 안 그린다
-                                //   seed: 힙합 `scripts/seed_performances.js` / EDM `scripts/seed_edm_genre_styles.js`
-                                //   검색(Algolia 인덱스 필드)과는 별개 — 혼용 금지
+                                //   ⚠ 세부 장르 `genreStyles` 는 **삭제됐다 (2026.09.01)** —
+                                //     Firestore 22개 문서에서 제거(`scripts/delete_genre_styles.js`).
+                                //     값이 조사 데이터가 아니라 clubId 해시 샘플이었고, 이걸 읽던
+                                //     화면 3곳(힙합 라인업 장르 칩 · EDM 타임테이블 장르 필터 ·
+                                //     포스터 #태그)을 같이 걷어냈다. 포스터 #태그는 이제
+                                //     tags → 없으면 genre. 되살리려면 실 조사 데이터가 먼저다
 rating              : double    // 평점 (ratingSum / reviewCount, Cloud Functions 자동 업데이트, 직접 수정 금지)
 ratingSum           : number    // 별점 합계 (Cloud Functions 자동 업데이트, 직접 수정 금지)
 reviewCount         : number    // 리뷰 수 (Cloud Functions 자동 업데이트, 직접 수정 금지)
