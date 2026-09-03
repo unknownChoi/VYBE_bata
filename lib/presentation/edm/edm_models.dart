@@ -18,6 +18,13 @@ const Color kEdmAccent = Color(0xFF7731FE);
 /// 다크 배경 위 퍼플 텍스트 (디자인 ACC_TXT).
 const Color kEdmAccentText = Color(0xFFB694FF);
 
+/// 아직 시작 안 한 셋의 톤 (디자인 v1 `ENERGY.high`).
+///
+/// ⚠ [kEdmAccentText]보다 한 단계 밝다 — 디자인이 v1에서 `#B694FF` → `#C8A8FF`로
+/// 올렸다. 타임라인이 라임(지금) 중심이 되면서 예정 셋이 배경에 묻혔기 때문.
+/// 클럽 그리드는 여전히 [kEdmAccentText]를 쓴다(그쪽 디자인은 안 바뀌었다).
+const Color kEdmUpcoming = Color(0xFFC8A8FF);
+
 /// 지금 진행 중 강조 — 브랜드 라임(디자인 HOT).
 const Color kEdmHot = Color(0xFFB5FF60);
 

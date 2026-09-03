@@ -1,26 +1,29 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
-import 'package:vybe/presentation/clubs/club_detail_route.dart';
 import 'package:vybe/presentation/common/night_clock.dart';
-import 'package:vybe/presentation/common/widgets/vybe_aurora.dart';
-import 'package:vybe/presentation/common/widgets/vybe_skeleton.dart';
 import 'package:vybe/presentation/edm/edm_models.dart';
 import 'package:vybe/presentation/edm/widgets/edm_chrome.dart';
-import 'package:vybe/presentation/edm/widgets/edm_equalizer.dart';
-import 'package:vybe/presentation/edm/widgets/edm_set_card.dart';
+import 'package:vybe/presentation/edm/widgets/edm_time_row.dart';
 
-// 타임라인 좌측 시각 열 폭(dp). 디자인은 36 이지만 'HH:mm'(13sp·w700)이 딱 맞아
-// 폰트·기기에 따라 한 글자가 밀려 두 줄이 된다. 힙합 라인업(46)과 같은 폭으로 맞췄다.
-// 시각 행·NOW 마커·스켈레톤이 같은 값을 써야 점과 카드가 세로로 안 어긋난다.
-const double _kTimeColW = 46;
+/// 또렷하게 보여줄 줄 수. 디자인(edm_renew_v1.jsx) `clear = shown.slice(0, 3)`.
+const int _kClearRows = 3;
 
-/// 'DJ 타임테이블' 섹션 — 오늘 EDM 공연을 시작 시각순 타임라인으로.
+/// 그 아래 흐리게 비치는 줄 수. 디자인 `faded = shown.slice(3, 5)`.
+const int _kPeekRows = 2;
+
+/// 흐린 미리보기 칸 높이(dp). 디자인 `height: 128`.
+const double _kPeekH = 128;
+
+/// 'DJ 공연 일정' 섹션 — 오늘 EDM 공연을 시작 시각순 타임라인으로.
 ///
-/// '종료된 공연 접기/펼치기'는 이 섹션 안에서만 쓰는 상태라
-/// 화면(EdmScreen)이 아니라 여기가 들고 있는다.
-class EdmTimetable extends StatefulWidget {
+/// 디자인(edm_renew_v1.jsx `Schedule`) 기준. 앞의 [_kClearRows]줄만 또렷하게 보여주고
+/// 다음 [_kPeekRows]줄은 흐리게 깔아 '더 있다'를 말한 뒤, 그 위에 **전체보기**를 얹는다.
+/// 종료된 공연은 이 섹션에서 빠진다 — 전체 일정 페이지가 전부 보여준다.
+class EdmTimetable extends StatelessWidget {
   final List<EdmSet> sets;
   final bool loading;
 
@@ -30,6 +33,9 @@ class EdmTimetable extends StatefulWidget {
   final Set<Object> saved;
   final ValueChanged<Object> onSave;
 
+  /// 전체보기 — 공연 전체 일정 페이지로.
+  final VoidCallback onSeeAll;
+
   const EdmTimetable({
     super.key,
     required this.sets,
@@ -37,84 +43,102 @@ class EdmTimetable extends StatefulWidget {
     required this.now,
     required this.saved,
     required this.onSave,
+    required this.onSeeAll,
   });
 
-  @override
-  State<EdmTimetable> createState() => _EdmTimetableState();
-}
-
-class _EdmTimetableState extends State<EdmTimetable> {
-  bool _showPast = false;
-
   int get _nowMin {
-    var h = widget.now.hour;
+    var h = now.hour;
     if (h < 6) h += 24;
-    return h * 60 + widget.now.minute;
+    return h * 60 + now.minute;
   }
 
   @override
   Widget build(BuildContext context) {
-    final all = [...widget.sets]
+    final all = [...sets]
       ..sort((a, b) => nightMinutes(a.time).compareTo(nightMinutes(b.time)));
 
     final nowMin = _nowMin;
     NightSlotStatus st(EdmSet s) => nightSlotStatus(s.time, nowMin);
 
-    final past = all.where((s) => st(s) == NightSlotStatus.past).toList();
-    final shown = _showPast
-        ? all
-        : all.where((s) => st(s) != NightSlotStatus.past).toList();
+    // ⚠ 라벨이 '곳'이라 **클럽 수**를 센다. 진행 중인 셋 수를 그대로 쓰면
+    // 한 클럽에서 두 셋이 겹칠 때 두 곳이라고 말하게 된다.
+    final liveVenues = all
+        .where((s) => st(s) == NightSlotStatus.live)
+        .map((s) => s.clubId.isEmpty ? s.id : s.clubId)
+        .toSet()
+        .length;
+
+    final left = all.where((s) => st(s) != NightSlotStatus.past).toList();
+    final clear = left.take(_kClearRows).toList();
+    final peek = left.skip(_kClearRows).take(_kPeekRows).toList();
+
+    // 섹션이 못 보여준 공연 수 — 종료된 공연도 여기 들어간다.
+    final hidden = all.length - clear.length;
 
     // NOW 마커는 '이미 시작한 마지막 셋' 아래에 놓는다.
     var markerAfter = -1;
-    for (var i = 0; i < shown.length; i++) {
-      if (nightMinutes(shown[i].time) <= nowMin) markerAfter = i;
+    for (var i = 0; i < clear.length; i++) {
+      if (nightMinutes(clear[i].time) <= nowMin) markerAfter = i;
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         EdmSectionHead(
-          title: 'DJ 타임테이블',
-          sub: widget.loading
-              ? edmDateLabel(widget.now)
-              : '${edmDateLabel(widget.now)} · 공연 ${widget.sets.length}개',
+          title: 'DJ 공연 일정',
+          sub: loading
+              ? edmDateLabel(now)
+              : '${edmDateLabel(now)} · 공연 ${sets.length}개',
+          // 0곳이면 pill 자체를 뺀다 — 강조색으로 '0'을 말하면 눈만 끈다.
+          right: !loading && liveVenues > 0
+              ? EdmLivePill(count: liveVenues)
+              : null,
         ),
-        if (widget.loading)
-          const _TimetableSkeleton()
-        else if (widget.sets.isEmpty)
+        if (loading)
+          const EdmTimelineSkeleton()
+        else if (sets.isEmpty)
           const _Empty(text: '오늘 예정된 EDM 공연이 없어요')
         else ...[
-          if (past.isNotEmpty)
-            Padding(
-              padding: EdgeInsets.only(left: 16.w, right: 16.w, bottom: 12.h),
-              child: _PastToggle(
-                count: past.length,
-                open: _showPast,
-                onTap: () => setState(() => _showPast = !_showPast),
-              ),
-            ),
-          if (shown.isEmpty)
+          if (clear.isEmpty)
             const _Empty(text: '오늘 남은 EDM 공연이 없어요')
           else
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.w),
               child: Column(
                 children: [
-                  for (var i = 0; i < shown.length; i++) ...[
-                    _TimeRow(
-                      set: shown[i],
-                      status: st(shown[i]),
+                  for (var i = 0; i < clear.length; i++) ...[
+                    EdmTimeRow(
+                      set: clear[i],
+                      status: st(clear[i]),
                       nowMin: nowMin,
                       first: i == 0,
-                      last: i == shown.length - 1,
-                      saved: widget.saved.contains(shown[i].id),
-                      onSave: () => widget.onSave(shown[i].id),
+                      last: peek.isEmpty && i == clear.length - 1,
+                      saved: saved.contains(clear[i].id),
+                      onSave: () => onSave(clear[i].id),
                     ),
-                    if (i == markerAfter && i < shown.length - 1)
-                      _NowMarker(label: edmClock(widget.now)),
+                    if (i == markerAfter &&
+                        (i < clear.length - 1 || peek.isNotEmpty))
+                      EdmNowMarker(label: edmClock(now)),
                   ],
+                  if (peek.isNotEmpty)
+                    _Peek(
+                      rows: peek,
+                      nowMin: nowMin,
+                      statusOf: st,
+                      total: all.length,
+                      onTap: onSeeAll,
+                    ),
                 ],
+              ),
+            ),
+          // ⚠ 미리보기 줄이 없어도 갈 길은 남겨 둔다 — 디자인은 흐린 줄 위에만
+          // 전체보기를 얹지만, 밤이 깊어 남은 공연이 3개 이하가 되면 그 버튼이
+          // 통째로 사라져 **종료된 공연을 다시 볼 방법이 없어진다**.
+          if (peek.isEmpty && hidden > 0)
+            Padding(
+              padding: EdgeInsets.only(top: clear.isEmpty ? 0 : 4.h),
+              child: Center(
+                child: _SeeAllPill(total: all.length, onTap: onSeeAll),
               ),
             ),
         ],
@@ -123,298 +147,153 @@ class _EdmTimetableState extends State<EdmTimetable> {
   }
 }
 
-/// 타임라인 한 줄 — 시각 / 레일(선·점) / 셋 카드.
-class _TimeRow extends StatelessWidget {
-  final EdmSet set;
-  final NightSlotStatus status;
+/// 흐리게 비치는 다음 줄들 + 그 위에 얹은 전체보기.
+///
+/// ⚠ 디자인은 잉크(#101013) 그라데이션을 **덮어서** 아래를 지우지만, 이 앱 배경은
+/// 평평한 잉크가 아니라 오로라라 그렇게 하면 칸 끝에 색 경계가 생긴다.
+/// 같은 알파 램프를 [BlendMode.dstIn] 마스크로 뒤집어 **줄이 스스로 투명해지게** 한다.
+class _Peek extends StatelessWidget {
+  final List<EdmSet> rows;
   final int nowMin;
-  final bool first;
-  final bool last;
-  final bool saved;
-  final VoidCallback onSave;
+  final NightSlotStatus Function(EdmSet) statusOf;
+  final int total;
+  final VoidCallback onTap;
 
-  const _TimeRow({
-    required this.set,
-    required this.status,
+  const _Peek({
+    required this.rows,
     required this.nowMin,
-    required this.first,
-    required this.last,
-    required this.saved,
-    required this.onSave,
+    required this.statusOf,
+    required this.total,
+    required this.onTap,
   });
 
-  @override
-  Widget build(BuildContext context) {
-    final live = status == NightSlotStatus.live;
-    final timeColor = switch (status) {
-      NightSlotStatus.live => kEdmAccentText,
-      NightSlotStatus.past => VybeColors.gray600,
-      NightSlotStatus.upcoming => Colors.white,
-    };
-    final dotColor = switch (status) {
-      NightSlotStatus.live => kEdmAccent,
-      NightSlotStatus.past => VybeColors.gray700,
-      NightSlotStatus.upcoming => VybeColors.gray500,
-    };
-
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SizedBox(
-            width: _kTimeColW.w,
-            child: Padding(
-              padding: EdgeInsets.only(top: 13.h),
-              child: Text(
-                set.time,
-                textAlign: TextAlign.right,
-                maxLines: 1,
-                softWrap: false,
-                style: VybeTypography.caption.copyWith(
-                  fontSize: 13.sp,
-                  height: 15 / 13,
-                  fontWeight: FontWeight.w700,
-                  color: timeColor,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
-              ),
-            ),
-          ),
-          SizedBox(width: 10.w),
-          SizedBox(
-            width: 13.w,
-            child: Stack(
-              alignment: Alignment.topCenter,
-              children: [
-                // 마지막 줄엔 선을 긋지 않는다 — 아래로 이어질 것이 없다.
-                if (!last)
-                  Positioned(
-                    top: first ? 20.h : 0,
-                    bottom: 0,
-                    child: SizedBox(
-                      width: 1.5.w,
-                      child: const ColoredBox(color: VybeColors.gray800),
-                    ),
-                  ),
-                if (live)
-                  Positioned(top: 14.h, child: const _LiveHalo()),
-                Positioned(
-                  top: 18.h,
-                  child: Container(
-                    width: 10.r,
-                    height: 10.r,
-                    decoration: BoxDecoration(
-                      color: dotColor,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: kVybeInk, width: 2),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(width: 10.w),
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(bottom: 12.h),
-              child: EdmSetCard(
-                set: set,
-                status: status,
-                nowMin: nowMin,
-                saved: saved,
-                onSave: onSave,
-                onTap: () {
-                  if (set.clubId.isNotEmpty) openClubDetail(context, set.clubId);
-                },
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// 진행 중 점 뒤에서 숨 쉬는 보라 후광.
-class _LiveHalo extends StatefulWidget {
-  const _LiveHalo();
-
-  @override
-  State<_LiveHalo> createState() => _LiveHaloState();
-}
-
-class _LiveHaloState extends State<_LiveHalo>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1800),
-  )..repeat(reverse: true);
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: Tween(begin: 0.55, end: 1.0).animate(
-        CurvedAnimation(parent: _c, curve: Curves.easeInOut),
-      ),
-      child: Container(
-        width: 18.r,
-        height: 18.r,
-        decoration: BoxDecoration(
-          color: kEdmAccent.withValues(alpha: 0.40),
-          shape: BoxShape.circle,
-        ),
-      ),
-    );
-  }
-}
-
-/// 'NOW HH:mm' 마커 — 지금이 타임라인의 어디인지.
-class _NowMarker extends StatelessWidget {
-  final String label;
-  const _NowMarker({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 12.h),
-      child: Row(
-        children: [
-          SizedBox(width: _kTimeColW.w),
-          SizedBox(width: 10.w),
-          SizedBox(
-            width: 13.w,
-            child: Center(
-              child: SizedBox(
-                width: 1.5.w,
-                height: 24.h,
-                child: const ColoredBox(color: VybeColors.gray800),
-              ),
-            ),
-          ),
-          SizedBox(width: 10.w),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 9.w, vertical: 4.h),
-            decoration: BoxDecoration(
-              color: kEdmHot,
-              borderRadius: BorderRadius.circular(99.r),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const EdmEqualizer(color: kEdmOnHot, size: 9, bars: 3),
-                SizedBox(width: 5.w),
-                Text(
-                  'NOW $label',
-                  style: VybeTypography.caption.copyWith(
-                    fontSize: 11.sp,
-                    height: 12 / 11,
-                    fontWeight: FontWeight.w800,
-                    color: kEdmOnHot,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(width: 8.w),
-          const Expanded(child: _DashedLine()),
-        ],
-      ),
-    );
-  }
-}
-
-class _DashedLine extends StatelessWidget {
-  const _DashedLine();
+  // 디자인 overlay 알파(0 / .5 / .9 / 1)를 남는 알파로 뒤집은 값.
+  static const _fade = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [
+      Color(0xFFFFFFFF),
+      Color(0x80FFFFFF),
+      Color(0x1AFFFFFF),
+      Color(0x00FFFFFF),
+    ],
+    stops: [0, 0.34, 0.70, 0.94],
+  );
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 1.h,
-      child: CustomPaint(
-        painter: _DashPainter(kEdmHot.withValues(alpha: 0.6)),
-        size: Size.infinite,
+      height: _kPeekH.h,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            // 흐린 줄은 '더 있다'는 신호일 뿐 — 탭도 스크린리더도 받지 않는다.
+            child: IgnorePointer(
+              child: ExcludeSemantics(
+                child: ShaderMask(
+                  blendMode: BlendMode.dstIn,
+                  shaderCallback: _fade.createShader,
+                  // ⚠ ClipRect 가 ShaderMask 안에 있어야 한다 — 마스크 밖으로
+                  //   삐져나간 그림이 있으면 dstIn 합성 결과가 어긋난다.
+                  child: ClipRect(
+                    child: OverflowBox(
+                      alignment: Alignment.topCenter,
+                      minHeight: 0,
+                      maxHeight: double.infinity,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          for (var i = 0; i < rows.length; i++)
+                            Opacity(
+                              opacity: (0.62 - i * 0.30).clamp(0.0, 1.0),
+                              child: ImageFiltered(
+                                imageFilter: ui.ImageFilter.blur(
+                                  sigmaX: 2.4 + i * 3.6,
+                                  sigmaY: 2.4 + i * 3.6,
+                                ),
+                                child: EdmTimeRow(
+                                  set: rows[i],
+                                  status: statusOf(rows[i]),
+                                  nowMin: nowMin,
+                                  first: false,
+                                  last: i == rows.length - 1,
+                                  saved: false,
+                                  onSave: () {},
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned.fill(
+            child: Center(
+              child: _SeeAllPill(total: total, onTap: onTap),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _DashPainter extends CustomPainter {
-  final Color color;
-  const _DashPainter(this.color);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = size.height;
-    const dash = 5.0, gap = 5.0;
-    for (var x = 0.0; x < size.width; x += dash + gap) {
-      canvas.drawLine(
-        Offset(x, size.height / 2),
-        Offset((x + dash).clamp(0, size.width), size.height / 2),
-        paint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(_DashPainter old) => old.color != color;
-}
-
-class _PastToggle extends StatelessWidget {
-  final int count;
-  final bool open;
+/// `전체보기 N ›` — 공연 전체 일정 페이지로 가는 보라 pill.
+class _SeeAllPill extends StatelessWidget {
+  final int total;
   final VoidCallback onTap;
-  const _PastToggle({
-    required this.count,
-    required this.open,
-    required this.onTap,
-  });
+
+  const _SeeAllPill({required this.total, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          height: 30.h,
-          padding: EdgeInsets.symmetric(horizontal: 12.w),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: VybeColors.gray900,
-            borderRadius: BorderRadius.circular(99.r),
-            border: Border.all(color: VybeColors.gray800),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                open ? '종료된 공연 접기' : '종료된 공연 $count개 보기',
-                style: VybeTypography.caption.copyWith(
-                  height: 14 / 12,
-                  fontWeight: FontWeight.w600,
-                  color: VybeColors.gray400,
-                ),
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        height: 38.h,
+        padding: EdgeInsets.symmetric(horizontal: 18.w),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: kEdmAccent,
+          borderRadius: BorderRadius.circular(99.r),
+          boxShadow: [
+            BoxShadow(
+              color: kEdmAccent.withValues(alpha: 0.42),
+              blurRadius: 20.r,
+              offset: Offset(0, 6.h),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '전체보기',
+              style: VybeTypography.button2.copyWith(
+                fontSize: 14.sp,
+                height: 16 / 14,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
               ),
-              SizedBox(width: 5.w),
-              Icon(
-                open
-                    ? Icons.keyboard_arrow_up_rounded
-                    : Icons.keyboard_arrow_down_rounded,
-                size: 15.r,
-                color: VybeColors.gray500,
+            ),
+            SizedBox(width: 6.w),
+            Text(
+              '$total',
+              style: VybeTypography.caption.copyWith(
+                fontSize: 12.sp,
+                height: 13 / 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.white.withValues(alpha: 0.62),
+                fontFeatures: const [FontFeature.tabularFigures()],
               ),
-            ],
-          ),
+            ),
+            SizedBox(width: 6.w),
+            Icon(Icons.chevron_right_rounded, size: 15.r, color: Colors.white),
+          ],
         ),
       ),
     );
@@ -436,35 +315,6 @@ class _Empty extends StatelessWidget {
           textAlign: TextAlign.center,
           style: VybeTypography.body4.copyWith(color: VybeColors.gray500),
         ),
-      ),
-    );
-  }
-}
-
-class _TimetableSkeleton extends StatelessWidget {
-  const _TimetableSkeleton();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w),
-      child: Column(
-        children: [
-          for (var i = 0; i < 3; i++)
-            Padding(
-              padding: EdgeInsets.only(bottom: 12.h),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: _kTimeColW.w,
-                    child: VybeSkel(height: 13.h, radius: 4),
-                  ),
-                  SizedBox(width: 23.w),
-                  Expanded(child: VybeSkel(height: 92.h, radius: 14)),
-                ],
-              ),
-            ),
-        ],
       ),
     );
   }

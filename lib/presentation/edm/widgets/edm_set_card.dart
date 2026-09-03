@@ -8,9 +8,12 @@ import 'package:vybe/presentation/edm/widgets/edm_equalizer.dart';
 
 /// 타임테이블 셋 카드 1장 — 클럽 · DJ · 세부 장르 · 지역/거리 · 진행 상태.
 ///
-/// 디자인(edm_renew.jsx `SetCard`)의 좌측 액센트 바 색은 BPM(에너지)에서 나오는데
+/// 디자인(edm_renew_v1.jsx `SetCard`)의 좌측 액센트 바 색은 BPM(에너지)에서 나오는데
 /// performances 에 BPM 이 없다. **진행 상태**로 대신 칠한다 — 없는 값을 지어내느니
 /// 이미 아는 것을 색으로 말한다.
+///
+/// ⚠ 진행 중 카드는 **라임**이다 (디자인 v1). 예전엔 퍼플이었는데, 같은 화면의
+/// NOW 마커·`N곳 플레이 중` pill 이 라임이라 '지금'을 말하는 색이 둘로 갈렸다.
 class EdmSetCard extends StatelessWidget {
   final EdmSet set;
   final NightSlotStatus status;
@@ -36,7 +39,7 @@ class EdmSetCard extends StatelessWidget {
   /// 상태별 강조색 — 진행 중은 라임, 예정은 보라, 종료는 회색.
   Color get _tone => switch (status) {
     NightSlotStatus.live => kEdmHot,
-    NightSlotStatus.upcoming => kEdmAccentText,
+    NightSlotStatus.upcoming => kEdmUpcoming,
     NightSlotStatus.past => VybeColors.gray500,
   };
 
@@ -52,7 +55,7 @@ class EdmSetCard extends StatelessWidget {
     final radius = BorderRadius.circular(14.r);
 
     return Opacity(
-      opacity: status == NightSlotStatus.past ? 0.5 : 1,
+      opacity: status == NightSlotStatus.past ? 0.52 : 1,
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
@@ -60,20 +63,21 @@ class EdmSetCard extends StatelessWidget {
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             color: live ? null : VybeColors.gray900,
-            // 진행 중 카드만 보라 그라데이션 — 목록에서 눈이 먼저 닿는 자리.
+            // 진행 중 카드만 라임 그라데이션 — 목록에서 눈이 먼저 닿는 자리.
+            // 디자인 v1 `linear-gradient(120deg, rgba(181,255,96,.13), rgba(20,24,28,.6))`.
             gradient: live
                 ? const LinearGradient(
                     begin: Alignment(-0.87, -0.5),
                     end: Alignment(0.87, 0.5),
-                    colors: [Color(0x4D7731FE), Color(0x8C231A3A)],
+                    colors: [Color(0x21B5FF60), Color(0x9914181C)],
                   )
                 : null,
             borderRadius: radius,
             boxShadow: live
                 ? [
                     BoxShadow(
-                      color: kEdmAccent.withValues(alpha: 0.26),
-                      blurRadius: 24.r,
+                      color: kEdmHot.withValues(alpha: 0.14),
+                      blurRadius: 22.r,
                       offset: Offset(0, 6.h),
                     ),
                   ]
@@ -84,7 +88,7 @@ class EdmSetCard extends StatelessWidget {
           foregroundDecoration: BoxDecoration(
             border: Border.all(
               color: live
-                  ? kEdmAccent.withValues(alpha: 0.55)
+                  ? kEdmHot.withValues(alpha: 0.55)
                   : VybeColors.gray800,
             ),
             borderRadius: radius,

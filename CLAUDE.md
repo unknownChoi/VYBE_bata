@@ -715,10 +715,11 @@ grep -rn "border: Border.all" lib/presentation/   # 후보 추린 뒤 ClipRRect/
     - 탈퇴 화면 타임라인·완료 오버레이 문구도 '보관 기간엔 로그인도 막힌다' → '다시 로그인하면
       복구된다'로 수정 (**새 가입은 여전히 파기일 이후**)
   - 배포 순서·주의는 아래 '미구현' 항목 참고. 상세 설계는 `firebase_structure.html#account-deletion`
-- **EDM 장르 페이지 (2026.08.28)** — `edm_renew.html` 디자인 이식. 인트로 히어로(기존 이미지) +
-  **DJ 타임테이블** + **주변 EDM 클럽 추천** 2섹션. 데이터는 오늘 `performances`(genre=EDM) +
-  `clubs`(genre=EDM) 실연동 — 조각은 `presentation/edm/`
-  (`edm_models.dart` · `viewmodels/edm_viewmodel.dart` · `widgets/edm_{timetable,set_card,club_grid,chrome,equalizer}.dart`)
+- **EDM 장르 페이지 (2026.08.28 · 전체보기 2026.09.03)** — `edm_renew.html` → `edm_renew_v1.html`
+  디자인 이식. 인트로 히어로(기존 이미지) + **DJ 공연 일정** + **주변 EDM 클럽 추천** 2섹션.
+  데이터는 오늘 `performances`(genre=EDM) + `clubs`(genre=EDM) 실연동 — 조각은 `presentation/edm/`
+  (`edm_models.dart` · `viewmodels/edm_viewmodel.dart` · `edm_schedule_screen.dart` ·
+  `widgets/edm_{timetable,time_row,set_card,club_grid,chrome,equalizer}.dart`)
   - **디자인에 있지만 데이터가 없어 뺀 것** — 셋 종료 시각 · BPM(에너지 등급) · 세부 장르.
     `performances`에 그 필드가 없다. 대신 **시작 후 60분 = 진행 중**(공용 `night_clock.dart` 규칙)으로
     상태를 판정하고, 좌측 액센트 바 색·DJ 이름 색을 그 상태로 칠한다. 없는 값을 지어내지 않는다
@@ -736,7 +737,28 @@ grep -rn "border: Border.all" lib/presentation/   # 후보 추린 뒤 ClipRRect/
     테스트도 `test/vybe_club_poster_card_test.dart`로 이동
   - **클럽 조회는 `getClubsByGenre(genre)`로 일반화** (구 `getHipHopClubs()`) — 힙합·EDM이 같은 쿼리
   - 그리드 타일은 디자인대로 **LIVE 뱃지를 안 단다** — 바로 위 타임테이블이 오늘 라인업을 이미 말한다
-  - 테스트 `test/edm_timetable_test.dart` 5건(진행 상태 표기 · 종료 공연 접기 · 장르 칩 · 빈 상태)
+  - **전체보기 · 전체 일정 페이지 (2026.09.03 — `edm_renew_v1.jsx` · `edm_schedule.jsx` 이식)** —
+    섹션 이름이 'DJ 타임테이블' → **'DJ 공연 일정'**. 앞 3줄만 또렷하게 그리고 다음 2줄은
+    흐리게 깐 뒤 그 위에 `전체보기 N ›`(보라 pill)을 얹는다. 누르면
+    `EdmScheduleScreen`(`edm_schedule_screen.dart`)으로 — **종료된 공연까지 전부** 시간순.
+    구 '종료된 공연 N개 보기' 토글은 대체·삭제됨
+    - **타임라인 조각은 `widgets/edm_time_row.dart` 하나** (`EdmTimeRow` · `EdmNowMarker` ·
+      `EdmTimelineSkeleton` · `kEdmTimeColW`). 섹션과 전체 페이지가 같이 쓴다 — 복붙으로 나누면
+      두 화면이 같은 공연을 다르게 그린다
+    - ⚠ **미리보기 줄이 없어도 전체보기는 남긴다** — 디자인은 흐린 줄 위에만 버튼을 얹지만,
+      밤이 깊어 남은 공연이 3개 이하가 되면 그 버튼이 통째로 사라져 **종료된 공연을 다시 볼
+      방법이 없어진다**. 그때는 목록 아래 평범한 pill로 그린다(디자인과 의도적 차이)
+    - ⚠ **흐린 미리보기는 잉크를 덮지 않고 [BlendMode.dstIn] 마스크로 지운다** — 디자인은
+      평평한 #101013 위라 그라데이션을 덮지만, 이 앱 배경은 오로라라 그러면 칸 끝에 색 경계가
+      생긴다. 알파 램프(0/.5/.9/1 → 남는 알파로 뒤집음)는 그대로
+    - ⚠ 헤드 우측 `N곳 플레이 중` pill은 **클럽 수**를 센다(라벨이 '곳'). 진행 중인 셋 수를
+      그대로 쓰면 한 클럽에서 두 셋이 겹칠 때 두 곳이라고 말하게 된다. 0곳이면 pill 자체를 뺀다
+    - ⚠ 전체 페이지도 **디자인의 세부 장르 칩은 뺐다** — `genreStyles` 폐기와 같은 이유
+    - 하트는 두 화면 모두 화면 상태일 뿐(찜 미연동)이지만, 페이지를 열 때 넘겨받고 누를 때
+      부모에도 알려 **돌아갔을 때 어긋나지 않게** 한다
+    - 데이터는 같은 `edmViewModelProvider` — 뒤 화면이 살아 있어 캐시를 그대로 쓴다(추가 read 0)
+  - 테스트 `test/edm_timetable_test.dart` 6건(진행 상태 표기 · 앞 3줄 + 흐린 2줄 · 남은 공연 0일 때
+    전체보기 유지 · 전체보기 탭 · 빈 상태 · 전체 일정 페이지)
 
 ### 미구현 / 진행 중 ✗
 - **시간대별 무료입장 — 앱 전 화면 완료, Algolia 색인만 남음 (2026.08.21)**

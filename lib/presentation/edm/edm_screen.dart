@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vybe/core/navigation/swipe_back_page_route.dart';
 import 'package:vybe/core/providers/location_providers.dart';
 import 'package:vybe/data/models/club_model.dart';
 import 'package:vybe/data/models/performance_model.dart';
 import 'package:vybe/presentation/common/widgets/vybe_aurora.dart';
 import 'package:vybe/presentation/common/widgets/vybe_glass_header.dart';
 import 'package:vybe/presentation/edm/edm_models.dart';
+import 'package:vybe/presentation/edm/edm_schedule_screen.dart';
 import 'package:vybe/presentation/edm/viewmodels/edm_viewmodel.dart';
 import 'package:vybe/presentation/edm/widgets/edm_club_grid.dart';
 import 'package:vybe/presentation/edm/widgets/edm_hero.dart';
@@ -30,6 +32,16 @@ class _EdmScreenState extends ConsumerState<EdmScreen> {
   void _toggleSave(Object id) => setState(() {
     _saved.contains(id) ? _saved.remove(id) : _saved.add(id);
   });
+
+  /// 'DJ 공연 일정 > 전체보기' — 종료된 공연까지 전부 보여주는 페이지.
+  /// 하트 상태를 같이 넘겨 두 화면이 같은 공연을 다르게 말하지 않게 한다.
+  void _openSchedule() {
+    Navigator.of(context).push(
+      SwipeBackPageRoute<void>(
+        builder: (_) => EdmScheduleScreen(saved: _saved, onSave: _toggleSave),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -81,6 +93,7 @@ class _EdmScreenState extends ConsumerState<EdmScreen> {
                     now: now,
                     saved: _saved,
                     onSave: _toggleSave,
+                    onSeeAll: _openSchedule,
                   ),
                   SizedBox(height: 46.h),
                   EdmClubGrid(
