@@ -119,7 +119,7 @@ Widget _scheduleApp(List<PerformanceModel> perfs) => ProviderScope(
 );
 
 void main() {
-  testWidgets('종료된 공연은 섹션에서 빠지고 전체보기가 전부를 센다', (tester) async {
+  testWidgets('종료된 공연은 섹션에서 빠지고 전체보기로만 갈 수 있다', (tester) async {
     _wideScreen(tester);
 
     await tester.pumpWidget(_host(_sets));
@@ -134,9 +134,8 @@ void main() {
     // 종료(22:00)는 섹션에서 빠진다 — 전체 일정 페이지가 보여준다.
     expect(find.text('알파'), findsNothing);
 
-    // 전체보기가 세는 건 남은 공연이 아니라 **오늘 전체**.
+    // 종료·미표시 공연으로 가는 길은 전체보기 하나.
     expect(find.text('전체보기'), findsOneWidget);
-    expect(find.text('3'), findsOneWidget);
 
     // 진행 중인 '곳' 수 — 같은 클럽 두 셋을 두 곳으로 세지 않는다.
     expect(find.text('1곳 플레이 중'), findsOneWidget);
@@ -163,7 +162,6 @@ void main() {
     expect(find.text('알파'), findsNothing);
 
     expect(find.text('전체보기'), findsOneWidget);
-    expect(find.text('7'), findsOneWidget);
   });
 
   testWidgets('남은 공연이 없어도 전체보기로 종료된 공연에 갈 수 있다', (tester) async {
@@ -174,7 +172,6 @@ void main() {
 
     expect(find.text('오늘 남은 EDM 공연이 없어요'), findsOneWidget);
     expect(find.text('전체보기'), findsOneWidget);
-    expect(find.text('1'), findsOneWidget);
   });
 
   testWidgets('전체보기를 누르면 콜백이 온다', (tester) async {

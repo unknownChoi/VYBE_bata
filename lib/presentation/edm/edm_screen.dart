@@ -95,7 +95,8 @@ class _EdmScreenState extends ConsumerState<EdmScreen> {
                     onSave: _toggleSave,
                     onSeeAll: _openSchedule,
                   ),
-                  SizedBox(height: 46.h),
+                  // 디자인은 46이지만 전체보기 버튼 아래가 비어 보여 줄였다.
+                  SizedBox(height: 24.h),
                   EdmClubGrid(
                     clubs: posters,
                     clubById: clubById,

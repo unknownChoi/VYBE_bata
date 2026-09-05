@@ -15,8 +15,10 @@ const int _kClearRows = 3;
 /// 그 아래 흐리게 비치는 줄 수. 디자인 `faded = shown.slice(3, 5)`.
 const int _kPeekRows = 2;
 
-/// 흐린 미리보기 칸 높이(dp). 디자인 `height: 128`.
-const double _kPeekH = 128;
+/// 흐린 미리보기 칸 높이(dp). 디자인은 `height: 128`이지만 112로 줄였다 —
+/// 버튼이 칸 한가운데 앉아 있어 남는 아래 절반이 그대로 빈 여백으로 보인다.
+/// 마스크가 94%에서 이미 투명이라 잘리는 그림도 없다.
+const double _kPeekH = 112;
 
 /// 'DJ 공연 일정' 섹션 — 오늘 EDM 공연을 시작 시각순 타임라인으로.
 ///
@@ -125,7 +127,6 @@ class EdmTimetable extends StatelessWidget {
                       rows: peek,
                       nowMin: nowMin,
                       statusOf: st,
-                      total: all.length,
                       onTap: onSeeAll,
                     ),
                 ],
@@ -137,9 +138,7 @@ class EdmTimetable extends StatelessWidget {
           if (peek.isEmpty && hidden > 0)
             Padding(
               padding: EdgeInsets.only(top: clear.isEmpty ? 0 : 4.h),
-              child: Center(
-                child: _SeeAllPill(total: all.length, onTap: onSeeAll),
-              ),
+              child: _SeeAll(onTap: onSeeAll),
             ),
         ],
       ],
@@ -156,14 +155,12 @@ class _Peek extends StatelessWidget {
   final List<EdmSet> rows;
   final int nowMin;
   final NightSlotStatus Function(EdmSet) statusOf;
-  final int total;
   final VoidCallback onTap;
 
   const _Peek({
     required this.rows,
     required this.nowMin,
     required this.statusOf,
-    required this.total,
     required this.onTap,
   });
 
@@ -231,9 +228,7 @@ class _Peek extends StatelessWidget {
             ),
           ),
           Positioned.fill(
-            child: Center(
-              child: _SeeAllPill(total: total, onTap: onTap),
-            ),
+            child: Center(child: _SeeAll(onTap: onTap)),
           ),
         ],
       ),
@@ -241,35 +236,27 @@ class _Peek extends StatelessWidget {
   }
 }
 
-/// `전체보기 N ›` — 공연 전체 일정 페이지로 가는 보라 pill.
-class _SeeAllPill extends StatelessWidget {
-  final int total;
+/// `전체보기 ›` — 공연 전체 일정 페이지로 가는 텍스트 링크.
+///
+/// 디자인(edm_renew_v1.jsx)은 흐린 줄 위에 **배경 없는 라임 글자**만 얹는다 —
+/// 채운 pill을 쓰면 미리보기 줄을 가리는 판이 하나 더 생겨 '뒤에 더 있다'는
+/// 신호가 죽는다. 개수는 섹션 부제(`공연 N개`)가 이미 말한다.
+class _SeeAll extends StatelessWidget {
   final VoidCallback onTap;
 
-  const _SeeAllPill({required this.total, required this.onTap});
+  const _SeeAll({required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: Container(
-        height: 38.h,
-        padding: EdgeInsets.symmetric(horizontal: 18.w),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: kEdmAccent,
-          borderRadius: BorderRadius.circular(99.r),
-          boxShadow: [
-            BoxShadow(
-              color: kEdmAccent.withValues(alpha: 0.42),
-              blurRadius: 20.r,
-              offset: Offset(0, 6.h),
-            ),
-          ],
-        ),
+      child: SizedBox(
+        // 디자인 `height: 46` — 글자만 남아도 탭 타겟은 그대로 둔다.
+        height: 46.h,
+        width: double.infinity,
         child: Row(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
               '전체보기',
@@ -277,22 +264,11 @@ class _SeeAllPill extends StatelessWidget {
                 fontSize: 14.sp,
                 height: 16 / 14,
                 fontWeight: FontWeight.w700,
-                color: Colors.white,
+                color: kEdmHot,
               ),
             ),
-            SizedBox(width: 6.w),
-            Text(
-              '$total',
-              style: VybeTypography.caption.copyWith(
-                fontSize: 12.sp,
-                height: 13 / 12,
-                fontWeight: FontWeight.w600,
-                color: Colors.white.withValues(alpha: 0.62),
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-            ),
-            SizedBox(width: 6.w),
-            Icon(Icons.chevron_right_rounded, size: 15.r, color: Colors.white),
+            SizedBox(width: 4.w),
+            Icon(Icons.chevron_right_rounded, size: 16.r, color: kEdmHot),
           ],
         ),
       ),

@@ -1,5 +1,3 @@
-import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -10,6 +8,7 @@ import 'package:vybe/design_system/colors.dart';
 import 'package:vybe/design_system/typography.dart';
 import 'package:vybe/presentation/common/night_clock.dart';
 import 'package:vybe/presentation/common/widgets/vybe_aurora.dart';
+import 'package:vybe/presentation/common/widgets/vybe_glass_button.dart';
 import 'package:vybe/presentation/edm/edm_models.dart';
 import 'package:vybe/presentation/edm/viewmodels/edm_viewmodel.dart';
 import 'package:vybe/presentation/edm/widgets/edm_chrome.dart';
@@ -186,96 +185,75 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final top = MediaQuery.paddingOf(context).top;
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ui.ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: kVybeInk.withValues(alpha: 0.94),
-            border: const Border(bottom: BorderSide(color: VybeColors.gray900)),
-          ),
-          child: Padding(
-            padding: EdgeInsets.only(top: top),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    // ⚠ 잉크 판·블러를 두지 않는다 — 목록은 이 바 **아래**에서 시작하므로
+    // 밑으로 지나가는 그림이 없다. 불투명 판만 오로라를 잘라 상단이 검게 보였다.
+    return Padding(
+      padding: EdgeInsets.only(top: top),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            height: 52.h,
+            child: Row(
               children: [
-                SizedBox(
-                  height: 52.h,
-                  child: Row(
-                    children: [
-                      SizedBox(width: 8.w),
-                      // 바가 이미 불투명해 유리 원 버튼(VybeGlassButton)은 겉돈다 —
-                      // 디자인대로 아이콘만. 40x40 이라 탭 타겟은 그대로 확보된다.
-                      GestureDetector(
-                        onTap: () => Navigator.of(context).maybePop(),
-                        behavior: HitTestBehavior.opaque,
-                        child: SizedBox(
-                          width: 40.w,
-                          height: 40.h,
-                          child: Icon(
-                            Icons.arrow_back_ios_new_rounded,
-                            size: 20.r,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: 4.w),
-                      Text(
-                        'DJ 공연 일정',
-                        style: TextStyle(
-                          fontFamily: 'Pretendard',
-                          fontSize: 17.sp,
-                          height: 20 / 17,
-                          letterSpacing: 17 * -0.025,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 14.h),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              loading ? '오늘 밤 공연' : '오늘 밤 공연 $count개',
-                              style: TextStyle(
-                                fontFamily: 'Pretendard',
-                                fontSize: 22.sp,
-                                height: 25 / 22,
-                                letterSpacing: 22 * -0.02,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
-                              ),
-                            ),
-                            SizedBox(height: 6.h),
-                            Text(
-                              dateLabel,
-                              style: VybeTypography.caption.copyWith(
-                                height: 16 / 12,
-                                color: VybeColors.gray500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (liveVenues > 0) ...[
-                        SizedBox(width: 12.w),
-                        EdmLivePill(count: liveVenues),
-                      ],
-                    ],
+                // 유리 원 버튼 — 다른 리뉴얼 화면(클럽 상세·EDM)과 같은 것.
+                // 44 탭 타겟 안에 38 원이라, 원 왼쪽 끝이 16에 맞게 13을 준다.
+                SizedBox(width: 13.w),
+                VybeGlassButton(onTap: () => Navigator.of(context).maybePop()),
+                SizedBox(width: 2.w),
+                Text(
+                  'DJ 공연 일정',
+                  style: TextStyle(
+                    fontFamily: 'Pretendard',
+                    fontSize: 17.sp,
+                    height: 20 / 17,
+                    letterSpacing: 17 * -0.025,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
                   ),
                 ),
               ],
             ),
           ),
-        ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 14.h),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        loading ? '오늘 밤 공연' : '오늘 밤 공연 $count개',
+                        style: TextStyle(
+                          fontFamily: 'Pretendard',
+                          fontSize: 22.sp,
+                          height: 25 / 22,
+                          letterSpacing: 22 * -0.02,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                      SizedBox(height: 6.h),
+                      Text(
+                        dateLabel,
+                        style: VybeTypography.caption.copyWith(
+                          height: 16 / 12,
+                          color: VybeColors.gray500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (liveVenues > 0) ...[
+                  SizedBox(width: 12.w),
+                  EdmLivePill(count: liveVenues),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
